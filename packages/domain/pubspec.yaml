@@ -9,8 +9,8 @@ environment:
 resolution: workspace
 
 dependencies:
-  meta: ^1.16.0
   collection: ^1.19.0
+  meta: ^1.16.0
   shared:
     path: ../shared
 

@@ -10,15 +10,15 @@ environment:
 resolution: workspace
 
 dependencies:
-  flutter:
-    sdk: flutter
-  domain:
-    path: ../../packages/domain
+  cupertino_icons: ^1.0.8
   data:
     path: ../../packages/data
+  domain:
+    path: ../../packages/domain
+  flutter:
+    sdk: flutter
   shared:
     path: ../../packages/shared
-  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:

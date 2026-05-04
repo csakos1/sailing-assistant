@@ -10,10 +10,10 @@ environment:
 resolution: workspace
 
 dependencies:
-  flutter:
-    sdk: flutter
   domain:
     path: ../domain
+  flutter:
+    sdk: flutter
   shared:
     path: ../shared
 
