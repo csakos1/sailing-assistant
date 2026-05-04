@@ -1,0 +1,17 @@
+{
+  "dart.lineLength": 100,
+  "editor.rulers": [100],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always",
+    "source.organizeImports": "always"
+  },
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.tabSize": 2
+  },
+  "files.associations": {
+    "*.arb": "json"
+  },
+  "dart.runPubGetOnPubspecChanges": "always"
+}

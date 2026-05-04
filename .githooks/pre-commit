@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+# A pub global activate-elt binary-k (mint a melos) ide kerülnek.
+# A git hook nem örökli a shell rc-t, ezért itt explicit hozzáadjuk.
+export PATH="$PATH:$HOME/.pub-cache/bin"
+
+if ! command -v melos >/dev/null 2>&1; then
+  echo "Error: 'melos' not found on PATH."
+  echo "Run: dart pub global activate melos"
+  exit 1
+fi
+
+melos run analyze
+melos run format-check
