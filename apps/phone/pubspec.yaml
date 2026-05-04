@@ -1,0 +1,28 @@
+name: phone
+description: Sailing Assistant phone app (race-time UI for the Pixel).
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  domain:
+    path: ../../packages/domain
+  data:
+    path: ../../packages/data
+  shared:
+    path: ../../packages/shared
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

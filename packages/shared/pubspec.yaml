@@ -1,0 +1,15 @@
+name: shared
+description: Cross-cutting utilities (Result type, extensions, constants).
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  meta: ^1.16.0
+
+dev_dependencies:
+  test: ^1.25.0

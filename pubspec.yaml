@@ -1,0 +1,62 @@
+name: sailing_assistant_workspace
+description: Sailing race assistant — monorepo workspace root.
+publish_to: none
+
+# A Pub Workspaces minden tagját itt soroljuk fel.
+# Az `apps/*` és `packages/*` glob-ok a Melos package-listájával is egyeznek.
+environment:
+  sdk: ^3.11.0
+
+workspace:
+  - packages/domain
+  - packages/data
+  - packages/shared
+  - apps/phone
+  - apps/watch
+  - tools/nmea_replay
+
+dev_dependencies:
+  melos: ^7.3.0
+  very_good_analysis: ^9.0.0
+
+# A `dart format` 100 karakter szélesre van állítva — egységesen
+# a teljes workspace-re. Ezt a Dart 3.7+ formatter olvassa fel.
+formatter:
+  page_width: 100
+
+# Melos 7+ konfigurációja a root pubspec-ben él, nem külön melos.yaml-ban.
+melos:
+  name: sailing_assistant
+  packages:
+    - packages/*
+    - apps/*
+    - tools/*
+
+  command:
+    bootstrap:
+      # `melos bootstrap` után minden package `pub get`-jét lefuttatja
+      # és linkeli a workspace-belieket egymáshoz.
+      runPubGetInParallel: true
+
+  scripts:
+    analyze:
+      description: "Statikus analízis minden package-en"
+      run: dart analyze --fatal-infos --fatal-warnings
+      exec:
+        concurrency: 4
+
+    format-check:
+      description: "Formattálás-ellenőrzés (CI-ben használjuk)"
+      run: dart format --output=none --set-exit-if-changed .
+      exec:
+        concurrency: 4
+
+    test:
+      description: "Tesztek futtatása minden package-en (ahol van)"
+      run: dart test
+      exec:
+        concurrency: 4
+        failFast: false
+      packageFilters:
+        dirExists:
+          - test
