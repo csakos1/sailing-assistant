@@ -52,11 +52,23 @@ melos:
         concurrency: 4
 
     test:
-      description: "Tesztek futtatása minden package-en (ahol van)"
+      description: "Összes teszt futtatása (Dart package-ek és Flutter app-ok)"
+      run: melos run test:dart && melos run test:flutter
+    test:dart:
+      description: "Pure Dart package tesztek (csak ahol van test/ mappa)"
       run: dart test
       exec:
         concurrency: 4
-        failFast: false
       packageFilters:
+        flutter: false
+        dirExists:
+          - test
+    test:flutter:
+      description: "Flutter app/package tesztek (csak ahol van test/ mappa)"
+      run: flutter test
+      exec:
+        concurrency: 4
+      packageFilters:
+        flutter: true
         dirExists:
           - test
