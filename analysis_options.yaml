@@ -17,3 +17,7 @@ linter:
   rules:
     # Privát projekt — nem teszünk doc string-et minden public memberre.
     public_member_api_docs: false
+    # A `dart format` 100 karakter szélesre van állítva (root pubspec.yaml
+    # `formatter: page_width: 100`), ezért a fix 80-karakteres soros lintet
+    # kikapcsoljuk hogy a formatter és a linter ne mondjon ellent.
+    lines_longer_than_80_chars: false
