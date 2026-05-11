@@ -1,6 +1,8 @@
-/// A `sailing_assistant` domain rétege — tisztán Dart, semmi Flutter
-/// vagy I/O függés. Ez a réteg 100%-ban unit-tesztelhető szárazföldön.
+/// A `domain` package nyilvános API-ja.
 ///
-/// Egyelőre placeholder — a tényleges entitások, value objectek és
-/// use case-ek Phase 1-ben kerülnek bele.
+/// Pure Dart, semmi Flutter — a domain réteg az NMEA mérésekből
+/// kiszámolt vitorláshajózási intelligenciát tartalmazza: value
+/// objektumok, entitások, use case-ek, és repository interfészek.
 library;
+
+export 'src/value_objects/coordinate.dart';
