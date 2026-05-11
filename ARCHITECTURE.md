@@ -1959,7 +1959,7 @@ chmod +x .githooks/pre-commit
 
 ### 16.1 `.github/workflows/ci.yml`
 
-Minden PR-en és push-on:
+Minden PR-en és push-on. **A tényleges fájl ezt tartalmazza:**
 
 ```yaml
 name: CI
@@ -1973,38 +1973,46 @@ jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: '3.24.x'
+          flutter-version: '3.41.x'
           cache: true
 
-      - name: Install Melos
+      - name: Activate Melos
         run: dart pub global activate melos
 
-      - name: Bootstrap
+      - name: Add pub-cache bin to PATH
+        run: echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Bootstrap workspace
         run: melos bootstrap
 
       - name: Analyze
         run: melos run analyze
 
       - name: Format check
-        run: dart format --output=none --set-exit-if-changed .
+        run: melos run format-check
 
-      - name: Run tests
+      - name: Test
         run: melos run test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
 ```
+
+> **Coverage upload (codecov) — Phase 5+-ra halasztva.** A 12.7 szakasz
+> coverage célja (összprojekt ≥ 75 %) érvényes marad; az automatikus
+> codecov upload step akkor kerül be, amikor mindhárom rétegen (domain,
+> data, application/presentation) érdemben futnak tesztek és van
+> értelmes mérendő. Phase 1–4 alatt a coverage helyi `melos run test`
+> kimenetén nézhető.
 
 ### 16.2 `.github/workflows/build.yml`
 
-Main push-on APK build:
+Main push-on APK build. **Még nincs implementálva** — Phase 5+ után jön,
+amikor van mit build-elni release-ként. A tervezett tartalom:
 
 ```yaml
 name: Build APK
@@ -2018,7 +2026,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-java@v4
         with:
@@ -2028,7 +2036,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: '3.24.x'
+          flutter-version: '3.41.x'
 
       - run: dart pub global activate melos
       - run: melos bootstrap
@@ -2056,7 +2064,7 @@ jobs:
 - Push vagy PR esemény triggereli őket.
 - Egy "runner" (Ubuntu VM) végrehajtja a stepeket sorban.
 - Ha valami elbukik (lint hiba, teszt fail), az pirosan jelzett és nem mergelhető a PR amíg nem zöld.
-- Az `actions/checkout@v4`, `subosito/flutter-action@v2` stb. mind nyilvános, újrafelhasználható lépések.
+- Az `actions/checkout@v5`, `subosito/flutter-action@v2` stb. mind nyilvános, újrafelhasználható lépések.
 - Első PR-edig egyszer kell bekonfigurálni, utána automatikus.
 
 ---
