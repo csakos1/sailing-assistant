@@ -1,5 +1,7 @@
-/// Cross-cutting utilities a `sailing_assistant` workspace-hez.
+/// A `shared` package nyilvános API-ja.
 ///
-/// Egyelőre csak placeholder — Phase 1-ben kerülnek bele a tényleges
-/// public típusok (`Result<T, E>`, extensions, konstansok).
+/// Cross-cutting utility típusok és segédfüggvények, amiket a domain,
+/// data és application rétegek mind használhatnak.
 library;
+
+export 'src/result.dart';
