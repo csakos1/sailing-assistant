@@ -5,4 +5,5 @@
 /// objektumok, entitások, use case-ek, és repository interfészek.
 library;
 
+export 'src/value_objects/bearing.dart';
 export 'src/value_objects/coordinate.dart';
