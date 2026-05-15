@@ -10,6 +10,7 @@ resolution: workspace
 
 dependencies:
   collection: ^1.19.0
+  equatable: ^2.0.5
   meta: ^1.16.0
   shared:
     path: ../shared
