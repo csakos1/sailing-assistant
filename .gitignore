@@ -124,6 +124,7 @@ pubspec_overrides.yaml
 # IDE
 .vscode/launch.json
 .idea/
+*.iml
 
 # OS
 .DS_Store
