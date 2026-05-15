@@ -9,3 +9,4 @@ export 'src/value_objects/angle.dart';
 export 'src/value_objects/bearing.dart';
 export 'src/value_objects/coordinate.dart';
 export 'src/value_objects/distance.dart';
+export 'src/value_objects/speed.dart';
