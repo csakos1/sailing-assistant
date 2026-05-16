@@ -18,32 +18,21 @@ Minden bejegyzés:
 
 ## Domain / kód
 
-### Angle és Bearing aritmetikai operátorok
-- **Mi**: `Angle` `+`, `-`, unary `-` operator overload, és
-  `Bearing - Bearing = Angle` operáció a `Bearing`-en.
-- **Mikor**: az első aritmetikát igénylő use case előtt (várhatóan
-  `CalculateCourseCorrection`), egy önálló
-  `feat(domain): add Angle/Bearing arithmetic operators` commitban.
-- **Miért halasztva**: az `Angle` storage-szerepe önállóan értelmes
-  (`WindData.apparentAngle`, `WindData.trueAngleWater`). Az operátorok
-  nélkül a value object-ek és az entity-k hiba nélkül használhatók.
-  Külön commit, hogy a ±180° edge case-ek test coverage-e ne keveredjen
-  a value object struktúra változásaival.
-- **Hivatkozás**: `packages/domain/lib/src/value_objects/angle.dart`
-  DocComment.
-
-### `Bearing.true_` és `Bearing.magnetic_` convenience constructor-ok
-- **Mi**: named ctor shorthand-ek a `Bearing`-en, csak degrees-szel; a
-  reference paraméter implicit (`true_` → `BearingReference.trueNorth`,
-  `magnetic_` → `BearingReference.magneticNorth`).
-- **Mikor**: az Angle/Bearing aritmetikai operátorok commit-jával egy
-  ütemben, ugyanabban a commit-ban vagy közvetlenül utána.
-- **Miért halasztva**: az `ARCHITECTURE.md` 7.4 használja
-  (`Bearing.true_(unwrapped.last % 360)`), de a use case-ek csak később
-  jönnek; a tesztekben a hiányt default ctor-os literál pótolja
-  (`Bearing(degrees: ..., reference: BearingReference.trueNorth)`).
-- **Hivatkozás**: `ARCHITECTURE.md` 7.4, 7.5;
-  `packages/domain/lib/src/value_objects/bearing.dart`.
+### `Bearing - Angle = Bearing` operátor
+- **Mi**: `operator -(Angle)` overload a `Bearing`-en. Szemantikailag
+  `bearing - angle == bearing + (-angle)`, ugyanazon referencia-rendszer
+  megőrzése és `[0, 360)` modulo wrap mellett.
+- **Mikor**: ha egy use case első natural call-site-ja felmerül; akkor
+  egy ~5 soros operator + 2-3 teszt egy önálló commitban
+  (`feat(domain): add Bearing - Angle subtraction operator`).
+- **Miért halasztva**: YAGNI. A 7.x use case-ekben jelenleg nincs
+  natural call-site, és a `Bearing + (-angle)` redundánsan lefedi az
+  esetet. A külön operator növelné a felületet (doc, teszt) anélkül,
+  hogy értéket adna; ha mégis igazoltan kéri valamelyik downstream
+  számítás (pl. wind-shift trend visszafelé extrapolációja vagy
+  predicted TWD retrograde), önálló commit kerül rá.
+- **Hivatkozás**: `packages/domain/lib/src/value_objects/bearing.dart`;
+  `ARCHITECTURE.md` 7.5.
 
 ### `WindObservation.fromWindData(data, boatState)` named factory
 - **Mi**: WindData + BoatState → WindObservation konverziós factory.
@@ -207,3 +196,21 @@ amíg törölhetőek (git history úgyis megtartja).
 
 _(Még nincs done item — első bejegyzések a fenti item-ek lezárásánál
 kerülnek ide.)_
+
+---
+
+## Done
+
+### Angle és Bearing aritmetikai operátorok — `4b9b152`
+- **Mi**: `Angle` `+`, `-`, unary `-` operator overload; `Bearing -
+  Bearing = Angle` (signed shortest-path, reference-assert); `Bearing +
+  Angle = Bearing` (reference-preserving modulo 360 wrap).
+- **Hol**: `feat(domain): add Angle/Bearing arithmetic operators`.
+
+### `Bearing.true_` és `Bearing.magnetic_` convenience constructor-ok — `4b9b152`
+- **Mi**: const named ctor shorthand-ek a `Bearing`-en, csak
+  degrees-szel; a reference implicit (`true_` →
+  `BearingReference.trueNorth`, `magnetic_` →
+  `BearingReference.magneticNorth`). Default ctor szemantika: nincs
+  validáció, nincs normalize.
+- **Hol**: ugyanazon commit.
