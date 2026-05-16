@@ -101,19 +101,19 @@ The full document lives in **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — that fil
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  PRESENTATION  Flutter UI · Riverpod consumers · phone+watch │
+│  PRESENTATION  Flutter UI · Riverpod consumers · phone+watch│
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
-│  APPLICATION  Riverpod providers · stream merging · bridges  │
+│  APPLICATION  Riverpod providers · stream merging · bridges │
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
-│  DOMAIN       Pure Dart · entities · use cases · interfaces  │
+│  DOMAIN       Pure Dart · entities · use cases · interfaces │
 └─────────────────────────────▲───────────────────────────────┘
                               │ implements
 ┌─────────────────────────────┴───────────────────────────────┐
-│  DATA         NMEA TCP · PGN decoders · Drift · WMM · prefs  │
+│  DATA         NMEA TCP · PGN decoders · Drift · WMM · prefs │
 └─────────────────────────────────────────────────────────────┘
 ```
 
