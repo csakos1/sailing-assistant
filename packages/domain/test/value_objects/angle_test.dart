@@ -150,6 +150,115 @@ void main() {
         expect(a.toString(), equals('Angle(deg: -45.0)'));
       });
     });
+
+    group('operator +', () {
+      test('0 + 0 = 0', () {
+        expect(
+          const Angle(degrees: 0) + const Angle(degrees: 0),
+          equals(const Angle(degrees: 0)),
+        );
+      });
+
+      test('tartományon belüli összeg változatlan', () {
+        expect(
+          const Angle(degrees: 30) + const Angle(degrees: 60),
+          equals(const Angle(degrees: 90)),
+        );
+        expect(
+          const Angle(degrees: -30) + const Angle(degrees: 60),
+          equals(const Angle(degrees: 30)),
+        );
+      });
+
+      test('tartományon kívüli összeg wrap-elődik [-180, +180)-ba', () {
+        // 170 + 30 = 200 → wrap → -160
+        expect(
+          const Angle(degrees: 170) + const Angle(degrees: 30),
+          equals(const Angle(degrees: -160)),
+        );
+        // -170 + (-30) = -200 → wrap → 160
+        expect(
+          const Angle(degrees: -170) + const Angle(degrees: -30),
+          equals(const Angle(degrees: 160)),
+        );
+      });
+
+      test('+180 a felső szélen kívül esik, -180-ra wrap-elődik', () {
+        // 90 + 90 = 180 → wrap → -180 (a +180 nem érvényes)
+        expect(
+          const Angle(degrees: 90) + const Angle(degrees: 90),
+          equals(const Angle(degrees: -180)),
+        );
+      });
+
+      test('kommutatív: a + b = b + a', () {
+        const a = Angle(degrees: 170);
+        const b = Angle(degrees: 30);
+        expect(a + b, equals(b + a));
+      });
+    });
+
+    group('operator -', () {
+      test('0 - 0 = 0', () {
+        expect(
+          const Angle(degrees: 0) - const Angle(degrees: 0),
+          equals(const Angle(degrees: 0)),
+        );
+      });
+
+      test('tartományon belüli különbség változatlan', () {
+        expect(
+          const Angle(degrees: 60) - const Angle(degrees: 30),
+          equals(const Angle(degrees: 30)),
+        );
+        expect(
+          const Angle(degrees: 30) - const Angle(degrees: 60),
+          equals(const Angle(degrees: -30)),
+        );
+      });
+
+      test('tartományon kívüli különbség wrap-elődik', () {
+        // -170 - 30 = -200 → wrap → 160
+        expect(
+          const Angle(degrees: -170) - const Angle(degrees: 30),
+          equals(const Angle(degrees: 160)),
+        );
+        // 170 - (-30) = 200 → wrap → -160
+        expect(
+          const Angle(degrees: 170) - const Angle(degrees: -30),
+          equals(const Angle(degrees: -160)),
+        );
+      });
+
+      test('nem kommutatív: a - b = -(b - a)', () {
+        const a = Angle(degrees: 90);
+        const b = Angle(degrees: 30);
+        expect(a - b, equals(const Angle(degrees: 60)));
+        expect(b - a, equals(const Angle(degrees: -60)));
+      });
+    });
+
+    group('unary -', () {
+      test('-Angle(0) = Angle(0)', () {
+        expect(-const Angle(degrees: 0), equals(const Angle(degrees: 0)));
+      });
+
+      test('-Angle(45) = Angle(-45)', () {
+        expect(-const Angle(degrees: 45), equals(const Angle(degrees: -45)));
+      });
+
+      test('-Angle(-45) = Angle(45)', () {
+        expect(-const Angle(degrees: -45), equals(const Angle(degrees: 45)));
+      });
+
+      test('-Angle(-180) wrap-elődik -180-ra (a +180 nem érvényes)', () {
+        // -(-180) = 180 → wrap → -180
+        expect(
+          -const Angle(degrees: -180),
+          equals(const Angle(degrees: -180)),
+        );
+      });
+    });
   });
 
   group('AngleError', () {

@@ -214,6 +214,121 @@ void main() {
         expect(b.toString(), equals('Bearing(deg: 270.0, ref: trueNorth)'));
       });
     });
+
+    group('Bearing.true_ named ctor', () {
+      test('a degrees mezőt tárolja és reference == trueNorth', () {
+        const b = Bearing.true_(90);
+        expect(b.degrees, equals(90));
+        expect(b.reference, equals(BearingReference.trueNorth));
+      });
+
+      test('const-elhető (const-context-ben is használható)', () {
+        const b = Bearing.true_(180);
+        expect(b, equals(const Bearing.true_(180)));
+      });
+
+      test('nem normalize, nem validál — kívülérő érték is létrehozható', () {
+        const b = Bearing.true_(365);
+        expect(b.degrees, equals(365));
+      });
+    });
+
+    group('Bearing.magnetic_ named ctor', () {
+      test('a degrees mezőt tárolja és reference == magneticNorth', () {
+        const b = Bearing.magnetic_(270);
+        expect(b.degrees, equals(270));
+        expect(b.reference, equals(BearingReference.magneticNorth));
+      });
+
+      test('const-elhető', () {
+        const b = Bearing.magnetic_(45);
+        expect(b, equals(const Bearing.magnetic_(45)));
+      });
+    });
+
+    group('operator - (Bearing - Bearing -> Angle)', () {
+      test('azonos bearing → Angle(0)', () {
+        const b = Bearing.true_(100);
+        expect(b - b, equals(const Angle(degrees: 0)));
+      });
+
+      test('tartományon belüli különbség', () {
+        expect(
+          const Bearing.true_(100) - const Bearing.true_(60),
+          equals(const Angle(degrees: 40)),
+        );
+        expect(
+          const Bearing.true_(60) - const Bearing.true_(100),
+          equals(const Angle(degrees: -40)),
+        );
+      });
+
+      test('359° → 1° wrap-around: rövidebb út jobbra (+20°)', () {
+        // 10 - 350 = -340 → wrap → +20 (jobbra 20°, nem balra 340°)
+        expect(
+          const Bearing.true_(10) - const Bearing.true_(350),
+          equals(const Angle(degrees: 20)),
+        );
+      });
+
+      test('1° → 359° wrap-around: rövidebb út balra (-20°)', () {
+        // 350 - 10 = 340 → wrap → -20 (balra 20°, nem jobbra 340°)
+        expect(
+          const Bearing.true_(350) - const Bearing.true_(10),
+          equals(const Angle(degrees: -20)),
+        );
+      });
+
+      test('180°-os fordulás → Angle(-180)', () {
+        // 180 - 0 = 180 → wrap → -180 (a +180 nem érvényes Angle-ben)
+        expect(
+          const Bearing.true_(180) - const Bearing.true_(0),
+          equals(const Angle(degrees: -180)),
+        );
+      });
+
+      test('eltérő reference → AssertionError (dev mode)', () {
+        const t = Bearing.true_(100);
+        const m = Bearing.magnetic_(100);
+        expect(() => t - m, throwsA(isA<AssertionError>()));
+        expect(() => m - t, throwsA(isA<AssertionError>()));
+      });
+    });
+
+    group('operator + (Bearing + Angle -> Bearing)', () {
+      test('tartományon belüli eltolás', () {
+        expect(
+          const Bearing.true_(100) + const Angle(degrees: 45),
+          equals(const Bearing.true_(145)),
+        );
+      });
+
+      test('pozitív wrap: 350 + 20 = 10', () {
+        expect(
+          const Bearing.true_(350) + const Angle(degrees: 20),
+          equals(const Bearing.true_(10)),
+        );
+      });
+
+      test('negatív wrap: 10 + (-20) = 350', () {
+        expect(
+          const Bearing.true_(10) + const Angle(degrees: -20),
+          equals(const Bearing.true_(350)),
+        );
+      });
+
+      test('reference megőrződik (magnetic + delta → magnetic)', () {
+        final result = const Bearing.magnetic_(100) + const Angle(degrees: 30);
+        expect(result.degrees, equals(130));
+        expect(result.reference, equals(BearingReference.magneticNorth));
+      });
+
+      test('TWD = headingTrue + TWA tipikus eset', () {
+        const heading = Bearing.true_(100);
+        const twa = Angle(degrees: 45);
+        expect(heading + twa, equals(const Bearing.true_(145)));
+      });
+    });
   });
 
   group('BearingError', () {

@@ -32,14 +32,13 @@ import 'package:shared/shared.dart';
 /// A UI rétegben a -180 mint "downwind/180°-os fordulás" abszolút
 /// értékkel és iránybetűvel jeleníthető meg.
 ///
-/// **FONTOS — aritmetikai operátorok DEFERRED.** Önállóan az [Angle]
-/// jelenleg csak storage value object. A tervezett operátorok (unary
-/// `-`, `+`, `-`) és a kapcsolódó `Bearing - Bearing = Angle` aritmetika
-/// egy későbbi `feat(domain): add Angle arithmetic operators` commitban
-/// kerülnek be, amikor az első use case (várhatóan
-/// `CalculateCourseCorrection`) megkívánja. Ez egy ismert nyitott
-/// elem, nem felejtődik el — a domain réteg use case-jei előtt
-/// be kell kerülnie.
+/// **Aritmetikai operátorok.** Az `Angle + Angle`, `Angle - Angle` és
+/// unary `-Angle` az eredményt a `[-180, +180)` tartományba normalize-zal
+/// ugyanazon `((raw + 180) % 360) - 180` képlettel, mint a [Angle.checked].
+/// A kapcsolódó `Bearing - Bearing = Angle` aritmetika a `Bearing`-en
+/// él, és signed shortest-path különbséget ad. Az operátorok nem
+/// dobnak — feltételezik, hogy a hívó nem ad NaN/±∞ értéket (ha mégis,
+/// az programozói hiba, és a parser/factory rétegekben fog kiderülni).
 @immutable
 class Angle {
   /// Default const konstruktor — nincs validáció, nincs normalize. Csak
@@ -83,6 +82,35 @@ class Angle {
 
   @override
   String toString() => 'Angle(deg: $degrees)';
+
+  /// Két szög összege; az eredmény `[-180, +180)`-ba normalize-zódik.
+  ///
+  /// Pl. `Angle(degrees: 170) + Angle(degrees: 30)` →
+  /// `Angle(degrees: -160)` (a +200° a felső szélen kívülre esne, a
+  /// normalize-stratégia szerint `-160`-ra wrap-elődik).
+  Angle operator +(Angle other) {
+    final raw = degrees + other.degrees;
+    return Angle(degrees: ((raw + 180) % 360) - 180);
+  }
+
+  /// Két szög különbsége; az eredmény `[-180, +180)`-ba normalize-zódik.
+  ///
+  /// Pl. `Angle(degrees: -170) - Angle(degrees: 30)` →
+  /// `Angle(degrees: 160)` (a `-200°` wrap-elődik).
+  Angle operator -(Angle other) {
+    final raw = degrees - other.degrees;
+    return Angle(degrees: ((raw + 180) % 360) - 180);
+  }
+
+  /// Unary negation; az eredmény `[-180, +180)`-ba normalize-zódik.
+  ///
+  /// Speciális eset: `-Angle(degrees: -180)` → `Angle(degrees: -180)`,
+  /// mert a `+180` a tartomány felső szélén kívül esik és `-180`-ra
+  /// wrap-elődik.
+  Angle operator -() {
+    final raw = -degrees;
+    return Angle(degrees: ((raw + 180) % 360) - 180);
+  }
 }
 
 /// Az [Angle.tryFromDegrees] hibakód-típusa. Sealed, hogy a hívó
