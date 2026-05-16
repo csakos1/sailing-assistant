@@ -6,6 +6,8 @@
 library;
 
 export 'src/entities/mark.dart';
+export 'src/entities/race.dart';
+export 'src/entities/race_status.dart';
 export 'src/value_objects/angle.dart';
 export 'src/value_objects/bearing.dart';
 export 'src/value_objects/coordinate.dart';
