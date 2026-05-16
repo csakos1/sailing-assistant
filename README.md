@@ -204,7 +204,7 @@ flutter doctor -v   # everything green
 ### Clone and bootstrap
 
 ```bash
-git clone https://github.com/<you>/nmea-race.git
+git clone https://github.com/csakos1/sailing-assistant
 cd nmea-race
 melos bootstrap          # resolves all packages in the workspace
 ```
