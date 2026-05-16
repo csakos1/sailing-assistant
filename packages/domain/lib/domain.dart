@@ -5,6 +5,7 @@
 /// objektumok, entitások, use case-ek, és repository interfészek.
 library;
 
+export 'src/entities/boat_state.dart';
 export 'src/entities/mark.dart';
 export 'src/entities/race.dart';
 export 'src/entities/race_status.dart';
