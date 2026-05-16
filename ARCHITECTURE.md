@@ -2320,6 +2320,11 @@ page_width: 100` kulcsa alatt él, a Dart 3.7+ formatter ezt olvassa fel.
 A package-szintű `analysis_options.yaml` fájlok ezt a root configot
 include-olják (`include: ../../analysis_options.yaml`).
 
+A `very_good_analysis` ruleset aktiválja a `flutter_style_todos` lintet
+is, amely a TODO-kommentekre Flutter-style formátumot követel meg
+(`// TODO(name): description`). A projekt-szintű TODO-konvenciót és a
+doc-commentben elhelyezett TODO tiltását a 17.8 szakasz rögzíti.
+
 ### 17.2 Naming
 
 - Fájlnevek: `snake_case.dart` (Dart konvenció)
@@ -2376,6 +2381,36 @@ docs(architecture): clarify mark rounding logic
 chore(deps): bump drift to 2.21.0
 refactor(presentation): extract widgets from HomeScreen
 ```
+
+### 17.8 TODO-k formátuma
+
+A projekt-szintű TODO-konvenció a Flutter-style `// TODO(name):
+description` formátum, ahol a `name` mező a projektben **fázis-
+hivatkozás**: `phase-N`. Példa:
+
+```dart
+// TODO(phase-4): WindObservation.fromWindData named factory hozzáadása
+// a windHistoryProvider mellé; lásd docs/deferred.md
+```
+
+Két szigorú szabály:
+
+1. **Egyetlen-slash kommentben.** A `flutter_style_todos` lint a
+   `very_good_analysis`-ban szerepel, és a `///` doc-commentben
+   elhelyezett TODO-t hibaként jelzi; a `dart analyze --fatal-infos`
+   mellett ez commit-blokkoló. A halasztásról a class-doc-ban szöveges
+   bekezdést írunk (a "TODO" szó nélkül), és külön egyetlen-slash
+   kommentet adunk a fájl tetejére a tényleges TODO-marker miatt.
+2. **A `(name)` mező = `phase-N`.** A Flutter-szabály username-et vagy
+   issue-linket is engedne, de a projektben a fázis-hivatkozás
+   konkrétabb és a `docs/deferred.md`-re visszamutathat. Több fázisra
+   terjedő TODO esetén az első érintett fázist nevezzük meg, a teljes
+   kontextust a `docs/deferred.md` adja.
+
+A halasztott elemek tényleges nyilvántartása a `docs/deferred.md`-ben
+van; a kódban a TODO-marker csak utalás. Ripgrep-pel
+(`rg 'TODO\(phase-' packages apps tools`) a halasztások egy parancsra
+listázhatók.
 
 ---
 
