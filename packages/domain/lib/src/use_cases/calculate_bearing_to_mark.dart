@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:domain/src/_internal/angles.dart';
 import 'package:domain/src/value_objects/bearing.dart';
 import 'package:domain/src/value_objects/coordinate.dart';
 import 'package:meta/meta.dart';
@@ -40,9 +41,9 @@ class CalculateBearingToMark {
   /// Initial bearing a [from] pontból a [to] pont felé,
   /// [BearingReference.trueNorth]-hoz képest. Részletek a class-doc-ban.
   Bearing call(Coordinate from, Coordinate to) {
-    final lat1 = _toRad(from.latitude);
-    final lat2 = _toRad(to.latitude);
-    final dLon = _toRad(to.longitude - from.longitude);
+    final lat1 = degreesToRadians(from.latitude);
+    final lat2 = degreesToRadians(to.latitude);
+    final dLon = degreesToRadians(to.longitude - from.longitude);
 
     final y = math.sin(dLon) * math.cos(lat2);
     final x =
@@ -51,10 +52,7 @@ class CalculateBearingToMark {
     final thetaRad = math.atan2(y, x);
 
     // atan2 (-pi, +pi] → fok, majd modulo 360-tal [0, 360) tartományra.
-    final degrees = (_toDeg(thetaRad) + 360) % 360;
+    final degrees = (radiansToDegrees(thetaRad) + 360) % 360;
     return Bearing.true_(degrees);
   }
-
-  static double _toRad(double degrees) => degrees * math.pi / 180;
-  static double _toDeg(double radians) => radians * 180 / math.pi;
 }
