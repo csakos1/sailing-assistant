@@ -352,7 +352,7 @@ workflow (Conventional Commits, all checks green, one logical change per commit)
 
 ## License
 
-License is not yet selected — see [issue #1](https://github.com/<you>/nmea-race/issues/1).
+License is not yet selected - see [issue #1](https://github.com/<you>/nmea-race/issues/1).
 Until a license file is added, **all rights reserved by default**. If you want
 to use any of this code, please open an issue.
 
