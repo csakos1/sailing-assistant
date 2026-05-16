@@ -917,6 +917,8 @@ A `courseCorrection` mindig az `effectiveDirection`-höz képest van, és az UI 
 
 Minden use case **egyetlen felelősséggel** rendelkezik (Single Responsibility), és lehetőleg **pure függvény** (ugyanaz az input → ugyanaz az output, nincs side effect). Ezek alkotják a domain réteg lelkét, és **100%-ban unit tesztelve** vannak a hardver nélkül.
 
+A trigonometriai segéd-függvények (`degreesToRadians`, `radiansToDegrees`) a `packages/domain/lib/src/_internal/angles.dart` modulban élnek (library-internal, nem exportált a `domain.dart` barrel-ből); a 7.x kódblokkokban közvetlenül hívva jelennek meg.
+
 ### 7.1 CalculateBearingToMark
 
 ```dart
@@ -924,15 +926,15 @@ class CalculateBearingToMark {
   /// Initial bearing (forward azimuth) gömbi geometriával.
   /// Standard képlet a navigációból.
   Bearing call(Coordinate from, Coordinate to) {
-    final lat1 = _toRad(from.latitude);
-    final lat2 = _toRad(to.latitude);
-    final dLon = _toRad(to.longitude - from.longitude);
+    final lat1 = degreesToRadians(from.latitude);
+    final lat2 = degreesToRadians(to.latitude);
+    final dLon = degreesToRadians(to.longitude - from.longitude);
 
     final y = math.sin(dLon) * math.cos(lat2);
     final x = math.cos(lat1) * math.sin(lat2)
             - math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
     final theta = math.atan2(y, x);
-    final degrees = (_toDeg(theta) + 360) % 360;
+    final degrees = (radiansToDegrees(theta) + 360) % 360;
 
     return Bearing.true_(degrees);
   }
@@ -946,17 +948,17 @@ class CalculateDistanceToMark {
   static const double _earthRadiusMeters = 6371000;
 
   Distance call(Coordinate from, Coordinate to) {
-    final lat1 = _toRad(from.latitude);
-    final lat2 = _toRad(to.latitude);
-    final dLat = _toRad(to.latitude - from.latitude);
-    final dLon = _toRad(to.longitude - from.longitude);
+    final lat1 = degreesToRadians(from.latitude);
+    final lat2 = degreesToRadians(to.latitude);
+    final dLat = degreesToRadians(to.latitude - from.latitude);
+    final dLon = degreesToRadians(to.longitude - from.longitude);
 
     final a = math.sin(dLat / 2) * math.sin(dLat / 2)
             + math.cos(lat1) * math.cos(lat2)
             * math.sin(dLon / 2) * math.sin(dLon / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
-    return Distance.meters(_earthRadiusMeters * c);
+    return Distance(meters: _earthRadiusMeters * c);
   }
 }
 ```
