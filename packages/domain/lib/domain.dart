@@ -14,6 +14,7 @@ export 'src/entities/race_status.dart';
 export 'src/entities/wind_data.dart';
 export 'src/entities/wind_observation.dart';
 export 'src/entities/wind_shift_confidence.dart';
+export 'src/use_cases/calculate_bearing_to_mark.dart';
 export 'src/value_objects/angle.dart';
 export 'src/value_objects/bearing.dart';
 export 'src/value_objects/coordinate.dart';
