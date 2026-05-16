@@ -421,129 +421,313 @@ külön `melos.yaml`.
 
 ### 5.1 Value objects
 
-A value object egy **immutable** osztály, amely egy értéket reprezentál (nem entitást — nincs identity, csak érték). Itt vannak a kulcsoljaink:
-
-```dart
-// packages/domain/lib/src/value_objects/coordinate.dart
-
-/// Földrajzi koordináta WGS84 referenciarendszerben.
-/// Immutable, value semantics.
-class Coordinate {
-  final double latitude;   // -90.0 .. 90.0 fok
-  final double longitude;  // -180.0 .. 180.0 fok
-
-  const Coordinate({
-    required this.latitude,
-    required this.longitude,
-  });
-
-  // Validáció a factory-ban
-  factory Coordinate.checked(double lat, double lon) {
-    if (lat < -90 || lat > 90) throw ArgumentError('Invalid latitude: $lat');
-    if (lon < -180 || lon > 180) throw ArgumentError('Invalid longitude: $lon');
-    return Coordinate(latitude: lat, longitude: lon);
-  }
-
-  // ==, hashCode, toString — Equatable-lel vagy kézzel
-}
-```
-
-Fő value object-ek:
+A value object egy **immutable** osztály, amely egy értéket reprezentál
+(nem entitást — nincs identity, csak érték). Itt vannak a fő típusaink:
 
 | Osztály | Reprezentált érték | Mértékegység |
 |---------|-------------------|--------------|
 | `Coordinate` | Földrajzi pozíció | fok (lat, lon) WGS84 |
-| `Bearing` | Abszolút irány | fok 0–360, true vagy magnetic referencia címkével |
-| `Angle` | Relatív szög | fok –180 .. +180 (port/starboard signed) |
-| `Distance` | Távolság | méter (a UI-on lehet NM-re konvertálni) |
-| `Speed` | Sebesség | m/s belső (a UI-on csomó vagy km/h) |
-| `WindReference` | Enum: apparent, trueWater, trueGround | — |
+| `Bearing` | Abszolút irány | fok `[0, 360)`, `BearingReference.trueNorth` vagy `magneticNorth` címkével |
+| `Angle` | Relatív szög | fok signed, normalize `[-180, +180)` (port = negatív) |
+| `Distance` | Távolság | méter, non-negatív |
+| `Speed` | Sebesség | m/s belső, non-negatív (skalár; az irányt a kapcsolódó `Angle`/`Bearing` adja) |
 
-**Miért value objectek?** Mert egy `double` lat egy másik `double` lon mellett félrevezethető (felcserélheted). Egy `Coordinate` object nem összetéveszthető egy `Distance`-szel típus-szinten. A compiler segít elkerülni a hibákat.
+**Miért value objectek?** Mert egy `double` lat egy másik `double` lon
+mellett félrevezethető (felcserélheted). Egy `Coordinate` object nem
+összetéveszthető egy `Distance`-szel típus-szinten. A compiler segít
+elkerülni a hibákat.
+
+**Három-konstruktor minta.** Minden value object három belépési pontot
+kínál, eltérő bizalmi szintekre:
+
+1. **default const ctor** (`Foo({...})`) — nincs runtime validáció és
+   nincs normalize. Csak akkor használd, ha a hívó garantálja az
+   érvényességet (const literál, vagy belső, már validált adat). A
+   teljesítményt és a const-elhetőséget ez adja meg.
+2. **`.checked` factory** — programozói hibára szabott; érvénytelen
+   input esetén `ArgumentError`-t dob. Ahol értelmes, normalize-zal
+   (Bearing → `[0, 360)`, Angle → `[-180, +180)`).
+3. **`.tryFromX` static** — untrusted bemenethez. `Result<Foo, FooError>`-t
+   ad vissza; a hívó `switch`-csel kötelezően lekezeli mindkét ágat. NMEA
+   parser, CSV import, user input ezen át megy.
+
+Példa a `Coordinate`-on:
+
+```dart
+// packages/domain/lib/src/value_objects/coordinate.dart
+
+@immutable
+class Coordinate {
+  /// Default const ctor — nincs runtime validáció.
+  const Coordinate({required this.latitude, required this.longitude});
+
+  /// Programozói hiba védőhálója.
+  factory Coordinate.checked({
+    required double latitude,
+    required double longitude,
+  }) { /* tryFromDegrees → switch Ok/Err → throw ArgumentError */ }
+
+  /// Untrusted bemenet biztonságos validációja.
+  static Result<Coordinate, CoordinateError> tryFromDegrees({
+    required double latitude,
+    required double longitude,
+  }) { /* finite + range check, Err vagy Ok */ }
+
+  final double latitude;
+  final double longitude;
+}
+```
+
+A `Bearing` ezenfelül egy `reference: BearingReference` enum mezőt is
+tárol (`trueNorth` vagy `magneticNorth`), hogy egy magnetic és egy true
+bearing véletlen összekeverése típusszinten elkapható legyen. Az `Angle`
+a `[-180, +180)` tartományba normalize-zal, hogy a port = negatív /
+starboard = pozitív konvenció egyértelmű maradjon.
+
+**Equality.** Minden value object kézi `==` / `hashCode` / `toString`-et
+implementál. Az egyenlőség **strict float** alapú, nem epsilon: a
+`hashCode` kontraktus konzisztenciát követel, és a value object literál
+szemantikailag különbözik egy normalize-zott formától (pl.
+`Bearing(degrees: 360, ...)` ≠ `Bearing.checked(degrees: 360, ...)` =
+`Bearing(degrees: 0, ...)`).
+
+**Hibatípusok sealed class-ként.** A `tryFromX` hibái sealed hierarchiát
+formálnak (`CoordinateError` → `CoordinateOutOfRange` |
+`CoordinateNotFinite`, `BearingError` → `BearingNotFinite`,
+`SpeedError` → `SpeedNotFinite` | `SpeedNegative`, stb.), hogy a hívó
+exhaustive switch-csel kötelezően lekezelje mindet.
 
 ### 5.2 Entitások
 
-Entitás = identity-vel rendelkező objektum (van ID-je, mutálódhat, két ugyanolyan tartalmú entitás nem ugyanaz).
+Entitás = identity-vel vagy számolt snapshot-szerepkörrel rendelkező
+objektum. Identity-vezérelt entitásnál (pl. `Race`) két ugyanolyan
+tartalmú példány sem ugyanaz; számolt snapshot-nál (pl.
+`MarkPrediction`) nincs identity, de a fájl-szervezés és az
+értékegész-szerű szerep miatt itt tárgyaljuk.
+
+**Egységes stílus.** Minden entitás:
+
+- `@immutable` annotációval jelölt, `extends Equatable` osztály
+  (`equatable: ^2.0.5` package). Az `==`, `hashCode` és `toString`
+  automatikus a `props` listából (`stringify => true` override-tal).
+- A nem-állapotátmenetes frissítésre `copyWith` áll rendelkezésre
+  **simple-form** szemantikával: `null` paraméter = "ne változtass".
+  Tudatos korlát: az opcionális mezők `null`-ra állításához új instance
+  kell. Ez egyszerű, de a state-trojkák monotonicitását kódolja
+  (pl. egy `Mark.roundedAt`-et copyWith-tel nem lehet visszaállítani
+  null-ra).
+- Listamezőt a konstruktor `List.unmodifiable(...)`-lal véd, hogy a hívó
+  utólag ne módosíthassa.
+- Konstruktor-szintű invariánsok `assert`-ekkel. **Const ctor +
+  property-access assert nem fér össze**: ahol az assert egy property-re
+  hivatkozik (pl. `bearing.reference`), a konstruktor non-const (`Race`,
+  `BoatState`, `MarkPrediction`, `WindObservation`).
+
+#### Race és RaceStatus — state-trojka + state-transition factory-k
+
+```dart
+// packages/domain/lib/src/entities/race_status.dart
+
+/// notStarted → active → finished. Visszafelé út nincs.
+enum RaceStatus { notStarted, active, finished }
+```
 
 ```dart
 // packages/domain/lib/src/entities/race.dart
 
-class Race {
-  final String id;                      // UUID
-  final String name;
-  final List<Mark> marks;               // sorrend = index a listában
-  final RaceStatus status;              // notStarted | active | finished
-  final DateTime? startedAt;
-  final DateTime? finishedAt;
-  final int activeMarkIndex;            // 0 = elsőre tartunk, után minden mark rounded
+@immutable
+class Race extends Equatable {
+  /// Direkt ctor — tipikusan perzisztenciából betöltött Race
+  /// rekonstrukciójához. Új race-hez a [Race.create] factory.
+  Race({
+    required this.id,
+    required this.name,
+    required List<Mark> marks,
+    required this.status,
+    required this.activeMarkIndex,
+    this.startedAt,
+    this.finishedAt,
+  }) : marks = List.unmodifiable(marks),
+       assert(/* state-trojka konzisztencia, exhaustive switch */);
 
-  // Immutable update pattern: copyWith
-  Race copyWith({...});
+  /// Új race notStarted állapotban; activeMarkIndex = 0, időbélyegek null.
+  factory Race.create({...}) { ... }
+
+  Race start({required DateTime at});             // notStarted → active
+  Race roundCurrentMark({required DateTime at});  // active → active/finished
+  Race finish({required DateTime at});            // active → finished (DNF/abort)
 }
 ```
+
+A `status × activeMarkIndex × (startedAt, finishedAt)` négyes egy
+állandó invariánsnak engedelmeskedik:
+
+| status     | activeMarkIndex      | startedAt | finishedAt |
+|------------|----------------------|-----------|------------|
+| notStarted | == 0                 | null      | null       |
+| active     | 0 ≤ i < marks.length | nem null  | null       |
+| finished   | == marks.length      | nem null  | nem null   |
+
+Az invariánst egy static `_invariantHolds` segédfüggvény őrzi Dart 3
+exhaustive switch-csel — új `RaceStatus` érték hozzáadásakor a fordító
+itt jelez először. A `copyWith` simple-form, de **nem** szolgál
+state-átmenetre — azokra a `start` / `roundCurrentMark` / `finish` named
+factory-k vannak.
+
+#### Mark — `markedAsRounded` monotonicitás
 
 ```dart
 // packages/domain/lib/src/entities/mark.dart
 
-class Mark {
-  final int sequence;                   // 1, 2, 3 ... (race-en belüli sorszám)
+@immutable
+class Mark extends Equatable {
+  const Mark({
+    required this.sequence,
+    required this.name,
+    required this.position,
+    this.roundedAt,
+  }) : assert(sequence >= 1),
+       assert(name != '');
+
+  final int sequence;
   final String name;
   final Coordinate position;
-  final DateTime? roundedAt;            // null míg nincs round-olva
+  final DateTime? roundedAt;
+
+  /// Új Mark körözött állapotban. Csak ha még nincs körözve — a
+  /// "egyszer körözve, mindig körözve" invariánst assert védi.
+  Mark markedAsRounded({required DateTime at}) {
+    assert(roundedAt == null, 'A bója már körözve van.');
+    return copyWith(roundedAt: at);
+  }
 }
 ```
+
+#### WindData — partial-data tolerance + `hasTrueWind` hook
 
 ```dart
 // packages/domain/lib/src/entities/wind_data.dart
 
-class WindData {
-  final Angle apparentAngle;            // AWA, signed
-  final Speed apparentSpeed;
-  final Angle? trueAngleWater;          // TWA water-ref
-  final Speed? trueSpeedWater;
-  final Bearing? trueDirectionGround;   // TWD ground-ref (számolt vagy közvetlen)
-  final DateTime timestamp;
+@immutable
+class WindData extends Equatable {
+  const WindData({
+    required this.apparentAngle,    // mindig elérhető (mast-fej szenzor)
+    required this.apparentSpeed,
+    required this.timestamp,
+    this.trueAngleWater,            // null ha DST szenzor inaktív
+    this.trueSpeedWater,
+    this.trueDirectionGround,       // null ha hw nem szolgáltatja
+  });
+
+  /// True-wind detector — a Warning rendszer (11.) ezzel váltja ki a
+  /// "true wind nem elérhető" jelzést, ha mindhárom hiányzik.
+  bool get hasTrueWind =>
+      trueAngleWater != null ||
+      trueSpeedWater != null ||
+      trueDirectionGround != null;
 }
 ```
+
+A részleges adat **tudatos design**: a hajón menet közben nem oldható
+meg egy szenzor-hiba, ezért a domain elfogadja a null-mezőket, és a
+hiány **láthatóságát** a Warning rendszer biztosítja.
+
+#### BoatState — Bearing-reference invariánsok + trueNorth-only `effectiveDirection`
 
 ```dart
 // packages/domain/lib/src/entities/boat_state.dart
 
-class BoatState {
-  final Coordinate? position;
-  final Bearing? headingMagnetic;       // ZG100-ból
-  final Bearing? headingTrue;           // headingMagnetic + declination, számolt
-  final Bearing? courseOverGround;
-  final Speed? speedOverGround;
-  final Speed? speedThroughWater;
-  final DateTime lastUpdate;
+@immutable
+class BoatState extends Equatable {
+  BoatState({
+    required this.lastUpdate,
+    this.position,
+    this.headingMagnetic,
+    this.headingTrue,
+    this.courseOverGround,
+    this.speedOverGround,
+    this.speedThroughWater,
+  }) : assert(headingMagnetic == null ||
+              headingMagnetic.reference == BearingReference.magneticNorth),
+       assert(headingTrue == null ||
+              headingTrue.reference == BearingReference.trueNorth),
+       assert(courseOverGround == null ||
+              courseOverGround.reference == BearingReference.trueNorth);
 
-  // Az "effektív irány" — COG ha SOG > 1.5 csomó, különben heading
-  Bearing? get effectiveDirection => /* logika */;
+  /// A hajó valós haladási iránya. **Mindig trueNorth-referenciájú vagy
+  /// null** — a magneticNorth-ra tudatosan nem fall-backelünk.
+  ///
+  /// - SOG > 1.5 csomó (≈ 0.7717 m/s) **és** COG ismert → COG.
+  /// - Egyébként ha headingTrue ismert → headingTrue.
+  /// - Egyébként null.
+  Bearing? get effectiveDirection { /* küszöb-logika */ }
 }
 ```
+
+A 1.5 csomós küszöb alatt a GPS-noise dominálja a COG-t, ezért inkább a
+műszer-mért true heading. A trueNorth-only contract garantálja, hogy a
+downstream számítások (`CalculateCourseCorrection`,
+`CalculateBearingToMark`) konzisztens reference-szel dolgozzanak;
+inkonzisztens reference-szel inkább null-t adunk, mint csendes hibát.
+
+#### MarkPrediction — nullable `courseCorrection` + ETA-source invariáns
 
 ```dart
 // packages/domain/lib/src/entities/mark_prediction.dart
 
-class MarkPrediction {
-  final Mark mark;                      // melyik bójára vonatkozik
-  final Bearing bearingToMark;          // abszolút true bearing
-  final Angle courseCorrection;         // signed: + jobbra, – balra
-  final Distance distanceToMark;
-  final Duration? eta;                  // null ha nem tudjuk számolni
-  final EtaSource etaSource;            // sog | unknown (v1) | polar (v2)
-  final Angle? predictedTwaAtMark;      // null ha nincs elég trend adat
-  final WindShiftConfidence shiftConfidence; // low | medium | high
-  final DateTime calculatedAt;
+@immutable
+class MarkPrediction extends Equatable {
+  MarkPrediction({
+    required this.mark,
+    required this.bearingToMark,          // trueNorth-referenciájú
+    required this.distanceToMark,
+    required this.etaSource,
+    required this.shiftConfidence,
+    required this.calculatedAt,
+    this.courseCorrection,                // null ha heading ismeretlen
+    this.eta,                             // null ha SOG drift alatt
+    this.predictedTwaAtMark,              // null ha trend low conf
+  }) : assert(bearingToMark.reference == BearingReference.trueNorth),
+       assert(/* eta == null ↔ etaSource == unknown, exhaustive switch */);
 }
 
-/// ETA számítás forrása.
-/// v1-ben csak [sog] vagy [unknown] érték keletkezik. A [polar] érték
-/// v2-re van fenntartva, amikor polár-alapú számítás kerül a domainba.
-enum EtaSource { polar, sog, unknown }
-enum WindShiftConfidence { low, medium, high }
+enum EtaSource { polar, sog, unknown }       // külön fájlban
+enum WindShiftConfidence { low, medium, high } // külön fájlban
 ```
+
+A `courseCorrection` `Angle?` — **null** az `Angle.zero()` fallback
+helyett. A `0°` szemantikailag "perfekt course" jelentésű, és a UI
+explicit különbséget kell tudjon tenni a "tartjuk az irányt" és a "nem
+tudjuk a heading-et" között; ezt nem a Warning rendszerre bízzuk.
+
+Az `eta == null ↔ etaSource == unknown` invariáns Dart 3 exhaustive
+switch-csel kódolva: `unknown` ágban `eta == null`, `sog || polar` ágban
+`eta != null`. Ha új `EtaSource` érték kerül az enumba, a fordító itt
+jelez először. A `polar` ág forward-kompatibilis v2-vel.
+
+#### WindObservation — minimalista TWD-snapshot a wind-shift trendhez
+
+```dart
+// packages/domain/lib/src/entities/wind_observation.dart
+
+@immutable
+class WindObservation extends Equatable {
+  WindObservation({
+    required this.twd,                    // trueNorth-referenciájú
+    required this.timestamp,
+  }) : assert(twd.reference == BearingReference.trueNorth);
+
+  final Bearing twd;
+  final DateTime timestamp;
+}
+```
+
+A `CalculateWindShiftTrend` (7.4) használja, a `windHistoryProvider`
+(8.3) gyűjti `WindData`-stream-ből. Minimalista mező-tartalom: a
+sebesség / AWA / AWS adatok a Telemetry-rétegre (Phase 3+) tartoznak; a
+wind-shift trendhez csak a TWD-történet kell. A
+`WindObservation.fromWindData(WindData, BoatState)` named factory
+Phase 4-re halasztva (lásd `docs/deferred.md`).
 
 ### 5.3 Repository interfészek
 
@@ -968,7 +1152,7 @@ class ComputeMarkPrediction {
     return MarkPrediction(
       mark: activeMark,
       bearingToMark: bearing,
-      courseCorrection: correction ?? Angle.zero(),
+      courseCorrection: correction,
       distanceToMark: distance,
       eta: eta,
       etaSource: eta != null ? EtaSource.sog : EtaSource.unknown,
@@ -1846,6 +2030,15 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 
 Reális várakozással, ha **heti 10–15 órát** tudsz erre szánni, **3–4 hónap** alatt v1 működő. Ha többet, akkor 2 hónap. Ez **profi munka tempóval készülő szoftver**, nem egy hétvégi prototípus.
 
+### Tudatosan halasztott munka
+
+A fázisokon belül **tudatosan halasztott** elemeket — sample-kódok
+beemelése, hiányzó factory-k, ADR-tervezetek, tooling-finomítások —
+a `docs/deferred.md` tartja nyilván. Ez a fájl az egyetlen forrás
+arra, hogy mi nem felejtődik el, csak nem a most aktív commit témája.
+Egy item akkor zárul, ha a kapcsolódó commit megtörtént; a `Done`
+szekció egy idő után törölhető, mert a git history visszakereshető.
+
 ---
 
 ## 15. Arch Linux fejlesztői környezet
@@ -1941,12 +2134,32 @@ adb devices                     # látnod kell az órát
 
 ### 15.5 Git hooks
 
-`.githooks/pre-commit`:
+A `.githooks/pre-commit` hook lokálisan `analyze` és `format-check`
+ellenőrzést futtat minden commit előtt — gyors visszacsatolás stílus- és
+lint-hibákra anélkül, hogy a teljes tesztkészlet futna. A unit teszteket
+a CI viszi (16.1), mert egyrészt időigényesebbek, másrészt a CI eleve
+átfut minden push-on. A pub-cache bin-ek explicit PATH-re tétele azért
+kell, mert a git hook nem örökli a shell rc-t.
 
 ```bash
-#!/bin/bash
-melos run analyze && melos run test:unit
+#!/usr/bin/env bash
+set -e
+
+# A pub global activate-elt binary-k (mint a melos) ide kerülnek.
+# A git hook nem örökli a shell rc-t, ezért itt explicit hozzáadjuk.
+export PATH="$PATH:$HOME/.pub-cache/bin"
+
+if ! command -v melos >/dev/null 2>&1; then
+  echo "Error: 'melos' not found on PATH."
+  echo "Run: dart pub global activate melos"
+  exit 1
+fi
+
+melos run analyze
+melos run format-check
 ```
+
+Telepítés egyszer:
 
 ```bash
 git config core.hooksPath .githooks
@@ -2073,6 +2286,9 @@ jobs:
 
 ### 17.1 `analysis_options.yaml`
 
+A workspace root `analysis_options.yaml` a `very_good_analysis` strict
+ruleset-jét hozza be, és két lokális override-ot ad hozzá:
+
 ```yaml
 include: package:very_good_analysis/analysis_options.yaml
 
@@ -2087,11 +2303,22 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/generated/**"
+    - "**/build/**"
 
 linter:
   rules:
-    public_member_api_docs: false  # Magán projekt, nem teszünk doc string-et minden public member-re
+    # Privát projekt — nem teszünk doc string-et minden public memberre.
+    public_member_api_docs: false
+    # A `dart format` 100 karakter szélesre van állítva (root pubspec.yaml
+    # `formatter: page_width: 100`), ezért a fix 80-karakteres soros lintet
+    # kikapcsoljuk hogy a formatter és a linter ne mondjon ellent.
+    lines_longer_than_80_chars: false
 ```
+
+A 100-karakteres formatter beállítás a root `pubspec.yaml` `formatter:
+page_width: 100` kulcsa alatt él, a Dart 3.7+ formatter ezt olvassa fel.
+A package-szintű `analysis_options.yaml` fájlok ezt a root configot
+include-olják (`include: ../../analysis_options.yaml`).
 
 ### 17.2 Naming
 
