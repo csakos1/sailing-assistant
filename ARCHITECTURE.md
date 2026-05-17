@@ -1029,28 +1029,58 @@ class CalculateCourseCorrection {
 
 ```dart
 class CalculateWindShiftTrend {
-  /// @param history A TWD megfigyelések időrendben
-  /// @param window Mekkora ablak (default 10 perc)
-  /// @return WindShiftTrend ha >= 10 minta esik az ablakba, különben null
-  WindShiftTrend? call(List<WindObservation> history, Duration window) {
-    final cutoff = DateTime.now().subtract(window);
+  static const int _minSampleCount = 10;
+
+  const CalculateWindShiftTrend();
+
+  /// Sliding-window lineáris regressziót illeszt a [history]-ben
+  /// szereplő TWD-mintákra, amelyek a [now]-tól [window]-időre
+  /// visszamenőleg esnek. A regresszió slope-jából a fok/perc
+  /// shift-rátát, az r² értékéből a `WindShiftConfidence`-
+  /// besorolást adja vissza.
+  ///
+  /// Pure-function — a [now] kötelező paraméter, NEM belső
+  /// `DateTime.now()` hívás. A 7.8 `ComputeMarkPrediction` egy
+  /// futási iteráció timestamp-jét csorgatja le minden függő use
+  /// case-be, hogy a tick belsejében konzisztens időképpel
+  /// dolgozzunk.
+  ///
+  /// @return WindShiftTrend ha legalább [_minSampleCount] (=10)
+  /// minta esik az ablakba ÉS a regresszió jól értelmezett (sem
+  /// slope, sem r² nem NaN); egyébként null. A null itt
+  /// "insufficient/degenerate signal" jelentésű — a low confidence
+  /// külön érték az enumban.
+  WindShiftTrend? call({
+    required List<WindObservation> history,
+    required Duration window,
+    required DateTime now,
+  }) {
+    final cutoff = now.subtract(window);
     final recent = history.where((o) => o.timestamp.isAfter(cutoff)).toList();
 
-    if (recent.length < 10) {
+    if (recent.length < _minSampleCount) {
       return null;
     }
 
-    // Az unwrapping kritikus: 359° → 1° nem +2°-os shift, hanem +2°-os.
-    // Az algoritmus nyomon követi az átfordulásokat és hozzáad ±360-at.
+    // 359° → 1° unwrap a nyers TWD-sorozaton (lásd
+    // _internal/angle_unwrap.dart).
     final unwrapped = unwrapAngles(recent.map((o) => o.twd.degrees).toList());
 
-    // Linear regression on (time, twd_unwrapped)
-    final (slope, intercept, rSquared) = linearRegression(
+    // Lineáris regresszió: x = perc óta epoch, y = unwrap-elt TWD
+    // (lásd _internal/linear_regression.dart).
+    final (slope, rSquared) = linearRegression(
       recent.map((o) => o.timestamp.millisecondsSinceEpoch / 60000).toList(),
       unwrapped,
     );
 
-    // Konfidencia r² alapján
+    // Degenerált illesztés (konstans y → r² NaN; konstans x → slope
+    // NaN) → null. Konzisztens a "nincs üres/invalid WindShiftTrend"
+    // invariánssal.
+    if (!slope.isFinite || !rSquared.isFinite) {
+      return null;
+    }
+
+    // r² küszöbök → konfidencia-szintek.
     final confidence = switch (rSquared) {
       > 0.7 => WindShiftConfidence.high,
       > 0.4 => WindShiftConfidence.medium,
@@ -1315,10 +1345,14 @@ class WindHistoryNotifier extends Notifier<List<WindObservation>> {
   }
 }
 
-final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend>((ref) {
+final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend?>((ref) {
   final history = ref.watch(windHistoryProvider);
   final window = ref.watch(windShiftWindowSettingProvider);
-  return CalculateWindShiftTrend()(history, window);
+  return const CalculateWindShiftTrend()(
+    history: history,
+    window: window,
+    now: DateTime.now(),
+  );
 });
 ```
 
