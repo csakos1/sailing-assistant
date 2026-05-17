@@ -968,11 +968,15 @@ class CalculateDistanceToMark {
 ```dart
 class CalculateCourseCorrection {
   /// Megadja hány fokot kell jobbra (+) vagy balra (–) fordulni
-  /// a bóya felé. Output normalizálva –180 .. +180 közé.
-  Angle call(Bearing toMark, Bearing currentDirection) {
-    final diff = toMark.degrees - currentDirection.degrees;
-    final normalized = ((diff + 540) % 360) - 180;
-    return Angle.signed(normalized);
+  /// a bóya felé. Az eredmény a `Bearing - Bearing = Angle` operátor
+  /// signed shortest-path normalize-jából jön: `[-180, +180)`.
+  /// Null `effectiveDirection` esetén null result.
+  Angle? call({
+    required Bearing bearingToMark,
+    required Bearing? effectiveDirection,
+  }) {
+    if (effectiveDirection == null) return null;
+    return bearingToMark - effectiveDirection;
   }
 }
 ```
@@ -1138,9 +1142,10 @@ class ComputeMarkPrediction {
     final bearing = _bearing(boatState.position!, activeMark.position);
     final distance = _distance(boatState.position!, activeMark.position);
 
-    final correction = boatState.effectiveDirection != null
-        ? _correction(bearing, boatState.effectiveDirection!)
-        : null;
+    final correction = _correction(
+      bearingToMark: bearing,
+      effectiveDirection: boatState.effectiveDirection,
+    );
 
     final eta = _eta(
       distance: distance,
