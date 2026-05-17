@@ -18,6 +18,7 @@ export 'src/entities/wind_shift_trend.dart';
 export 'src/use_cases/calculate_bearing_to_mark.dart';
 export 'src/use_cases/calculate_course_correction.dart';
 export 'src/use_cases/calculate_distance_to_mark.dart';
+export 'src/use_cases/calculate_wind_shift_trend.dart';
 export 'src/value_objects/angle.dart';
 export 'src/value_objects/bearing.dart';
 export 'src/value_objects/coordinate.dart';
