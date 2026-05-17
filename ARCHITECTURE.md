@@ -961,6 +961,8 @@ Minden use case **egyetlen felelősséggel** rendelkezik (Single Responsibility)
 
 A trigonometriai segéd-függvények (`degreesToRadians`, `radiansToDegrees`) a `packages/domain/lib/src/_internal/angles.dart` modulban élnek (library-internal, nem exportált a `domain.dart` barrel-ből); a 7.x kódblokkokban közvetlenül hívva jelennek meg.
 
+Hasonló mintán a `_internal/` mappa hordozza a 7.4 use case két numerikus helperjét: az `unwrapAngles` (`packages/domain/lib/src/_internal/angle_unwrap.dart`) az ablakon belüli 359°→1° wrap-around észleléséért és kezelve-tartásáért, a `linearRegression` (`packages/domain/lib/src/_internal/linear_regression.dart`) az unwrap-elt sorozaton való ablakos illesztésért felelős. Mindkettő top-level library-internal függvény, nem privát class-method, és így külön unit-tesztelhető a 7.4 use case mock-olása nélkül.
+
 ### 7.1 CalculateBearingToMark
 
 ```dart
@@ -1040,10 +1042,10 @@ class CalculateWindShiftTrend {
 
     // Az unwrapping kritikus: 359° → 1° nem +2°-os shift, hanem +2°-os.
     // Az algoritmus nyomon követi az átfordulásokat és hozzáad ±360-at.
-    final unwrapped = _unwrapAngles(recent.map((o) => o.twd.degrees).toList());
+    final unwrapped = unwrapAngles(recent.map((o) => o.twd.degrees).toList());
 
     // Linear regression on (time, twd_unwrapped)
-    final (slope, intercept, rSquared) = _linearRegression(
+    final (slope, intercept, rSquared) = linearRegression(
       recent.map((o) => o.timestamp.millisecondsSinceEpoch / 60000).toList(),
       unwrapped,
     );
