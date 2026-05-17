@@ -729,6 +729,48 @@ wind-shift trendhez csak a TWD-történet kell. A
 `WindObservation.fromWindData(WindData, BoatState)` named factory
 Phase 4-re halasztva (lásd `docs/deferred.md`).
 
+#### WindShiftTrend — wind-shift ráta és iránymegbízhatóság
+
+```dart
+// packages/domain/lib/src/entities/wind_shift_trend.dart
+
+@immutable
+class WindShiftTrend extends Equatable {
+  WindShiftTrend({
+    required this.shiftRateDegPerMinute,    // pozitív = clockwise forgás
+    required this.currentTwd,               // trueNorth-referenciájú
+    required this.confidence,
+    required this.sampleCount,
+    required this.windowDuration,
+  }) : assert(currentTwd.reference == BearingReference.trueNorth),
+       assert(sampleCount >= 0),
+       assert(windowDuration > Duration.zero),
+       assert(shiftRateDegPerMinute.isFinite);
+
+  final double shiftRateDegPerMinute;
+  final Bearing currentTwd;
+  final WindShiftConfidence confidence;
+  final int sampleCount;
+  final Duration windowDuration;
+}
+```
+
+A `CalculateWindShiftTrend` (7.4) számolt eredménye. A
+`shiftRateDegPerMinute` az ablakra illesztett lineáris regresszió
+slope-ja **fok/perc** egységben: **pozitív érték óramutató járásával
+egyező (clockwise) forgást** jelez. A `currentTwd` az ablak utolsó
+TWD-mintája `[0, 360)`-ra normalizálva, hogy a UI közvetlenül
+megjeleníthesse és a 7.5 `PredictTwaAtMark` extrapolációs alappontként
+használhassa. A `confidence` (low/medium/high) a regresszió r² értéke
+alapján sávozott — küszöbök 0.4 és 0.7 (lásd 7.4). A `sampleCount` és
+`windowDuration` debug/diagnosztika célt szolgál (UI tooltip, log).
+
+**Insufficient sample esetén** (`sampleCount < 10` az 7.4 default
+küszöbe) a use case **`null`-t ad vissza** és nem konstruálja ezt az
+entitást — nem létezik "üres/invalid" `WindShiftTrend` állapot. Ez a
+nullable-pattern konzisztens a 7.3 `CourseCorrection` és a 7.6 `ETA`
+return-szemantikájával.
+
 ### 5.3 Repository interfészek
 
 A domain réteg csak interfészeket definiál — implementáció a data rétegben.
@@ -987,13 +1029,13 @@ class CalculateCourseCorrection {
 class CalculateWindShiftTrend {
   /// @param history A TWD megfigyelések időrendben
   /// @param window Mekkora ablak (default 10 perc)
-  /// @return shiftRate fok/perc — pozitív = óramutatóval egyezően forog
-  WindShiftTrend call(List<WindObservation> history, Duration window) {
+  /// @return WindShiftTrend ha >= 10 minta esik az ablakba, különben null
+  WindShiftTrend? call(List<WindObservation> history, Duration window) {
     final cutoff = DateTime.now().subtract(window);
     final recent = history.where((o) => o.timestamp.isAfter(cutoff)).toList();
 
     if (recent.length < 10) {
-      return WindShiftTrend.insufficient();
+      return null;
     }
 
     // Az unwrapping kritikus: 359° → 1° nem +2°-os shift, hanem +2°-os.
