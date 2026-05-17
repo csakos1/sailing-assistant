@@ -1029,9 +1029,9 @@ class CalculateCourseCorrection {
 
 ```dart
 class CalculateWindShiftTrend {
-  static const int _minSampleCount = 10;
-
   const CalculateWindShiftTrend();
+
+  static const int _minSampleCount = 10;
 
   /// Sliding-window lineáris regressziót illeszt a [history]-ben
   /// szereplő TWD-mintákra, amelyek a [now]-tól [window]-időre
