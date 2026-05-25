@@ -36,3 +36,15 @@ final class DecodedWind extends DecodedSentence {
   /// Szélsebesség m/s-ban (a wire-egységet a dekóder váltja át).
   final Speed speed;
 }
+
+/// A valódi szélirány (MWD) — ground-referenciás TWD + szélsebesség.
+final class DecodedWindDirection extends DecodedSentence {
+  /// Dekódolt szélirány-mondatot csomagol.
+  const DecodedWindDirection({required this.direction, required this.speed});
+
+  /// A valódi szélirány (TWD), trueNorth-referenciás `[0, 360)`.
+  final Bearing direction;
+
+  /// Szélsebesség m/s-ban.
+  final Speed speed;
+}
