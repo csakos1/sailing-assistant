@@ -1365,38 +1365,59 @@ class MarkRoundingDetector {
 
 ### 7.8 ComputeMarkPrediction (composite)
 
-Ez a "fő" use case ami a többit használja és összeállítja a `MarkPrediction`-t a UI számára. **1 Hz-en hívódik**.
+A "fő" use case: öt tiszta use case-t (bearing, distance,
+course-correction, ETA, predicted-TWA) fűz össze egyetlen
+`MarkPrediction`-né a UI számára. **1 Hz-en hívódik.** Maga is pure — a
+`now`-t injektáljuk, így mockolás nélkül, fix időbélyeggel tesztelhető. A
+mark-rounding **nincs** benne: az (stateful) a `MarkRoundingDetector`, és
+az application rétegben fut külön (lásd 8.4).
 
 ```dart
+@immutable
 class ComputeMarkPrediction {
+  /// Const-default fallback: default híváskor nincs bedrótozás, teszthez
+  /// bármelyik dep felülírható. A `??` nem const-context → a ctor nem
+  /// `const`, de az osztály `@immutable` (mind az 5 dep value-szerű).
+  ComputeMarkPrediction({
+    CalculateBearingToMark? bearing,
+    CalculateDistanceToMark? distance,
+    CalculateCourseCorrection? correction,
+    CalculateEtaToMark? eta,
+    PredictTwaAtMark? predict,
+  }) : _bearing = bearing ?? const CalculateBearingToMark(),
+       _distance = distance ?? const CalculateDistanceToMark(),
+       _correction = correction ?? const CalculateCourseCorrection(),
+       _eta = eta ?? const CalculateEtaToMark(),
+       _predict = predict ?? const PredictTwaAtMark();
+
   final CalculateBearingToMark _bearing;
   final CalculateDistanceToMark _distance;
   final CalculateCourseCorrection _correction;
   final CalculateEtaToMark _eta;
   final PredictTwaAtMark _predict;
 
-  ComputeMarkPrediction({/* injected deps */});
-
+  /// A `trend`-et KÉSZEN kapja (a provider hívja a 7.4-et); a `now`
+  /// injektált (domain pure). `null` ha nincs aktív bója vagy pozíció.
   MarkPrediction? call({
     required Mark? activeMark,
     required BoatState boatState,
     required WindShiftTrend? trend,
+    required DateTime now,
   }) {
-    if (activeMark == null || boatState.position == null) return null;
+    // Lokális promóció a force-unwrap helyett: a field nem promótálható.
+    final position = boatState.position;
+    if (activeMark == null || position == null) return null;
 
-    final bearing = _bearing(boatState.position!, activeMark.position);
-    final distance = _distance(boatState.position!, activeMark.position);
-
+    final bearing = _bearing(position, activeMark.position);
+    final distance = _distance(position, activeMark.position);
     final correction = _correction(
       bearingToMark: bearing,
       effectiveDirection: boatState.effectiveDirection,
     );
-
     final eta = _eta(
       distance: distance,
       speedOverGround: boatState.speedOverGround,
     );
-
     final predictedTwa = _predict(
       courseToMark: bearing,
       trend: trend,
@@ -1412,11 +1433,17 @@ class ComputeMarkPrediction {
       etaSource: eta != null ? EtaSource.sog : EtaSource.unknown,
       predictedTwaAtMark: predictedTwa,
       shiftConfidence: trend?.confidence ?? WindShiftConfidence.low,
-      calculatedAt: DateTime.now(),
+      calculatedAt: now,
     );
   }
 }
 ```
+
+**Döntések.** A dep-injektálás **const-default fallback** (Q1/A): a 7.7
+`MarkRoundingDetector` nem-injektált mintájával szemben itt megtartjuk a
+seam-et, mert a composite a v2 belépési pontja (`PolarRepository`). Az
+`etaSource` a `MarkPrediction` `eta == null ↔ unknown` invariánsát tükrözi;
+`polar` v1-ben sosem áll elő. A `shiftConfidence` trend hiányában `low`.
 
 > **v2 változás**: az osztályhoz hozzákerül egy `PolarRepository` függőség és egy `Polar?` paraméter, a `_eta` hívás polár-aware lesz, az `etaSource` pedig értelemszerűen `polar` is lehet.
 
