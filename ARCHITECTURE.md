@@ -787,51 +787,175 @@ return-szemantikájával.
 
 ### 5.3 Repository interfészek
 
-A domain réteg csak interfészeket definiál — implementáció a data rétegben.
+A domain réteg csak **absztrakt** interfészeket definiál — az
+implementáció a data rétegben él (Clean Architecture: a függőség
+befelé mutat). v1-ben a konkrét kontraktus a **`NmeaStream` +
+`ConnectionStatus` + `DomainEvent` triád**; a többi repository a saját
+fázisához kötve készül (lásd a szakasz végi *Halasztott interfészek*-et),
+hogy ne legyen fogyasztó nélküli, drift-veszélyes üres kontraktus.
+
+A triád a `packages/domain/lib/src/repositories/` alatt három fájlban:
+`nmea_stream.dart`, `connection_status.dart`, `domain_event.dart`.
+
+#### NmeaStream — forrás-agnosztikus műszer-stream
 
 ```dart
 // packages/domain/lib/src/repositories/nmea_stream.dart
 
-/// A hajó műszeradatainak streamje (forrás-agnosztikus).
-/// v1 implementáció: NMEA 0183 over TCP (Vulcan WiFi). Lehet replay log
-/// vagy mock is; v1.5+ egy YD RAW (N2K) adapter is e mögé kerül.
+/// A hajó műszeradatainak streamje, forrás-agnosztikusan. A domain nem
+/// tudja, mi a forrás: v1-ben NMEA 0183 over TCP (Vulcan WiFi), de e
+/// mögé kerül a replay-log, a mock és (v1.5+) a YD RAW (N2K) adapter is.
 abstract class NmeaStream {
+  /// A dekódolt domain-események folyama. A data réteg már lefordította
+  /// a nyers mondatokat DomainEvent-re; a domain ezt fogyasztja.
   Stream<DomainEvent> get events;
+
+  /// Csatlakozás a forráshoz. A hibát a statusChanges ConnectionError-ja
+  /// jelzi, NEM dobott kivétel — vízen a stream nem állhat le egy
+  /// exception miatt.
   Future<void> connect();
+
+  /// Lekapcsolódás és erőforrás-felszabadítás.
   Future<void> disconnect();
+
+  /// A pillanatnyi kapcsolat-állapot (szinkron lekérdezés).
   ConnectionStatus get currentStatus;
+
+  /// A kapcsolat-állapot változásai a warning-rendszernek (11.) és a UI
+  /// connection-badge-nek.
   Stream<ConnectionStatus> get statusChanges;
 }
-
-/// Domain szintű esemény — a NMEA réteg már lefordította nekünk.
-sealed class DomainEvent {
-  final DateTime timestamp;
-  DomainEvent(this.timestamp);
-}
-
-class WindEvent extends DomainEvent {
-  final WindData data;
-  WindEvent(this.data) : super(data.timestamp);
-}
-
-class PositionEvent extends DomainEvent {
-  final Coordinate position;
-  PositionEvent(this.position, super.timestamp);
-}
-
-// stb.
 ```
+
+#### ConnectionStatus — sealed kapcsolat-állapot
+
+A RaceStatus mintáját követve (5.4 sealed-filozófia) sealed, hogy a hiba-
+ág üzenetet hordozhasson a warning-rendszernek — enum ezt payload nélkül
+nem tudná.
 
 ```dart
-// packages/domain/lib/src/repositories/geomagnetic_service.dart
+// packages/domain/lib/src/repositories/connection_status.dart
 
-/// A mágneses elhajlást (declination) számolja egy adott földrajzi pontra
-/// és időpontra. Implementáció: World Magnetic Model (WMM-2025).
-abstract class GeomagneticService {
-  /// @return declination fokokban. Pozitív = magnetic north a true-tól keletre.
-  double declinationDegrees(Coordinate position, DateTime when);
+sealed class ConnectionStatus {
+  const ConnectionStatus();
+}
+
+/// Aktív, adatot kapó kapcsolat.
+final class Connected extends ConnectionStatus {
+  const Connected();
+}
+
+/// Csatlakozás folyamatban (kezdeti vagy újrapróbálkozás).
+final class Connecting extends ConnectionStatus {
+  const Connecting();
+}
+
+/// Nincs kapcsolat (még nem indult, vagy szándékosan lekapcsolt).
+final class Disconnected extends ConnectionStatus {
+  const Disconnected();
+}
+
+/// Hibás kapcsolat. A `message` ember-olvasható ok a warning-rendszernek;
+/// a nyers dart:io kivételt a data réteg fordítja szöveggé, hogy a domain
+/// platform-független maradjon.
+final class ConnectionError extends ConnectionStatus {
+  const ConnectionError(this.message);
+
+  final String message;
 }
 ```
+
+#### DomainEvent — sealed esemény-hierarchia
+
+A NmeaStream valutája. A data réteg már lefordította a nyers mondatokat
+domain-eseményre; a 6.4 szerint a stream öt leaf-re válik szét, amit a
+BoatStateProvider / WindStateProvider route-ol. Minden leaf @immutable +
+Equatable (entitás-konzisztencia, tesztelhető equality, debug-stringify).
+A Bearing self-describe a reference-szel, így a provider abból dönti el,
+melyik BoatState-mezőbe kerül a heading.
+
+```dart
+// packages/domain/lib/src/repositories/domain_event.dart
+
+@immutable
+sealed class DomainEvent extends Equatable {
+  const DomainEvent(this.timestamp);
+
+  /// Az esemény időbélyege.
+  final DateTime timestamp;
+}
+
+/// Szél-snapshot (MWV-R / MWV-T / MWD aggregálva). A timestamp a
+/// WindData-é, nem külön paraméter (ezért NEM const).
+class WindEvent extends DomainEvent {
+  WindEvent(this.data) : super(data.timestamp);
+
+  final WindData data;
+
+  @override
+  List<Object?> get props => [data, timestamp];
+}
+
+/// GPS-pozíció (GGA / GLL / RMC).
+class PositionEvent extends DomainEvent {
+  const PositionEvent(this.position, super.timestamp);
+
+  final Coordinate position;
+
+  @override
+  List<Object?> get props => [position, timestamp];
+}
+
+/// Iránytű-heading (HDG). A heading reference-e magneticNorth; a true-ra
+/// váltás a WMM-réteg (Phase 2) dolga.
+class HeadingEvent extends DomainEvent {
+  const HeadingEvent(this.heading, super.timestamp);
+
+  final Bearing heading;
+
+  @override
+  List<Object?> get props => [heading, timestamp];
+}
+
+/// COG + SOG együtt (RMC / VTG). A courseOverGround trueNorth.
+class CogSogEvent extends DomainEvent {
+  const CogSogEvent(
+    this.courseOverGround,
+    this.speedOverGround,
+    super.timestamp,
+  );
+
+  final Bearing courseOverGround;
+  final Speed speedOverGround;
+
+  @override
+  List<Object?> get props => [courseOverGround, speedOverGround, timestamp];
+}
+
+/// Vízsebesség (VHW).
+class SpeedEvent extends DomainEvent {
+  const SpeedEvent(this.speedThroughWater, super.timestamp);
+
+  final Speed speedThroughWater;
+
+  @override
+  List<Object?> get props => [speedThroughWater, timestamp];
+}
+```
+
+#### Halasztott interfészek
+
+A többi repository a saját fázisával együtt készül:
+
+- **`RaceRepository`** (Phase 4) — race betöltés/mentés; a `Race` id-jétől
+  és a persistence-sémától (9.2) függ, ezért a kontraktus akkor véglegesül.
+- **`SettingsRepository`** (Phase 4) — beállítások (pl. wind-shift window,
+  7.4); a `Settings` entitás még nem létezik.
+- **`TelemetryLogger`** (Phase 4) — minden eseményt SQLite-ba ír (6.4,
+  9.4), a Drift-implementációval együtt.
+- **`GeomagneticService`** (Phase 2) — declination a WMM-2025-ből (13.2);
+  a v1 elsődleges TWD-útja a `MWD`-ből közvetlenül jön (6.5), ezért v1-ben
+  nincs rá szükség.
 
 ### 5.4 Sealed classes hibakezeléshez
 
