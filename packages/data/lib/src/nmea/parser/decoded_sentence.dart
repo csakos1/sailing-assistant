@@ -48,3 +48,30 @@ final class DecodedWindDirection extends DecodedSentence {
   /// Szélsebesség m/s-ban.
   final Speed speed;
 }
+
+/// Az `RMC` kompozit mondat: pozíció + COG/SOG + GPS-időbélyeg egyben.
+///
+/// A mapper (6.4) bontja `PositionEvent` + `CogSogEvent` +
+/// `InstrumentTimeEvent`-re; a [timestampUtc] az NMEA GPS-instantja
+/// (nem az app-óra).
+final class DecodedRmc extends DecodedSentence {
+  /// Dekódolt RMC mondatot csomagol.
+  const DecodedRmc({
+    required this.position,
+    required this.courseOverGround,
+    required this.speedOverGround,
+    required this.timestampUtc,
+  });
+
+  /// A hajó pozíciója (WGS84).
+  final Coordinate position;
+
+  /// Menetirány a talaj felett (COG), trueNorth-referenciás `[0, 360)`.
+  final Bearing courseOverGround;
+
+  /// Sebesség a talaj felett (SOG), m/s.
+  final Speed speedOverGround;
+
+  /// A GPS-fix UTC-időbélyege (instrument-óra, nem app-óra).
+  final DateTime timestampUtc;
+}
