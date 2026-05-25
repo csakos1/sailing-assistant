@@ -135,6 +135,49 @@ void main() {
     });
   });
 
+  group('instrumentTimeUtc', () {
+    test('alapból null', () {
+      final state = BoatState(lastUpdate: sampleTimestamp);
+
+      expect(state.instrumentTimeUtc, isNull);
+    });
+
+    test('megadva elérhető és külön él a lastUpdate-től', () {
+      final instrument = DateTime.utc(2025, 6, 1, 9, 59, 58);
+      final state = BoatState(
+        lastUpdate: sampleTimestamp,
+        instrumentTimeUtc: instrument,
+      );
+
+      expect(state.instrumentTimeUtc, instrument);
+      expect(state.lastUpdate, sampleTimestamp);
+      expect(state.instrumentTimeUtc, isNot(equals(state.lastUpdate)));
+    });
+
+    test('copyWith felülírja', () {
+      final state = BoatState(lastUpdate: sampleTimestamp);
+      final instrument = DateTime.utc(2025, 6, 1, 10, 0, 1);
+
+      final updated = state.copyWith(instrumentTimeUtc: instrument);
+
+      expect(updated.instrumentTimeUtc, instrument);
+      expect(updated.lastUpdate, sampleTimestamp);
+    });
+
+    test('eltérő instrumentTimeUtc → nem egyenlő', () {
+      final base = BoatState(
+        lastUpdate: sampleTimestamp,
+        instrumentTimeUtc: DateTime.utc(2025, 6, 1, 9, 59),
+      );
+      final other = BoatState(
+        lastUpdate: sampleTimestamp,
+        instrumentTimeUtc: DateTime.utc(2025, 6, 1, 10, 1),
+      );
+
+      expect(base, isNot(equals(other)));
+    });
+  });
+
   group('copyWith', () {
     test('egy mező változik, többi marad', () {
       final state = BoatState(

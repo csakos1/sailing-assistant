@@ -32,6 +32,7 @@ class BoatState extends Equatable {
     this.courseOverGround,
     this.speedOverGround,
     this.speedThroughWater,
+    this.instrumentTimeUtc,
   }) : assert(
          headingMagnetic == null ||
              headingMagnetic.reference == BearingReference.magneticNorth,
@@ -71,6 +72,17 @@ class BoatState extends Equatable {
 
   /// A snapshot időbélyege (utolsó stream-frissítés).
   final DateTime lastUpdate;
+
+  /// A hajó GPS-műszere szerinti pontos idő UTC-ben (az `RMC` dátum+idő
+  /// mezőiből), hogy a watch a chartplotterrel egyező időt mutathasson.
+  ///
+  /// **Tudatosan külön a [lastUpdate]-től:** az utóbbi az app órája az
+  /// utolsó stream-frissítéskor (receipt-idő, latency-vel terhelt, és
+  /// akkor is ketyeg, ha az `RMC` elnémul), míg ez a műszer által közölt
+  /// instant. A domain UTC-ben tárolja az igazságot; a megjelenítési
+  /// időzóna presentation-réteg döntés (ARCHITECTURE.md 10.4). Friss
+  /// `RMC`-idő hiányában `null`, és a UI stale-jelzést ad (11.).
+  final DateTime? instrumentTimeUtc;
 
   /// A hajó valós haladási iránya: COG ha érdemben mozgunk, különben a
   /// műszer által mért true heading.
@@ -112,6 +124,7 @@ class BoatState extends Equatable {
     Speed? speedOverGround,
     Speed? speedThroughWater,
     DateTime? lastUpdate,
+    DateTime? instrumentTimeUtc,
   }) {
     return BoatState(
       position: position ?? this.position,
@@ -121,6 +134,7 @@ class BoatState extends Equatable {
       speedOverGround: speedOverGround ?? this.speedOverGround,
       speedThroughWater: speedThroughWater ?? this.speedThroughWater,
       lastUpdate: lastUpdate ?? this.lastUpdate,
+      instrumentTimeUtc: instrumentTimeUtc ?? this.instrumentTimeUtc,
     );
   }
 
@@ -133,6 +147,7 @@ class BoatState extends Equatable {
     speedOverGround,
     speedThroughWater,
     lastUpdate,
+    instrumentTimeUtc,
   ];
 
   @override
