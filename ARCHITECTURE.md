@@ -1375,20 +1375,21 @@ az application rétegben fut külön (lásd 8.4).
 ```dart
 @immutable
 class ComputeMarkPrediction {
-  /// Const-default fallback: default híváskor nincs bedrótozás, teszthez
-  /// bármelyik dep felülírható. A `??` nem const-context → a ctor nem
-  /// `const`, de az osztály `@immutable` (mind az 5 dep value-szerű).
-  ComputeMarkPrediction({
-    CalculateBearingToMark? bearing,
-    CalculateDistanceToMark? distance,
-    CalculateCourseCorrection? correction,
-    CalculateEtaToMark? eta,
-    PredictTwaAtMark? predict,
-  }) : _bearing = bearing ?? const CalculateBearingToMark(),
-       _distance = distance ?? const CalculateDistanceToMark(),
-       _correction = correction ?? const CalculateCourseCorrection(),
-       _eta = eta ?? const CalculateEtaToMark(),
-       _predict = predict ?? const PredictTwaAtMark();
+  /// Const-default DI: default híváskor nincs bedrótozás, teszthez
+  /// bármelyik dep felülírható a named paraméterrel. Mind az 5 dep
+  /// const-konstruálható, ezért const-default paraméterek → a ctor
+  /// `const`, az osztály `@immutable`.
+  const ComputeMarkPrediction({
+    CalculateBearingToMark bearing = const CalculateBearingToMark(),
+    CalculateDistanceToMark distance = const CalculateDistanceToMark(),
+    CalculateCourseCorrection correction = const CalculateCourseCorrection(),
+    CalculateEtaToMark eta = const CalculateEtaToMark(),
+    PredictTwaAtMark predict = const PredictTwaAtMark(),
+  }) : _bearing = bearing,
+       _distance = distance,
+       _correction = correction,
+       _eta = eta,
+       _predict = predict;
 
   final CalculateBearingToMark _bearing;
   final CalculateDistanceToMark _distance;
