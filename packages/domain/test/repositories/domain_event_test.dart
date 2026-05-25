@@ -92,6 +92,25 @@ void main() {
       expect(event.timestamp, equals(timestamp));
     });
 
+    test('InstrumentTimeEvent a GPS-instantot a timestamp-ben hordozza', () {
+      final gpsUtc = DateTime.utc(2026, 5, 25, 8, 15, 30);
+
+      final event = InstrumentTimeEvent(gpsUtc);
+
+      expect(event.timestamp, equals(gpsUtc));
+    });
+
+    test('InstrumentTimeEvent: azonos GPS-instant egyenlő, eltérő nem', () {
+      final gpsUtc = DateTime.utc(2026, 5, 25, 8, 15, 30);
+      final later = DateTime.utc(2026, 5, 25, 8, 15, 31);
+
+      expect(InstrumentTimeEvent(gpsUtc), equals(InstrumentTimeEvent(gpsUtc)));
+      expect(
+        InstrumentTimeEvent(gpsUtc),
+        isNot(equals(InstrumentTimeEvent(later))),
+      );
+    });
+
     test('eltérő leaf-típus sosem egyenlő', () {
       final position = PositionEvent(
         const Coordinate(latitude: 46.9, longitude: 17.9),

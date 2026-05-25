@@ -99,3 +99,17 @@ class SpeedEvent extends DomainEvent {
   @override
   List<Object?> get props => [speedThroughWater, timestamp];
 }
+
+/// Műszer GPS-idő esemény (RMC UTC dátum+idő).
+///
+/// A [timestamp] maga a GPS-instant — nem a recept ideje —, mert a leaf
+/// egyetlen feladata a hajó-műszer órájának továbbítása. A
+/// `BoatStateProvider` (Phase 3) ebből tölti a `BoatState.instrumentTimeUtc`
+/// mezőt; a `lastUpdate`-et viszont külön, az app-órából állítja.
+class InstrumentTimeEvent extends DomainEvent {
+  /// A [timestamp] a műszer UTC GPS-instantja (RMC dátum+idő).
+  const InstrumentTimeEvent(super.timestamp);
+
+  @override
+  List<Object?> get props => [timestamp];
+}
