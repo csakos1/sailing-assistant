@@ -868,7 +868,7 @@ final class ConnectionError extends ConnectionStatus {
 #### DomainEvent — sealed esemény-hierarchia
 
 A NmeaStream valutája. A data réteg már lefordította a nyers mondatokat
-domain-eseményre; a 6.4 szerint a stream öt leaf-re válik szét, amit a
+domain-eseményre; a 6.4 szerint a stream hat leaf-re válik szét, amit a
 BoatStateProvider / WindStateProvider route-ol. Minden leaf @immutable +
 Equatable (entitás-konzisztencia, tesztelhető equality, debug-stringify).
 A Bearing self-describe a reference-szel, így a provider abból dönti el,
@@ -940,6 +940,15 @@ class SpeedEvent extends DomainEvent {
 
   @override
   List<Object?> get props => [speedThroughWater, timestamp];
+}
+
+/// Műszer GPS-idő (RMC UTC dátum+idő). A timestamp maga a GPS-instant,
+/// amit a BoatStateProvider az instrumentTimeUtc-be tölt (5.2, 10.4).
+class InstrumentTimeEvent extends DomainEvent {
+  const InstrumentTimeEvent(super.timestamp);
+
+  @override
+  List<Object?> get props => [timestamp];
 }
 ```
 
@@ -1075,7 +1084,7 @@ Stream<Uint8List> rawTcpBytes        // Vulcan socket (10110)
 
 DomainEvent stream → split into:
   → WindStateProvider (rebuild on WindEvent)
-  → BoatStateProvider (rebuild on PositionEvent | HeadingEvent | CogSogEvent | SpeedEvent)
+  → BoatStateProvider (rebuild on PositionEvent | HeadingEvent | CogSogEvent | SpeedEvent | InstrumentTimeEvent)
   → TelemetryLogger (write all events to SQLite)
 ```
 
