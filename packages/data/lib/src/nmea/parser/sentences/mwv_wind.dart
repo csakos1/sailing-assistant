@@ -1,4 +1,5 @@
 import 'package:data/src/nmea/parser/decoded_sentence.dart';
+import 'package:data/src/nmea/parser/nmea_units.dart';
 import 'package:data/src/nmea/parser/sentence.dart';
 import 'package:domain/domain.dart';
 import 'package:shared/shared.dart';
@@ -16,12 +17,6 @@ import 'package:shared/shared.dart';
 class MwvWindDecoder {
   /// Állapotmentes dekóder; a default ctor const.
   const MwvWindDecoder();
-
-  /// 1 csomó = 1 tengeri mérföld / óra = 1852 m / 3600 s.
-  static const double _metersPerSecondPerKnot = 1852 / 3600;
-
-  /// 1 km/h = 1000 m / 3600 s.
-  static const double _metersPerSecondPerKmh = 1000 / 3600;
 
   /// A [sentence]-ből `DecodedWind`, vagy `null` ha a mondat nem
   /// használható (lásd az osztály-doc skip-feltételeit).
@@ -53,8 +48,8 @@ class MwvWindDecoder {
     }
 
     final metersPerSecond = switch (fields[3]) {
-      'N' => rawSpeed * _metersPerSecondPerKnot,
-      'K' => rawSpeed * _metersPerSecondPerKmh,
+      'N' => metersPerSecondFromKnots(rawSpeed),
+      'K' => metersPerSecondFromKmh(rawSpeed),
       'M' => rawSpeed,
       _ => null,
     };
