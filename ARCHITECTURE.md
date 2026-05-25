@@ -1118,6 +1118,69 @@ a `SentenceDecoder` kihagyja (skip), nem ad `Err`-t. A parser
 felelőssége a szerkezet + checksum; a „melyik mondatot értjük" a
 decoderé (6.4).
 
+#### Kétfokozatú dekódolás: `Sentence` → `DecodedSentence`
+
+A `Sentence` mezői még nyers stringek. A második fokozat (Q2) tipizált
+`DecodedSentence`-t állít elő — sealed család, hogy a mapper (6.4)
+exhaustive `switch`-csel garantáltan minden ágat lekezeljen. A leaf-ek
+domain value objecteket hordoznak (nem nyers `double`-t):
+
+| Decoded leaf | Forrás | Mezők |
+|---|---|---|
+| `DecodedWind` | `MWV` (R/T) | `reference` (`WindReference`), `angle` (`Angle`), `speed` (`Speed`) |
+| `DecodedWindDirection` | `MWD` | `direction` (`Bearing`, trueNorth), `speed` (`Speed`) |
+| `DecodedPosition` | `GGA` / `GLL` | `position` (`Coordinate`) |
+| `DecodedCogSog` | `VTG` | `courseOverGround` (`Bearing`, trueNorth), `speedOverGround` (`Speed`) |
+| `DecodedHeading` | `HDG` | `heading` (`Bearing`, magneticNorth) |
+| `DecodedSpeed` | `VHW` | `speedThroughWater` (`Speed`) |
+| `DecodedRmc` | `RMC` | `position`, `courseOverGround`, `speedOverGround`, `timestampUtc` (kompozit) |
+
+Az `RMC` egyetlen mondatban hoz pozíciót, COG/SOG-ot és UTC-időt, ezért
+kompozit `DecodedRmc`-t ad; a mapper bontja `PositionEvent` +
+`CogSogEvent` + `InstrumentTimeEvent`-re (6.4). Pozíció/COG így az `RMC`-ből
+és a `GGA`/`GLL`/`VTG`-ből is jöhet — a provider a legfrissebbet tartja (6.6).
+
+```dart
+// packages/data/lib/src/nmea/parser/decoded_sentence.dart
+
+/// A szél-mondat referenciakerete (MWV R/T flag).
+enum WindReference { apparent, true_ }
+
+/// Egy tipizált, dekódolt 0183 mondat; a mapper (6.4) alakítja
+/// DomainEvent(ek)re.
+sealed class DecodedSentence {
+  const DecodedSentence();
+}
+
+/// Apparent vagy true szél (MWV); a referenciát a reference dönti el.
+final class DecodedWind extends DecodedSentence {
+  const DecodedWind({
+    required this.reference,
+    required this.angle,
+    required this.speed,
+  });
+
+  final WindReference reference;
+  final Angle angle;
+  final Speed speed;
+}
+
+// A többi leaf (DecodedWindDirection, DecodedPosition, DecodedCogSog,
+// DecodedHeading, DecodedSpeed, DecodedRmc) a fenti táblát követi.
+```
+
+A per-típus dekóderek szerződése `DecodedX? decode(Sentence)`: a `null` azt
+jelenti, hogy a mondatot kihagyjuk — vagy mert egy mező nem értelmezhető
+(korrupt sor), vagy mert a status-flag invalid (pl. `MWV` `status='V'`).
+Nincs kivétel és nincs mező-szintű `ParseError` (az A1 skip-szemantika
+kiterjesztése).
+
+A `SentenceDecoder` dispatcher a talker+type alapján `switch`-csel a
+megfelelő dekóderhez route-ol, és `DecodedSentence?`-et ad: ismeretlen
+talker/type → `null`. v1-ben a támogatott halmazon kívül minden mondat
+(`GLC`, `GSA`, `GSV`, `XDR`, `ZDA`, `DBT`, `DPT`, `MTW`, `VLW`, `AAM`,
+`APB`, `BOD`, `RMB`, `XTE`) némán kimarad.
+
 > A teljes N2K fidelitás (10 Hz szél, minden PGN, fast-packet) a
 > halasztott **YD RAW adapter** (v1.5+) hatóköre; akkor jön be a
 > `pgn_decoder` + `nmea_frame_assembler` ág (lásd `docs/decisions/0004`).
