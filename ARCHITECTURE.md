@@ -1066,6 +1066,58 @@ talker+type alapján a megfelelő mező-dekóderhez irányít. Hibás/csonka
 sor → `Err`, amit eldobunk (a következő sor ~1 mp-en belül jön), nem
 dobunk kivételt.
 
+A parser kimenete egy nyers `Sentence` struct (talker + type + nyers
+mezők + az eredeti sor); ezt a `SentenceDecoder` (6.4) alakítja tipizált
+`Decoded*` structtá:
+
+```dart
+// packages/data/lib/src/nmea/parser/sentence.dart
+
+/// Egy checksum-validált, de még nem értelmezett 0183 mondat.
+///
+/// A mezők nyers stringek; a tipizálás (szög, sebesség, koordináta) a
+/// mondat-dekóderek dolga (6.4).
+@immutable
+class Sentence {
+  const Sentence({
+    required this.talker, // pl. 'WI', 'GP', 'II'
+    required this.type,   // pl. 'MWV', 'RMC', 'HDG'
+    required this.fields, // a '*' előtti, vesszővel tagolt mezők
+    required this.raw,    // a teljes eredeti sor (debug/log)
+  });
+
+  final String talker;
+  final String type;
+  final List<String> fields;
+  final String raw;
+}
+```
+
+A hibás bemenet `ParseError` enum — **nem** sealed class, mert (a
+`ConnectionError`-ral ellentétben, 5.3) nincs üzenet-fogyasztója: a
+hibás sort csak eldobjuk, nem warningoljuk (YAGNI):
+
+```dart
+// packages/data/lib/src/nmea/parser/parse_error.dart
+
+/// Miért nem alakítható egy 0183 sor `Sentence`-szé.
+enum ParseError {
+  /// Üres vagy csak whitespace sor (a LineSplitter is adhat ilyet).
+  empty,
+
+  /// Szerkezeti hiba: nincs `$`/`!` kezdet, hiányzó `*`, csonka mezők.
+  malformed,
+
+  /// A `*` utáni XOR checksum nem egyezik a számolttal.
+  checksumMismatch,
+}
+```
+
+A **nem támogatott** mondat (ismeretlen talker/type) nem `ParseError`:
+a `SentenceDecoder` kihagyja (skip), nem ad `Err`-t. A parser
+felelőssége a szerkezet + checksum; a „melyik mondatot értjük" a
+decoderé (6.4).
+
 > A teljes N2K fidelitás (10 Hz szél, minden PGN, fast-packet) a
 > halasztott **YD RAW adapter** (v1.5+) hatóköre; akkor jön be a
 > `pgn_decoder` + `nmea_frame_assembler` ág (lásd `docs/decisions/0004`).
