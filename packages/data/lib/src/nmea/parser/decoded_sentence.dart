@@ -94,3 +94,16 @@ final class DecodedCogSog extends DecodedSentence {
   /// Sebesség a talaj felett (SOG), m/s.
   final Speed speedOverGround;
 }
+
+/// A pozíció-fix (GGA / GLL) — csak a WGS84 koordináta.
+///
+/// A GGA és a GLL is redundánsan adja a pozíciót (az RMC mellett); a
+/// provider a legfrissebbet tartja (ARCHITECTURE.md 6.6). A mapper (6.4)
+/// `PositionEvent`-re alakítja.
+final class DecodedPosition extends DecodedSentence {
+  /// Dekódolt pozíció-mondatot csomagol.
+  const DecodedPosition({required this.position});
+
+  /// A hajó pozíciója (WGS84).
+  final Coordinate position;
+}
