@@ -295,6 +295,8 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   │       ├── mwv_wind.dart
 │   │   │   │   │   │       ├── mwd_wind_direction.dart
 │   │   │   │   │   │       └── vhw_speed_water.dart
+│   │   │   │   │   ├── pipeline/
+│   │   │   │   │   │   └── nmea_event_pipeline.dart   # bytes → DomainEvent (socket-mentes)
 │   │   │   │   │   └── mapper/
 │   │   │   │   │       ├── nmea_to_domain_mapper.dart
 │   │   │   │   │       └── wind_aggregator.dart
@@ -1196,9 +1198,10 @@ vegyes talkerrel jönnek (`GP`/`GN`/`II`/`SD`/`WI`).
 Stream<Uint8List> rawTcpBytes        // Vulcan socket (10110)
   .transform(utf8.decoder)
   .transform(const LineSplitter())   // 0183 sor-formátum
-  .transform(Nmea0183LineParser())   // → Sentence (checksum-validált)
-  .transform(SentenceDecoder())      // → DecodedSentence
-  .transform(NmeaToDomainMapper())   // → DomainEvent
+// majd az NmeaEventPipeline-ban, soronként (NEM StreamTransformer-ekként):
+//   Nmea0183LineParser.parse → Result<Sentence> (Err  → skip)
+//   SentenceDecoder.decode   → DecodedSentence?  (null → skip)
+//   NmeaToDomainMapper.map    → List<DomainEvent> (flatten)
 
 DomainEvent stream → split into:
   → WindStateProvider (rebuild on WindEvent)
@@ -1228,6 +1231,8 @@ esemény ezt az app-óra `now`-t hordozza — **kivéve az
 nem a GPS-időt. Indok: az app-óra forrástól független, monoton-ish
 rendezést ad minden telemetriának, forrástól függetlenül; a műszer
 GPS-idejét külön, a hajó-óra kijelzéshez hozzuk felszínre.
+
+A fenti lánc a data-rétegbeli **`NmeaEventPipeline`** (socket-mentes, `Stream<Uint8List>` → `Stream<DomainEvent>`). A Phase 3-as `Nmea0183TcpClient` ezt komponálja a TCP sockettel, és **az implementálja a domain `NmeaStream`-et** — a pipeline a kollaborátora, nem maga az interfész. A pipeline a stateful `NmeaToDomainMapper`-t (és így a `WindAggregator`-t) **mezőként tartja és újrahasználja** a `transform()` hívások közt, ezért a szél- és dekódolási állapot **túléli a kapcsolat-szakadást** — vízen reális esemény, és egy reconnect nem nulláz le egy korábban beérkezett apparent-szelet. (A stale érték elöregedését nem itt, hanem a warning-rendszer (11.) kezeli majd.) Az aktuális idő injektálható óra (`DateTime Function() now = DateTime.now`), hogy a replay-tesztek determinisztikusak legyenek.
 
 ### 6.5 True Wind Direction (TWD)
 
