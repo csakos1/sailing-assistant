@@ -284,7 +284,10 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   ├── src/
 │   │   │   │   ├── nmea/
 │   │   │   │   │   ├── client/
-│   │   │   │   │   │   └── nmea0183_tcp_client.dart   # NmeaStream impl (TCP); ConnectionStatus a domainből
+│   │   │   │   │   │   ├── nmea0183_tcp_client.dart       # NmeaStream + RawNmeaLineSource impl (TCP); ConnectionStatus a domainből
+│   │   │   │   │   │   ├── nmea_connection.dart           # NmeaConnection seam + NmeaConnector (ADR 0005)
+│   │   │   │   │   │   ├── raw_nmea_line_source.dart       # RawNmeaLineSource — debug nyers sorok (ADR 0006)
+│   │   │   │   │   │   └── socket_nmea_connection.dart     # dart:io Socket seam + connectTcpSocket
 │   │   │   │   │   ├── parser/
 │   │   │   │   │   │   ├── nmea0183_line_parser.dart    # sor + checksum
 │   │   │   │   │   │   ├── sentence_decoder.dart        # type dispatcher
@@ -1781,118 +1784,91 @@ seam-et, mert a composite a v2 belépési pontja (`PolarRepository`). Az
                               └──────────────────────────┘
 ```
 
-### 8.3 Konkrét provider példák
+### 8.3 Fázis 3 provider-példák (ADR 0006)
+
+Fázis 3-ban **három** provider épül a kész kliens köré; az app-réteg ezen át
+fogyasztja a `data` byte-folyamát. A szél/hajó/predikció providerek (a 8.2
+cél-hierarchia alja és a 8.4) a saját fázisukkal jönnek — lásd a szakasz végi
+halasztást.
 
 ```dart
 // apps/phone/lib/providers/nmea_stream_provider.dart
 
+// Keep-alive (NEM autoDispose): vízen a kapcsolat nem állhat le, ha épp nincs
+// UI-listener. A Vulcan <-> nmea_replay váltás konfig (host), nem override.
 final nmeaStreamProvider = Provider<NmeaStream>((ref) {
-  final stream = Nmea0183TcpClient(
-    host: ref.watch(gatewayHostProvider),  // default: 192.168.76.1 (Vulcan)
+  final client = Nmea0183TcpClient(
+    host: ref.watch(gatewayHostProvider),  // 192.168.76.1 (Vulcan) / localhost (replay)
     port: 10110,
   );
-  ref.onDispose(stream.disconnect);
-  stream.connect();
-  return stream;
+  ref.onDispose(client.dispose);  // dispose() = disconnect() + a controllerek close()-a
+  client.connect();               // eager: az első olvasáskor indul a socket
+  return client;
 });
 ```
 
 ```dart
-// apps/phone/lib/providers/wind_state_provider.dart
+// apps/phone/lib/providers/connection_status_provider.dart
 
-final windDataProvider = StreamProvider.autoDispose<WindData>((ref) {
-  final stream = ref.watch(nmeaStreamProvider);
-  return stream.events
-    .whereType<WindEvent>()
-    .map((e) => e.data);
-});
-
-final windHistoryProvider =
-    NotifierProvider.autoDispose<WindHistoryNotifier, List<WindObservation>>(
-  WindHistoryNotifier.new,
+// Seedelt Notifier: a build() szinkron a currentStatus-ból veszi a kezdőértéket
+// (a statusChanges broadcast NEM replay-eli az utolsót), majd a változásokra
+// iratkozik — a connection-badge azonnal helyes, nincs AsyncLoading-villogás.
+final connectionStatusProvider =
+    NotifierProvider.autoDispose<ConnectionStatusNotifier, ConnectionStatus>(
+  ConnectionStatusNotifier.new,
 );
 
-class WindHistoryNotifier extends Notifier<List<WindObservation>> {
+class ConnectionStatusNotifier extends AutoDisposeNotifier<ConnectionStatus> {
   @override
-  List<WindObservation> build() {
-    // Subscribe minden új WindData-ra, beraktározzuk
-    ref.listen(windDataProvider, (prev, next) {
-      next.whenData(_append);
+  ConnectionStatus build() {
+    final stream = ref.watch(nmeaStreamProvider);
+    final sub = stream.statusChanges.listen((status) => state = status);
+    ref.onDispose(sub.cancel);
+    return stream.currentStatus;  // szinkron seed
+  }
+}
+```
+
+```dart
+// apps/phone/lib/providers/raw_nmea_lines_provider.dart
+
+// Debug-only, korlátos ring-buffer (utolsó _maxLines sor). A forrás csak akkor
+// ad nyers sort, ha RawNmeaLineSource (TCP kliens); fake/replay esetén a viewer
+// üresen, gracefully degradál (ADR 0006).
+final rawNmeaLinesProvider =
+    NotifierProvider.autoDispose<RawNmeaLinesNotifier, List<String>>(
+  RawNmeaLinesNotifier.new,
+);
+
+class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
+  static const _maxLines = 200;
+
+  @override
+  List<String> build() {
+    final source = ref.watch(nmeaStreamProvider);
+    if (source is! RawNmeaLineSource) {
+      return const [];  // nincs nyers-sor forrás (pl. fake/replay)
+    }
+    final sub = source.rawLines.listen((line) {
+      final next = [...state, line];
+      state = next.length > _maxLines
+          ? next.sublist(next.length - _maxLines)
+          : next;
     });
-    return [];
-  }
-
-  void _append(WindData data) {
-    final cutoff = DateTime.now().subtract(const Duration(minutes: 30));
-    state = [
-      ...state.where((o) => o.timestamp.isAfter(cutoff)),
-      WindObservation.fromWindData(data, ref.read(boatStateProvider)),
-    ];
-  }
-}
-
-final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend?>((ref) {
-  final history = ref.watch(windHistoryProvider);
-  final window = ref.watch(windShiftWindowSettingProvider);
-  return const CalculateWindShiftTrend()(
-    history: history,
-    window: window,
-    now: DateTime.now(),
-  );
-});
-```
-
-```dart
-// apps/phone/lib/providers/mark_prediction_provider.dart
-
-final markPredictionProvider = Provider.autoDispose<MarkPrediction?>((ref) {
-  final race = ref.watch(activeRaceProvider);
-  final boatState = ref.watch(boatStateProvider);
-  final trend = ref.watch(windShiftTrendProvider);
-
-  final activeMark = race?.activeMarkOrNull;
-
-  return ComputeMarkPrediction(/* deps from ref */).call(
-    activeMark: activeMark,
-    boatState: boatState,
-    trend: trend,
-  );
-});
-```
-
-```dart
-// apps/phone/lib/features/home/home_screen.dart
-
-class HomeScreen extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final prediction = ref.watch(markPredictionProvider);
-    final wind = ref.watch(windDataProvider);
-    final warnings = ref.watch(activeWarningsProvider);
-
-    return Scaffold(
-      body: Column(
-        children: [
-          if (warnings.isNotEmpty) WarningBanner(warnings: warnings),
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 2,
-              children: [
-                TwaWidget(wind: wind),
-                BearingWidget(prediction: prediction),
-                CourseCorrectionWidget(prediction: prediction),
-                DistanceWidget(prediction: prediction),
-                EtaWidget(prediction: prediction),
-                PredictedTwaWidget(prediction: prediction),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    ref.onDispose(sub.cancel);
+    return const [];
   }
 }
 ```
+
+**Halasztva, dokumentálva (ADR 0006):**
+
+- `windDataProvider`, `windHistoryProvider`, `windShiftTrendProvider`,
+  `boatStateProvider`, `markPredictionProvider` és a 8.4
+  `markRoundingMonitorProvider` → **Fázis 5** (főképernyő + v1 számítások).
+- `telemetryLoggerProvider` → **Fázis 4** (Drift).
+- Eager-connect-at-boot felülvizsgálata → **Fázis 5** (mindig-fent főképernyő);
+  Fázis 3-ban a kapcsolat lazy-on-first-screen.
 
 ### 8.4 Mark rounding figyelő
 
