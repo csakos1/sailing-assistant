@@ -288,7 +288,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   │   └── connection_status.dart
 │   │   │   │   │   ├── parser/
 │   │   │   │   │   │   ├── nmea0183_line_parser.dart    # sor + checksum
-│   │   │   │   │   │   ├── sentence_decoder.dart        # talker+type dispatcher
+│   │   │   │   │   │   ├── sentence_decoder.dart        # type dispatcher
 │   │   │   │   │   │   └── sentences/
 │   │   │   │   │   │       ├── rmc_position_cog_sog.dart
 │   │   │   │   │   │       ├── hdg_heading.dart
@@ -1062,7 +1062,7 @@ $WIMWV,90.1,T,8.1,N,A*14
 A 0183 lényegesen egyszerűbb a N2K-nál: nincs fast-packet reassembly.
 A `Nmea0183LineParser` egy sort kap, ellenőrzi a `*` checksumot
 (`Result<Sentence, ParseError>`), majd a `SentenceDecoder` a
-talker+type alapján a megfelelő mező-dekóderhez irányít. Hibás/csonka
+`type` alapján a megfelelő mező-dekóderhez irányít. Hibás/csonka
 sor → `Err`, amit eldobunk (a következő sor ~1 mp-en belül jön), nem
 dobunk kivételt.
 
@@ -1113,7 +1113,7 @@ enum ParseError {
 }
 ```
 
-A **nem támogatott** mondat (ismeretlen talker/type) nem `ParseError`:
+A **nem támogatott** mondat (ismeretlen `type`) nem `ParseError`:
 a `SentenceDecoder` kihagyja (skip), nem ad `Err`-t. A parser
 felelőssége a szerkezet + checksum; a „melyik mondatot értjük" a
 decoderé (6.4).
@@ -1175,11 +1175,13 @@ jelenti, hogy a mondatot kihagyjuk — vagy mert egy mező nem értelmezhető
 Nincs kivétel és nincs mező-szintű `ParseError` (az A1 skip-szemantika
 kiterjesztése).
 
-A `SentenceDecoder` dispatcher a talker+type alapján `switch`-csel a
+A `SentenceDecoder` dispatcher a `type` alapján `switch`-csel a
 megfelelő dekóderhez route-ol, és `DecodedSentence?`-et ad: ismeretlen
-talker/type → `null`. v1-ben a támogatott halmazon kívül minden mondat
+`type` → `null`. v1-ben a támogatott halmazon kívül minden mondat
 (`GLC`, `GSA`, `GSV`, `XDR`, `ZDA`, `DBT`, `DPT`, `MTW`, `VLW`, `AAM`,
 `APB`, `BOD`, `RMB`, `XTE`) némán kimarad.
+A talker-mezőt szándékosan nem nézzük: a valós dumpban a típusok
+vegyes talkerrel jönnek (`GP`/`GN`/`II`/`SD`/`WI`).
 
 > A teljes N2K fidelitás (10 Hz szél, minden PGN, fast-packet) a
 > halasztott **YD RAW adapter** (v1.5+) hatóköre; akkor jön be a
@@ -2497,7 +2499,7 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 ### Fázis 2 — NMEA 0183 parser réteg (~2 nap)
 
 - NMEA 0183 sor-parser + `*` checksum validáció (`Result`-tel)
-- `SentenceDecoder` (talker+type dispatcher)
+- `SentenceDecoder` (type dispatcher)
 - Mondat-dekóderek: RMC, VTG, HDG, MWV (R/T), MWD, VHW
 - NMEA → Domain mapper
 - Golden példamondat-fixture-ök alapján tesztek
