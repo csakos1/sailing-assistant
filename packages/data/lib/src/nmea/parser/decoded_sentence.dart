@@ -107,3 +107,16 @@ final class DecodedPosition extends DecodedSentence {
   /// A hajó pozíciója (WGS84).
   final Coordinate position;
 }
+
+/// A mágneses heading (HDG) — a hajó orrának iránya.
+///
+/// A v1 csak a mágneses headinget veszi; a true heading a WMM-deklinációval
+/// áll elő a domainben (ARCHITECTURE.md 6.5). A mapper (6.4)
+/// `HeadingEvent`-re alakítja.
+final class DecodedHeading extends DecodedSentence {
+  /// Dekódolt heading-mondatot csomagol.
+  const DecodedHeading({required this.heading});
+
+  /// A hajó orrának iránya, magneticNorth-referenciás `[0, 360)`.
+  final Bearing heading;
+}
