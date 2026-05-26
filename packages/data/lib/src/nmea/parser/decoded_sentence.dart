@@ -120,3 +120,15 @@ final class DecodedHeading extends DecodedSentence {
   /// A hajó orrának iránya, magneticNorth-referenciás `[0, 360)`.
   final Bearing heading;
 }
+
+/// A vízhez viszonyított sebesség (VHW) — speed through water (STW).
+///
+/// A v1 csak az STW-t veszi a VHW-ből (a talaj-sebesség, SOG, az RMC/VTG-ből
+/// jön, a heading a HDG-ből). A mapper (6.4) `SpeedEvent`-re alakítja.
+final class DecodedSpeed extends DecodedSentence {
+  /// Dekódolt STW-mondatot csomagol.
+  const DecodedSpeed({required this.speedThroughWater});
+
+  /// A hajó sebessége a vízhez képest (STW), m/s.
+  final Speed speedThroughWater;
+}
