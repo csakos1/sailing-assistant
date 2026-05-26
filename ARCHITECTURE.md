@@ -284,8 +284,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   ├── src/
 │   │   │   │   ├── nmea/
 │   │   │   │   │   ├── client/
-│   │   │   │   │   │   ├── nmea0183_tcp_client.dart
-│   │   │   │   │   │   └── connection_status.dart
+│   │   │   │   │   │   └── nmea0183_tcp_client.dart   # NmeaStream impl (TCP); ConnectionStatus a domainből
 │   │   │   │   │   ├── parser/
 │   │   │   │   │   │   ├── nmea0183_line_parser.dart    # sor + checksum
 │   │   │   │   │   │   ├── sentence_decoder.dart        # type dispatcher
@@ -1238,6 +1237,8 @@ rendezést ad minden telemetriának, forrástól függetlenül; a műszer
 GPS-idejét külön, a hajó-óra kijelzéshez hozzuk felszínre.
 
 A fenti lánc a data-rétegbeli **`NmeaEventPipeline`** (socket-mentes, `Stream<Uint8List>` → `Stream<DomainEvent>`). A Phase 3-as `Nmea0183TcpClient` ezt komponálja a TCP sockettel, és **az implementálja a domain `NmeaStream`-et** — a pipeline a kollaborátora, nem maga az interfész. A pipeline a stateful `NmeaToDomainMapper`-t (és így a `WindAggregator`-t) **mezőként tartja és újrahasználja** a `transform()` hívások közt, ezért a szél- és dekódolási állapot **túléli a kapcsolat-szakadást** — vízen reális esemény, és egy reconnect nem nulláz le egy korábban beérkezett apparent-szelet. (A stale érték elöregedését nem itt, hanem a warning-rendszer (11.) kezeli majd.) Az aktuális idő injektálható óra (`DateTime Function() now = DateTime.now`), hogy a replay-tesztek determinisztikusak legyenek.
+
+A `Nmea0183TcpClient` kapcsolat-policyját az **ADR 0005** rögzíti: a reconnectet a kliens belső loopja vezérli **fix 2 s** intervallummal, végtelen próbálkozással, és csak explicit `disconnect()`-re áll le; a `connect()` eager (a `connect()`-re indul a socket), ~6 s connect-timeouttal és idempotensen (no-op, ha már `Connecting`/`Connected`). A státuszt a `statusChanges` adja (`Connecting` → `Connected`; hibára `ConnectionError(message)`, majd újra `Connecting` a 2 s alatt; `disconnect()`-re `Disconnected`), az egymást követő azonos állapotok de-duplikálva (`distinct()`); a `dart:io` kivételt a data réteg fordítja ember-olvasható `message`-é, így a domain platform-független marad. Az `events` és a `statusChanges` is **broadcast** (fan-out a kliensen: a debug-viewer és a későbbi `TelemetryLogger` is fogyaszt), a kezdő státuszt a kései feliratkozó a szinkron `currentStatus`-ból kapja. A socket mögé egy minimális, csak-olvasó kapcsolat-seam (`Stream<List<int>> get bytes` + `Future<void> close()`) kerül factory-val, hogy a kliens hardver nélkül, hermetikusan tesztelhető legyen (éles default a `Socket.connect`).
 
 ### 6.5 True Wind Direction (TWD)
 
