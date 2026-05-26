@@ -393,6 +393,11 @@ sailing-assistant/                        # GitHub repo root
     ├── nmea_replay/                      # CLI: rögzített NMEA 0183 log → fake TCP server (Vulcan-emuláció)
     │   ├── bin/
     │   │   └── nmea_replay.dart
+    │   ├── lib/
+    │   │   └── src/
+    │   │       └── logged_line.dart       # prefix-strip + ütemezés (pure, tesztelt)
+    │   ├── test/
+    │   │   └── logged_line_test.dart
     │   └── pubspec.yaml
     ├── nmea_inspector/                   # CLI: nyers 0183 mondat-dump dekódolása debughoz
     └── sample_logs/                      # Példa NMEA 0183 logok (Vulcan WiFi dump); YDVR DAT→YD RAW a v1.5+ adapterhez
@@ -2297,6 +2302,8 @@ void main() {
 
 Egy CLI tool (`tools/nmea_replay/`) ami egy rögzített NMEA 0183 logfájlt szerver-emulál (TCP socketen kiadja, a Vulcan WiFi kimenetét utánozva). Az app ehhez csatlakozik fejlesztés közben, és pontosan úgy viselkedik mintha a hajón lenne.
 
+A Serial WiFi Terminal *log-to-file* minden sor elé `HH:MM:SS.mmm ` helyi-idő prefixet tesz (pl. `10:18:26.060 $GPRMC,...`). A replay ezt **levágja** (a Vulcan prefix nélkül, CRLF-fel küld), és a prefix-időbélyegek különbségéből **valós időben ütemez** — a negatív különbség (midnight-rollover vagy sorrend-csúszás) azonnal fut. A prefix-parse és a mondat-kinyerés **pure, tesztelt** függvény (`parseLoggedLine`, `lib/src/logged_line.dart`); a `bin/` csak az I/O-héj (fájl + `ServerSocket`). Egy `--loop` kapcsoló a log végén újraindít, hogy egy rögzített versennyel hosszan tudj tesztelni.
+
 **A log forrásai:**
 
 1. **Élő Vulcan WiFi dump**: a Vulcan hotspotjára csatlakozva a TCP `192.168.76.1:10110` streamet fájlba mentjük (Serial WiFi Terminal log-to-file, vagy `nc 192.168.76.1 10110 > log`) egy hajózás idejére. Időbélyeges sorok.
@@ -2320,16 +2327,19 @@ void main(List<String> args) async {
 }
 
 Future<void> _replay(String path, Socket client) async {
-  final lines = File(path).readAsLinesSync();
-  DateTime? prevTimestamp;
+  // A pure prefix-parse + mondat-kinyerés a lib/src/logged_line.dart-ban.
+  final logged = File(path)
+      .readAsLinesSync()
+      .map(parseLoggedLine)
+      .whereType<LoggedLine>() // nem-mondat sorok (üres stb.) kiesnek
+      .toList();
 
-  for (final line in lines) {
-    final timestamp = _parseTimestamp(line);
-    if (prevTimestamp != null) {
-      await Future.delayed(timestamp.difference(prevTimestamp));
-    }
-    client.writeln(line);
-    prevTimestamp = timestamp;
+  Duration? prev;
+  for (final line in logged) {
+    // Valós idejű ütemezés; negatív különbség azonnal fut (rollover-véd).
+    if (prev != null) await Future.delayed(line.timeOfDay - prev);
+    client.add(utf8.encode('${line.sentence}\r\n')); // Vulcan: prefix nélkül, CRLF
+    prev = line.timeOfDay;
   }
 }
 ```
