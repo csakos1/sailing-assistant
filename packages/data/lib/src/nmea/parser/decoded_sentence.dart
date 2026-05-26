@@ -75,3 +75,22 @@ final class DecodedRmc extends DecodedSentence {
   /// A GPS-fix UTC-időbélyege (instrument-óra, nem app-óra).
   final DateTime timestampUtc;
 }
+
+/// A `VTG` mondat: menetirány és sebesség a talaj felett (COG/SOG).
+///
+/// A v1 a true COG-ot (field 0, trueNorth) és a csomóból m/s-ra váltott
+/// SOG-ot (field 4) veszi; a mágneses COG és a km/h-érték redundáns
+/// (ARCHITECTURE.md 6.3). A mapper (6.4) `CogSogEvent`-re alakítja.
+final class DecodedCogSog extends DecodedSentence {
+  /// Dekódolt COG/SOG mondatot csomagol.
+  const DecodedCogSog({
+    required this.courseOverGround,
+    required this.speedOverGround,
+  });
+
+  /// Menetirány a talaj felett (COG), trueNorth-referenciás `[0, 360)`.
+  final Bearing courseOverGround;
+
+  /// Sebesség a talaj felett (SOG), m/s.
+  final Speed speedOverGround;
+}
