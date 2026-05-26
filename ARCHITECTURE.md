@@ -296,7 +296,8 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   │       ├── mwd_wind_direction.dart
 │   │   │   │   │   │       └── vhw_speed_water.dart
 │   │   │   │   │   └── mapper/
-│   │   │   │   │       └── nmea_to_domain_mapper.dart
+│   │   │   │   │       ├── nmea_to_domain_mapper.dart
+│   │   │   │   │       └── wind_aggregator.dart
 │   │   │   │   ├── persistence/
 │   │   │   │   │   ├── database.dart                    # Drift main
 │   │   │   │   │   ├── tables/
@@ -1197,13 +1198,36 @@ Stream<Uint8List> rawTcpBytes        // Vulcan socket (10110)
   .transform(const LineSplitter())   // 0183 sor-formátum
   .transform(Nmea0183LineParser())   // → Sentence (checksum-validált)
   .transform(SentenceDecoder())      // → DecodedSentence
-  .transform(DomainMapper())         // → DomainEvent
+  .transform(NmeaToDomainMapper())   // → DomainEvent
 
 DomainEvent stream → split into:
   → WindStateProvider (rebuild on WindEvent)
   → BoatStateProvider (rebuild on PositionEvent | HeadingEvent | CogSogEvent | SpeedEvent | InstrumentTimeEvent)
   → TelemetryLogger (write all events to SQLite)
 ```
+
+A pipeline záró lépése a **stateful** `NmeaToDomainMapper`: exhaustive
+`switch`-csel minden `DecodedSentence` leaf-et a megfelelő
+`DomainEvent`(ek)re fordít. A szél-mondatok aggregálását egy külön
+`WindAggregator` kollaborátorra delegálja — mező-szintű felülettel
+(`applyApparent` / `applyTrueWater` / `applyTrueDirection`), hogy az
+aggregátor csak domain value objectektől függjön, ne a `DecodedSentence`
+családtól. Az aggregátor a legfrissebb apparent / true-water / TWD
+mezőkből **friss `WindData`-t épít** (nem `copyWith` — az nem tud
+opcionálist null-ra állítani), de **csak akkor ad non-null snapshotot,
+ha az apparent szél már megérkezett** (apparent-gate); a mapper ezt
+csomagolja `WindEvent`-be. Apparent előtti `MWV,T` / `MWD` tehát nem
+emittál eseményt.
+
+A `map(DecodedSentence, DateTime now)` az aktuális időt **per hívás,
+injektálva** kapja (a `DateTime.now()` a pipeline szélén marad). Minden
+esemény ezt az app-óra `now`-t hordozza — **kivéve az
+`InstrumentTimeEvent`-et**, ami a műszer GPS-instantját
+(`DecodedRmc.timestampUtc`) viszi tovább. Ez az `RMC`-ből bontott
+`PositionEvent` / `CogSogEvent`-re is vonatkozik: azok is `now`-t kapnak,
+nem a GPS-időt. Indok: az app-óra forrástól független, monoton-ish
+rendezést ad minden telemetriának, forrástól függetlenül; a műszer
+GPS-idejét külön, a hajó-óra kijelzéshez hozzuk felszínre.
 
 ### 6.5 True Wind Direction (TWD)
 
