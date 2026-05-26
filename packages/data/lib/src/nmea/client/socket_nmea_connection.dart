@@ -10,7 +10,7 @@ class _SocketNmeaConnection implements NmeaConnection {
   final Socket _socket;
 
   @override
-  Stream<List<int>> get bytes => _socket;
+  Stream<List<int>> get bytes => _socket.cast<List<int>>();
 
   @override
   Future<void> close() async {
