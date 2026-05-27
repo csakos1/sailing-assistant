@@ -284,4 +284,134 @@ void main() {
       },
     );
   });
+
+  group('Nmea0183TcpClient nyers sor-tap', () {
+    test('a bejövő mondatot nyers sorként is kiadja', () async {
+      final conn = _FakeConnection();
+      final connector = _ScriptedConnector([conn]);
+      final client = Nmea0183TcpClient(
+        connector: connector.connect,
+        reconnectDelay: Duration.zero,
+      );
+      final rawLines = <String>[];
+      final sub = client.rawLines.listen(rawLines.add);
+
+      await client.connect();
+      await pumpEventQueue();
+      conn.emit([apparent]);
+      await pumpEventQueue();
+
+      expect(rawLines, [apparent]);
+
+      await sub.cancel();
+      await client.dispose();
+    });
+
+    test('a rawLines és az events ugyanazt a kapcsolatot fedi le', () async {
+      // A kettős feliratkozás timing-buktatóját ezzel fogjuk ki: ugyanaz a
+      // sor mindkét ágra az ELSŐ bájttól megérkezik (a broadcast nem
+      // pufferel, de a socket I/O az event-loopból, a microtask-drain UTÁN
+      // jön — ld. ADR 0006).
+      final conn = _FakeConnection();
+      final connector = _ScriptedConnector([conn]);
+      final client = Nmea0183TcpClient(
+        connector: connector.connect,
+        reconnectDelay: Duration.zero,
+      );
+      final events = <DomainEvent>[];
+      final rawLines = <String>[];
+      final subE = client.events.listen(events.add);
+      final subR = client.rawLines.listen(rawLines.add);
+
+      await client.connect();
+      await pumpEventQueue();
+      conn.emit([apparent]);
+      await pumpEventQueue();
+
+      expect(events, hasLength(1));
+      expect(events.single, isA<WindEvent>());
+      expect(rawLines, [apparent]);
+
+      await subE.cancel();
+      await subR.cancel();
+      await client.dispose();
+    });
+
+    test('a rawLines broadcast — több feliratkozó is megkapja', () async {
+      final conn = _FakeConnection();
+      final connector = _ScriptedConnector([conn]);
+      final client = Nmea0183TcpClient(
+        connector: connector.connect,
+        reconnectDelay: Duration.zero,
+      );
+      final first = <String>[];
+      final second = <String>[];
+      final subA = client.rawLines.listen(first.add);
+      final subB = client.rawLines.listen(second.add);
+
+      await client.connect();
+      await pumpEventQueue();
+      conn.emit([apparent]);
+      await pumpEventQueue();
+
+      expect(first, [apparent]);
+      expect(second, [apparent]);
+
+      await subA.cancel();
+      await subB.cancel();
+      await client.dispose();
+    });
+
+    test('a rawLines stream túléli a reconnectet', () async {
+      // A long-lived _rawLines controller miatt a per-kapcsolat rawSub
+      // cancellje (finally) NEM zárja le a streamet: a következő kapcsolat
+      // sorai ugyanahhoz a fogyasztóhoz érkeznek.
+      final conn1 = _FakeConnection();
+      final conn2 = _FakeConnection();
+      final connector = _ScriptedConnector([conn1, conn2]);
+      final client = Nmea0183TcpClient(
+        connector: connector.connect,
+        reconnectDelay: Duration.zero,
+      );
+      final rawLines = <String>[];
+      final sub = client.rawLines.listen(rawLines.add);
+
+      await client.connect();
+      await pumpEventQueue();
+      conn1.emit([apparent]);
+      await pumpEventQueue();
+      await conn1.drop();
+      await pumpEventQueue();
+      conn2.emit([trueWind]);
+      await pumpEventQueue();
+
+      expect(rawLines, [apparent, trueWind]);
+
+      await sub.cancel();
+      await client.dispose();
+    });
+
+    test('a dispose() lezárja a rawLines streamet (onDone fut)', () async {
+      final conn = _FakeConnection();
+      final connector = _ScriptedConnector([conn]);
+      final client = Nmea0183TcpClient(
+        connector: connector.connect,
+        reconnectDelay: Duration.zero,
+      );
+      var doneReached = false;
+      final sub = client.rawLines.listen(
+        (_) {},
+        onDone: () => doneReached = true,
+      );
+
+      await client.connect();
+      await pumpEventQueue();
+      await client.dispose();
+      await pumpEventQueue();
+
+      expect(doneReached, isTrue);
+
+      await sub.cancel();
+    });
+  });
 }
