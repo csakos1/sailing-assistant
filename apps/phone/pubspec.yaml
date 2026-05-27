@@ -17,6 +17,7 @@ dependencies:
     path: ../../packages/domain
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.5.0
   shared:
     path: ../../packages/shared
 
