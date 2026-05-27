@@ -1,4 +1,4 @@
-package dev.csakos.sailingassistant.phone
+package com.csakos.foretack
 
 import io.flutter.embedding.android.FlutterActivity
 

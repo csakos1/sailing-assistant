@@ -1,0 +1,43 @@
+{
+  "@@locale": "hu",
+
+  "appTitle": "Foretack",
+  "@appTitle": {
+    "description": "Az app neve a launcher / recents képernyőn."
+  },
+
+  "viewerTitle": "Nyers NMEA folyam",
+  "@viewerTitle": {
+    "description": "A debug raw-NMEA viewer címsora."
+  },
+
+  "viewerEmptyState": "Még nem érkezett sor.",
+  "@viewerEmptyState": {
+    "description": "A viewer üres állapotának üzenete (még nincs adat)."
+  },
+
+  "statusConnecting": "Csatlakozás…",
+  "@statusConnecting": {
+    "description": "Connection status — TCP socket nyitás folyamatban."
+  },
+
+  "statusConnected": "Csatlakozva",
+  "@statusConnected": {
+    "description": "Connection status — aktív kapcsolat, adat érkezik."
+  },
+
+  "statusDisconnected": "Nincs kapcsolat",
+  "@statusDisconnected": {
+    "description": "Connection status — még soha nem csatlakozott, vagy disconnect() lefutott."
+  },
+
+  "statusError": "Hiba: {message}",
+  "@statusError": {
+    "description": "Connection status — szakadás üzenettel.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  }
+}

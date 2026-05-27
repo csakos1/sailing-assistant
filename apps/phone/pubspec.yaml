@@ -17,6 +17,8 @@ dependencies:
     path: ../../packages/domain
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^2.5.0
   shared:
     path: ../../packages/shared
@@ -26,4 +28,5 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+  generate: true
   uses-material-design: true
