@@ -85,6 +85,19 @@ Háttérfunkciók:
 | **Akku-tudatosság** | Pozíció és heading a műszerekből, nem a telefonból. Watch downsample-elt adatot kap, nem teljes NMEA streamet. |
 | **YAGNI** | v1-ben nincs polár, nincs widget-drag, nincs felhő. Az architektúra előkészített, de a kód csak azt tartalmazza ami most használt. |
 
+### 1.5 Terméknév és modul-elnevezés
+
+A user-facing terméknév **Foretack**. Ez a brand a következő rétegekben jelenik meg:
+
+- `MaterialApp.title` — a launcher / recents képernyő megjelenítési neve
+- Android `applicationId` és `namespace` — `com.csakos.foretack`
+- Android `android:label` — `Foretack`
+- (Későbbi) iOS bundle ID, store-listing, ikon-szövegek — ugyanaz a brand
+
+A monorepo kód-moduljainak nevei viszont **szándékosan a szerepkört tükrözik, nem a brandet:** `apps/phone` és `apps/watch`. Belül az importok stabilak (`package:phone/...`, `package:watch/...`), és a két modul neve szimmetrikus (telefon-app vs óra-app). Ha a brand valaha változik (piaci viability függvénye), a kód-importok érintetlenek maradnak — ez SoC: a package-név az architektúra-szerepre utal, a brand pedig user-facing réteg.
+
+A `packages/{domain,data,shared}` neveihez a brand sosem kerül közel — ezek tisztán réteg-elnevezések (DDD szakkifejezések), bárki más is használhatná őket ugyanezzel a Clean Architecture mintával.
+
 ---
 
 ## 2. Műszaki környezet
