@@ -1806,16 +1806,16 @@ halasztást.
 
 ```dart
 // apps/phone/lib/providers/nmea_stream_provider.dart
+// Igényli: import 'dart:async'; — az unawaited() ehhez kell.
 
 // Keep-alive (NEM autoDispose): vízen a kapcsolat nem állhat le, ha épp nincs
 // UI-listener. A Vulcan <-> nmea_replay váltás konfig (host), nem override.
 final nmeaStreamProvider = Provider<NmeaStream>((ref) {
   final client = Nmea0183TcpClient(
     host: ref.watch(gatewayHostProvider),  // 192.168.76.1 (Vulcan) / localhost (replay)
-    port: 10110,
-  );
+  );  // port default = 10110; avoid_redundant_argument_values miatt nem explicit
   ref.onDispose(client.dispose);  // dispose() = disconnect() + a controllerek close()-a
-  client.connect();               // eager: az első olvasáskor indul a socket
+  unawaited(client.connect());    // fire-and-forget; unawaited_futures lintet elégíti ki
   return client;
 });
 ```
@@ -1826,10 +1826,13 @@ final nmeaStreamProvider = Provider<NmeaStream>((ref) {
 // Seedelt Notifier: a build() szinkron a currentStatus-ból veszi a kezdőértéket
 // (a statusChanges broadcast NEM replay-eli az utolsót), majd a változásokra
 // iratkozik — a connection-badge azonnal helyes, nincs AsyncLoading-villogás.
+// Direkt AutoDisposeNotifierProvider<…> a lint-konform forma: a
+// NotifierProvider.autoDispose<…> factory más típust ad vissza, mint amit a
+// neve sugall (specify_nonobvious_property_types triggerelne).
 final connectionStatusProvider =
-    NotifierProvider.autoDispose<ConnectionStatusNotifier, ConnectionStatus>(
-  ConnectionStatusNotifier.new,
-);
+    AutoDisposeNotifierProvider<ConnectionStatusNotifier, ConnectionStatus>(
+      ConnectionStatusNotifier.new,
+    );
 
 class ConnectionStatusNotifier extends AutoDisposeNotifier<ConnectionStatus> {
   @override
@@ -1849,26 +1852,28 @@ class ConnectionStatusNotifier extends AutoDisposeNotifier<ConnectionStatus> {
 // ad nyers sort, ha RawNmeaLineSource (TCP kliens); fake/replay esetén a viewer
 // üresen, gracefully degradál (ADR 0006).
 final rawNmeaLinesProvider =
-    NotifierProvider.autoDispose<RawNmeaLinesNotifier, List<String>>(
-  RawNmeaLinesNotifier.new,
-);
+    AutoDisposeNotifierProvider<RawNmeaLinesNotifier, List<String>>(
+      RawNmeaLinesNotifier.new,
+    );
 
 class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
-  static const _maxLines = 200;
+  static const int _maxLines = 200;
 
   @override
   List<String> build() {
     final source = ref.watch(nmeaStreamProvider);
-    if (source is! RawNmeaLineSource) {
-      return const [];  // nincs nyers-sor forrás (pl. fake/replay)
+    // Dart NEM promotál `is!` után független abstract interfészek között
+    // (NmeaStream és RawNmeaLineSource), ezért pattern-match adja a tiszta,
+    // cast-mentes szűkítést a nyers-sor felületre.
+    if (source case final RawNmeaLineSource rawSource) {
+      final sub = rawSource.rawLines.listen((line) {
+        final next = <String>[...state, line];
+        state = next.length > _maxLines
+            ? next.sublist(next.length - _maxLines)
+            : next;
+      });
+      ref.onDispose(sub.cancel);
     }
-    final sub = source.rawLines.listen((line) {
-      final next = [...state, line];
-      state = next.length > _maxLines
-          ? next.sublist(next.length - _maxLines)
-          : next;
-    });
-    ref.onDispose(sub.cancel);
     return const [];
   }
 }
