@@ -2752,6 +2752,34 @@ git config core.hooksPath .githooks
 chmod +x .githooks/pre-commit
 ```
 
+### 15.6 Konfiguráció — gateway host override `--dart-define`-fal
+
+A `Nmea0183TcpClient` host-ja a `gatewayHostProvider`-en keresztül a
+`FORETACK_GATEWAY_HOST` build-konstansból olvasható ki (ADR 0007). Default:
+`192.168.76.1` (Vulcan-hotspot). A `tools/nmea_replay` elleni otthoni
+iterációhoz a `flutter run`-nak átadott flag-gel váltunk át:
+
+```bash
+# Hajón (default Vulcan):
+flutter run --debug
+
+# Otthon, közös WiFi-n, a PC LAN-IP-jével:
+flutter run --debug --dart-define=FORETACK_GATEWAY_HOST=192.168.1.50
+
+# Otthon, `adb reverse tcp:10110 tcp:10110` mellett, localhost-tal:
+flutter run --debug --dart-define=FORETACK_GATEWAY_HOST=127.0.0.1
+```
+
+A `--dart-define` compile-time konstanssá fordul a Dart-kódban
+(`String.fromEnvironment`), runtime cost nincs. A forráskód érintetlen marad
+a Vulcan és az `nmea_replay` között váltogatva — nincs commit-szennyeződés-
+kockázat.
+
+A port jelenleg NEM konfigurálható; a Vulcan és az `nmea_replay` is
+10110-en figyel default-ban. Ha valós port-eltérés merül fel, az ADR 0007
+Következmények részében leírt `bool.hasEnvironment`-alapú mintával
+bővíthető.
+
 ---
 
 ## 16. GitHub Actions CI/CD
