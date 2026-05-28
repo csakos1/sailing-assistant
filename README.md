@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="NMEA Race — Sailing Race Assistant" width="100%"/>
+  <img src="assets/banner.svg" alt="Foretack — Sailing Race Assistant" width="100%"/>
 </p>
 
-<h1 align="center">NMEA Race</h1>
+<h1 align="center">Foretack</h1>
 
 <p align="center">
   <strong>A real-time sailing race assistant for B&amp;G NMEA 2000 instruments.</strong><br/>
@@ -42,7 +42,7 @@
 
 ## Overview
 
-**NMEA Race** is a Flutter-based race assistant that reads live data from B&amp;G
+**Foretack** is a Flutter-based race assistant that reads live data from B&amp;G
 NMEA 2000 instruments via the **B&amp;G Vulcan 7R** chartplotter's built-in
 NMEA 0183-over-WiFi output — the Vulcan sits on the N2K backbone and re-broadcasts
 it as 0183 on its own hotspot, so no separate gateway hardware is needed. It then
