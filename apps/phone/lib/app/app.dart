@@ -1,29 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/theme.dart';
-import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
+import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/providers/telemetry_logger_provider.dart';
 
 /// A Foretack app gyökér-widgetje.
 ///
-/// A Riverpod `ProviderScope` kívülről jön (a `main`-ből), itt csak a
-/// `MaterialApp`, a téma és a lokalizációs delegátorok élnek. A v1
-/// főképernyő (Fázis 5) majd a `home:` slot cseréjével landol; jelenleg
-/// a debug raw-NMEA viewer az egyetlen képernyő (§14 Fázis 3).
+/// A Riverpod `ProviderScope` kívülről jön (a `main`-ből), itt a
+/// `MaterialApp`, a téma és a lokalizációs delegátorok élnek. A `home` a
+/// versenylista (§14 Fázis 4).
 ///
-/// Az `AppLocalizations.of(context)!` használat a fában a `MaterialApp`
-/// alatt biztonságos: a delegátorokat itt regisztráljuk, így a fa minden
-/// gyermekében garantáltan elérhető.
-class ForetackApp extends StatelessWidget {
+/// A `telemetryLoggerProvider` egy `Provider<void>` mellékhatás-provider —
+/// itt `watch`-oljuk eagerly, hogy aktív race alatt fusson a
+/// telemetria-logolás (ADR 0009 D6); aktív race nélkül no-op.
+///
+/// Az `AppLocalizations.of(context)!` a fában a `MaterialApp` alatt
+/// biztonságos: a delegátorokat itt regisztráljuk.
+class ForetackApp extends ConsumerWidget {
   const ForetackApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Eager watch: életre kelti a logger mellékhatás-providert.
+    ref.watch(telemetryLoggerProvider);
+
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       theme: foretackTheme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const RawNmeaViewerScreen(),
+      home: const RaceListScreen(),
     );
   }
 }

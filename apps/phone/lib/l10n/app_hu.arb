@@ -164,5 +164,35 @@
   "detailDeleteConfirm": "Törlés",
   "@detailDeleteConfirm": {
     "description": "A törlés-dialógus megerősítő gombja."
+  },
+
+  "listTitle": "Versenyek",
+  "@listTitle": {
+    "description": "A versenylista (home) képernyő címsora."
+  },
+
+  "listEmpty": "Még nincs verseny. Adj hozzá egyet a + gombbal.",
+  "@listEmpty": {
+    "description": "A lista üres állapotának üzenete."
+  },
+
+  "listError": "Nem sikerült betölteni a versenyeket.",
+  "@listError": {
+    "description": "A lista hiba-állapotának üzenete."
+  },
+
+  "listAddRace": "Új verseny",
+  "@listAddRace": {
+    "description": "Tooltip: a FAB, ami a setup képernyőt nyitja."
+  },
+
+  "listMarkCount": "{count} bója",
+  "@listMarkCount": {
+    "description": "Egy versenysor alcíme: a bóyák száma.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

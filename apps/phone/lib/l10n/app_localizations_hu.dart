@@ -106,4 +106,21 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get detailDeleteConfirm => 'Törlés';
+
+  @override
+  String get listTitle => 'Versenyek';
+
+  @override
+  String get listEmpty => 'Még nincs verseny. Adj hozzá egyet a + gombbal.';
+
+  @override
+  String get listError => 'Nem sikerült betölteni a versenyeket.';
+
+  @override
+  String get listAddRace => 'Új verseny';
+
+  @override
+  String listMarkCount(int count) {
+    return '$count bója';
+  }
 }

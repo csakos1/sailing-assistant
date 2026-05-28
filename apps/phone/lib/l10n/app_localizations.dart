@@ -279,6 +279,36 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Törlés'**
   String get detailDeleteConfirm;
+
+  /// A versenylista (home) képernyő címsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenyek'**
+  String get listTitle;
+
+  /// A lista üres állapotának üzenete.
+  ///
+  /// In hu, this message translates to:
+  /// **'Még nincs verseny. Adj hozzá egyet a + gombbal.'**
+  String get listEmpty;
+
+  /// A lista hiba-állapotának üzenete.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült betölteni a versenyeket.'**
+  String get listError;
+
+  /// Tooltip: a FAB, ami a setup képernyőt nyitja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Új verseny'**
+  String get listAddRace;
+
+  /// Egy versenysor alcíme: a bóyák száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} bója'**
+  String listMarkCount(int count);
 }
 
 class _AppLocalizationsDelegate
