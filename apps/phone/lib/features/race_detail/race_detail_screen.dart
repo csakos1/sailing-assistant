@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/widgets/race_status_chip.dart';
 
 /// Egy verseny részletei: státusz, bóya-lista, és státuszfüggő start/finish
 /// + törlés akciók.
@@ -86,7 +87,7 @@ class RaceDetailScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _StatusChip(status: current.status, l10n: l10n),
+              child: RaceStatusChip(status: current.status),
             ),
           ),
           Expanded(
@@ -131,22 +132,4 @@ class RaceDetailScreen extends ConsumerWidget {
   String _formatPosition(Coordinate position) =>
       '${position.latitude.toStringAsFixed(4)}, '
       '${position.longitude.toStringAsFixed(4)}';
-}
-
-/// A verseny státuszát mutató kis címke.
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status, required this.l10n});
-
-  final RaceStatus status;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = switch (status) {
-      RaceStatus.notStarted => l10n.raceStatusNotStarted,
-      RaceStatus.active => l10n.raceStatusActive,
-      RaceStatus.finished => l10n.raceStatusFinished,
-    };
-    return Chip(label: Text(label));
-  }
 }
