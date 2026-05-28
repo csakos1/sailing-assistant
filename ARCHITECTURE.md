@@ -1772,38 +1772,35 @@ seam-et, mert a composite a v2 belépési pontja (`PolarRepository`). Az
 ### 8.2 Provider hierarchia
 
 ```
-                  ┌──────────────────────────┐
-                  │  nmeaStreamProvider      │  Provider<NmeaStream>
-                  │  (singleton, eager)      │  ← injected impl (TCP / replay / mock)
-                  └────────┬─────────────────┘
-                           │ .events (stream)
-        ┌──────────────────┼──────────────────┐
-        ▼                  ▼                  ▼
-┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
-│ rawNmeaStream    │ │ windEvents   │ │ telemetryLogger  │
-│ Provider         │ │ Provider     │ │ Provider         │
-│ (debug)          │ │              │ │ (writes all)     │
-└──────────────────┘ └──────┬───────┘ └──────────────────┘
-                            │
-               ┌────────────┼─────────────┐
-               ▼            ▼             ▼
-        ┌──────────┐ ┌─────────────┐ ┌──────────────┐
-        │ windData │ │ windHistory │ │ windShiftTrend│
-        │ Provider │ │ Provider    │ │ Provider     │
-        │ (latest) │ │ (sliding)   │ │ (computed)   │
-        └──────────┘ └─────────────┘ └──────┬───────┘
-                                            │
-                                            ▼
-                              ┌──────────────────────────┐
-                              │ markPredictionProvider   │  ← uses also boatState
-                              │ (the heart of v1)        │     and activeRace
-                              └──────────────────────────┘
-                                            │
-                                            ▼
-                              ┌──────────────────────────┐
-                              │ HomeScreen UI            │
-                              │ (consumer widget)        │
-                              └──────────────────────────┘
+Élő adat-gerinc (5c után a teljes kép).
+Kadencia: push = eseményre · 1 Hz / tick = másodpercenként · read@tick = tick-időben mintavételezve
+
+Gyökerek (keep-alive)
+  clockProvider (DateTime Fn)            nmeaStreamProvider (lazy connect)
+        │                                       │ .events (push, ~5-10 Hz)
+        │ 1 Hz               ┌───────────────────┼───────────────────┐
+        ▼                    ▼                   ▼                   ▼
+  tickProvider         boatStateProvider   windDataProvider   windHistoryProvider
+  (keep-alive)         (autoDispose)       (autoDispose)      (autoDispose)
+        │                    │                                       │
+        │ tick               │ read@tick                    read@tick │
+        │                    │                                       ▼
+        │                    │                            windShiftTrendProvider
+        │                    │                            (autoDispose, tick-driven)
+        │                    │                                       │ read@tick
+        ▼                    ▼                                       ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ markPredictionProvider (autoDispose) — a v1 szíve, 1 Hz            │◀── activeRaceProvider
+  │   ComputeMarkPrediction(activeMark, boatState, trend, now)         │    (keep-alive)
+  └────────────────────────────────┬─────────────────────────────────┘    .activeMarkOrNull
+                                    ▼
+                          HomeScreen (5d, ConsumerWidget)
+                          watch: markPrediction (+ boatState, windData)
+
+Mellék-ágak (a főképernyő külön watch-olja, §8.3 / §8.5):
+  nmeaStream.statusChanges → connectionStatusProvider (seedelt badge)
+  nmeaStream.rawLines      → rawNmeaLinesProvider (debug ring-buffer)
+  activeRace + rawLines    → telemetryLoggerProvider (csak status == active)
 ```
 
 ### 8.3 Fázis 3 provider-példák (ADR 0006)
@@ -2149,9 +2146,74 @@ class WindHistoryNotifier extends AutoDisposeNotifier<List<WindObservation>> {
 }
 ```
 
-A `tickProvider` / `windShiftTrendProvider` / `markPredictionProvider` (a
-compute-réteg, D2) az 5c-ben, a `markRoundingMonitorProvider` (D4) az 5e-ben
-landol; a §8.2 ASCII teljes újrarajzolása az 5c-vel, amikor a teljes kép áll.
+A compute-réteg a §8.2 hierarchia teteje: a push-folyamot állapottá foldoltuk
+(fent), most azt **1 Hz-en** számoljuk át prediction-né. **D2 (ADR 0010):** a
+kadenciát egy dedikált `tickProvider` adja; a drága composite csak a tick-en
+fut, nem minden eseményen. Az event→state providerek tick-időben olvasott
+snapshotok — a magas frekvenciás push (HDG 5-10 Hz) NEM hajt rebuildet:
+`ref.listen(...)` tartja életben az inputot, az értéket `ref.read(...)` veszi a
+tick pillanatában.
+
+```dart
+// apps/phone/lib/providers/tick_provider.dart
+// 1 Hz recompute-kadencia (ADR 0010 D2). Keep-alive: a főképernyő életében
+// folyamatosan jár. A clockProvider-seam köré épül, így tesztben egy
+// kontrollált streammel override-olható (a Stream.periodic valós idő, nem
+// determinisztikus). Az első emit +1 s-nél jön; addig a compute null.
+final tickProvider = StreamProvider<DateTime>((ref) {
+  final clock = ref.watch(clockProvider);
+  return Stream<DateTime>.periodic(const Duration(seconds: 1), (_) => clock());
+});
+```
+
+```dart
+// apps/phone/lib/providers/wind_shift_trend_provider.dart
+// A 7.4 use case provider-wrappere: a sliding-window regresszió CSAK a tick-en
+// fut. A windHistory-t a listen tartja életben (autoDispose ellen), az értékét
+// a tick pillanatában olvassuk. A 10 perces ablak egyelőre in-memory konstans
+// (ADR 0010 D3); a runtime-konfig az 5f (SettingsRepository).
+final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend?>((ref) {
+  final tick = ref.watch(tickProvider).valueOrNull;
+  ref.listen(windHistoryProvider, (_, _) {});
+  if (tick == null) {
+    return null;
+  }
+  return const CalculateWindShiftTrend()(
+    history: ref.read(windHistoryProvider),
+    window: const Duration(minutes: 10),
+    now: tick,
+  );
+});
+```
+
+```dart
+// apps/phone/lib/providers/mark_prediction_provider.dart
+// A v1 szíve (7.8 composite provider-wrappere). 1 Hz-en a tick-en újraszámol —
+// akkor is, ha a trend tartósan null, miközben a hajó mozog (ezért watch-olja
+// a tick-et közvetlenül). A boatState/trend tick-időben olvasott snapshot
+// (listen = keep-alive); az activeRace keep-alive → sima read. Az aktív bóyát
+// a Race.activeMarkOrNull adja; null race / finished → activeMark null → a use
+// case null-t ad.
+final markPredictionProvider = Provider.autoDispose<MarkPrediction?>((ref) {
+  final tick = ref.watch(tickProvider).valueOrNull;
+  ref
+    ..listen(boatStateProvider, (_, _) {})
+    ..listen(windShiftTrendProvider, (_, _) {});
+  if (tick == null) {
+    return null;
+  }
+  final race = ref.read(activeRaceProvider);
+  return const ComputeMarkPrediction()(
+    activeMark: race?.activeMarkOrNull,
+    boatState: ref.read(boatStateProvider),
+    trend: ref.read(windShiftTrendProvider),
+    now: tick,
+  );
+});
+```
+
+A compute-réteg ezzel landolt; a `markRoundingMonitorProvider` (D4) az 5e-ben
+jön. A §8.2 hierarchia immár ezt a teljes képet tükrözi.
 
 ---
 
