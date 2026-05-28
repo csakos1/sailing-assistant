@@ -23,6 +23,7 @@ dependencies:
   shared:
     path: ../../packages/shared
 
+  uuid: ^4.5.1
 dev_dependencies:
   drift: ^2.33.0
   flutter_test:
