@@ -10,20 +10,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/&lt;you&gt;/nmea-race/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/&lt;you&gt;/nmea-race/ci.yml?branch=main&label=CI&logo=github&style=flat-square" alt="CI status"/>
+  <a href="https://github.com/csakos1/sailing-assistant/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/csakos1/sailing-assistant/ci.yml?branch=main&label=CI&logo=github&style=flat-square" alt="CI status"/>
   </a>
   <img src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white&style=flat-square" alt="Flutter stable"/>
-  <img src="https://img.shields.io/badge/Dart-3.6%2B-0175C2?logo=dart&logoColor=white&style=flat-square" alt="Dart 3.6+"/>
+  <img src="https://img.shields.io/badge/Dart-3.11%2B-0175C2?logo=dart&logoColor=white&style=flat-square" alt="Dart 3.11+"/>
   <img src="https://img.shields.io/badge/state-Riverpod%202.x-2C9CDB?style=flat-square" alt="Riverpod"/>
   <img src="https://img.shields.io/badge/db-Drift-3DDC84?style=flat-square" alt="Drift"/>
   <img src="https://img.shields.io/badge/monorepo-Melos-FFC107?style=flat-square" alt="Melos"/>
   <img src="https://img.shields.io/badge/lints-very__good__analysis-ff7a59?style=flat-square" alt="very_good_analysis"/>
   <img src="https://img.shields.io/badge/arch-Clean%20Architecture-263238?style=flat-square" alt="Clean Architecture"/>
-  <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="License MIT"/>
+  <img src="https://img.shields.io/badge/license-not%20chosen-lightgrey?style=flat-square" alt="License not chosen"/>
   <br/>
-  <img src="https://img.shields.io/badge/protocol-NMEA%202000-0a2540?style=flat-square" alt="NMEA 2000"/>
-  <img src="https://img.shields.io/badge/gateway-Yacht%20Devices%20YDWG--02-0a2540?style=flat-square" alt="Yacht Devices YDWG-02"/>
+  <img src="https://img.shields.io/badge/protocol-NMEA%200183-0a2540?style=flat-square" alt="NMEA 0183"/>
+  <img src="https://img.shields.io/badge/source-B%26G%20Vulcan%20WiFi-0a2540?style=flat-square" alt="B&G Vulcan WiFi"/>
   <img src="https://img.shields.io/badge/platform-Android%20%2B%20Wear%20OS-3DDC84?logo=android&logoColor=white&style=flat-square" alt="Android + Wear OS"/>
   <img src="https://img.shields.io/badge/made%20for-Lake%20Balaton%20%E2%9B%B5-0a7ea4?style=flat-square" alt="Made for Lake Balaton"/>
 </p>
@@ -43,9 +43,11 @@
 ## Overview
 
 **NMEA Race** is a Flutter-based race assistant that reads live data from B&amp;G
-NMEA 2000 instruments through a [Yacht Devices YDWG-02](https://www.yachtd.com/products/web_gateway.html)
-WiFi gateway, and computes — in real time — the racing metrics that mainstream
-chartplotters don't surface well:
+NMEA 2000 instruments via the **B&amp;G Vulcan 7R** chartplotter's built-in
+NMEA 0183-over-WiFi output — the Vulcan sits on the N2K backbone and re-broadcasts
+it as 0183 on its own hotspot, so no separate gateway hardware is needed. It then
+computes — in real time — the racing metrics that mainstream chartplotters don't
+surface well:
 
 - The **predicted True Wind Angle at the *next* mark**, based on a rolling wind-shift trend.
 - The bearing-to-mark, course-to-steer correction, distance, and ETA, all updated at ≥1 Hz.
@@ -56,7 +58,7 @@ The boat is the source of truth — position, heading, wind and speed come from
 the marine instruments, not the phone GPS (battery first, but also: accuracy).
 
 Everything is built around the assumption that **debugging on the water is impossible**.
-Every meaningful calculation is replayable from recorded YDVR voyage data on the couch.
+Every meaningful calculation is replayable from recorded NMEA 0183 logs on the couch — no boat required.
 
 <sub>Currently a personal project, racing tour-style regattas on **Lake Balaton, Hungary**.
 The architecture is built for extension; v1 is intentionally narrow.</sub>
@@ -71,7 +73,7 @@ A fixed, glanceable layout. Six live values, updated continuously:
 
 | # | Metric | Source | Rate |
 |---|--------|--------|------|
-| 1 | **True Wind Angle** | NMEA 2000 PGN 130306 (B&amp;G computed true wind) | 5–10 Hz |
+| 1 | **True Wind Angle** | NMEA 0183 MWV (true) — B&amp;G Vulcan computed true wind | ~1 Hz |
 | 2 | **Bearing to mark** | GPS position + mark coordinate (Haversine) | 1 Hz |
 | 3 | **Course-to-steer correction** | bearing − COG / HDG | 1 Hz |
 | 4 | **Distance to mark** | great-circle distance | 1 Hz |
@@ -131,7 +133,7 @@ The full document lives in **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — that fil
 | Concern | Choice | Why |
 |---|---|---|
 | UI framework | Flutter (stable) | One codebase, phone + Wear OS |
-| Language | Dart 3.6+ | Sealed classes, pattern matching, pub workspaces |
+| Language | Dart 3.11+ | Sealed classes, pattern matching, pub workspaces |
 | State management | Riverpod 2.x | Compile-safe DI, override-for-test, streaming providers |
 | Local DB | Drift (typed SQL) | Type-safe schema, isolate-based writes, painless migrations |
 | Monorepo | Melos 7.x + Pub Workspaces | One repo, one CI, shared `domain` between phone and watch |
@@ -151,16 +153,18 @@ The full document lives in **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — that fil
 |---|---|---|
 | Wind sensor | B&amp;G WS310 | AWA, AWS (10 Hz) |
 | True wind / display | B&amp;G Triton2 | TWA / TWS calculation |
-| Chartplotter | B&amp;G Vulcan 7R | SailSteer, polar storage (v2) |
+| **Chartplotter + v1 data source** | **B&amp;G Vulcan 7R** | SailSteer, polar storage (v2); **NMEA 0183-over-WiFi gateway for v1** (N2K→0183 on its hotspot) |
 | GPS + heading | B&amp;G ZG100 | Position, COG, SOG, magnetic heading |
 | Speed / depth / temp | Simrad/Lowrance DST P617V | Boat speed through water |
 | Backbone | Navico Micro-C | NMEA 2000 network |
-| **Real-time gateway** | **Yacht Devices YDWG-02** | NMEA 2000 → WiFi TCP/UDP |
+| Gateway (v1.5+, optional) | Yacht Devices YDWG-02 | NMEA 2000 → WiFi TCP/UDP — **not needed for v1**, future YD RAW adapter |
 | **Voyage recorder** | **Yacht Devices YDVR** | `.DAT` log → replay source |
 
-`.DAT` files from YDVR convert to YD RAW with the official *Voyage Data Reader*,
-which is the same format the YDWG-02 streams over TCP — so the same parser
-handles live races and replay-from-archive identically.
+For v1, live racing and couch replay share the **same NMEA 0183 path**: the app parses
+the Vulcan's `$..` sentences over TCP, and the `nmea_replay` tool feeds recorded 0183
+logs through that exact pipeline. The YDVR `.DAT` archives (lossless N2K) are kept for
+the deferred YD RAW adapter (v1.5+) and as training data for the v2 polar learner —
+they are not used in the v1 parser path.
 
 ### Clients
 
@@ -205,7 +209,7 @@ flutter doctor -v   # everything green
 
 ```bash
 git clone https://github.com/csakos1/sailing-assistant
-cd nmea-race
+cd sailing-assistant
 melos bootstrap          # resolves all packages in the workspace
 ```
 
@@ -231,7 +235,7 @@ flutter run --release
 ### Replay a recorded race (no boat required)
 
 ```bash
-# Start the replay server (port defaults to 10110; --loop restarts at EOF):
+# Replay server emulating the Vulcan WiFi output (port 10110; --loop restarts at EOF):
 dart run tools/nmea_replay/bin/nmea_replay.dart \
   tools/sample_logs/home_test_sample.nmea --loop
 ```
@@ -249,7 +253,7 @@ flutter run --debug --dart-define=FORETACK_GATEWAY_HOST=<dev-machine-LAN-IP>
 ## Project structure
 
 ```
-nmea-race/
+sailing-assistant/
 ├── apps/
 │   ├── phone/                 # Flutter app — phone
 │   └── watch/                 # Flutter app — Wear OS, with Kotlin bridge
@@ -258,11 +262,11 @@ nmea-race/
 │   ├── data/                  # NMEA parsers, Drift DB, WMM, settings — implementations
 │   └── shared/                # Result<T,E>, extensions, constants
 ├── tools/
-│   ├── nmea_replay/           # CLI: recorded log → fake YDWG-02 TCP server
-│   ├── pgn_inspector/         # CLI: decode raw PGN dumps for debugging
+│   ├── nmea_replay/           # CLI: recorded 0183 log → fake Vulcan TCP server
+│   ├── nmea_inspector/        # CLI: decode raw 0183 sentence dumps for debugging
 │   └── sample_logs/           # Example NMEA logs for tests and demos
 ├── docs/
-│   ├── nmea-pgn-reference.md  # Documentation of every PGN we consume
+│   ├── nmea-0183-reference.md # The 0183 sentences we consume (PGN ref deferred to v1.5+)
 │   └── decisions/             # ADRs (Architecture Decision Records)
 ├── ARCHITECTURE.md            # The north star — read this first
 └── README.md                  # You are here
@@ -315,7 +319,7 @@ window is configurable in settings for tuning during real races.
 | Data | Unit tests for PGN decoders against canboat sample frames; repository tests with in-memory Drift | ≥ 80 % |
 | Application | Riverpod provider tests with overrides | ≥ 70 % |
 | Presentation | Widget tests on critical screens; the rest is visual review | best effort |
-| End-to-end | **Replay-based** integration: feed a recorded `.ydraw` log through the pipeline and assert computed outputs | every release-candidate phase |
+| End-to-end | **Replay-based** integration: feed a recorded `.nmea` (NMEA 0183) log through the pipeline and assert computed outputs | every release-candidate phase |
 
 The replay tests are the single most important quality gate: the boat is
 rarely available, so every regression has to be catchable from a couch.
@@ -328,7 +332,7 @@ rarely available, so every regression has to be catchable from a couch.
 |---|---|---|
 | 0 | Project skeleton, Melos, CI placeholder | Empty repo, green CI |
 | 1 | Pure domain layer — every calculation + 95 %+ tests | The math is right before the hardware ever connects |
-| 2 | NMEA 2000 parser, fast-packet assembler, PGN decoders, replay tool | A real YDVR `.DAT` plays through and produces clean domain entities |
+| 2 | NMEA 0183 sentence parser + decoders, replay tool | A real Vulcan 0183 log plays through and produces clean domain entities |
 | 3 | Phone app skeleton, raw NMEA viewer | Phone connects to YDWG-02 and shows the stream |
 | 4 | Race definition + Drift persistence | Define a race, save it, re-open it |
 | 5 | Home screen with all six widgets — v1 minimum | App is usable on the boat |
@@ -354,7 +358,7 @@ workflow (Conventional Commits, all checks green, one logical change per commit)
 
 ## License
 
-License is not yet selected - see [issue #1](https://github.com/<you>/nmea-race/issues/1).
+License is not yet selected - see [issue #1](https://github.com/csakos1/sailing-assistant/issues/1).
 Until a license file is added, **all rights reserved by default**. If you want
 to use any of this code, please open an issue.
 
