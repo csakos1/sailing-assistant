@@ -1882,9 +1882,10 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
 
 **Halasztva, dokumentálva (ADR 0006):**
 
-- `windDataProvider`, `windHistoryProvider`, `windShiftTrendProvider`,
-  `boatStateProvider`, `markPredictionProvider` és a 8.4
-  `markRoundingMonitorProvider` → **Fázis 5** (főképernyő + v1 számítások).
+- `boatStateProvider`, `windDataProvider`, `windHistoryProvider` →
+  **landolt** Fázis 5 / 5b (§8.6, ADR 0010). A `windShiftTrendProvider`,
+  `markPredictionProvider`, `tickProvider` → 5c; a 8.4
+  `markRoundingMonitorProvider` → 5e.
 - `telemetryLoggerProvider` → **Fázis 4** (Drift) — **landolt** (§8.5, ADR 0009).
 - Eager-connect-at-boot felülvizsgálata → **Fázis 5** (mindig-fent főképernyő);
   Fázis 3-ban a kapcsolat lazy-on-first-screen.
@@ -2010,6 +2011,139 @@ final telemetryLoggerProvider = Provider<void>((ref) {
   }
 });
 ```
+
+
+### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
+
+A §8.2 hierarchia alja: az `NmeaStream.events` push-folyamát foldoljuk
+állapottá. **D1 (ADR 0010):** mindegyik state-provider önálló
+`AutoDisposeNotifier`, ami a `build()`-ben szinkron seedel, a
+`nmeaStreamProvider.events`-re iratkozik, és `ref.onDispose(sub.cancel)`-lal
+takarít — a `connectionStatusProvider` (§8.3) mintája. A főképernyő tartja
+őket életben (autoDispose).
+
+```dart
+// apps/phone/lib/providers/boat_state_provider.dart
+// Seedelt AutoDisposeNotifier: üres BoatState az app-órából, majd minden
+// eseményt a _reduce foldol be. A lastUpdate mindig a clockProvider-óra
+// (receipt-idő); az InstrumentTimeEvent GPS-instantja CSAK az instrumentTimeUtc-
+// be megy. A WindEvent no-op (a szél a windDataProvider-é).
+final boatStateProvider =
+    AutoDisposeNotifierProvider<BoatStateNotifier, BoatState>(
+      BoatStateNotifier.new,
+    );
+
+class BoatStateNotifier extends AutoDisposeNotifier<BoatState> {
+  @override
+  BoatState build() {
+    final clock = ref.watch(clockProvider);
+    final stream = ref.watch(nmeaStreamProvider);
+    final sub = stream.events.listen((event) {
+      state = _reduce(state, event, clock());
+    });
+    ref.onDispose(sub.cancel);
+    return BoatState(lastUpdate: clock());
+  }
+}
+
+// Pure reducer: esemény + receipt-idő → új BoatState. Az exhaustive switch a
+// sealed DomainEvent minden leafjét kezeli; a HeadingEvent a Bearing reference-e
+// szerint magneticNorth/trueNorth mezőbe kerül; a WindEvent változatlanul adja
+// vissza az állapotot.
+BoatState _reduce(BoatState current, DomainEvent event, DateTime now) {
+  return switch (event) {
+    PositionEvent(:final position) =>
+      current.copyWith(position: position, lastUpdate: now),
+    HeadingEvent(:final heading) =>
+      heading.reference == BearingReference.magneticNorth
+          ? current.copyWith(headingMagnetic: heading, lastUpdate: now)
+          : current.copyWith(headingTrue: heading, lastUpdate: now),
+    CogSogEvent(:final courseOverGround, :final speedOverGround) =>
+      current.copyWith(
+        courseOverGround: courseOverGround,
+        speedOverGround: speedOverGround,
+        lastUpdate: now,
+      ),
+    SpeedEvent(:final speedThroughWater) =>
+      current.copyWith(speedThroughWater: speedThroughWater, lastUpdate: now),
+    InstrumentTimeEvent() =>
+      current.copyWith(instrumentTimeUtc: event.timestamp, lastUpdate: now),
+    WindEvent() => current,
+  };
+}
+```
+
+```dart
+// apps/phone/lib/providers/wind_data_provider.dart
+// A legfrissebb szél-snapshot; null-lal indul, a WindEvent hordozott WindData-
+// jára vált, a nem-szél eseményt figyelmen kívül hagyja.
+final windDataProvider =
+    AutoDisposeNotifierProvider<WindDataNotifier, WindData?>(
+      WindDataNotifier.new,
+    );
+
+class WindDataNotifier extends AutoDisposeNotifier<WindData?> {
+  @override
+  WindData? build() {
+    final stream = ref.watch(nmeaStreamProvider);
+    final sub = stream.events.listen((event) {
+      if (event case WindEvent(:final data)) {
+        state = data;
+      }
+    });
+    ref.onDispose(sub.cancel);
+    return null;
+  }
+}
+```
+
+```dart
+// apps/phone/lib/providers/wind_history_provider.dart
+// TWD-observation puffer a wind-shift trendhez. Minden WindEvent-nél, ha van
+// trueDirectionGround, observationt fűz; 30 percnél (a legfrissebb obshoz mérve)
+// régebbieket levág. A tényleges 10 perces trend-ablakot a windShiftTrendProvider
+// (5c) alkalmazza, nem ez.
+final windHistoryProvider =
+    AutoDisposeNotifierProvider<WindHistoryNotifier, List<WindObservation>>(
+      WindHistoryNotifier.new,
+    );
+
+class WindHistoryNotifier extends AutoDisposeNotifier<List<WindObservation>> {
+  static const Duration _bufferWindow = Duration(minutes: 30);
+
+  @override
+  List<WindObservation> build() {
+    final stream = ref.watch(nmeaStreamProvider);
+    final sub = stream.events.listen((event) {
+      if (event case WindEvent(:final data)) {
+        final twd = data.trueDirectionGround;
+        if (twd == null) {
+          return;
+        }
+        state = _appended(
+          state,
+          WindObservation(twd: twd, timestamp: data.timestamp),
+        );
+      }
+    });
+    ref.onDispose(sub.cancel);
+    return const <WindObservation>[];
+  }
+
+  List<WindObservation> _appended(
+    List<WindObservation> current,
+    WindObservation observation,
+  ) {
+    final next = [...current, observation];
+    final cutoff = observation.timestamp.subtract(_bufferWindow);
+    return next.where((o) => o.timestamp.isAfter(cutoff)).toList();
+  }
+}
+```
+
+A `tickProvider` / `windShiftTrendProvider` / `markPredictionProvider` (a
+compute-réteg, D2) az 5c-ben, a `markRoundingMonitorProvider` (D4) az 5e-ben
+landol; a §8.2 ASCII teljes újrarajzolása az 5c-vel, amikor a teljes kép áll.
 
 ---
 
