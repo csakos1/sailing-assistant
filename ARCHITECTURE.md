@@ -1885,7 +1885,7 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
 - `windDataProvider`, `windHistoryProvider`, `windShiftTrendProvider`,
   `boatStateProvider`, `markPredictionProvider` és a 8.4
   `markRoundingMonitorProvider` → **Fázis 5** (főképernyő + v1 számítások).
-- `telemetryLoggerProvider` → **Fázis 4** (Drift).
+- `telemetryLoggerProvider` → **Fázis 4** (Drift) — **landolt** (§8.5, ADR 0009).
 - Eager-connect-at-boot felülvizsgálata → **Fázis 5** (mindig-fent főképernyő);
   Fázis 3-ban a kapcsolat lazy-on-first-screen.
 
@@ -1908,6 +1908,106 @@ final markRoundingMonitorProvider = Provider((ref) {
       detector.reset();
     }
   });
+});
+```
+
+### 8.5 Fázis 4 providerek (ADR 0009)
+
+A persistence kód-réteg (Drift repo + bufferelt logger) köré épülő
+application-providerek. A vezérelv a domain-purity application-rétegbeli
+megfelelője: a side-effecteket (óra, id-generátor) **injektáljuk**, hogy a
+providerek `ProviderContainer` + override-okkal, fake seamekkel tesztelhetők
+legyenek.
+
+```dart
+// apps/phone/lib/providers/clock_provider.dart
+// Egyetlen idő-seam az egész application-réteghez; tesztben fake órára
+// override-olható. A repo + logger + (Fázis 5) mark-rounding monitor fogyasztja.
+final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+```
+
+```dart
+// apps/phone/lib/providers/app_database_provider.dart
+// Keep-alive: vízen a DB nem épülhet le/újra UI-listener hiányában.
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+```
+
+```dart
+// apps/phone/lib/providers/race_repository_provider.dart
+// A domain RaceRepository INTERÉSZT adja vissza (DIP) — a presentation sosem
+// látja a konkrét implt. Keep-alive: vékony stateless service a keep-alive DB
+// fölött, az autoDispose-churn értelmetlen.
+final raceRepositoryProvider = Provider<RaceRepository>((ref) {
+  return RaceRepositoryImpl(
+    ref.watch(appDatabaseProvider),
+    now: ref.watch(clockProvider),
+  );
+});
+```
+
+```dart
+// apps/phone/lib/providers/race_list_provider.dart
+// Tiszta stream-projekció a watchRaces() köré — nincs lokális mutáció, ezért
+// StreamProvider (nem Notifier). A lista-képernyő AsyncValue<List<Race>>-t kap.
+final raceListProvider = StreamProvider.autoDispose<List<Race>>((ref) {
+  return ref.watch(raceRepositoryProvider).watchRaces();
+});
+```
+
+```dart
+// apps/phone/lib/providers/active_race_provider.dart
+// A folyamatban lévő race egyetlen írható, in-memory tartója. A state-átmenetek
+// a Race entitás factory-in mennek, majd repo.save perzisztál. A roundCurrentMark
+// bekötése Fázis 5 (auto-detekció). Restart-túlélő perzisztencia: Fázis 5
+// (SettingsRepository), itt szándékosan in-memory.
+final activeRaceProvider =
+    NotifierProvider<ActiveRaceNotifier, Race?>(ActiveRaceNotifier.new);
+
+class ActiveRaceNotifier extends Notifier<Race?> {
+  @override
+  Race? build() => null;
+
+  void activate(Race race) => state = race;
+  Future<void> start() async {/* race.start(at: clock) → repo.save → state */}
+  Future<void> finish() async {/* race.finish(at: clock) → repo.save → state */}
+  void deactivate() => state = null;
+}
+```
+
+```dart
+// apps/phone/lib/providers/telemetry_logger_provider.dart
+// Selector-alapú életciklus: csak a (versenyzik?, raceId) pár változására épül
+// újra, NEM minden bója-körözésnél. Csak status == active alatt logol; fake/
+// replay forrás (nem RawNmeaLineSource) → graceful no-op. Eagerly életre kell
+// kelteni az app-gyökérben (ref.watch), mert Provider<void> mellékhatás.
+final telemetryLoggerProvider = Provider<void>((ref) {
+  final raceId = ref.watch(
+    activeRaceProvider.select(
+      (race) => race?.status == RaceStatus.active ? race!.id : null,
+    ),
+  );
+  if (raceId == null) return;
+
+  final source = ref.watch(nmeaStreamProvider);
+  if (source case final RawNmeaLineSource rawSource) {
+    final logger = TelemetryLoggerImpl(ref.watch(appDatabaseProvider));
+    final now = ref.watch(clockProvider);
+    final sub = rawSource.rawLines.listen(
+      (line) => unawaited(
+        logger.log(
+          TelemetryRecord(raceId: raceId, timestamp: now(), rawSentence: line),
+        ),
+      ),
+    );
+    ref.onDispose(() async {
+      await sub.cancel();
+      await logger.dispose();
+    });
+  }
 });
 ```
 
@@ -1963,27 +2063,50 @@ class TelemetryRecords extends Table {
 
 ### 9.3 Repository implementációk
 
+A `RaceRepositoryImpl` (data) a domain `RaceRepository` interész (ADR 0008 D7)
+Drift-implementációja: persistence-only, **upsert** szemantikával, a race + bóyák
+egy tranzakcióban. A `now` injektált óra a write-only `createdAt` audit-oszlopot
+tölti (a domain `Race`-nek nincs ilyen mezője; visszafelé sosem olvasódik).
+
 ```dart
 // packages/data/lib/src/persistence/repositories/race_repository_impl.dart
 
 class RaceRepositoryImpl implements RaceRepository {
-  final AppDatabase _db;
-  RaceRepositoryImpl(this._db);
+  RaceRepositoryImpl(this._database, {DateTime Function() now = DateTime.now})
+    : _now = now;
+
+  final AppDatabase _database;
+  final DateTime Function() _now;
 
   @override
-  Future<Race> create(Race race) async {
-    await _db.transaction(() async {
-      await _db.into(_db.races).insert(_toRaceCompanion(race));
-      for (final mark in race.marks) {
-        await _db.into(_db.marks).insert(_toMarkCompanion(race.id, mark));
-      }
+  Future<void> save(Race race) async {
+    await _database.transaction(() async {
+      // Upsert: a createdAt a DoUpdate-ből KIMARAD, így újra-mentéskor stabil.
+      await _database.into(_database.races).insert(
+        RacesCompanion.insert(/* ... */ createdAt: _now()),
+        onConflict: DoUpdate((_) => RacesCompanion(/* createdAt nélkül */)),
+      );
+      // delete-and-rewrite: kezeli a bóyaszám-csökkenést is (árva-törlés).
+      await (_database.delete(_database.marks)
+        ..where((m) => m.raceId.equals(race.id))).go();
+      await _database.batch((b) => b.insertAll(_database.marks, [/* marks */]));
     });
-    return race;
   }
 
-  // ...
+  @override
+  Future<Race?> getRace(String id) async {/* select + _marksForRace → _toRace */}
+
+  @override
+  Stream<List<Race>> watchRaces() {/* select(races).watch().asyncMap(_toRace) */}
+
+  @override
+  Future<void> delete(String id) {/* delete(races); marks+telemetria cascade */}
 }
 ```
+
+A bóyák `sequence` ASC sorrendben olvasódnak vissza (pálya-sorrend, függetlenül
+a beszúrástól); a `delete` a FK-cascade-re bízza a bóyák + telemetria törlését
+(`PRAGMA foreign_keys = ON`, ADR 0008 D2). Az application-bekötés: §8.5.
 
 ### 9.4 Telemetria buffereléssel
 
