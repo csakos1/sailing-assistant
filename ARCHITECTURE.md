@@ -2172,7 +2172,7 @@ final tickProvider = StreamProvider<DateTime>((ref) {
 // fut. A windHistory-t a listen tartja életben (autoDispose ellen), az értékét
 // a tick pillanatában olvassuk. A 10 perces ablak egyelőre in-memory konstans
 // (ADR 0010 D3); a runtime-konfig az 5f (SettingsRepository).
-final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend?>((ref) {
+final windShiftTrendProvider = AutoDisposeProvider<WindShiftTrend?>((ref) {
   final tick = ref.watch(tickProvider).valueOrNull;
   ref.listen(windHistoryProvider, (_, _) {});
   if (tick == null) {
@@ -2194,7 +2194,7 @@ final windShiftTrendProvider = Provider.autoDispose<WindShiftTrend?>((ref) {
 // (listen = keep-alive); az activeRace keep-alive → sima read. Az aktív bóyát
 // a Race.activeMarkOrNull adja; null race / finished → activeMark null → a use
 // case null-t ad.
-final markPredictionProvider = Provider.autoDispose<MarkPrediction?>((ref) {
+final markPredictionProvider = AutoDisposeProvider<MarkPrediction?>((ref) {
   final tick = ref.watch(tickProvider).valueOrNull;
   ref
     ..listen(boatStateProvider, (_, _) {})
