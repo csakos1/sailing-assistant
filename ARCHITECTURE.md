@@ -981,10 +981,11 @@ A többi repository a saját fázisával együtt készül:
 
 - **`RaceRepository`** (Phase 4) — race betöltés/mentés; a `Race` id-jétől
   és a persistence-sémától (9.2) függ, ezért a kontraktus akkor véglegesül.
-- **`SettingsRepository`** (Phase 4) — beállítások (pl. wind-shift window,
-  7.4); a `Settings` entitás még nem létezik.
-- **`TelemetryLogger`** (Phase 4) — minden eseményt SQLite-ba ír (6.4,
-  9.4), a Drift-implementációval együtt.
+- **`SettingsRepository`** (Phase 5) — beállítások (pl. wind-shift window,
+  7.4); a `Settings` entitás még nem létezik, és az első fogyasztó (a
+  configolható window a főképernyőn) is Phase 5 — ADR 0008 ezért halasztja.
+- **`TelemetryLogger`** (Phase 4) — minden nyers `$…*XX` 0183 mondatot
+  SQLite-ba ír (6.4, 9.4), a Drift-implementációval együtt (ADR 0008).
 - **`GeomagneticService`** (Phase 2) — declination a WMM-2025-ből (13.2);
   a v1 elsődleges TWD-útja a `MWD`-ből közvetlenül jön (6.5), ezért v1-ben
   nincs rá szükség.
@@ -1948,13 +1949,13 @@ class Marks extends Table {
   Set<Column> get primaryKey => {raceId, sequence};
 }
 
+@TableIndex(name: 'telemetry_race_time', columns: {#raceId, #timestamp})
 class TelemetryRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get raceId => text().references(Races, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get timestamp => dateTime()();
-  IntColumn get pgn => integer()();
-  TextColumn get rawHex => text()();             // Eredeti RAW frame
-  TextColumn get decodedJson => text().nullable()(); // Dekódolt érték JSON-ban
+  TextColumn get rawSentence => text()();             // a nyers $…*XX 0183 mondat
+  TextColumn get decodedJson => text().nullable()(); // v1: null; post-race re-decode
 }
 ```
 
@@ -2017,6 +2018,11 @@ class TelemetryLoggerImpl implements TelemetryLogger {
   }
 }
 ```
+
+> **ADR 0008 (Phase 4)**: a `TelemetryRecord` a nyers `$…*XX` 0183 mondatot
+> hordozza (nem dekódolt eventet), a logger a `RawNmeaLineSource.rawLines`-ra
+> iratkozik, és csak aktív race alatt logol (lifecycle az `activeRaceProvider`-
+> höz kötve). A `decodedJson` v1-ben null — post-race re-decode.
 
 ---
 
@@ -2553,6 +2559,7 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 - Race indítása / leállítása
 - Race lista képernyő
 - `RaceRepository` impl + tesztek
+- Telemetria-logger (nyers 0183 mondatok bufferelt mentése aktív race alatt)
 
 **Eredmény**: be tudsz írni egy race-et, elmented, később megnyitod.
 
