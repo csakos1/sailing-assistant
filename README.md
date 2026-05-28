@@ -231,16 +231,18 @@ flutter run --release
 ### Replay a recorded race (no boat required)
 
 ```bash
-# Start the replay server — pretends to be a YDWG-02 over TCP
-cd tools/nmea_replay
-dart run bin/nmea_replay.dart \
-  --input ../sample_logs/kekszalag_2024_leg1.ydraw \
-  --speed 1.0 \
-  --port 1457
+# Start the replay server (port defaults to 10110; --loop restarts at EOF):
+dart run tools/nmea_replay/bin/nmea_replay.dart \
+  tools/sample_logs/home_test_sample.nmea --loop
 ```
 
-Point the phone app at `localhost:1457` (or the dev machine's LAN IP) and the
-full pipeline runs end-to-end on the couch.
+Point the phone at the dev machine and the full pipeline runs end-to-end on the
+couch. The host is set at build time (see [`ARCHITECTURE.md`](ARCHITECTURE.md) §15.6):
+
+```bash
+cd apps/phone
+flutter run --debug --dart-define=FORETACK_GATEWAY_HOST=<dev-machine-LAN-IP>
+```
 
 ---
 

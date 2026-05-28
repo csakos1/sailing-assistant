@@ -2307,35 +2307,29 @@ A Serial WiFi Terminal *log-to-file* minden sor elé `HH:MM:SS.mmm ` helyi-idő 
 
 ```dart
 // tools/nmea_replay/bin/nmea_replay.dart
+// Az arg-parse (ArgParser: pozicionális <log-file> + --port/-p + --loop/-l)
+// és az I/O-héj a bin/-ben; a pure prefix-parse a lib/src/logged_line.dart-ban.
 
-void main(List<String> args) async {
-  final logFile = args[0];        // pl. sample_logs/vulcan_2026.nmea
-  final port = int.parse(args[1]); // pl. 10110
-
-  final server = await ServerSocket.bind('0.0.0.0', port);
-  print('NMEA Replay listening on port $port');
-
-  await for (final client in server) {
-    print('Client connected from ${client.remoteAddress}');
-    _replay(logFile, client);
-  }
+await for (final client in server) {
+  // Tűzd-és-felejtsd: minden kliens a saját ütemén kapja a teljes streamet.
+  unawaited(_serve(client, lines, loop: loop));
 }
 
-Future<void> _replay(String path, Socket client) async {
-  // A pure prefix-parse + mondat-kinyerés a lib/src/logged_line.dart-ban.
-  final logged = File(path)
-      .readAsLinesSync()
-      .map(parseLoggedLine)
-      .whereType<LoggedLine>() // nem-mondat sorok (üres stb.) kiesnek
-      .toList();
-
-  Duration? prev;
-  for (final line in logged) {
-    // Valós idejű ütemezés; negatív különbség azonnal fut (rollover-véd).
-    if (prev != null) await Future.delayed(line.timeOfDay - prev);
-    client.add(utf8.encode('${line.sentence}\r\n')); // Vulcan: prefix nélkül, CRLF
-    prev = line.timeOfDay;
-  }
+Future<void> _serve(
+  Socket client,
+  List<LoggedLine> lines, {
+  required bool loop,
+}) async {
+  do {
+    Duration? previous;
+    for (final line in lines) {
+      // Valós idejű ütemezés a prefix-időbélyeg-különbségből; a nem pozitív
+      // tartam (midnight-rollover / sorrend-csúszás) azonnal fut.
+      if (previous != null) await Future<void>.delayed(line.timeOfDay - previous);
+      client.add(utf8.encode('${line.sentence}\r\n')); // Vulcan: prefix nélkül, CRLF
+      previous = line.timeOfDay;
+    }
+  } while (loop);
 }
 ```
 
