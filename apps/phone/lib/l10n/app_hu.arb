@@ -114,5 +114,55 @@
   "setupSave": "Mentés",
   "@setupSave": {
     "description": "Gomb: a verseny mentése és visszatérés a listához."
+  },
+
+  "raceStatusNotStarted": "Nem indult",
+  "@raceStatusNotStarted": {
+    "description": "Verseny-státusz: még nem indult el."
+  },
+
+  "raceStatusActive": "Folyamatban",
+  "@raceStatusActive": {
+    "description": "Verseny-státusz: aktív, folyamatban van."
+  },
+
+  "raceStatusFinished": "Befejezve",
+  "@raceStatusFinished": {
+    "description": "Verseny-státusz: befejeződött."
+  },
+
+  "detailStart": "Indítás",
+  "@detailStart": {
+    "description": "Gomb: a verseny elindítása (notStarted -> active)."
+  },
+
+  "detailFinish": "Befejezés",
+  "@detailFinish": {
+    "description": "Gomb: a verseny befejezése (active -> finished)."
+  },
+
+  "detailDelete": "Törlés",
+  "@detailDelete": {
+    "description": "Tooltip: a verseny törlése (AppBar ikon)."
+  },
+
+  "detailDeleteTitle": "Verseny törlése",
+  "@detailDeleteTitle": {
+    "description": "A törlés-megerősítő dialógus címe."
+  },
+
+  "detailDeleteMessage": "Biztosan törlöd ezt a versenyt?",
+  "@detailDeleteMessage": {
+    "description": "A törlés-megerősítő dialógus szövege."
+  },
+
+  "detailDeleteCancel": "Mégse",
+  "@detailDeleteCancel": {
+    "description": "A törlés-dialógus megszakító gombja."
+  },
+
+  "detailDeleteConfirm": "Törlés",
+  "@detailDeleteConfirm": {
+    "description": "A törlés-dialógus megerősítő gombja."
   }
 }

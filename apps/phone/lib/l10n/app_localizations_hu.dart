@@ -76,4 +76,34 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get setupSave => 'Mentés';
+
+  @override
+  String get raceStatusNotStarted => 'Nem indult';
+
+  @override
+  String get raceStatusActive => 'Folyamatban';
+
+  @override
+  String get raceStatusFinished => 'Befejezve';
+
+  @override
+  String get detailStart => 'Indítás';
+
+  @override
+  String get detailFinish => 'Befejezés';
+
+  @override
+  String get detailDelete => 'Törlés';
+
+  @override
+  String get detailDeleteTitle => 'Verseny törlése';
+
+  @override
+  String get detailDeleteMessage => 'Biztosan törlöd ezt a versenyt?';
+
+  @override
+  String get detailDeleteCancel => 'Mégse';
+
+  @override
+  String get detailDeleteConfirm => 'Törlés';
 }

@@ -219,6 +219,66 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Mentés'**
   String get setupSave;
+
+  /// Verseny-státusz: még nem indult el.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem indult'**
+  String get raceStatusNotStarted;
+
+  /// Verseny-státusz: aktív, folyamatban van.
+  ///
+  /// In hu, this message translates to:
+  /// **'Folyamatban'**
+  String get raceStatusActive;
+
+  /// Verseny-státusz: befejeződött.
+  ///
+  /// In hu, this message translates to:
+  /// **'Befejezve'**
+  String get raceStatusFinished;
+
+  /// Gomb: a verseny elindítása (notStarted -> active).
+  ///
+  /// In hu, this message translates to:
+  /// **'Indítás'**
+  String get detailStart;
+
+  /// Gomb: a verseny befejezése (active -> finished).
+  ///
+  /// In hu, this message translates to:
+  /// **'Befejezés'**
+  String get detailFinish;
+
+  /// Tooltip: a verseny törlése (AppBar ikon).
+  ///
+  /// In hu, this message translates to:
+  /// **'Törlés'**
+  String get detailDelete;
+
+  /// A törlés-megerősítő dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny törlése'**
+  String get detailDeleteTitle;
+
+  /// A törlés-megerősítő dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Biztosan törlöd ezt a versenyt?'**
+  String get detailDeleteMessage;
+
+  /// A törlés-dialógus megszakító gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get detailDeleteCancel;
+
+  /// A törlés-dialógus megerősítő gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Törlés'**
+  String get detailDeleteConfirm;
 }
 
 class _AppLocalizationsDelegate
