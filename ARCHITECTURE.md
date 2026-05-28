@@ -582,6 +582,7 @@ class Race extends Equatable {
   Race start({required DateTime at});             // notStarted → active
   Race roundCurrentMark({required DateTime at});  // active → active/finished
   Race finish({required DateTime at});            // active → finished (DNF/abort)
+  Mark? get activeMarkOrNull;                     // marks[i] vagy null (finished)
 }
 ```
 
@@ -599,6 +600,13 @@ exhaustive switch-csel — új `RaceStatus` érték hozzáadásakor a fordító
 itt jelez először. A `copyWith` simple-form, de **nem** szolgál
 state-átmenetre — azokra a `start` / `roundCurrentMark` / `finish` named
 factory-k vannak.
+
+A célzott bóyát az `activeMarkOrNull` getter adja: `marks[activeMarkIndex]`,
+ha az index tartományon belül van (notStarted → első bóya, active →
+aktuális), egyébként `null` (finished, ahol `activeMarkIndex ==
+marks.length`). Tisztán bounds-alapú, így a `markPredictionProvider` (§8.6)
+és a `markRoundingMonitor` (§8.4) közös, domain-szintű forrásból veszi az
+aktív bóyát.
 
 #### Mark — `markedAsRounded` monotonicitás
 
