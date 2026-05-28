@@ -2544,16 +2544,16 @@ name: data
       path: ../domain
     shared:
       path: ../shared
-    drift: ^2.20.0
-    drift_flutter: ^0.2.0
-    path_provider: ^2.1.4
+    drift: ^2.33.0
+    drift_flutter: ^0.3.0
+    path_provider: ^2.1.5
     shared_preferences: ^2.3.0
     geomag: ^0.0.1     # vagy saját WMM impl ha nincs jó csomag
-    meta: ^1.15.0
+    meta: ^1.16.0
   
   dev_dependencies:
     build_runner: ^2.4.0
-    drift_dev: ^2.20.0
+    drift_dev: ^2.33.0
     flutter_test:
       sdk: flutter
     test: ^1.25.0
@@ -2585,11 +2585,13 @@ name: phone
     intl: ^0.19.0
     freezed_annotation: ^2.4.0
     json_annotation: ^4.9.0
+    uuid: ^4.5.1
   
   dev_dependencies:
     flutter_test:
       sdk: flutter
     build_runner: ^2.4.0
+    drift: ^2.33.0
     freezed: ^2.5.0
     json_serializable: ^6.8.0
     riverpod_generator: ^2.4.0
@@ -2681,10 +2683,11 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 - Race setup képernyő (lat/lon kézi beírás, sorrend)
 - Race indítása / leállítása
 - Race lista képernyő
+- Race-detail képernyő (start/finish/törlés)
 - `RaceRepository` impl + tesztek
 - Telemetria-logger (nyers 0183 mondatok bufferelt mentése aktív race alatt)
 
-**Eredmény**: be tudsz írni egy race-et, elmented, később megnyitod.
+**Eredmény**: be tudsz írni egy race-et, elmented, később megnyitod; a race-detailen indítod/leállítod, alatta telemetria-logolás fut. A Fázis 4 a képernyőkkel zárul.
 
 ### Fázis 5 — Főképernyő + összes v1 számítás (~4-5 nap)
 
