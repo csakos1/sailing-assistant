@@ -78,6 +78,16 @@ class Race extends Equatable {
   final DateTime? startedAt;
   final DateTime? finishedAt;
 
+  /// Az aktuálisan célzott bóya, vagy `null`, ha a race befejeződött.
+  ///
+  /// `notStarted` → első bóya (`marks[0]`), `active` →
+  /// `marks[activeMarkIndex]`, `finished` → `null` (ekkor
+  /// `activeMarkIndex == marks.length`, tartományon kívül). Tisztán
+  /// bounds-alapú; a `markPredictionProvider` és a `markRoundingMonitor`
+  /// közös, domain-szintű aktív-bója forrása.
+  Mark? get activeMarkOrNull =>
+      activeMarkIndex < marks.length ? marks[activeMarkIndex] : null;
+
   /// State-átmenet: [RaceStatus.notStarted] → [RaceStatus.active].
   ///
   /// Csak `notStarted` állapotból hívható. Az `activeMarkIndex` 0 marad

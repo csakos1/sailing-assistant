@@ -369,4 +369,53 @@ void main() {
       expect(s, contains('notStarted'));
     });
   });
+
+  group('activeMarkOrNull', () {
+    test('notStarted → az első bóya (marks[0])', () {
+      // ARRANGE & ACT — rajt előtt is az első bóyára tartunk.
+      final race = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB],
+      );
+
+      // ASSERT
+      expect(race.activeMarkOrNull, markA);
+    });
+
+    test('aktív verseny: a getter végigköveti az activeMarkIndex-et', () {
+      // ARRANGE
+      final started = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB, markC],
+      ).start(at: startTime);
+
+      // ACT & ASSERT — minden körözés a következő bóyára lép, az utolsó
+      // után finished → null.
+      expect(started.activeMarkOrNull, markA);
+
+      final afterA = started.roundCurrentMark(at: roundTime);
+      expect(afterA.activeMarkOrNull, markB);
+
+      final afterB = afterA.roundCurrentMark(at: roundTime);
+      expect(afterB.activeMarkOrNull, markC);
+
+      final afterC = afterB.roundCurrentMark(at: finishTime);
+      expect(afterC.status, RaceStatus.finished);
+      expect(afterC.activeMarkOrNull, isNull);
+    });
+
+    test('finish() (DNF) → null', () {
+      // ARRANGE & ACT
+      final aborted = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB],
+      ).start(at: startTime).finish(at: finishTime);
+
+      // ASSERT — DNF után nincs aktív bóya.
+      expect(aborted.activeMarkOrNull, isNull);
+    });
+  });
 }
