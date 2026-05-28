@@ -30,4 +30,50 @@ class AppLocalizationsHu extends AppLocalizations {
   String statusError(String message) {
     return 'Hiba: $message';
   }
+
+  @override
+  String get setupTitle => 'Új verseny';
+
+  @override
+  String get setupRaceNameLabel => 'Verseny neve';
+
+  @override
+  String get setupRaceNameRequired => 'Adj meg egy nevet.';
+
+  @override
+  String setupMarkHeader(int number) {
+    return '$number. bója';
+  }
+
+  @override
+  String get setupMarkNameLabel => 'Bója neve';
+
+  @override
+  String get setupMarkNameRequired => 'Adj meg egy nevet.';
+
+  @override
+  String get setupLatitudeLabel => 'Szélesség (°)';
+
+  @override
+  String get setupLongitudeLabel => 'Hosszúság (°)';
+
+  @override
+  String get setupInvalidNumber => 'Érvénytelen szám.';
+
+  @override
+  String get setupLatitudeOutOfRange =>
+      'A szélesség -90 és 90 fok között lehet.';
+
+  @override
+  String get setupLongitudeOutOfRange =>
+      'A hosszúság -180 és 180 fok között lehet.';
+
+  @override
+  String get setupAddMark => 'Bója hozzáadása';
+
+  @override
+  String get setupRemoveMark => 'Bója törlése';
+
+  @override
+  String get setupSave => 'Mentés';
 }

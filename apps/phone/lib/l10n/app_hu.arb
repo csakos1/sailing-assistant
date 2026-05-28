@@ -39,5 +39,80 @@
         "type": "String"
       }
     }
+  },
+
+  "setupTitle": "Új verseny",
+  "@setupTitle": {
+    "description": "A race-setup képernyő címsora."
+  },
+
+  "setupRaceNameLabel": "Verseny neve",
+  "@setupRaceNameLabel": {
+    "description": "A verseny nevének beviteli mezője."
+  },
+
+  "setupRaceNameRequired": "Adj meg egy nevet.",
+  "@setupRaceNameRequired": {
+    "description": "Validációs hiba: a verseny neve üres."
+  },
+
+  "setupMarkHeader": "{number}. bója",
+  "@setupMarkHeader": {
+    "description": "Egy bója-sor fejléce a sorszámmal.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+
+  "setupMarkNameLabel": "Bója neve",
+  "@setupMarkNameLabel": {
+    "description": "Egy bója nevének beviteli mezője."
+  },
+
+  "setupMarkNameRequired": "Adj meg egy nevet.",
+  "@setupMarkNameRequired": {
+    "description": "Validációs hiba: a bója neve üres."
+  },
+
+  "setupLatitudeLabel": "Szélesség (°)",
+  "@setupLatitudeLabel": {
+    "description": "Egy bója szélességének mezője, decimális fokban."
+  },
+
+  "setupLongitudeLabel": "Hosszúság (°)",
+  "@setupLongitudeLabel": {
+    "description": "Egy bója hosszúságának mezője, decimális fokban."
+  },
+
+  "setupInvalidNumber": "Érvénytelen szám.",
+  "@setupInvalidNumber": {
+    "description": "Validációs hiba: a mező nem értelmezhető számként."
+  },
+
+  "setupLatitudeOutOfRange": "A szélesség -90 és 90 fok között lehet.",
+  "@setupLatitudeOutOfRange": {
+    "description": "Validációs hiba: a szélesség tartományon kívül."
+  },
+
+  "setupLongitudeOutOfRange": "A hosszúság -180 és 180 fok között lehet.",
+  "@setupLongitudeOutOfRange": {
+    "description": "Validációs hiba: a hosszúság tartományon kívül."
+  },
+
+  "setupAddMark": "Bója hozzáadása",
+  "@setupAddMark": {
+    "description": "Gomb: új bója-sor hozzáadása."
+  },
+
+  "setupRemoveMark": "Bója törlése",
+  "@setupRemoveMark": {
+    "description": "Tooltip: az adott bója-sor eltávolítása."
+  },
+
+  "setupSave": "Mentés",
+  "@setupSave": {
+    "description": "Gomb: a verseny mentése és visszatérés a listához."
   }
 }

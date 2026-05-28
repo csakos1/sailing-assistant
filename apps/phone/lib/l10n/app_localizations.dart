@@ -135,6 +135,90 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Hiba: {message}'**
   String statusError(String message);
+
+  /// A race-setup képernyő címsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Új verseny'**
+  String get setupTitle;
+
+  /// A verseny nevének beviteli mezője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny neve'**
+  String get setupRaceNameLabel;
+
+  /// Validációs hiba: a verseny neve üres.
+  ///
+  /// In hu, this message translates to:
+  /// **'Adj meg egy nevet.'**
+  String get setupRaceNameRequired;
+
+  /// Egy bója-sor fejléce a sorszámmal.
+  ///
+  /// In hu, this message translates to:
+  /// **'{number}. bója'**
+  String setupMarkHeader(int number);
+
+  /// Egy bója nevének beviteli mezője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Bója neve'**
+  String get setupMarkNameLabel;
+
+  /// Validációs hiba: a bója neve üres.
+  ///
+  /// In hu, this message translates to:
+  /// **'Adj meg egy nevet.'**
+  String get setupMarkNameRequired;
+
+  /// Egy bója szélességének mezője, decimális fokban.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szélesség (°)'**
+  String get setupLatitudeLabel;
+
+  /// Egy bója hosszúságának mezője, decimális fokban.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hosszúság (°)'**
+  String get setupLongitudeLabel;
+
+  /// Validációs hiba: a mező nem értelmezhető számként.
+  ///
+  /// In hu, this message translates to:
+  /// **'Érvénytelen szám.'**
+  String get setupInvalidNumber;
+
+  /// Validációs hiba: a szélesség tartományon kívül.
+  ///
+  /// In hu, this message translates to:
+  /// **'A szélesség -90 és 90 fok között lehet.'**
+  String get setupLatitudeOutOfRange;
+
+  /// Validációs hiba: a hosszúság tartományon kívül.
+  ///
+  /// In hu, this message translates to:
+  /// **'A hosszúság -180 és 180 fok között lehet.'**
+  String get setupLongitudeOutOfRange;
+
+  /// Gomb: új bója-sor hozzáadása.
+  ///
+  /// In hu, this message translates to:
+  /// **'Bója hozzáadása'**
+  String get setupAddMark;
+
+  /// Tooltip: az adott bója-sor eltávolítása.
+  ///
+  /// In hu, this message translates to:
+  /// **'Bója törlése'**
+  String get setupRemoveMark;
+
+  /// Gomb: a verseny mentése és visszatérés a listához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mentés'**
+  String get setupSave;
 }
 
 class _AppLocalizationsDelegate
