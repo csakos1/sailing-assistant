@@ -2215,6 +2215,190 @@ final markPredictionProvider = AutoDisposeProvider<MarkPrediction?>((ref) {
 A compute-réteg ezzel landolt; a `markRoundingMonitorProvider` (D4) az 5e-ben
 jön. A §8.2 hierarchia immár ezt a teljes képet tükrözi.
 
+### 8.7 Főképernyő: `LiveRaceScreen` és a v1 widget-réteg (Fázis 5d)
+
+**Szerep és elhelyezés.** A `LiveRaceScreen` az élő verseny-képernyő: a §8.6
+compute-rétegből fogyaszt, és a §1.2 hét v1 értékét jeleníti meg fix
+layoutban, ~1 Hz-en. **Nem** az app launcher-home-ja — az a `RaceListScreen`
+(§8.5); a live screen a `race_detail`-ről pusholódik
+(`Navigator.push(MaterialPageRoute)`, az app imperatív nav-mintája, named
+route nincs). A §8.2 diagram „HomeScreen" csúcsa erre képződik; a név a
+launcher-home-mal való ütközés elkerülésére `LiveRaceScreen`. Fájlok:
+`apps/phone/lib/features/live_race/live_race_screen.dart`; a cellák és a
+státuszsor `features/live_race/widgets/` alatt; a pure formázók
+`features/live_race/live_formatters.dart`-ban.
+
+**Layout: státuszsor + 2×3 érték-rács.** A §1.2 hét értéke = **hat
+érték-cella + státuszsor**. A 7. érték (GPS műszer-idő) a státuszsorban él,
+nem külön cella — ez a §1.2 „7 érték" és a §14 Fázis 5 „6 widget" frazírozás
+reconcile-ja. A cellák funkció szerint csoportosítva (szél → kormányzás →
+haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
+┌─────────────────────────────────────┐
+│ ● Csatlakozva    1. bója    14:32:07 │   státuszsor (+„elavult" chip stale-nél)
+├──────────────────┬──────────────────┤
+│  TWA most        │  TWA köv.   ●●○   │   #1 | #6 (hero: confidence-szín + pontok)
+│   32° ◀          │   ▶ 47°          │
+├──────────────────┼──────────────────┤
+│  Bearing         │  Korrekció       │   #2 | #3
+│   095°           │   8° →           │
+├──────────────────┼──────────────────┤
+│  Táv             │  ETA             │   #4 | #5
+│   450 m          │   07:32          │
+└──────────────────┴──────────────────┘
+
+**Érték → forrás → formátum.**
+
+| # | Cella | Forrás (provider → mező) | Formátum | null |
+|---|-------|--------------------------|----------|------|
+| 1 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
+| 6 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl + confidence | `—` |
+| 2 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
+| 3 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl | `—` |
+| 4 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `<1000 m → 450 m`; `≥1000 m → 1.85 km` | `—` |
+| 5 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
+| 7 | GPS-idő (státuszsor) | `boatStateProvider` → `instrumentTimeUtc` → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+
+A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és az
+aktív bója neve (`activeRaceProvider` → `activeMarkOrNull?.name`, különben
+`—`).
+
+A `markPrediction == null` (nincs aktív bója vagy pozíció) esetén a 2–6
+cellák mind `—`-t mutatnak; a TWA-most (`windData`-ból) és a GPS-idő
+(`boatState`-ből) prediction-független, mezőnként degradál. notStarted alatt
+is jön prediction az 1. bójára (§8.6 / ADR 0010, status-gating nélkül) → a
+képernyő rajt előtti pozícionálásra is él. Hiányzó mező mindig `—`
+placeholder, **soha nem 0°-fallback** (a `MarkPrediction` szándékosan
+nullable; a `0°` „perfekt kurzus", nem „nincs adat").
+
+**TWA-cellák: előjel-konvenció és oldal-nyíl.** A `trueAngleWater` /
+`predictedTwaAtMark` `Angle` signed `[-180, +180)`, **+ = starboard
+(jobbról fúj), − = port (balról fúj)** (lásd `angle.dart`, 7.5). A
+képernyőn **előjelet nem írunk** — a számot magnitúdóként mutatjuk, a **nyíl
+pozíciója kódolja az oldalt**, és a glyph a szám felé (befelé) mutat:
+
+- `+` (starboard): nyíl a szám jobbján, balra mutat — `32° ◀`
+- `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47°`
+- `0°`: szélbe, nincs oldal → nyíl nélkül.
+
+A nyíl **színe a hajós (navigációs-fény) konvenciót követi**: starboard
+(jobb) → **zöld**, port (bal) → **piros** — a szín redundánsan megerősíti az
+oldalt. Tömör háromszög-glyph, hogy a kormány-nyíltól elkülönüljön.
+
+**Korrekció: kormány-nyíl.** A `courseCorrection` `Angle?`, **+ = jobbra
+fordulj (starboard), − = balra (port)** (lásd 7.3). Magnitúdó + a nyíl azon
+az oldalon, amerre kormányozni kell, **kifelé** (a fordulás irányába)
+mutatva:
+
+- `+` (jobbra): `8° →`
+- `−` (balra): `← 8°`
+- `0°`: nincs nyíl.
+
+A kormány-nyíl színe ugyanazt a side-konvenciót követi (jobbra → **zöld**,
+balra → **piros**); a TWA-nyíltól a glyph-stílus (vékony vonal vs. tömör
+háromszög) és az irány (kifelé vs. befelé) különbözteti meg, **nem a szín**.
+Az oldal-döntés mindkét cellánál ugyanaz a pure függvény (`>0 → jobb`,
+`<0 → bal`, `0`/`null` → nincs); a glyph-stílus, -irány és a szín (jobb →
+zöld, bal → piros) a widget side→prezentáció leképezése.
+
+**ETA-formátum.** `<60 perc → mm:ss` (`07:32`); **`≥60 perc → egész perc`**
+(`83 perc`), nem `60+` cap. `null` (SOG-vesztés / drift) → `—`.
+
+**shiftConfidence-jelzés.** A pred-TWA cellán: szín (a `ConfidenceColors`
+`ThemeExtension`-ből) + 3-szegmenses pont-indikátor (`●○○`/`●●○`/`●●●`) —
+shape is, nem csak szín (színvak-safe). low = tompított (megbízhatatlan, nem
+riasztás), medium = borostyán, high = **accent (cyan/teal, nem zöld)**. A
+zöld/piros szándékosan a starboard/port oldal-nyilaké marad, hogy a
+confidence-szín ne ütközzön vele; ezért a pred-TWA cellán a confidence a
+pontokon + az accenten él, a magnitúdó-szám high-contrast semleges, a nyíl
+pedig zöld/piros az oldal szerint. A low **nem** szűr ki értéket (7.5:
+low-confidence-szűrés nem a domainben).
+
+**Téma (marine dark).** A meglévő `foretackTheme` (`app/theme.dart`,
+`ThemeData.dark(useMaterial3: true)`) bővül marine-dark irányba: sötét
+felület-tokenek, high-contrast szám-tipográfia tabular figures-szel
+(`FontFeature.tabularFigures()`, hogy a számok ne ugráljanak 1 Hz-en),
+napfény-olvashatóság. A side-nyilak zöld/piros és a confidence-színek külön
+`ConfidenceColors extends ThemeExtension<ConfidenceColors>`
+(`app/confidence_colors.dart`, one public class per file), a
+`foretackTheme.extensions`-be regisztrálva; a cellák
+`Theme.of(context).extension<ConfidenceColors>()`-szal olvassák. App-wide
+dark marad (a meglévő CRUD-screenek öröklik).
+
+**Képernyő ébren tartása.** Új dep: `wakelock_plus` az `apps/phone`-ban — a
+`LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben
+nem alhat el a kijelző). Vékony presentation-plugin, nem architektúra-pivot
+→ nincs külön ADR, itt dokumentálva.
+
+**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg
+`status != finished`. Akció: `ref.read(activeRaceProvider.notifier)
+.activeRace = current` (a live-or-snapshot race, nem a nyers `race`, hogy ne
+clobbereljük az élő állapotot), majd `Navigator.push` a `LiveRaceScreen`-re.
+A start/finish gomb változatlan és ortogonális (SRP: a start state-et vált,
+az „Élő nézet" navigál). Pre-start alatt is elérhető — ez állítja be az
+`activeRace`-t a pre-start prediction-höz. A `telemetryLogger` már az
+app-gyökéren eager-watch-olt (ADR 0009 D6) → a live screenen nem kell újra.
+
+**Provider-fogyasztás és lifetime.** A `LiveRaceScreen` gyökerén eager-watch:
+`activeRaceProvider`, `markPredictionProvider`, `windDataProvider`,
+`boatStateProvider`, `connectionStatusProvider`, `tickProvider`. Ez
+transitive életben tartja a teljes §8.6 láncot (a compute-providerek a
+state-providereket listen-elik, azok a `nmeaStreamProvider.events`-re
+iratkoznak), és felépíti a lusta connectiont — a kapcsolat a live screentől
+épül fel (ADR 0010 D5).
+
+**Stale-jelzés (minimál — NEM a §11 Warning-rendszer).** A státuszsor
+kapcsolat-badge-e a `connectionStatusProvider`-ből; emellett egy „elavult"
+chip, ha csatlakozott állapotban `tick − boatState.lastUpdate > 5 s`. Ezt a
+státuszsor-widget inline számolja (`tickProvider` + `boatStateProvider`
+watch) — nincs új provider, nincs `Warning` sealed-class; a teljes
+warning-rendszer a Fázis 6.
+
+**Pure formázók (testelhetőség).** A formázás és a nyíl-oldal döntés pure
+függvény (`live_formatters.dart`), widget nélkül unit-tesztelhető:
+bearing 3-jegy, távolság m/km, ETA mm:ss/perc, idő HH:mm:ss, és a signed
+`Angle` → nyíl-oldal leképezés. A screen és a cellák widget-teszttel, a
+§8.6-ban bevált `ProviderScope`/`ProviderContainer` override-mintákkal
+(fake notifier `build()` override + kontrollált `tick`).
+
+Vázlat — a nyíl-oldal pure helper és a `ConfidenceColors` extension (a törzs
+a feat-ben):
+
+````dart
+/// A nyíl elhelyezése a számhoz képest. A glyph iránya/stílusa és a szín a
+/// widgeté: TWA befelé mutató tömör háromszög, korrekció kifelé mutató
+/// vonal-nyíl; mindkettő jobb → zöld, bal → piros (hajós konvenció).
+enum ArrowSide { left, right, none }
+
+/// Signed `Angle` előjeléből: `>0 → jobb`, `<0 → bal`, `0`/`null` → nincs.
+/// TWA-nál + = starboard (szél jobbról), korrekciónál + = jobbra fordulj.
+ArrowSide arrowSideFromSign(double? degrees) => switch (degrees) {
+  null => ArrowSide.none,
+  final d when d > 0 => ArrowSide.right,
+  final d when d < 0 => ArrowSide.left,
+  _ => ArrowSide.none,
+};
+
+@immutable
+class ConfidenceColors extends ThemeExtension<ConfidenceColors> {
+  const ConfidenceColors({
+    required this.low,
+    required this.medium,
+    required this.high,
+  });
+
+  final Color low;
+  final Color medium;
+  final Color high;
+
+  Color forConfidence(WindShiftConfidence c) => switch (c) {
+    WindShiftConfidence.low => low,
+    WindShiftConfidence.medium => medium,
+    WindShiftConfidence.high => high,
+  };
+  // copyWith + lerp: ThemeExtension-kötelező, törzs a feat-ben.
+}
+```
+
 ---
 
 ## 9. Perzisztencia (Drift / SQLite)
@@ -2895,7 +3079,7 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 
 ### Fázis 5 — Főképernyő + összes v1 számítás (~4-5 nap)
 
-- HomeScreen összes 6 widget-jével
+- `LiveRaceScreen`: 6 érték-cella (2×3) + státuszsor (kapcsolat, aktív bója, GPS-idő); a §1.2 7 értéke = 6 cella + a státuszsor GPS-ideje (lásd §8.7)
 - `markPredictionProvider` minden inputtal
 - `windShiftTrendProvider` működik
 - Mark rounding auto-detection
