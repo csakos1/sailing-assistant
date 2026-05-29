@@ -94,6 +94,66 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('hu')];
 
+  /// Gomb a race-detailen: az élő verseny-képernyő megnyitása.
+  ///
+  /// In hu, this message translates to:
+  /// **'Élő nézet'**
+  String get liveOpen;
+
+  /// Az élő képernyő üres állapota: nincs aktív verseny.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs aktív verseny'**
+  String get liveNoActiveRace;
+
+  /// Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül).
+  ///
+  /// In hu, this message translates to:
+  /// **'Elavult'**
+  String get liveStale;
+
+  /// Cella-címke: aktuális TWA.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWA most'**
+  String get liveTwaNow;
+
+  /// Cella-címke: a következő bójánál várható TWA.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWA köv.'**
+  String get liveTwaNext;
+
+  /// Cella-címke: irány a bójához (abszolút bearing).
+  ///
+  /// In hu, this message translates to:
+  /// **'Bearing'**
+  String get liveBearing;
+
+  /// Cella-címke: kormányzási korrekció a bójához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Korrekció'**
+  String get liveCorrection;
+
+  /// Cella-címke: távolság a bójához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Táv'**
+  String get liveDistance;
+
+  /// Cella-címke: becsült érkezés a bójához (ETA).
+  ///
+  /// In hu, this message translates to:
+  /// **'ETA'**
+  String get liveEta;
+
+  /// ETA perc-egysége 60 perc felett (pl. 83 perc).
+  ///
+  /// In hu, this message translates to:
+  /// **'perc'**
+  String get etaMinutesUnit;
+
   /// Az app neve a launcher / recents képernyőn.
   ///
   /// In hu, this message translates to:

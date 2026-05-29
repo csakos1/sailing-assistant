@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/race_status_chip.dart';
 
 /// Egy verseny részletei: státusz, bóya-lista, és státuszfüggő start/finish
-/// + törlés akciók.
+/// + törlés akciók, valamint az élő képernyő megnyitása.
 ///
 /// A listától kapott [race] egy pillanatkép; ha ez a verseny az aktív, az
 /// `activeRaceProvider` élő (in-memory) állapotát mutatjuk, hogy a
@@ -29,6 +32,18 @@ class RaceDetailScreen extends ConsumerWidget {
   Future<void> _finish(WidgetRef ref, Race target) async {
     ref.read(activeRaceProvider.notifier).activeRace = target;
     await ref.read(activeRaceProvider.notifier).finish();
+  }
+
+  // Az aktív race holderbe teszi a versenyt (a pre-start prediction is innen
+  // él, ADR 0010), majd az élő képernyőre navigál. Ortogonális a
+  // start/finish-től (SRP): a start state-et vált, ez navigál.
+  void _openLive(BuildContext context, WidgetRef ref, Race target) {
+    ref.read(activeRaceProvider.notifier).activeRace = target;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const LiveRaceScreen()),
+      ),
+    );
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
@@ -108,15 +123,20 @@ class RaceDetailScreen extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: _buildAction(ref, current, l10n),
+            child: _buildAction(context, ref, current, l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAction(WidgetRef ref, Race current, AppLocalizations l10n) {
-    return switch (current.status) {
+  Widget _buildAction(
+    BuildContext context,
+    WidgetRef ref,
+    Race current,
+    AppLocalizations l10n,
+  ) {
+    final stateButton = switch (current.status) {
       RaceStatus.notStarted => FilledButton(
         onPressed: () => _start(ref, current),
         child: Text(l10n.detailStart),
@@ -127,6 +147,22 @@ class RaceDetailScreen extends ConsumerWidget {
       ),
       RaceStatus.finished => const SizedBox.shrink(),
     };
+
+    if (current.status == RaceStatus.finished) {
+      return stateButton;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FilledButton.tonal(
+          onPressed: () => _openLive(context, ref, current),
+          child: Text(l10n.liveOpen),
+        ),
+        const SizedBox(height: 8),
+        stateButton,
+      ],
+    );
   }
 
   String _formatPosition(Coordinate position) =>

@@ -1,6 +1,47 @@
 {
   "@@locale": "hu",
 
+  "liveOpen": "Élő nézet",
+  "@liveOpen": {
+    "description": "Gomb a race-detailen: az élő verseny-képernyő megnyitása."
+  },
+  "liveNoActiveRace": "Nincs aktív verseny",
+  "@liveNoActiveRace": {
+    "description": "Az élő képernyő üres állapota: nincs aktív verseny."
+  },
+  "liveStale": "Elavult",
+  "@liveStale": {
+    "description": "Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül)."
+  },
+  "liveTwaNow": "TWA most",
+  "@liveTwaNow": {
+    "description": "Cella-címke: aktuális TWA."
+  },
+  "liveTwaNext": "TWA köv.",
+  "@liveTwaNext": {
+    "description": "Cella-címke: a következő bójánál várható TWA."
+  },
+  "liveBearing": "Bearing",
+  "@liveBearing": {
+    "description": "Cella-címke: irány a bójához (abszolút bearing)."
+  },
+  "liveCorrection": "Korrekció",
+  "@liveCorrection": {
+    "description": "Cella-címke: kormányzási korrekció a bójához."
+  },
+  "liveDistance": "Táv",
+  "@liveDistance": {
+    "description": "Cella-címke: távolság a bójához."
+  },
+  "liveEta": "ETA",
+  "@liveEta": {
+    "description": "Cella-címke: becsült érkezés a bójához (ETA)."
+  },
+  "etaMinutesUnit": "perc",
+  "@etaMinutesUnit": {
+    "description": "ETA perc-egysége 60 perc felett (pl. 83 perc)."
+  },
+
   "appTitle": "Foretack",
   "@appTitle": {
     "description": "Az app neve a launcher / recents képernyőn."

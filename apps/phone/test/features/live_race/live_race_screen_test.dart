@@ -1,0 +1,202 @@
+import 'package:domain/domain.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
+import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/boat_state_provider.dart';
+import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/tick_provider.dart';
+import 'package:phone/providers/wind_data_provider.dart';
+
+class _FixedActiveRace extends ActiveRaceNotifier {
+  _FixedActiveRace(this._race);
+  final Race? _race;
+  @override
+  Race? build() => _race;
+}
+
+class _FixedBoatState extends BoatStateNotifier {
+  _FixedBoatState(this._boat);
+  final BoatState _boat;
+  @override
+  BoatState build() => _boat;
+}
+
+class _FixedWindData extends WindDataNotifier {
+  _FixedWindData(this._wind);
+  final WindData? _wind;
+  @override
+  WindData? build() => _wind;
+}
+
+class _FixedConnection extends ConnectionStatusNotifier {
+  _FixedConnection(this._status);
+  final ConnectionStatus _status;
+  @override
+  ConnectionStatus build() => _status;
+}
+
+Mark _mark() => const Mark(
+  sequence: 1,
+  name: '1. bója',
+  position: Coordinate(latitude: 47, longitude: 18),
+);
+
+Race _race() => Race.create(id: 'r1', name: 'Teszt verseny', marks: [_mark()]);
+
+MarkPrediction _prediction() => MarkPrediction(
+  mark: _mark(),
+  bearingToMark: const Bearing.true_(95),
+  courseCorrection: const Angle(degrees: 8),
+  distanceToMark: const Distance(meters: 450),
+  eta: const Duration(minutes: 7, seconds: 32),
+  etaSource: EtaSource.sog,
+  predictedTwaAtMark: const Angle(degrees: -47),
+  shiftConfidence: WindShiftConfidence.medium,
+  calculatedAt: DateTime(2026, 5, 29, 14, 32, 7),
+);
+
+WindData _wind() => WindData(
+  apparentAngle: const Angle(degrees: 30),
+  apparentSpeed: const Speed(metersPerSecond: 5),
+  timestamp: DateTime(2026, 5, 29, 14, 32, 7),
+  trueAngleWater: const Angle(degrees: 32),
+);
+
+// Local DateTime-ot adunk instrumentTimeUtc-nek: a toLocal() local értéken
+// identitás, így a render időzóna-független.
+BoatState _boat(DateTime lastUpdate) => BoatState(
+  lastUpdate: lastUpdate,
+  instrumentTimeUtc: DateTime(2026, 5, 29, 14, 32, 7),
+);
+
+Future<void> _pump(
+  WidgetTester tester, {
+  required Race? race,
+  required MarkPrediction? prediction,
+  required WindData? wind,
+  required BoatState boat,
+  required ConnectionStatus status,
+  DateTime? tick,
+}) async {
+  tester.view.physicalSize = const Size(1000, 2000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        activeRaceProvider.overrideWith(() => _FixedActiveRace(race)),
+        boatStateProvider.overrideWith(() => _FixedBoatState(boat)),
+        windDataProvider.overrideWith(() => _FixedWindData(wind)),
+        connectionStatusProvider.overrideWith(() => _FixedConnection(status)),
+        markPredictionProvider.overrideWithValue(prediction),
+        tickProvider.overrideWith(
+          (ref) => tick == null
+              ? const Stream<DateTime>.empty()
+              : Stream<DateTime>.value(tick),
+        ),
+      ],
+      child: MaterialApp(
+        theme: foretackTheme,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const LiveRaceScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  group('LiveRaceScreen', () {
+    testWidgets('renders all seven values with live data', (tester) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+      );
+
+      expect(find.text('Teszt verseny'), findsOneWidget);
+      expect(find.text('Csatlakozva'), findsOneWidget);
+      expect(find.text('1. bója'), findsOneWidget);
+      expect(find.text('14:32:07'), findsOneWidget);
+      expect(find.text('32°'), findsOneWidget); // TWA most
+      expect(find.text('47°'), findsOneWidget); // TWA köv.
+      expect(find.text('095°'), findsOneWidget);
+      expect(find.text('8°'), findsOneWidget);
+      expect(find.text('450 m'), findsOneWidget);
+      expect(find.text('07:32'), findsOneWidget);
+      expect(find.text('Elavult'), findsNothing);
+    });
+
+    testWidgets('shows the empty state when there is no active race', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        race: null,
+        prediction: null,
+        wind: null,
+        boat: _boat(DateTime(2026, 5, 29, 14)),
+        status: const Disconnected(),
+      );
+
+      expect(find.text('Nincs aktív verseny'), findsOneWidget);
+    });
+
+    testWidgets('degrades nav-dependent cells to placeholders without a '
+        'prediction', (tester) async {
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: null,
+        wind: _wind(),
+        boat: _boat(DateTime(2026, 5, 29, 14)),
+        status: const Connected(),
+      );
+
+      // TWA most a windData-ból megvan; a prediction-függő öt cella „—".
+      expect(find.text('32°'), findsOneWidget);
+      expect(find.text('—'), findsNWidgets(5));
+    });
+
+    testWidgets('shows the stale chip when connected data is old', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 20);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now.subtract(const Duration(seconds: 10))),
+        status: const Connected(),
+        tick: now,
+      );
+
+      expect(find.text('Elavult'), findsOneWidget);
+    });
+
+    testWidgets('shows the error label on a connection error', (tester) async {
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(DateTime(2026, 5, 29, 14)),
+        status: const ConnectionError('Szakadt'),
+      );
+
+      expect(find.text('Hiba: Szakadt'), findsOneWidget);
+    });
+  });
+}

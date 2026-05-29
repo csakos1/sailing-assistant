@@ -9,6 +9,36 @@ class AppLocalizationsHu extends AppLocalizations {
   AppLocalizationsHu([String locale = 'hu']) : super(locale);
 
   @override
+  String get liveOpen => 'Élő nézet';
+
+  @override
+  String get liveNoActiveRace => 'Nincs aktív verseny';
+
+  @override
+  String get liveStale => 'Elavult';
+
+  @override
+  String get liveTwaNow => 'TWA most';
+
+  @override
+  String get liveTwaNext => 'TWA köv.';
+
+  @override
+  String get liveBearing => 'Bearing';
+
+  @override
+  String get liveCorrection => 'Korrekció';
+
+  @override
+  String get liveDistance => 'Táv';
+
+  @override
+  String get liveEta => 'ETA';
+
+  @override
+  String get etaMinutesUnit => 'perc';
+
+  @override
   String get appTitle => 'Foretack';
 
   @override
