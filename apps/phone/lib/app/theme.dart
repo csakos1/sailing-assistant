@@ -1,9 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:phone/app/confidence_colors.dart';
 
-/// A Foretack app aktuális Material 3 témája.
+/// A Foretack app Material 3 témája — marine dark (§8.7).
 ///
-/// A v1 fázisokban (3 és 4) a debug-viewer és a konfigurációs képernyők
-/// használják; a Fázis 5 főképernyő majd kidolgozza a marine-stílust
-/// (sötét háttér, high-contrast számok). Most a Material 3 dark
-/// alapértékek elegek — nem akarunk YAGNI-szembe tervezni.
-final ThemeData foretackTheme = ThemeData.dark(useMaterial3: true);
+/// Sötét, magas kontrasztú felület a napfény-olvashatóságért; a
+/// confidence-színeket a [ConfidenceColors] `ThemeExtension` hordozza, a
+/// cellák onnan olvassák. App-wide dark — a CRUD-screenek is öröklik.
+final ThemeData foretackTheme = _buildForetackTheme();
+
+ThemeData _buildForetackTheme() {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF1E9FB5),
+    brightness: Brightness.dark,
+  ).copyWith(surface: const Color(0xFF0B0F14));
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
+    extensions: const [
+      ConfidenceColors(
+        low: Color(0xFF6B7785),
+        medium: Color(0xFFE0A82E),
+        high: Color(0xFF35C2D6),
+      ),
+    ],
+  );
+}
