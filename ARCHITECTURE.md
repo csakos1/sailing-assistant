@@ -1907,7 +1907,7 @@ nem továbblépés (notStarted alatt a detektort sem etetjük). Megkerüléskor
 `roundCurrentMark()` (az utolsó bóyán a domain auto-finish-el), majd
 `detector.reset()` a következő bójához.
 
-`````dart
+```dart
 final markRoundingMonitorProvider = Provider.autoDispose<void>((ref) {
   final detector = MarkRoundingDetector();
 
@@ -1925,7 +1925,7 @@ final markRoundingMonitorProvider = Provider.autoDispose<void>((ref) {
     }
   });
 });
-````
+```
 
 ### 8.5 Fázis 4 providerek (ADR 0009)
 
