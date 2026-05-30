@@ -1979,8 +1979,9 @@ final raceListProvider = StreamProvider.autoDispose<List<Race>>((ref) {
 // A folyamatban lévő race egyetlen írható, in-memory tartója. A state-átmenetek
 // a Race entitás factory-in mennek (start/roundCurrentMark/finish), majd
 // repo.save perzisztál. A roundCurrentMark-ot a mark-rounding monitor (§8.4)
-// hívja auto-detekcióból. Restart-túlélő perzisztencia: Fázis 5f
-// (SettingsRepository), itt szándékosan in-memory.
+// hívja auto-detekcióból. Restart-túlélés: a külön
+// activeRacePersistenceProvider (Fázis 5f, ADR 0011) restore-ol induláskor és
+// perzisztálja az aktív-race-id-t; a notifier maga in-memory marad (OCP).
 final activeRaceProvider = NotifierProvider<ActiveRaceNotifier, Race?>(
   ActiveRaceNotifier.new,
 );
@@ -2033,6 +2034,45 @@ final telemetryLoggerProvider = Provider<void>((ref) {
 });
 ```
 
+
+```dart
+// apps/phone/lib/providers/settings_repository_provider.dart
+// A domain SettingsRepository interészt adja vissza (DIP). Keep-alive: vékony
+// stateless service a keep-alive DB fölött (a raceRepositoryProvider mintája).
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  return SettingsRepositoryImpl(ref.watch(appDatabaseProvider));
+});
+```
+
+```dart
+// apps/phone/lib/providers/active_race_persistence_provider.dart
+// Restart-túlélés az aktív race-re (Fázis 5f, ADR 0011). Külön mellékhatás-
+// provider, hogy a tesztelt ActiveRaceNotifier byte-azonos maradjon (OCP); a
+// ForetackApp eager-watch-olja (mint a telemetryLoggert). (a) induláskor
+// EGYSZER restore: id → getRace → activeRace (no-clobber, ha a user közben
+// választott); (b) ref.listen-nel a kiválasztás-változáskor perzisztál;
+// finished/null → id törlése (nem támasztunk fel befejezett race-t).
+final activeRacePersistenceProvider = Provider<void>((ref) {
+  final settings = ref.read(settingsRepositoryProvider);
+
+  unawaited(() async {
+    if (ref.read(activeRaceProvider) != null) return; // a user már választott
+    final id = await settings.readActiveRaceId();
+    if (id == null) return;
+    final race = await ref.read(raceRepositoryProvider).getRace(id);
+    if (race != null && ref.read(activeRaceProvider) == null) {
+      ref.read(activeRaceProvider.notifier).activeRace = race;
+    }
+  }());
+
+  ref.listen<Race?>(activeRaceProvider, (_, next) {
+    final id = (next != null && next.status != RaceStatus.finished)
+        ? next.id
+        : null;
+    unawaited(settings.writeActiveRaceId(id));
+  });
+});
+```
 
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
@@ -2468,7 +2508,20 @@ class TelemetryRecords extends Table {
   TextColumn get rawSentence => text()();             // a nyers $…*XX 0183 mondat
   TextColumn get decodedJson => text().nullable()(); // v1: null; post-race re-decode
 }
+
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
 ```
+
+> **v1 → v2 migráció (Fázis 5f, ADR 0011)**: a `Settings` KV-tábla hozzáadása.
+> `schemaVersion` 1 → 2, `onUpgrade`-ben `m.createTable(settings)` (CSAK az új
+> tábla, nem `createAll`); a `beforeOpen` FK-pragma marad. Ez a projekt első
+> valódi migrációja.
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
@@ -2518,6 +2571,12 @@ class RaceRepositoryImpl implements RaceRepository {
 A bóyák `sequence` ASC sorrendben olvasódnak vissza (pálya-sorrend, függetlenül
 a beszúrástól); a `delete` a FK-cascade-re bízza a bóyák + telemetria törlését
 (`PRAGMA foreign_keys = ON`, ADR 0008 D2). Az application-bekötés: §8.5.
+
+A `SettingsRepositoryImpl` (data) a domain `SettingsRepository` interész
+(ADR 0011 D3) Drift-implje a `Settings` KV-tábla fölött: `readActiveRaceId()`
+→ select a rögzített kulcsra (nincs sor → `null`), `writeActiveRaceId(id)` →
+upsert, illetve `id == null`-ra a sor **törlése** (delete-on-unset). A KV-kulcs
+implementáció-részlet; a domain csak a tipizált metódusokat látja.
 
 ### 9.4 Telemetria buffereléssel
 
