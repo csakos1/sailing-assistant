@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/features/live_race/widgets/confidence_dots.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
@@ -13,6 +17,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
@@ -22,12 +27,42 @@ import 'package:phone/providers/wind_data_provider.dart';
 /// A providereket a gyökéren `watch`-olja, ami transitive életben tartja a
 /// teljes §8.6 láncot, és felépíti a lusta connectiont (ADR 0010 D5). Az
 /// `AppLocalizations.of` `!`-ja biztonságos a `MaterialApp` alatt.
-class LiveRaceScreen extends ConsumerWidget {
+///
+/// `ConsumerStatefulWidget`, mert a kijelző-wakelockot és a portrait-lockot a
+/// mount/unmount életciklushoz kötjük: `initState`-ben be, `dispose`-ban ki.
+class LiveRaceScreen extends ConsumerStatefulWidget {
   /// Az élő verseny-képernyő.
   const LiveRaceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LiveRaceScreen> createState() => _LiveRaceScreenState();
+}
+
+class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
+  // A dispose-ban már nem olvasunk providert (a ref ott nem biztonságos),
+  // ezért a wakelock-instance-t az initState-ben fogjuk el.
+  late final ScreenWakeLock _wakeLock;
+
+  @override
+  void initState() {
+    super.initState();
+    _wakeLock = ref.read(screenWakeLockProvider);
+    unawaited(_wakeLock.enable());
+    // Verseny közben fix portrait: a 2×3 rács landscape-ben rosszul reflow-ol.
+    unawaited(
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_wakeLock.disable());
+    unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final race = ref.watch(activeRaceProvider);
     final prediction = ref.watch(markPredictionProvider);

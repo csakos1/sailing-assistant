@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -9,6 +10,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
@@ -38,6 +40,31 @@ class _FixedConnection extends ConnectionStatusNotifier {
   final ConnectionStatus _status;
   @override
   ConnectionStatus build() => _status;
+}
+
+class _NoopScreenWakeLock implements ScreenWakeLock {
+  const _NoopScreenWakeLock();
+
+  @override
+  Future<void> enable() async {}
+
+  @override
+  Future<void> disable() async {}
+}
+
+class _SpyScreenWakeLock implements ScreenWakeLock {
+  int enableCount = 0;
+  int disableCount = 0;
+
+  @override
+  Future<void> enable() async {
+    enableCount++;
+  }
+
+  @override
+  Future<void> disable() async {
+    disableCount++;
+  }
 }
 
 Mark _mark() => const Mark(
@@ -82,6 +109,7 @@ Future<void> _pump(
   required BoatState boat,
   required ConnectionStatus status,
   DateTime? tick,
+  ScreenWakeLock? wakeLock,
 }) async {
   tester.view.physicalSize = const Size(1000, 2000);
   tester.view.devicePixelRatio = 1.0;
@@ -94,6 +122,9 @@ Future<void> _pump(
         windDataProvider.overrideWith(() => _FixedWindData(wind)),
         connectionStatusProvider.overrideWith(() => _FixedConnection(status)),
         markPredictionProvider.overrideWithValue(prediction),
+        screenWakeLockProvider.overrideWithValue(
+          wakeLock ?? const _NoopScreenWakeLock(),
+        ),
         tickProvider.overrideWith(
           (ref) => tick == null
               ? const Stream<DateTime>.empty()
@@ -197,6 +228,47 @@ void main() {
       );
 
       expect(find.text('Hiba: Szakadt'), findsOneWidget);
+    });
+
+    testWidgets('enables the wakelock when the screen mounts', (tester) async {
+      final spy = _SpyScreenWakeLock();
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+        wakeLock: spy,
+      );
+
+      expect(spy.enableCount, 1);
+      expect(spy.disableCount, 0);
+    });
+
+    testWidgets('releases the wakelock when the screen is disposed', (
+      tester,
+    ) async {
+      final spy = _SpyScreenWakeLock();
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+        wakeLock: spy,
+      );
+
+      // A fát kicseréljük → a LiveRaceScreen unmountol → dispose().
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      expect(spy.disableCount, 1);
     });
   });
 }
