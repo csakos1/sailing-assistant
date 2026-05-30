@@ -1897,25 +1897,35 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
 
 ### 8.4 Mark rounding figyelő
 
-Külön long-running provider ami az NMEA streamből figyeli a pozíciót és triggereli a mark váltást:
+A `LiveRaceScreen`-hez kötött figyelő, ami a `boatState` pozíció-frissítéseit
+hallgatja, és a domain §7.7 `MarkRoundingDetector`-rel léptet a következő
+bójára. autoDispose `Provider<void>`, a screen eager-watch-olja — a screen a
+`boatState`-en át úgyis felépíti a connectiont (ADR 0010 D5 lusta connection),
+unmountkor pedig eldobódik. Csak `status == active` alatt léptet: a
+`roundCurrentMark` `active→...` átmenet, és rajt előtt a mark[0] körüli manőver
+nem továbblépés (notStarted alatt a detektort sem etetjük). Megkerüléskor
+`roundCurrentMark()` (az utolsó bóyán a domain auto-finish-el), majd
+`detector.reset()` a következő bójához.
 
-```dart
-final markRoundingMonitorProvider = Provider((ref) {
+`````dart
+final markRoundingMonitorProvider = Provider.autoDispose<void>((ref) {
   final detector = MarkRoundingDetector();
 
-  ref.listen<BoatState>(boatStateProvider, (prev, current) {
+  ref.listen(boatStateProvider, (_, current) {
     final race = ref.read(activeRaceProvider);
-    if (race == null || current.position == null) return;
+    if (race == null || race.status != RaceStatus.active) return;
+    final position = current.position; // no force-unwrap: lokális null-check
+    if (position == null) return;
     final activeMark = race.activeMarkOrNull;
     if (activeMark == null) return;
 
-    if (detector.tick(current.position!, activeMark)) {
-      ref.read(activeRaceProvider.notifier).markRounded();
+    if (detector.tick(position, activeMark)) {
+      unawaited(ref.read(activeRaceProvider.notifier).roundCurrentMark());
       detector.reset();
     }
   });
 });
-```
+````
 
 ### 8.5 Fázis 4 providerek (ADR 0009)
 
@@ -1967,20 +1977,26 @@ final raceListProvider = StreamProvider.autoDispose<List<Race>>((ref) {
 ```dart
 // apps/phone/lib/providers/active_race_provider.dart
 // A folyamatban lévő race egyetlen írható, in-memory tartója. A state-átmenetek
-// a Race entitás factory-in mennek, majd repo.save perzisztál. A roundCurrentMark
-// bekötése Fázis 5 (auto-detekció). Restart-túlélő perzisztencia: Fázis 5
+// a Race entitás factory-in mennek (start/roundCurrentMark/finish), majd
+// repo.save perzisztál. A roundCurrentMark-ot a mark-rounding monitor (§8.4)
+// hívja auto-detekcióból. Restart-túlélő perzisztencia: Fázis 5f
 // (SettingsRepository), itt szándékosan in-memory.
-final activeRaceProvider =
-    NotifierProvider<ActiveRaceNotifier, Race?>(ActiveRaceNotifier.new);
+final activeRaceProvider = NotifierProvider<ActiveRaceNotifier, Race?>(
+  ActiveRaceNotifier.new,
+);
 
 class ActiveRaceNotifier extends Notifier<Race?> {
   @override
   Race? build() => null;
 
-  void activate(Race race) => state = race;
-  Future<void> start() async {/* race.start(at: clock) → repo.save → state */}
-  Future<void> finish() async {/* race.finish(at: clock) → repo.save → state */}
-  void deactivate() => state = null;
+  // Kiválasztás: a UI a providert olvassa; a setter párja a getter.
+  Race? get activeRace => state;
+  set activeRace(Race? race) => state = race;
+
+  // State-átmenetek: entitás-factory → repo.save → state. No-op, ha state null.
+  Future<void> start() async {/* race.start(at: clock) → save → state */}
+  Future<void> roundCurrentMark() async {/* race.roundCurrentMark(at: clock) */}
+  Future<void> finish() async {/* race.finish(at: clock) → save → state */}
 }
 ```
 
