@@ -17,6 +17,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/mark_rounding_monitor_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
@@ -70,6 +71,9 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final boat = ref.watch(boatStateProvider);
     final status = ref.watch(connectionStatusProvider);
     final tick = ref.watch(tickProvider).valueOrNull;
+
+    // Az aktív bója auto-továbblépése (§8.4) — a screen mountjához kötve.
+    ref.watch(markRoundingMonitorProvider);
 
     if (race == null) {
       return Scaffold(

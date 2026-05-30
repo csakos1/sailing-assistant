@@ -97,4 +97,33 @@ void main() {
     expect(container.read(activeRaceProvider), isNull);
     expect(repository.store, isEmpty);
   });
+
+  test('roundCurrentMark a következő bójára lép és perzisztál', () async {
+    notifier().activeRace = race;
+    await notifier().start();
+    await notifier().roundCurrentMark();
+
+    final state = container.read(activeRaceProvider)!;
+    expect(state.status, equals(RaceStatus.active));
+    expect(state.activeMarkOrNull, equals(markB));
+    expect(repository.store['race-1'], equals(state));
+  });
+
+  test('roundCurrentMark az utolsó bóyán befejezi a versenyt', () async {
+    notifier().activeRace = race;
+    await notifier().start();
+    await notifier().roundCurrentMark(); // 1. bója → 2. bója
+    await notifier().roundCurrentMark(); // 2. bója → finished
+
+    final state = container.read(activeRaceProvider)!;
+    expect(state.status, equals(RaceStatus.finished));
+    expect(state.activeMarkOrNull, isNull);
+    expect(state.finishedAt, equals(fixedNow));
+  });
+
+  test('roundCurrentMark no-op, ha nincs aktív race', () async {
+    await notifier().roundCurrentMark();
+    expect(container.read(activeRaceProvider), isNull);
+    expect(repository.store, isEmpty);
+  });
 }

@@ -5,13 +5,13 @@ import 'package:phone/providers/race_repository_provider.dart';
 
 /// A folyamatban lévő race egyetlen írható, in-memory tartója (ADR 0009 D5).
 ///
-/// A state-átmenetek a Race entitás factory-in mennek (start/finish), majd a
-/// repón keresztül perzisztálnak — az üzleti logika az entitásban marad, a
-/// notifier csak vezényel. Keep-alive: az aktív race a teljes session alatt
-/// él, nem köthető egy képernyő életciklusához. A roundCurrentMark bekötése
-/// Fázis 5 (auto-detekció). Restart-túlélő perzisztencia szintén Fázis 5
-/// (SettingsRepository) — itt szándékosan in-memory, app-újraindításkor
-/// nullázódik.
+/// A state-átmenetek a Race entitás factory-in mennek
+/// (start/roundCurrentMark/finish), majd a repón keresztül perzisztálnak — az
+/// üzleti logika az entitásban marad, a notifier csak vezényel. Keep-alive: az
+/// aktív race a teljes session alatt él, nem köthető egy képernyő
+/// életciklusához. A roundCurrentMark-ot a mark-rounding monitor (§8.4) hívja
+/// auto-detekcióból. Restart-túlélő perzisztencia Fázis 5f (SettingsRepository)
+/// — itt szándékosan in-memory, app-újraindításkor nullázódik.
 final activeRaceProvider = NotifierProvider<ActiveRaceNotifier, Race?>(
   ActiveRaceNotifier.new,
 );
@@ -38,6 +38,18 @@ class ActiveRaceNotifier extends Notifier<Race?> {
     final started = race.start(at: ref.read(clockProvider)());
     await ref.read(raceRepositoryProvider).save(started);
     state = started;
+  }
+
+  /// Az aktív bója megkerülése: a következő bójára lép (az utolsón a domain
+  /// auto-finish-el), majd perzisztálás. No-op, ha nincs aktív race. A
+  /// `status == active` előfeltételt a hívó (mark-rounding monitor, §8.4)
+  /// biztosítja; a `Race.roundCurrentMark` assert is védi.
+  Future<void> roundCurrentMark() async {
+    final race = state;
+    if (race == null) return;
+    final rounded = race.roundCurrentMark(at: ref.read(clockProvider)());
+    await ref.read(raceRepositoryProvider).save(rounded);
+    state = rounded;
   }
 
   /// active → finished (DNF/abort), majd perzisztálás. No-op, ha nincs aktív
