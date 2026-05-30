@@ -1908,7 +1908,7 @@ nem továbblépés (notStarted alatt a detektort sem etetjük). Megkerüléskor
 `detector.reset()` a következő bójához.
 
 ```dart
-final markRoundingMonitorProvider = Provider.autoDispose<void>((ref) {
+final markRoundingMonitorProvider = AutoDisposeProvider<void>((ref) {
   final detector = MarkRoundingDetector();
 
   ref.listen(boatStateProvider, (_, current) {
