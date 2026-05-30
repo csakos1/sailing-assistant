@@ -2367,7 +2367,7 @@ bearing 3-jegy, távolság m/km, ETA mm:ss/perc, idő HH:mm:ss, és a signed
 Vázlat — a nyíl-oldal pure helper és a `ConfidenceColors` extension (a törzs
 a feat-ben):
 
-````dart
+```dart
 /// A nyíl elhelyezése a számhoz képest. A glyph iránya/stílusa és a szín a
 /// widgeté: TWA befelé mutató tömör háromszög, korrekció kifelé mutató
 /// vonal-nyíl; mindkettő jobb → zöld, bal → piros (hajós konvenció).
