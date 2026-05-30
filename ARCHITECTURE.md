@@ -2249,6 +2249,8 @@ státuszsor `features/live_race/widgets/` alatt; a pure formázók
 nem külön cella — ez a §1.2 „7 érték" és a §14 Fázis 5 „6 widget" frazírozás
 reconcile-ja. A cellák funkció szerint csoportosítva (szél → kormányzás →
 haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
+
+```
 ┌─────────────────────────────────────┐
 │ ● Csatlakozva    1. bója    14:32:07 │   státuszsor (+„elavult" chip stale-nél)
 ├──────────────────┬──────────────────┤
@@ -2261,6 +2263,7 @@ haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
 │  Táv             │  ETA             │   #4 | #5
 │   450 m          │   07:32          │
 └──────────────────┴──────────────────┘
+```
 
 **Érték → forrás → formátum.**
 
