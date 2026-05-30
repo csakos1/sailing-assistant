@@ -2328,6 +2328,10 @@ dark marad (a meglévő CRUD-screenek öröklik).
 `LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben
 nem alhat el a kijelző). Vékony presentation-plugin, nem architektúra-pivot
 → nincs külön ADR, itt dokumentálva.
+A plugin-hívás `ScreenWakeLock` DIP-absztrakció (`enable`/`disable`) mögött
+van — valós impl `WakelockPlus`-szal és keep-alive
+`screenWakeLockProvider`-rel —, hogy a screen widget-teszt no-op fake-kel
+override-olhasson (a plugin tesztben `MissingPluginException`-t dobna).
 
 **Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg
 `status != finished`. Akció: `ref.read(activeRaceProvider.notifier)
