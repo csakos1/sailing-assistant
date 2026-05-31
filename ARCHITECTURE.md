@@ -1278,12 +1278,20 @@ marad tartalékként —
 TWD = (heading_true + TWA + 360) mod 360
 ahol:
   heading_true = heading_magnetic + magnetic_declination
-  declination = WMM(position, now)
+  declination = HDG_variation (E/W)   # v1; WMM v2-fallback (ADR 0013)
   TWA = signed angle, port=negative
 ```
 
 Ez minden új wind event-nél frissül és a wind shift trendhez beíródik a
 sliding window-ba.
+
+**True heading forrása (v1).** A `headingTrue`-t v1-ben **nem** a WMM-réteg
+számolja, hanem a műszer által minden `HDG` mondatban közölt mágneses variáció
+(E/W) adja: `true = magnetic + variation`. A Vulcan a saját modelljéből számolja,
+így a chartplotterrel konzisztens, és nem kell pozíció/dátum/WMM. A teljes WMM-
+réteg v2-fallback olyan forrásokhoz, amelyek nem adnak variációt (lásd
+ADR 0013). Variáció hiányában csak a mágneses heading áll elő, `headingTrue`
+nélkül (graceful).
 
 ### 6.6 Course over Ground vs Heading prioritás
 
