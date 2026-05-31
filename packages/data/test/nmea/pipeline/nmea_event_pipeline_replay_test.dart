@@ -59,6 +59,7 @@ void main() {
           PositionEvent,
           PositionEvent,
           HeadingEvent,
+          HeadingEvent,
           SpeedEvent,
         ]),
       );

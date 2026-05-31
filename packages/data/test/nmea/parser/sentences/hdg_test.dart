@@ -19,16 +19,91 @@ void main() {
       Sentence(talker: 'II', type: 'HDG', fields: fields, raw: '');
 
   group('HdgHeadingDecoder', () {
-    test('decodes a real HDG sentence into a magnetic heading', () {
-      // Valós sor a Vulcan WiFi dumpból (2026-05, Balaton).
+    test('valós HDG → magnetic + true heading a variációból (E)', () {
+      // Valós sor a Vulcan WiFi dumpból (2026-05, Balaton): 5.7° E variáció.
       final decoded = decoder.decode(parse(r'$IIHDG,82.8,,,5.7,E*12'));
 
       switch (decoded) {
         case null:
           fail('valid HDG sorra null decode');
-        case DecodedHeading(:final heading):
+        case DecodedHeading(:final heading, :final headingTrue):
           expect(heading.reference, BearingReference.magneticNorth);
           expect(heading.degrees, closeTo(82.8, 0.001));
+          expect(headingTrue, isNotNull);
+          expect(headingTrue?.reference, BearingReference.trueNorth);
+          // 82.8 + 5.7 = 88.5 (E → kelet, +).
+          expect(headingTrue?.degrees, closeTo(88.5, 0.001));
+      }
+    });
+
+    test('W variáció → true = magnetic − variation', () {
+      final decoded = decoder.decode(hdg(const ['100', '', '', '5.0', 'W']));
+
+      switch (decoded) {
+        case null:
+          fail('valid HDG-re null decode');
+        case DecodedHeading(:final heading, :final headingTrue):
+          expect(heading.degrees, closeTo(100, 0.001));
+          // 100 − 5.0 = 95.0 (W → nyugat, −).
+          expect(headingTrue?.degrees, closeTo(95, 0.001));
+          expect(headingTrue?.reference, BearingReference.trueNorth);
+      }
+    });
+
+    test('true heading 360 fölött körbefordul', () {
+      final decoded = decoder.decode(hdg(const ['357', '', '', '5.0', 'E']));
+
+      switch (decoded) {
+        case null:
+          fail('valid HDG-re null decode');
+        case DecodedHeading(:final headingTrue):
+          // 357 + 5.0 = 362 → 2.0 ([0, 360) wrap).
+          expect(headingTrue?.degrees, closeTo(2, 0.001));
+      }
+    });
+
+    test('hiányzó variáció-mezők → headingTrue null, magnetic megvan', () {
+      final decoded = decoder.decode(hdg(const ['40.1', '', '']));
+
+      switch (decoded) {
+        case null:
+          fail('valid magnetic headingre null decode');
+        case DecodedHeading(:final heading, :final headingTrue):
+          expect(heading.degrees, closeTo(40.1, 0.001));
+          expect(headingTrue, isNull);
+      }
+    });
+
+    test('üres variáció-érték → headingTrue null', () {
+      final decoded = decoder.decode(hdg(const ['40.1', '', '', '', '']));
+
+      switch (decoded) {
+        case null:
+          fail('valid magnetic headingre null decode');
+        case DecodedHeading(:final headingTrue):
+          expect(headingTrue, isNull);
+      }
+    });
+
+    test('érvénytelen variáció-irány (nem E/W) → headingTrue null', () {
+      final decoded = decoder.decode(hdg(const ['40.1', '', '', '5.7', 'X']));
+
+      switch (decoded) {
+        case null:
+          fail('valid magnetic headingre null decode');
+        case DecodedHeading(:final headingTrue):
+          expect(headingTrue, isNull);
+      }
+    });
+
+    test('nem-numerikus variáció-érték → headingTrue null', () {
+      final decoded = decoder.decode(hdg(const ['40.1', '', '', 'abc', 'E']));
+
+      switch (decoded) {
+        case null:
+          fail('valid magnetic headingre null decode');
+        case DecodedHeading(:final headingTrue):
+          expect(headingTrue, isNull);
       }
     });
 

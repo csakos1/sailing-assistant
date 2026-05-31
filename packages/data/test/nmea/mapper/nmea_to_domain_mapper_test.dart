@@ -53,6 +53,21 @@ void main() {
       expect(events, equals([HeadingEvent(heading, now)]));
     });
 
+    test('DecodedHeading + headingTrue → magnetic + true HeadingEvent', () {
+      final mapper = NmeaToDomainMapper();
+      const headingTrue = Bearing.true_(125);
+
+      final events = mapper.map(
+        const DecodedHeading(heading: heading, headingTrue: headingTrue),
+        now,
+      );
+
+      expect(
+        events,
+        equals([HeadingEvent(heading, now), HeadingEvent(headingTrue, now)]),
+      );
+    });
+
     test('DecodedSpeed → SpeedEvent', () {
       final mapper = NmeaToDomainMapper();
 

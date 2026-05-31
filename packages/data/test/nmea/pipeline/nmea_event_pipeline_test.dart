@@ -31,13 +31,22 @@ void main() {
           .transform(bytesOf([rmc, heading, apparent]))
           .toList();
 
-      // Az RMC háromra bomlik (ebben a sorrendben), majd HDG, majd a szél.
-      expect(events, hasLength(5));
+      // Az RMC háromra bomlik, a HDG kettőre (magnetic + true), majd a szél.
+      expect(events, hasLength(6));
       expect(events[0], isA<PositionEvent>());
       expect(events[1], isA<CogSogEvent>());
       expect(events[2], isA<InstrumentTimeEvent>());
       expect(events[3], isA<HeadingEvent>());
-      expect(events[4], isA<WindEvent>());
+      expect(events[4], isA<HeadingEvent>());
+      expect(events[5], isA<WindEvent>());
+      expect(
+        (events[3] as HeadingEvent).heading.reference,
+        BearingReference.magneticNorth,
+      );
+      expect(
+        (events[4] as HeadingEvent).heading.reference,
+        BearingReference.trueNorth,
+      );
     });
 
     test(
@@ -59,9 +68,10 @@ void main() {
           .transform(bytesOf([corruptApparent, heading]))
           .toList();
 
-      // A korrupt szél kiesik (Err → skip), a HDG átmegy.
-      expect(events, hasLength(1));
-      expect(events.single, isA<HeadingEvent>());
+      // A korrupt szél kiesik (Err → skip), a HDG kettőre bomlik.
+      expect(events, hasLength(2));
+      expect(events[0], isA<HeadingEvent>());
+      expect(events[1], isA<HeadingEvent>());
     });
 
     test('a nem támogatott mondatot kihagyja', () async {
@@ -69,9 +79,10 @@ void main() {
           .transform(bytesOf([gsv, heading]))
           .toList();
 
-      // GSV ismeretlen type (null decode → skip); a HDG átmegy.
-      expect(events, hasLength(1));
-      expect(events.single, isA<HeadingEvent>());
+      // GSV ismeretlen type (null decode → skip); a HDG kettőre bomlik.
+      expect(events, hasLength(2));
+      expect(events[0], isA<HeadingEvent>());
+      expect(events[1], isA<HeadingEvent>());
     });
   });
 

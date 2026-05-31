@@ -24,7 +24,8 @@ class NmeaToDomainMapper {
   /// időbélyeggel.
   ///
   /// Lista a visszatérés, mert egy `RMC` három eseményre bomlik, egy
-  /// apparent nélküli szél-mondat pedig nullára (üres lista, apparent-gate).
+  /// variációs `HDG` kettőre (magnetic + true), egy apparent nélküli
+  /// szél-mondat pedig nullára (üres lista, apparent-gate).
   List<DomainEvent> map(DecodedSentence sentence, DateTime now) {
     return switch (sentence) {
       DecodedWind(:final reference, :final angle, :final speed) =>
@@ -54,7 +55,10 @@ class NmeaToDomainMapper {
       DecodedCogSog(:final courseOverGround, :final speedOverGround) => [
         CogSogEvent(courseOverGround, speedOverGround, now),
       ],
-      DecodedHeading(:final heading) => [HeadingEvent(heading, now)],
+      DecodedHeading(:final heading, :final headingTrue) => [
+        HeadingEvent(heading, now),
+        if (headingTrue != null) HeadingEvent(headingTrue, now),
+      ],
       DecodedSpeed(:final speedThroughWater) => [
         SpeedEvent(speedThroughWater, now),
       ],

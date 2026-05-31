@@ -108,17 +108,23 @@ final class DecodedPosition extends DecodedSentence {
   final Coordinate position;
 }
 
-/// A mágneses heading (HDG) — a hajó orrának iránya.
+/// A heading (HDG) — a hajó orrának iránya.
 ///
-/// A v1 csak a mágneses headinget veszi; a true heading a WMM-deklinációval
-/// áll elő a domainben (ARCHITECTURE.md 6.5). A mapper (6.4)
-/// `HeadingEvent`-re alakítja.
+/// A [heading] a mágneses irány (field 0); a [headingTrue] a műszer által a
+/// HDG-ben közölt mágneses variációból (E/W) számolt geográfiai irány, ha a
+/// variáció jelen volt — különben `null` (a teljes WMM-modell v2-fallback,
+/// ADR 0013). A mapper (6.4) `HeadingEvent`(ek)re alakítja.
 final class DecodedHeading extends DecodedSentence {
   /// Dekódolt heading-mondatot csomagol.
-  const DecodedHeading({required this.heading});
+  const DecodedHeading({required this.heading, this.headingTrue});
 
   /// A hajó orrának iránya, magneticNorth-referenciás `[0, 360)`.
   final Bearing heading;
+
+  /// A geográfiai (true) heading a HDG-variációból (`magnetic + variation`),
+  /// trueNorth-referenciás `[0, 360)`; `null`, ha a variáció hiányzott vagy
+  /// nem volt értelmezhető (graceful, ADR 0013 D3).
+  final Bearing? headingTrue;
 }
 
 /// A vízhez viszonyított sebesség (VHW) — speed through water (STW).

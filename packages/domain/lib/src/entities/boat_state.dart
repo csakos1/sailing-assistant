@@ -57,8 +57,9 @@ class BoatState extends Equatable {
   /// Mágneses heading a műszerről (pl. ZG100). `null`, ha nincs adat.
   final Bearing? headingMagnetic;
 
-  /// Geográfiai (true) heading. A WMM-réteg számolja
-  /// `headingMagnetic + declination` képletből.
+  /// Geográfiai (true) heading. v1-ben a műszer által a `HDG`-ben közölt
+  /// mágneses variációból (E/W) áll elő (`magnetic + variation`); a teljes
+  /// WMM-modell v2-fallback (ADR 0013). `null`, ha a variáció hiányzik.
   final Bearing? headingTrue;
 
   /// Course Over Ground (GPS). Abszolút északra mért irány.
@@ -98,8 +99,9 @@ class BoatState extends Equatable {
   ///
   /// **A return mindig [BearingReference.trueNorth]-referenciájú vagy
   /// null.** A [headingMagnetic]-re tudatosan nem fall-backelünk: a true
-  /// heading előállítása a WMM-réteg felelőssége, és ha az nem fut, a
-  /// downstream számításokba (course correction, bearing-to-mark)
+  /// heading a HDG-variációból (v1) vagy a WMM-ből (v2) áll elő; ha egyik
+  /// sem elérhető, a downstream számításokba (course correction,
+  /// bearing-to-mark)
   /// inkonzisztens reference kerülne. Inkább null, mint csendes hiba.
   Bearing? get effectiveDirection {
     // 1.5 csomó ≈ 0.7717 m/s. Az "érdemi mozgás" küszöbe.
