@@ -19,6 +19,7 @@ export 'src/repositories/connection_status.dart';
 export 'src/repositories/domain_event.dart';
 export 'src/repositories/nmea_stream.dart';
 export 'src/repositories/race_repository.dart';
+export 'src/repositories/settings_repository.dart';
 export 'src/repositories/telemetry_logger.dart';
 export 'src/use_cases/calculate_bearing_to_mark.dart';
 export 'src/use_cases/calculate_course_correction.dart';
