@@ -2323,11 +2323,21 @@ haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
 | 3 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl | `—` |
 | 4 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `<1000 m → 450 m`; `≥1000 m → 1.85 km` | `—` |
 | 5 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
-| 7 | GPS-idő (státuszsor) | `boatStateProvider` → `instrumentTimeUtc` → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+| 7 | GPS-idő (státuszsor) | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
 
 A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és az
 aktív bója neve (`activeRaceProvider` → `activeMarkOrNull?.name`, különben
 `—`).
+
+**GPS-idő forrás (ADR 0012).** A 7. cella forrása **nem** az
+`instrumentTimeUtc`, hanem egy dedikált true-time forrás (telefon-GNSS anchor
++ monoton extrapoláció), mert a Vulcan WiFi-kimenete 4–6 mp-et késik, így a
+stream-idő a rajthoz nem elég pontos. Az `instrumentTimeUtc` megmarad, de
+cross-check / staleness szerepben: a kijelzett idő ≥ a stream-instant, a
+különbség ~ a transzport-késés; ha egy küszöb (default 10 mp) fölé nő,
+staleness-jelzés (a chip vs. §11 Warning közti döntés impl-szintű). A
+true-time forrás pontos provider-alakja az impl-fázis design-decision körében
+dől el; a seam fake-elhető, a replay-tesztek determinisztikusak maradnak.
 
 A `markPrediction == null` (nincs aktív bója vagy pozíció) esetén a 2–6
 cellák mind `—`-t mutatnak; a TWA-most (`windData`-ból) és a GPS-idő
@@ -2695,13 +2705,15 @@ Táv:      450m
 ETA:      8 perc
 ```
 
-**GPS műszer-idő.** Mindkét nézet alján megjelenik a hajó GPS-órája
-(óra:perc:mp), hogy egyezzen a chartplotterrel. A
-`BoatState.instrumentTimeUtc` (UTC) a forrás; a watch **local időben**
-rendereli (`toLocal()`, Europe/Budapest, DST-aware), ami egy local-időre
-állított Vulcannal egyezik. (Ha a műszer UTC-t mutat, az egy későbbi
-UTC/offset kapcsoló settings-ben — v1-ben nincs.) Friss idő híján
-`--:--:--` + warning.
+**GPS-idő (ADR 0012).** Mindkét nézet alján megjelenik a GPS-óra
+(óra:perc:mp), hogy egyezzen a chartplotterrel és a rendezőséggel. A forrás
+**nem** a `BoatState.instrumentTimeUtc` (az a Vulcan-buffering miatt 4–6 mp-et
+késik), hanem a telefon true-time forrása (GNSS-anchor + monoton
+extrapoláció, ADR 0012), amit a telefon a payloadban küld át; a watch **local
+időben** rendereli (`toLocal()`, Europe/Budapest, DST-aware). Az
+`instrumentTimeUtc` megmarad cross-check/staleness szerepben. A payload pontos
+idő-mezője és a watch-bekötés a Fázis 7-ben (watch app) landol; friss idő
+híján `--:--:--` + jelzés.
 
 ### 10.5 Korlátok
 
