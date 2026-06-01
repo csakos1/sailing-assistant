@@ -217,6 +217,14 @@ Minden blokk formátuma: **Mi ez** · **Miért / kinek** · **Hatókör** · **F
 **Architektúra / megjegyzés.** A vonal-geometria és a bias **pure** domain-számítás. Ez az egyetlen taktikai funkció, ami **műszer nélkül is** értelmes (lásd E13).
 **v2-kapcsolat.** „Start-sequence countdown" már a v2 listán.
 
+#### E17 — Ütemezett, automatikus rajt-szekvencia (hands-free rajt + óra-nézet auto-váltás)
+**Mi ez.** Előre megadod a verseny rajtidejét; az app a T−10 percnél (állítható küszöb) magától elindítja a rajt-időzítőt, és az óra automatikusan egy dedikált, letisztult rajt-nézetre vált, amely csak a lényeget mutatja: visszaszámláló, „time/distance to burn", a rajtvonaltól mért távolság, és a „lassíts / gyorsíts" tempó-jelzés. A rajt megtörténte után az óra magától visszavált a normál verseny-nézetre.
+**Miért / kinek.** A rajt előtti percek a verseny legintenzívebb, legnagyobb terhelésű szakaszai — ilyenkor a versenyzőnek nincs ideje menüzni vagy nézetet váltani. A hands-free automatizmus és a redukált, glanceable rajt-nézet csökkenti a kognitív terhet, és pontosan akkor mutatja a releváns adatot, amikor kell. Versenyző mód.
+**Hatókör.** Rajtidő előzetes megadása a pálya/verseny beállításánál (E6/J13 mellett); automatikus időzítő-indítás a konfigurálható küszöbnél (alap: T−10 perc); óra auto-váltás dedikált rajt-nézetre (nagy visszaszámláló, time/distance to burn, rajtvonal-távolság, „lassíts/gyorsíts" jelzés); automatikus visszaváltás a normál verseny-nézetre a rajt után (a countdown lejárta és a vonal átlépése); végig elérhető manuális felülbírálás (kézi indítás/leállítás, nézet rögzítése), hogy az automatizmus sose „ragadjon be".
+**Függőség.** Épít a J1-re (rajt-időzítő, vonal-geometria, bias, dist/time-to-burn) és a J14-re (óra-nézetek); a rajtvonal-távolsághoz GPS-pozíció kell, és kishajós módban is működik (J1 elve); az ütemezett indítás a pontos időforrásra támaszkodik (a meglévő GPS-igazidő megoldás).
+**Architektúra / megjegyzés.** Ez egy vezérlési/állapot-réteg J1 fölött: egy rajt-fázis állapotgép (pl. *idle → armed → countdown → started → normal*), amely a presentation rétegben (Riverpod) vezérli az aktív nézetet. Az óra auto-váltás egy átmeneti, esemény-vezérelt nézet-felülbírálás — rokon a §4 mód-koncepcióval, de időleges és nem felhasználó-választott. A hands-free viselkedés mellé MINDIG kell látható fázis-állapot és manuális kontroll (vízálló-elv: az automatizmus átlátható és felülbírálható, sosem történik visszajelzés nélkül). A „lassíts/gyorsíts" a dist/time-to-burn pure számításából származik.
+**v2-kapcsolat.** A rajt-szekvencia alapja (countdown) már a v2 listán; az ütemezett, hands-free indítás és az óra auto-váltása ennek a vízió-szintű kiterjesztése.
+
 #### J2 — Laylinek
 **Mi ez.** Laylinek a következő markhoz az aktuális széllel; csapás/halzás vonalak vizualizálva.
 **Miért / kinek.** „Mikor forduljak, hogy ráérjek a markra" — alap taktikai segédlet.
@@ -565,3 +573,4 @@ Ezeket a funkciók előtt/közben kell eldönteni; mindegyik egy-egy jövőbeli 
 | Dátum | Változás |
 |---|---|
 | 2026-06-01 | Kezdeti vízió: E1–E16 (eredeti ötletek) + J1–J25 (javaslatok) katalogizálva, keresztmetsző témák, nyitott kérdések, szójegyzék. |
+| 2026-06-01 | E17 hozzáadva: ütemezett, automatikus rajt-szekvencia (hands-free rajt-indítás a T−küszöbnél + óra auto-váltás dedikált rajt-nézetre és vissza). |
