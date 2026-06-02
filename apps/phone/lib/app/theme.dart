@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phone/app/confidence_colors.dart';
+import 'package:phone/app/warning_colors.dart';
 
 /// A Foretack app Material 3 témája — marine dark (§8.7).
 ///
@@ -23,6 +24,11 @@ ThemeData _buildForetackTheme() {
         low: Color(0xFF6B7785),
         medium: Color(0xFFE0A82E),
         high: Color(0xFF35C2D6),
+      ),
+      WarningColors(
+        critical: Color(0xFFB3261E),
+        warning: Color(0xFFE0A82E),
+        info: Color(0xFF24323F),
       ),
     ],
   );
