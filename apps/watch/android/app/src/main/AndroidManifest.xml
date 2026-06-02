@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Wear OS: az app kizárólag okosórán fut; a rendszer watch-appként kezeli (ambient stb.) -->
+    <uses-feature
+        android:name="android.hardware.type.watch"
+        android:required="true" />
     <application
         android:label="watch"
         android:name="${applicationName}"

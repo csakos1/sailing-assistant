@@ -24,7 +24,8 @@ android {
         applicationId = "dev.csakos.sailingassistant.watch"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Wear OS 3 baseline (API 30); a Watch4 Classic ezen indult. Fix érték, nem a Flutter-default.
+        minSdk = 30
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
