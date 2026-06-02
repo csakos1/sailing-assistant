@@ -2694,6 +2694,8 @@ JSON-ben szerializálva, a Wearable Data Layer-en küldve mint `DataItem` egy fi
 
 A telefon **minden 500 ms-ban** frissíti a Wearable Data Item-et (csak ha változott). A watch oldal **passzívan figyel** a változásokra (`DataApi.DataListener`), nem polloz.
 
+A Dart-oldali szinkron három felelősség-egységre bomlik (a natív küldés az ADR 0015 D5 szerinti MethodChannel, slice 3): a `buildWatchPayload` pure függvény a domain-állapotból + `TrueTimeReading`-ből építi a `WatchPayload`-ot (critical-szűrés + injektált lokalizálás, D4); a `WatchSyncController` az `interval`-onként (alapból 500 ms) buildel, `==`-szal change-detectel, és csak változásra küld; a `WatchTransport` interfész a slice 2 és 3 közötti varrat (a `PhoneWearableBridge` MethodChannel-implementáció nem dob, a hibát maga kezeli).
+
 ### 10.4 Watch UI
 
 A watch app kerek kijelzőre optimalizált, **sötét témával** (v1; a Napfény /
