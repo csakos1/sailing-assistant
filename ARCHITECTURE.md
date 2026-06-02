@@ -2335,9 +2335,18 @@ aktív bója neve (`activeRaceProvider` → `activeMarkOrNull?.name`, különben
 stream-idő a rajthoz nem elég pontos. Az `instrumentTimeUtc` megmarad, de
 cross-check / staleness szerepben: a kijelzett idő ≥ a stream-instant, a
 különbség ~ a transzport-késés; ha egy küszöb (default 10 mp) fölé nő,
-staleness-jelzés (a chip vs. §11 Warning közti döntés impl-szintű). A
-true-time forrás pontos provider-alakja az impl-fázis design-decision körében
-dől el; a seam fake-elhető, a replay-tesztek determinisztikusak maradnak.
+staleness-jelzés (a chip vs. §11 Warning közti döntés impl-szintű). A true-time forrást a `trueTimeProvider` (keep-alive) adja egy
+`TrueTimeReading Function()` callable-ként (a `clockProvider`-seam
+mintájára), amit a GPS-cella az 1 Hz tick-en hív; a `TrueTimeReading` az
+`utc`-t és a `source`-ot (`gnss` / `sessionAnchor` / `wallClockUnsynced` /
+`none`) hordozza. Az anchort (`anchorUtc` + monoton `Stopwatch`) a notifier
+tartja, a kijelzett idő pure `extrapolate(anchorUtc, monotonicElapsed)`. A
+GNSS-fixet a `geolocator` (thin platform-plugin, mint a `wakelock_plus`;
+`forceLocationManager`, GPS-UTC timestamp) adja egy `GnssClock`
+DIP-absztrakció mögött — fake-elhető, a replay-tesztek determinisztikusak
+maradnak. A seam lusta (első fix a live screen mountjakor), re-anchor 2
+percenként (cold-start 20 mp retry). A D5 cross-check v1-ben belső
+diagnosztika; a §11-be kötött `GpsTimeUnsynced` Warning Fázis 6.
 
 A `markPrediction == null` (nincs aktív bója vagy pozíció) esetén a 2–6
 cellák mind `—`-t mutatnak; a TWA-most (`windData`-ból) és a GPS-idő
