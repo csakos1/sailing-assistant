@@ -35,3 +35,5 @@ export 'src/value_objects/coordinate.dart';
 export 'src/value_objects/distance.dart';
 export 'src/value_objects/speed.dart';
 export 'src/value_objects/telemetry_record.dart';
+export 'src/warnings/warning.dart';
+export 'src/warnings/warning_severity.dart';
