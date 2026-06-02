@@ -2430,7 +2430,8 @@ app-gyökéren eager-watch-olt (ADR 0009 D6) → a live screenen nem kell újra.
 
 **Provider-fogyasztás és lifetime.** A `LiveRaceScreen` gyökerén eager-watch:
 `activeRaceProvider`, `markPredictionProvider`, `windDataProvider`,
-`boatStateProvider`, `connectionStatusProvider`, `tickProvider`. Ez
+`boatStateProvider`, `connectionStatusProvider`, `tickProvider`,
+`trueTimeProvider`, `activeWarningsProvider`. Ez
 transitive életben tartja a teljes §8.6 láncot (a compute-providerek a
 state-providereket listen-elik, azok a `nmeaStreamProvider.events`-re
 iratkoznak), és felépíti a lusta connectiont — a kapcsolat a live screentől
@@ -2747,12 +2748,10 @@ tesztelheto. Az `activeWarningsProvider` wrapper, a `WarningBanner` widget és a
 l10n-leképezés az **apps/phone**ban.
 
 A use case domain-típusú + primitív inputot kap: `ConnectionStatus`,
-`BoatState`, `WindShiftTrend?`, `RaceStatus`, `now`, valamint egy
+`BoatState`, `WindShiftTrend?`, `RaceStatus`, valamint egy
 `isTimeUnsynced` bool és egy `timeStreamDrift` `Duration?`. Az utóbbi ketto a
 `TrueTimeReading`-bol a provider-határon képzodik, így a domain nem függ az
-apps/phone true-time típusaitól (ADR 0012 DD2 megorzése). A `now`-t
-paraméterként kapja (nem `DateTime.now()`), a tick-seambol — a §8.6
-compute-providerek mintája.
+apps/phone true-time típusaitól (ADR 0012 DD2 megorzése).
 
 A domain `Warning` csak `codeId`-t (stabil snake_case id loghoz/telemetriához),
 `severity`-t (computed getter, mert a halasztott `BatteryLow` / `HeadingDrift`
@@ -2775,6 +2774,11 @@ nélkül):
 - `WindShiftTrendInsufficient` (info) — `trend == null`, csak `status == active`
   alatt (rajt elott a trend hiánya normális). Ez az egyetlen info-szintu elem,
   amin a háromszintes render hitelesítheto.
+
+Elnyomási szabály (ADR 0014 D5): ha `connectionStatus is! Connected`, az
+`EvaluateWarnings` CSAK a `GatewayDisconnected`-et adja vissza, elnyomva a
+downstream GPS- és szél-szabályokat — élő feed nélkül azok csak zajt
+termelnének.
 
 Halasztva (a `docs/deferred.md`-ben nyilvántartva), mert hiányzik az
 adat/seam/szabály:
