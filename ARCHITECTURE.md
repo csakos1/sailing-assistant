@@ -2696,6 +2696,8 @@ A telefon **minden 500 ms-ban** frissíti a Wearable Data Item-et (csak ha vált
 
 A Dart-oldali szinkron három felelősség-egységre bomlik (a natív küldés az ADR 0015 D5 szerinti MethodChannel, slice 3): a `buildWatchPayload` pure függvény a domain-állapotból + `TrueTimeReading`-ből építi a `WatchPayload`-ot (critical-szűrés + injektált lokalizálás, D4); a `WatchSyncController` az `interval`-onként (alapból 500 ms) buildel, `==`-szal change-detectel, és csak változásra küld; a `WatchTransport` interfész a slice 2 és 3 közötti varrat (a `PhoneWearableBridge` MethodChannel-implementáció nem dob, a hibát maga kezeli).
 
+Az élő appban a controllert egy **keep-alive provider** köti be (slice 3): tickenként `ref.read`-del olvassa a forrás-providereket (`markPredictionProvider`, `boatStateProvider`, `windDataProvider`, `activeWarningsProvider`, `trueTimeProvider`), `start()`-ol, és `ref.onDispose`-ban `dispose()`-ol. A critical-lokalizálás **context-mentes**: a `localeProvider` (v1: `hu`) értékéből `lookupAppLocalizations(locale)`-lal képződik az `AppLocalizations`, így a provider sosem éri el a widget-fát. A `WatchTransport`-ot egy `watchTransportProvider` injektálja (produkcióban a `PhoneWearableBridge` MethodChannel-implementáció); a teszt fake transporttal override-ol.
+
 ### 10.4 Watch UI
 
 A watch app kerek kijelzőre optimalizált, **sötét témával** (v1; a Napfény /
