@@ -2734,75 +2734,86 @@ híján `--:--:--` + jelzés.
 
 ## 11. Hibakezelés és warning rendszer
 
-### 11.1 Warning katalógus
+A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz a
+döntött alakot tükrözi. A korábbi vázlat a sealed `ConnectionStatus`, a
+tick/clock-seam és a jelenlegi `BoatState`-mezok elottrol való, ezért átírva.
 
-```dart
-sealed class Warning {
-  String get codeId;
-  WarningSeverity get severity;
-  String get titleKey;        // l10n key
-  String get descriptionKey;  // l10n key
-}
+### 11.1 Réteg és alak (ADR 0014 D1–D3)
 
-enum WarningSeverity { info, warning, critical }
+A `Warning` **sealed class** + a `WarningSeverity` enum (`info` / `warning` /
+`critical`) + a pure `EvaluateWarnings` use case a **domain**ben — a
+`ComputeMarkPrediction` mintája: Flutter és mock nélkül, exhaustive-an
+tesztelheto. Az `activeWarningsProvider` wrapper, a `WarningBanner` widget és az
+l10n-leképezés az **apps/phone**ban.
 
-// Konkrét warningok:
-class GpsSignalLost extends Warning { /* critical */ }
-class GatewayDisconnected extends Warning { /* critical */ }
-class StaleData extends Warning {
-  final String dataType;     // "wind", "position", "heading"
-  final Duration staleness;
-}                            /* warning */
-class GpsImprecise extends Warning {
-  final double hdop;
-}                            /* warning */
-class WindSensorAnomaly extends Warning { /* warning */ }
-class HeadingDrift extends Warning { /* warning, info */ }
-class BatteryLow extends Warning {
-  final double percent;
-}                            /* warning ha <20%, critical ha <10% */
-class WindShiftTrendInsufficient extends Warning { /* info */ }
-```
+A use case domain-típusú + primitív inputot kap: `ConnectionStatus`,
+`BoatState`, `WindShiftTrend?`, `RaceStatus`, `now`, valamint egy
+`isTimeUnsynced` bool és egy `timeStreamDrift` `Duration?`. Az utóbbi ketto a
+`TrueTimeReading`-bol a provider-határon képzodik, így a domain nem függ az
+apps/phone true-time típusaitól (ADR 0012 DD2 megorzése). A `now`-t
+paraméterként kapja (nem `DateTime.now()`), a tick-seambol — a §8.6
+compute-providerek mintája.
 
-> **v2-ben hozzákerül**: `PolarMissing extends Warning { /* info */ }` — ha a felhasználó polárt importált, de aktuális TWS/TWA-ra nincs lookup érték.
+A domain `Warning` csak `codeId`-t (stabil snake_case id loghoz/telemetriához),
+`severity`-t (computed getter, mert a halasztott `BatteryLow` / `HeadingDrift`
+instancia-függo) és szemantikus payload-ot hordoz — **nincs**
+`titleKey`/`descriptionKey` getter. A lokalizált címet/leírást az apps/phone
+adja egy exhaustive `switch`-csel a sealed típuson; új warningnál a `switch`
+fordítási hibát ad, ha kimarad.
 
-### 11.2 Warning provider
+### 11.2 v1 warning-katalógus és hatókör (ADR 0014 D4, D7)
 
-```dart
-final activeWarningsProvider = Provider<List<Warning>>((ref) {
-  final boatState = ref.watch(boatStateProvider);
-  final connection = ref.watch(connectionStatusProvider);
-  final battery = ref.watch(batteryProvider);
-  final trend = ref.watch(windShiftTrendProvider);
+A v1-ben bekötött warningok (a jelenleg elérheto adatból, új platform-seam
+nélkül):
 
-  final warnings = <Warning>[];
+- `GatewayDisconnected` (critical) — `connectionStatus is! Connected`.
+- `GpsSignalLost` (critical) — `boatState.position == null`; egyben
+  megmagyarázza, miért `—` a 2–6 cella.
+- `GpsTimeUnsynced` (warning) — a 0012 D5 staleness-szála: `isTimeUnsynced` (a
+  `wallClockUnsynced` forrásból) VAGY `timeStreamDrift` egy küszöb (default
+  10 mp) fölött. A normál 4–6 mp Vulcan-transzportkésés NEM riaszt.
+- `WindShiftTrendInsufficient` (info) — `trend == null`, csak `status == active`
+  alatt (rajt elott a trend hiánya normális). Ez az egyetlen info-szintu elem,
+  amin a háromszintes render hitelesítheto.
 
-  if (connection != ConnectionStatus.connected) {
-    warnings.add(GatewayDisconnected());
-  }
+Halasztva (a `docs/deferred.md`-ben nyilvántartva), mert hiányzik az
+adat/seam/szabály:
 
-  if (boatState.position == null
-      || DateTime.now().difference(boatState.lastUpdate)
-          > const Duration(seconds: 5)) {
-    warnings.add(GpsSignalLost());
-  }
+- `StaleData` — per-stream timestamp kell; a `BoatState` egyetlen
+  `lastUpdate`-jébol nem bontható szét adattípusonként.
+- `GpsImprecise` — nincs hdop a pipeline-ban (a GSA/GGA nem dekódolt
+  domain-mezore).
+- `BatteryLow` — külön platform-seam (`battery_plus`) kellene; v1-ben kihagyva a
+  fókuszért.
+- `WindSensorAnomaly`, `HeadingDrift` — nincs definiált küszöb/szabály.
 
-  // ...további szabályok...
+v2-ben hozzákerül a `PolarMissing` (info) — ha a felhasználó polárt importált,
+de aktuális TWS/TWA-ra nincs lookup érték.
 
-  return warnings;
-});
-```
+### 11.3 Megjelenítés és az „elavult" chip viszonya (ADR 0014 D5–D6)
 
-### 11.3 Megjelenítés
+- **Critical**: piros banner a grid fölött, és a grid letompítva (félig
+  átlátszó) — „ne bízz ezekben az adatokban" —, de nem rejtve (a `—`-ek
+  kontextusa megmarad).
+- **Warning**: borostyán csík, a grid normál.
+- **Info**: diszkrét jelzés (pötty / rövid szöveg a státuszsor mellett).
+- Több aktív warning: kompakt stacking (critical + warning csík egymás alatt),
+  külön részlet-képernyo nélkül v1-ben. Elhelyezés: a státuszsor alatt, a grid
+  fölött.
+- **Watch**: csak a critical warningok jelennek meg, kis ikonnal (Fázis 7).
 
-- **Critical**: piros banner a főképernyő tetején, blokkolja a TWA megjelenítést (mert az adat hibás).
-- **Warning**: sárga banner, de a TWA még látszik (csak overlay-en figyelmeztet).
-- **Info**: kis pötty az óra/telefon sarkában, részletek külön képernyőn.
-- **Watch-on**: csak a critical warningok jelennek meg, kis ikonnal.
+A meglévo §8.7 „elavult" chip **érintetlen** marad, és a warning-szabályok nem
+fednek át a feltételével: `GatewayDisconnected` = nem-csatlakozott;
+`GpsSignalLost` = `position == null`; a chip = csatlakozott-de-5mp-stale. A chip
+és a warning-rendszer egyetlen staleness-forrásba konszolidálása reális, de
+külön refactor-szelet, nem v1 (OCP: a tesztelt `LiveStatusBar`-t nem
+szerkesztjük feat-ben).
 
 ### 11.4 Hangjelzés (opcionális v1.1-ben)
 
-Néhány warningnál (mark rounding detektálva, GPS visszaszerződött, kritikus state) **vibráció** az órán + a telefonon. Hang kevésbé célravezető vízen (szél, motor zaj).
+Néhány warningnál (mark rounding detektálva, GPS visszaszerzodött, kritikus
+state) **vibráció** az órán + a telefonon. Hang kevésbé célravezeto vízen (szél,
+motor zaj).
 
 ---
 
