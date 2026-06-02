@@ -8,6 +8,7 @@ import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
@@ -103,6 +104,13 @@ BoatState _boat(DateTime lastUpdate) => BoatState(
   instrumentTimeUtc: DateTime(2026, 5, 29, 14, 32, 7),
 );
 
+double _liveGridOpacity(WidgetTester tester) {
+  final finder = find
+      .ancestor(of: find.byType(GridView), matching: find.byType(Opacity))
+      .first;
+  return tester.widget<Opacity>(finder).opacity;
+}
+
 Future<void> _pump(
   WidgetTester tester, {
   required Race? race,
@@ -113,6 +121,7 @@ Future<void> _pump(
   DateTime? tick,
   ScreenWakeLock? wakeLock,
   TrueTimeReading? trueTime,
+  List<Warning> warnings = const [],
 }) async {
   tester.view.physicalSize = const Size(1000, 2000);
   tester.view.devicePixelRatio = 1.0;
@@ -131,6 +140,7 @@ Future<void> _pump(
         windDataProvider.overrideWith(() => _FixedWindData(wind)),
         connectionStatusProvider.overrideWith(() => _FixedConnection(status)),
         markPredictionProvider.overrideWithValue(prediction),
+        activeWarningsProvider.overrideWithValue(warnings),
         trueTimeProvider.overrideWithValue(() => reading),
         screenWakeLockProvider.overrideWithValue(
           wakeLock ?? const _NoopScreenWakeLock(),
@@ -319,6 +329,42 @@ void main() {
       );
 
       expect(find.text('--:--:--'), findsOneWidget);
+    });
+
+    testWidgets('critical warning → banner és letompított grid', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+        warnings: const [GpsSignalLost()],
+      );
+
+      expect(find.text('Nincs GPS-jel'), findsOneWidget);
+      expect(_liveGridOpacity(tester), 0.4);
+    });
+
+    testWidgets('info warning → banner, a grid nem tompul', (tester) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+        warnings: const [WindShiftTrendInsufficient()],
+      );
+
+      expect(find.text('Kevés széladat a trendhez'), findsOneWidget);
+      expect(_liveGridOpacity(tester), 1.0);
     });
   });
 }

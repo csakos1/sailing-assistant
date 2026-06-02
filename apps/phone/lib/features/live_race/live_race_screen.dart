@@ -12,8 +12,10 @@ import 'package:phone/features/live_race/widgets/live_status_bar.dart';
 import 'package:phone/features/live_race/widgets/metric_cell.dart';
 import 'package:phone/features/live_race/widgets/metric_value_text.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';
+import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
@@ -73,6 +75,13 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final status = ref.watch(connectionStatusProvider);
     final tick = ref.watch(tickProvider).valueOrNull;
     final trueTime = ref.watch(trueTimeProvider);
+    final warnings = ref.watch(activeWarningsProvider);
+    final hasCriticalWarning = warnings.any(
+      (warning) => warning.severity == WarningSeverity.critical,
+    );
+    // Critical warningnál a grid 40%-ra tompul (nem rejtve) — a fókusz a
+    // banneren maradjon (ADR 0014 D6).
+    final gridOpacity = hasCriticalWarning ? 0.4 : 1.0;
 
     // Az aktív bója auto-továbblépése (§8.4) — a screen mountjához kötve.
     ref.watch(markRoundingMonitorProvider);
@@ -98,57 +107,61 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                 isStale: _isStale(status: status, boat: boat, tick: tick),
               ),
               const SizedBox(height: 12),
+              WarningBanner(warnings: warnings),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.4,
-                  children: [
-                    MetricCell(
-                      label: l10n.liveTwaNow,
-                      child: TwaValue(wind?.trueAngleWater),
-                    ),
-                    MetricCell(
-                      label: l10n.liveTwaNext,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TwaValue(prediction?.predictedTwaAtMark),
-                          if (prediction != null) ...[
-                            const SizedBox(height: 4),
-                            ConfidenceDots(prediction.shiftConfidence),
+                child: Opacity(
+                  opacity: gridOpacity,
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.4,
+                    children: [
+                      MetricCell(
+                        label: l10n.liveTwaNow,
+                        child: TwaValue(wind?.trueAngleWater),
+                      ),
+                      MetricCell(
+                        label: l10n.liveTwaNext,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TwaValue(prediction?.predictedTwaAtMark),
+                            if (prediction != null) ...[
+                              const SizedBox(height: 4),
+                              ConfidenceDots(prediction.shiftConfidence),
+                            ],
                           ],
-                        ],
-                      ),
-                    ),
-                    MetricCell(
-                      label: l10n.liveBearing,
-                      child: MetricValueText(
-                        formatBearing(prediction?.bearingToMark),
-                      ),
-                    ),
-                    MetricCell(
-                      label: l10n.liveCorrection,
-                      child: CorrectionValue(prediction?.courseCorrection),
-                    ),
-                    MetricCell(
-                      label: l10n.liveDistance,
-                      child: MetricValueText(
-                        formatDistance(prediction?.distanceToMark),
-                      ),
-                    ),
-                    MetricCell(
-                      label: l10n.liveEta,
-                      child: MetricValueText(
-                        formatEta(
-                          prediction?.eta,
-                          minutesUnit: l10n.etaMinutesUnit,
                         ),
                       ),
-                    ),
-                  ],
+                      MetricCell(
+                        label: l10n.liveBearing,
+                        child: MetricValueText(
+                          formatBearing(prediction?.bearingToMark),
+                        ),
+                      ),
+                      MetricCell(
+                        label: l10n.liveCorrection,
+                        child: CorrectionValue(prediction?.courseCorrection),
+                      ),
+                      MetricCell(
+                        label: l10n.liveDistance,
+                        child: MetricValueText(
+                          formatDistance(prediction?.distanceToMark),
+                        ),
+                      ),
+                      MetricCell(
+                        label: l10n.liveEta,
+                        child: MetricValueText(
+                          formatEta(
+                            prediction?.eta,
+                            minutesUnit: l10n.etaMinutesUnit,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
