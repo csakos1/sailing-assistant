@@ -1,10 +1,12 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// Az élő képernyő státuszsora (§8.7): kapcsolat-jelző, aktív bója neve,
-/// GPS műszer-idő, és — ha az adat elavult — egy „elavult" chip.
+/// GPS-idő (true-time forrás, ADR 0012), és — ha az adat elavult — egy
+/// „elavult" chip.
 ///
 /// „Dumb" widget: a nyers értékeket kapja, az l10n-t a kontextusból olvassa
 /// (az `AppLocalizations.of` `!`-ja biztonságos a `MaterialApp` alatt).
@@ -13,7 +15,7 @@ class LiveStatusBar extends StatelessWidget {
   const LiveStatusBar({
     required this.connectionStatus,
     required this.markName,
-    required this.instrumentTimeUtc,
+    required this.trueTime,
     required this.isStale,
     super.key,
   });
@@ -24,8 +26,8 @@ class LiveStatusBar extends StatelessWidget {
   /// Az aktív bója neve, vagy null (`—`).
   final String? markName;
 
-  /// A hajó GPS-idejének UTC bélyege, vagy null (`--:--:--`).
-  final DateTime? instrumentTimeUtc;
+  /// A megjelenítendő GPS-idő olvasata (true-time + megbízhatóság, ADR 0012).
+  final TrueTimeReading trueTime;
 
   /// Igaz, ha csatlakozott állapotban az adat túl régi.
   final bool isStale;
@@ -35,6 +37,11 @@ class LiveStatusBar extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final (label, color) = _connection(connectionStatus, l10n);
+
+    // wallClockUnsynced → explicit „nem szinkronizált" jel: `~` prefix +
+    // tompított szín (ADR 0012 D6). gnss/sessionAnchor → sima idő.
+    final unsynced = trueTime.source == TrueTimeSource.wallClockUnsynced;
+    final timeText = formatInstrumentTime(trueTime.utc);
 
     return Row(
       children: [
@@ -67,9 +74,10 @@ class LiveStatusBar extends StatelessWidget {
         Text(markName ?? missingValue, style: theme.textTheme.bodyMedium),
         const SizedBox(width: 12),
         Text(
-          formatInstrumentTime(instrumentTimeUtc),
+          unsynced ? '~$timeText' : timeText,
           style: theme.textTheme.bodyMedium?.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
+            color: unsynced ? theme.colorScheme.onSurfaceVariant : null,
           ),
         ),
       ],

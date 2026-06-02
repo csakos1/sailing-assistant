@@ -20,6 +20,7 @@ import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/mark_rounding_monitor_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
+import 'package:phone/providers/true_time_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
 /// Az élő verseny-képernyő (§8.7): a compute-rétegből fogyaszt, és a 7 v1
@@ -71,6 +72,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final boat = ref.watch(boatStateProvider);
     final status = ref.watch(connectionStatusProvider);
     final tick = ref.watch(tickProvider).valueOrNull;
+    final trueTime = ref.watch(trueTimeProvider);
 
     // Az aktív bója auto-továbblépése (§8.4) — a screen mountjához kötve.
     ref.watch(markRoundingMonitorProvider);
@@ -92,7 +94,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
               LiveStatusBar(
                 connectionStatus: status,
                 markName: race.activeMarkOrNull?.name,
-                instrumentTimeUtc: boat.instrumentTimeUtc,
+                trueTime: trueTime(),
                 isStale: _isStale(status: status, boat: boat, tick: tick),
               ),
               const SizedBox(height: 12),
