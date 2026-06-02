@@ -20,6 +20,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^2.5.0
+  geolocator: ^14.0.0
   shared:
     path: ../../packages/shared
 
