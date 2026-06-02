@@ -2415,7 +2415,7 @@ dark marad (a meglévő CRUD-screenek öröklik).
 **Képernyő ébren tartása.** Új dep: `wakelock_plus` az `apps/phone`-ban — a
 `LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben
 nem alhat el a kijelző). Vékony presentation-plugin, nem architektúra-pivot
-→ nincs külön ADR, itt dokumentálva.
+→ nincs külön ADR, itt dokumentálva. A háttér-futás (**ADR 0016**) óta ez **csak előtér-UI-kényelem** (ne dimmeljen a kijelző, amíg nézed) — az adatfolyamot kikapcsolt kijelzőnél a RaceEngine tartja fenn (§10.6), így a wakelock nem load-bearing.
 A plugin-hívás `ScreenWakeLock` DIP-absztrakció (`enable`/`disable`) mögött
 van — valós impl `WakelockPlus`-szal és keep-alive
 `screenWakeLockProvider`-rel —, hogy a screen widget-teszt no-op fake-kel
@@ -2735,6 +2735,12 @@ pötty.
 - A Flutter Wear OS support közösségi, nem hivatalos. **v1-ben elfogadjuk**, ha kell, később natív Kotlin-Compose-ra átírjuk a watch oldalt (a phone app változatlanul hagyva).
 - Tile, Complication támogatás v1-ben **nincs** — csak a sima app megjelenítés.
 - Always-on display: bekapcsolva, hogy ne kelljen mozdulni a TWA megnézéshez.
+
+### 10.6 Háttér-futás (RaceEngine + foreground service)
+
+A háttér-futás architektúráját az **ADR 0016** rögzíti; ez a szakasz a döntött alakot tükrözi.
+
+v1-core: a telefon a zsebben, **kikapcsolt kijelzővel**, az óra a primary élő kijelző, megszakítás nélkül. Mivel háttérben / kijelző-off az UI-izolátum felfüggesztődik (a `Timer`-ek és a socket-olvasás leáll), a teljes adatfolyam (§6) egy **RaceEngine** háttér-izolátumba kerül, amit egy Android **foreground service** hoszttol (`flutter_foreground_task`, `connectedDevice` FGS-típus). Az engine az **egyedüli tulajdonosa** az NMEA-pipeline-nak, a domain-számításnak, a Drift-telemetriának és az óra-pushnak; a telefon UI-ja **read-only tükör**, ami az engine ~1 Hz-es `RaceSnapshot`-jaira renderel (a snapshotot a plugin saját csatornáján kapja). Az óra-push (Wearable Data Layer) az engine-ből indul, a meglévő `buildWatchPayload`-dal (§10.3). A domain **tiszta marad** (az engine a `domain` + `data` package-eket futtatja, nincs natív újraimplementáció); a `RaceEngineHost` DIP-varrat mögött a plugin cserélhető, és a replay-tesztelhetőség megmarad. A kijelző-wakelock így már csak előtér-UI-kényelem, nem load-bearing.
 
 ---
 
