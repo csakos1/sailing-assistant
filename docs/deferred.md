@@ -189,6 +189,52 @@ Minden bejegyzés:
 
 ---
 
+---
+
+## Phase 6 (Warning rendszer) — halasztott warningok
+
+Az ADR 0014 D4 a §11 katalógusból a v1-be a `GatewayDisconnected`,
+`GpsSignalLost`, `GpsTimeUnsynced` és `WindShiftTrendInsufficient`
+warningokat kötötte be. Az alábbiak adat / seam / szabály hiányában
+halasztva.
+
+### `StaleData` warning
+- **Mi**: per-adattípus (`wind` / `position` / `heading`) staleness
+  warning a `staleness` Duration-nel.
+- **Mikor**: amikor a state-providerek per-stream timestamp-et tartanak
+  (a `BoatState` ma egyetlen `lastUpdate`-et hordoz).
+- **Miért halasztva**: a jelenlegi egyetlen `lastUpdate`-bol nem bontható
+  szét adattípusonként; per-stream idobélyeg nélkül a warning nem ad
+  többletet a meglévo „elavult" chiphez.
+- **Hivatkozás**: `ARCHITECTURE.md` §11.2;
+  `apps/phone/lib/providers/boat_state_provider.dart`.
+
+### `GpsImprecise` warning
+- **Mi**: pontatlan fix warning a `hdop` értékkel.
+- **Mikor**: amikor a GSA/GGA HDOP dekódolt domain-mezore kerül.
+- **Miért halasztva**: a pipeline jelenleg nem dekódol HDOP-ot, a
+  `BoatState` nem hordozza.
+- **Hivatkozás**: `ARCHITECTURE.md` §11.2.
+
+### `BatteryLow` warning
+- **Mi**: alacsony telefon-akku warning (warning <20%, critical <10%).
+- **Mikor**: amikor egy `battery_plus`-szeru platform-seam + provider
+  bekerül (a `wakelock_plus` / `geolocator` mintájára).
+- **Miért halasztva**: új platform-függoség és seam, külön koncern; a
+  Fázis 6 fókuszának megorzéséért kihagyva (ADR 0014 D4).
+- **Hivatkozás**: `ARCHITECTURE.md` §11.2.
+
+### `WindSensorAnomaly` és `HeadingDrift` warning
+- **Mi**: szél-szenzor anomália, illetve heading-drift (warning/info)
+  warningok.
+- **Mikor**: amikor a detektálási küszöb/szabály definiált (mi számít
+  anomáliának; mekkora drift mennyi ido alatt).
+- **Miért halasztva**: nincs definiált szabály; szabály nélkül a warning
+  vagy zajt, vagy hamis biztonságot adna.
+- **Hivatkozás**: `ARCHITECTURE.md` §11.2.
+
+---
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
