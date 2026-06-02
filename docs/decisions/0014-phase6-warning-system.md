@@ -19,10 +19,12 @@ valósítja meg, a jelenlegi valósághoz igazítva. A 0012 D5 staleness-szála
   tesztelhető). Az `activeWarningsProvider` wrapper + `WarningBanner` widget + az
   l10n-leképezés az **apps/phone**ban.
 - D2 — A use case domain-típusú + primitív inputot kap: `ConnectionStatus`,
-  `BoatState`, `WindShiftTrend?`, `RaceStatus`, `now`, `bool isTimeUnsynced`,
+  `BoatState`, `WindShiftTrend?`, `RaceStatus`, `bool isTimeUnsynced`,
   `Duration? timeStreamDrift`. Az `isTimeUnsynced`/`timeStreamDrift` a
   `TrueTimeReading`-ből a provider-határon képződik, így a domain NEM függ az
-  apps/phone true-time típusaitól (ADR 0012 DD2 megőrzése).
+  apps/phone true-time típusaitól (ADR 0012 DD2 megőrzése). A `now` a v1
+  use case-ben kimarad (egyik warning-szabály sem idő-alapú), és a halasztott
+  `StaleData`-val tér vissza — akkor a tick-seamből, a §8.6 mintára.
 - D3 — A domain `Warning` csak `codeId` (stabil snake_case id loghoz/telemetriához)
   + `severity` + szemantikus payload-ot hordoz; NINCS `titleKey`/`descriptionKey`
   getter (eltérés a §11.1 vázlattól). A lokalizált szöveget az apps/phone adja egy
