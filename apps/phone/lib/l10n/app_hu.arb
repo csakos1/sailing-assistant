@@ -42,6 +42,23 @@
     "description": "ETA perc-egysége 60 perc felett (pl. 83 perc)."
   },
 
+  "warningGatewayDisconnected": "Nincs kapcsolat a műszerekkel",
+  "@warningGatewayDisconnected": {
+    "description": "Warning (critical): megszakadt az NMEA-adatfolyam (gateway-kapcsolat)."
+  },
+  "warningGpsSignalLost": "Nincs GPS-jel",
+  "@warningGpsSignalLost": {
+    "description": "Warning (critical): nem érkezik GPS-pozíció a műszertől."
+  },
+  "warningGpsTimeUnsynced": "GPS-idő nincs szinkronban",
+  "@warningGpsTimeUnsynced": {
+    "description": "Warning (warning): a megjelenített GPS-idő nincs szinkronban."
+  },
+  "warningWindShiftTrendInsufficient": "Kevés széladat a trendhez",
+  "@warningWindShiftTrendInsufficient": {
+    "description": "Warning (info): még nincs elég széladat a trend becsléséhez."
+  },
+
   "appTitle": "Foretack",
   "@appTitle": {
     "description": "Az app neve a launcher / recents képernyőn."

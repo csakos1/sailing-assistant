@@ -154,6 +154,30 @@ abstract class AppLocalizations {
   /// **'perc'**
   String get etaMinutesUnit;
 
+  /// Warning (critical): megszakadt az NMEA-adatfolyam (gateway-kapcsolat).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs kapcsolat a műszerekkel'**
+  String get warningGatewayDisconnected;
+
+  /// Warning (critical): nem érkezik GPS-pozíció a műszertől.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs GPS-jel'**
+  String get warningGpsSignalLost;
+
+  /// Warning (warning): a megjelenített GPS-idő nincs szinkronban.
+  ///
+  /// In hu, this message translates to:
+  /// **'GPS-idő nincs szinkronban'**
+  String get warningGpsTimeUnsynced;
+
+  /// Warning (info): még nincs elég széladat a trend becsléséhez.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kevés széladat a trendhez'**
+  String get warningWindShiftTrendInsufficient;
+
   /// Az app neve a launcher / recents képernyőn.
   ///
   /// In hu, this message translates to:

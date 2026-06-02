@@ -39,6 +39,18 @@ class AppLocalizationsHu extends AppLocalizations {
   String get etaMinutesUnit => 'perc';
 
   @override
+  String get warningGatewayDisconnected => 'Nincs kapcsolat a műszerekkel';
+
+  @override
+  String get warningGpsSignalLost => 'Nincs GPS-jel';
+
+  @override
+  String get warningGpsTimeUnsynced => 'GPS-idő nincs szinkronban';
+
+  @override
+  String get warningWindShiftTrendInsufficient => 'Kevés széladat a trendhez';
+
+  @override
   String get appTitle => 'Foretack';
 
   @override
