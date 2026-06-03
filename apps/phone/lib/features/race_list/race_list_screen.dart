@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:domain/domain.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phone/engine/engine_debug_screen.dart';
 import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
@@ -43,6 +45,14 @@ class RaceListScreen extends ConsumerWidget {
     );
   }
 
+  void _openEngineDebug(BuildContext context) {
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const EngineDebugScreen()),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -52,6 +62,13 @@ class RaceListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.listTitle),
         actions: [
+          // Csak debug-buildben: a 7-bg-b háttér-engine verifikáló képernyője.
+          if (kDebugMode)
+            IconButton(
+              onPressed: () => _openEngineDebug(context),
+              icon: const Icon(Icons.memory_outlined),
+              tooltip: 'Engine debug',
+            ),
           IconButton(
             onPressed: () => _openDebug(context),
             icon: const Icon(Icons.bug_report_outlined),
