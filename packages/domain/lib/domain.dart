@@ -15,6 +15,8 @@ export 'src/entities/wind_data.dart';
 export 'src/entities/wind_observation.dart';
 export 'src/entities/wind_shift_confidence.dart';
 export 'src/entities/wind_shift_trend.dart';
+export 'src/projection/boat_state_reducer.dart';
+export 'src/projection/wind_history_reducer.dart';
 export 'src/repositories/connection_status.dart';
 export 'src/repositories/domain_event.dart';
 export 'src/repositories/nmea_stream.dart';

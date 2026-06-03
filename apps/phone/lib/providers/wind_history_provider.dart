@@ -7,10 +7,9 @@ import 'package:phone/providers/nmea_stream_provider.dart';
 ///
 /// Seedelt `AutoDisposeNotifier`: üres listával indul, majd minden
 /// [WindEvent]-nél, ha van [WindData.trueDirectionGround], egy
-/// [WindObservation]-t fűz a pufferbe. A puffer **30 perces, idő-nyírt** a
-/// legfrissebb observation időbélyegéhez képest — korlátos memória, és bőven
-/// fedi a `CalculateWindShiftTrend` (default 10 perces) ablakát. A tényleges
-/// trend-ablakot a `windShiftTrendProvider` (5c) alkalmazza, nem ez.
+/// [WindObservation]-t fűz a pufferbe. Az append + idő-nyírás (default
+/// 30 perc) a domain `WindHistoryReducer`-ében él (ADR 0017 D2); a
+/// tényleges trend-ablakot a `windShiftTrendProvider` (5c) alkalmazza.
 final windHistoryProvider =
     AutoDisposeNotifierProvider<WindHistoryNotifier, List<WindObservation>>(
       WindHistoryNotifier.new,
@@ -18,10 +17,6 @@ final windHistoryProvider =
 
 /// A [windHistoryProvider] notifier-implementációja.
 class WindHistoryNotifier extends AutoDisposeNotifier<List<WindObservation>> {
-  // A puffer hossza: bőven a trend-ablak (10 perc) fölött, hogy a window-
-  // váltás (runtime konfig, 5f) ne ürítse ki a történetet.
-  static const Duration _bufferWindow = Duration(minutes: 30);
-
   @override
   List<WindObservation> build() {
     final stream = ref.watch(nmeaStreamProvider);
@@ -31,7 +26,7 @@ class WindHistoryNotifier extends AutoDisposeNotifier<List<WindObservation>> {
         if (twd == null) {
           return;
         }
-        state = _appended(
+        state = const WindHistoryReducer()(
           state,
           WindObservation(twd: twd, timestamp: data.timestamp),
         );
@@ -39,16 +34,5 @@ class WindHistoryNotifier extends AutoDisposeNotifier<List<WindObservation>> {
     });
     ref.onDispose(sub.cancel);
     return const <WindObservation>[];
-  }
-
-  // Hozzáfűz, majd a legfrissebb observationhöz képest 30 percnél régebbieket
-  // levág. Új lista (immutable state-csere), nem in-place mutáció.
-  List<WindObservation> _appended(
-    List<WindObservation> current,
-    WindObservation observation,
-  ) {
-    final next = [...current, observation];
-    final cutoff = observation.timestamp.subtract(_bufferWindow);
-    return next.where((o) => o.timestamp.isAfter(cutoff)).toList();
   }
 }
