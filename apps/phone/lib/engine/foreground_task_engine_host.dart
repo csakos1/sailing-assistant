@@ -77,7 +77,7 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
       ),
       iosNotificationOptions: const IOSNotificationOptions(),
       foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(2000),
+        eventAction: ForegroundTaskEventAction.nothing(),
         allowWifiLock: true,
       ),
     );
