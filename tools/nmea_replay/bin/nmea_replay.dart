@@ -92,25 +92,42 @@ Future<void> _serve(
   List<LoggedLine> lines, {
   required bool loop,
 }) async {
+  // A kimeneti oldal hibáját (broken pipe, ha a kliens elment) elnyeljük: egy
+  // kezeletlen socket-hiba a tűzd-és-felejtsd future-ön át különben az egész
+  // szervert ledöntené.
+  client.done.ignore();
+  // A kliens lecsatlakozását figyeljük — a looping replay különben vakon írna
+  // a halott socketre; a bejövő bájtokat eldobjuk.
+  var alive = true;
+  final incoming = client.listen(
+    (_) {},
+    onError: (Object _) => alive = false,
+    onDone: () => alive = false,
+    cancelOnError: false,
+  );
   try {
     do {
       Duration? previous;
       for (final line in lines) {
+        if (!alive) return;
         if (previous != null) {
           // Valós idejű ütemezés a prefix-időbélyegek különbségéből; a nem
           // pozitív tartam (midnight-rollover / sorrend-csúszás) azonnal fut.
           await Future<void>.delayed(line.timeOfDay - previous);
         }
+        if (!alive) return;
         // A Vulcan prefix nélkül, CRLF-fel küld — a kliens LineSplittere jó rá.
         client.add(utf8.encode('${line.sentence}\r\n'));
         previous = line.timeOfDay;
       }
     } while (loop);
     await client.flush();
-  } on SocketException {
-    // A kliens lecsatlakozott visszajátszás közben — fejlesztés közben normális.
+  } on Object {
+    // A kliens lecsatlakozott visszajátszás közben — fejlesztés közben
+    // normális, és nem érinti a többi (vagy a következő) klienst.
   } finally {
-    await client.close();
+    await incoming.cancel();
+    client.destroy();
   }
 }
 
