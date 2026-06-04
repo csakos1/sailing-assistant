@@ -16,18 +16,44 @@ part 'app_database.g.dart';
 /// (`NativeDatabase.memory()`), production-ben a `driftDatabase` adja.
 @DriftDatabase(tables: [Races, Marks, TelemetryRecords, Settings])
 class AppDatabase extends _$AppDatabase {
-  /// Production: drift_flutter named DB háttér-isolate-on. Teszt: injektált
-  /// executor (pl. in-memory).
+  /// A UI-izolátum elsődleges kapcsolata: production-ben drift_flutter named DB
+  /// háttér-isolate-on, teszthez injektált executor. **Ez migrálja a sémát.**
   AppDatabase([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'foretack'));
+    : _assumeMigrated = false,
+      super(executor ?? driftDatabase(name: 'foretack'));
+
+  /// A háttér-engine másodlagos kapcsolata ugyanarra a SQLite-fájlra
+  /// (ADR 0017 D6), kizárólag a telemetria-írásokhoz, WAL-módban. **Kész sémát
+  /// feltételez** — nem migrál; ha mégis migrációra lenne szükség (a UI-first
+  /// invariáns sérült), az `onCreate`/`onUpgrade` dob, a néma konkurens
+  /// migráció helyett.
+  AppDatabase.secondary([QueryExecutor? executor])
+    : _assumeMigrated = true,
+      super(executor ?? driftDatabase(name: 'foretack'));
+
+  // true → ez a kapcsolat nem migrálhat (másodlagos engine-kapcsolat).
+  final bool _assumeMigrated;
 
   @override
   int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
+    onCreate: (m) async {
+      if (_assumeMigrated) {
+        throw StateError(
+          'A másodlagos engine-kapcsolat kész sémát feltételez (ADR 0017 D6): '
+          'a UI-izolátumnak előbb kell migrálnia.',
+        );
+      }
+      await m.createAll();
+    },
     onUpgrade: (m, from, _) async {
+      if (_assumeMigrated) {
+        throw StateError(
+          'A másodlagos engine-kapcsolat nem migrálhat (ADR 0017 D6).',
+        );
+      }
       // v1 → v2 (Fázis 5f, ADR 0011): a Settings KV-tábla hozzáadása. CSAK az
       // új táblát hozzuk létre — createAll a meglévő táblákon hibázna.
       if (from < 2) {
@@ -37,6 +63,10 @@ class AppDatabase extends _$AppDatabase {
     beforeOpen: (_) async {
       // SQLite-ban a FK alapból OFF — e nélkül a cascade némán nem fut.
       await customStatement('PRAGMA foreign_keys = ON');
+      // WAL: konkurens olvasók + egy rövid batch-író (engine-telemetria, ADR
+      // 0017 D6). A journal_mode lekérdezés-alakja eredménysort ad vissza,
+      // ezért customSelect (a customStatement eredménysoros PRAGMA-n elhasal).
+      await customSelect('PRAGMA journal_mode = WAL').get();
     },
   );
 }
