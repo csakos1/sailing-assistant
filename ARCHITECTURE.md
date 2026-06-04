@@ -2093,6 +2093,12 @@ A §8.2 hierarchia alja: az `NmeaStream.events` push-folyamát foldoljuk
 takarít — a `connectionStatusProvider` (§8.3) mintája. A főképernyő tartja
 őket életben (autoDispose).
 
+> **7-bg-d óta felülírva (ADR 0017 addendum A4, §8.8).** Az NMEA-fold +
+> compute az engine háttér-izolátumába költözött (ADR 0016); az élő
+> providerek a `raceSnapshotProvider`-ből derivelnek. A §8.2 diagram és az
+> alábbi §8.6/§8.7 az NMEA-fold pre-7-bg-d képet dokumentálják — a
+> megvalósult read-only tükör a §8.8.
+
 ```dart
 // apps/phone/lib/providers/boat_state_provider.dart
 // Seedelt AutoDisposeNotifier: üres BoatState az app-órából, majd minden
@@ -2491,6 +2497,60 @@ class ConfidenceColors extends ThemeExtension<ConfidenceColors> {
   // copyWith + lerp: ThemeExtension-kötelező, törzs a feat-ben.
 }
 ```
+
+### 8.8 7-bg-d: élő providerek átszármaztatása az engine-snapshotra (ADR 0017 A4)
+
+A háttér-futás (ADR 0016) óta az NMEA-pipeline + domain-compute az engine
+háttér-izolátumában fut; a telefon-UI read-only tükör. A 7-bg-d ennek
+megfelelően átszármaztatja a §8.6/§8.7 élő providereit: a UI-oldali
+NMEA-fold és compute megszűnik, a providerek az engine `RaceSnapshot`-
+streamjéből derivelnek.
+
+Egy új `raceSnapshotProvider` — seedelt `AutoDisposeNotifier<RaceSnapshot?>`
+a §8.6-idióma szerint — a `build()`-ben a `raceEngineHostProvider.snapshots`
+(`Stream<RaceSnapshot>`) streamre iratkozik, tartja a legfrissebb
+snapshotot, `ref.onDispose(sub.cancel)`-lal takarít, és `null`-lal seedel.
+`autoDispose`: a live screen életében él, de az engine ettől függetlenül fut
+(ADR 0016 — kijelző-off mellett is). Nem `StreamProvider`: a sima
+`RaceSnapshot?` elkerüli az `AsyncValue` `.valueOrNull` zaját a
+deriváltakban.
+
+A meglévő állapot-/compute-providerek vékony mező-projekcióvá válnak — a
+nevük és a `LiveRaceScreen` watch-felülete változatlan (a widgetek
+érintetlenek):
+
+```
+boatStateProvider         → snapshot?.boatState ?? BoatState(lastUpdate: clock())
+windDataProvider          → snapshot?.wind
+windShiftTrendProvider    → snapshot?.windShiftTrend
+markPredictionProvider    → snapshot?.prediction
+connectionStatusProvider  → snapshot?.connectionStatus ?? const Connecting()
+```
+
+A compute use case-ek (`BoatStateReducer`, `CalculateWindShiftTrend`,
+`ComputeMarkPrediction`) és a `windHistoryProvider` a UI-oldalon
+megszűnnek — egyetlen tulajdonos: az engine.
+
+Az `activeWarningsProvider` a UI-oldalon marad (A5): az `EvaluateWarnings`
+hívás változatlan, az inputjai a snapshotból (a teljes `WindShiftTrend?`-fel,
+OCP) + a UI-oldali `trueTimeProvider` + `activeRaceProvider.status`. Az
+„első emit előtt → const []” kapu a tick helyett az első snapshot
+érkezésére horgonyozva.
+
+Az élő úton a `nmeaStreamProvider` többé nem szerepel: az engine az egyetlen
+NMEA-tulajdonos (ADR 0016 D1) — két párhuzamos TCP-kliens a Vulcanra tilos.
+A definíciója a debug raw-viewerhez marad. A `tickProvider` szerepe
+eltolódik: már nem recompute-ot hajt (azt a snapshot adja), hanem a
+GPS-óra-kijelző frissítését és a snapshot-csend watchdogot szolgálja (a
+befagyott `tickTime` magától nem mozdul).
+
+Az engine-lifecycle nem a screenhez kötődik (ADR 0016 D5: session-tied,
+explicit leállásig, `stopWithTask=false`); a valódi `host.start(race)`
+wiring a cross-isolate Race-szel a d4-ben landol. A UI-oldali
+`markRoundingMonitorProvider` kivezetve: az aktív bóya a
+`snapshot.prediction.mark`-ból jön, az auto-továbblépés logikája az
+engine-be költözik (A6, d4). Seed az első snapshotig: üres `BoatState`,
+`null` wind/prediction/trend, `Connecting()`, üres warning-lista.
 
 ---
 
