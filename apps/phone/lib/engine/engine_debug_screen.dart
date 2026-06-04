@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:data/data.dart';
+import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 
 /// Debug-képernyő a háttér-engine on-device verifikációjához.
 ///
-/// Indítja/leállítja a foreground service-t, és kiírja a legutóbb fogadott
-/// snapshot esemény-számát. A zárolt képernyős bizonyíték az értesítés (a szám
-/// ott is nő); ez a readout csak előtérben frissül, mert a UI-izolátum háttérben
-/// pauzál.
+/// Indítja/leállítja a foreground service-t egy szintetikus [Race]-szel, és
+/// kiírja a legutóbb fogadott snapshot esemény-számát. A zárolt képernyős
+/// bizonyíték az értesítés (a szám ott is nő); ez a readout csak előtérben
+/// frissül, mert a UI-izolátum háttérben pauzál.
 class EngineDebugScreen extends ConsumerStatefulWidget {
   /// Létrehozza a debug-képernyőt.
   const EngineDebugScreen({super.key});
@@ -43,6 +44,19 @@ class _EngineDebugScreenState extends ConsumerState<EngineDebugScreen> {
     super.dispose();
   }
 
+  // Szintetikus pálya a debug-indításhoz (a korábbi _interimRace tartalma).
+  Race _debugRace() => Race.create(
+    id: 'debug',
+    name: 'Debug',
+    marks: const [
+      Mark(
+        sequence: 1,
+        name: 'Bóya 1',
+        position: Coordinate(latitude: 46.95, longitude: 18.1),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final host = ref.watch(raceEngineHostProvider);
@@ -65,7 +79,7 @@ class _EngineDebugScreenState extends ConsumerState<EngineDebugScreen> {
               spacing: 12,
               children: [
                 ElevatedButton(
-                  onPressed: () => unawaited(host.start()),
+                  onPressed: () => host.start(_debugRace()).ignore(),
                   child: const Text('Engine indítása'),
                 ),
                 OutlinedButton(

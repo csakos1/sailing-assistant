@@ -16,22 +16,23 @@ void startCallback() {
   FlutterForegroundTask.setTaskHandler(RaceEngineTaskHandler());
 }
 
-/// A háttér-feladat: az `onStart`-ban felépíti és elindítja a [RaceEngine]-t
-/// (NMEA TCP + domain-compute), és minden engine-snapshotot JSON-ként továbbít
-/// a UI-izolátumnak (ADR 0017 D1/D7/D9 + addendum).
+/// A háttér-feladat: az `onStart`-ban felépíti a [RaceEngine]-t (NMEA TCP +
+/// domain-compute), de NEM indítja — előbb egy `{type:'ready'}` jelet küld a
+/// hostnak (ready-kézfogás, ADR 0017 A13). A host erre küldi a teljes [Race]
+/// initet (`{type:'init', race:…}`), amire az engine elindul; futás közben a
+/// `{type:'start'|'finish', at}` parancsokat a saját `_race`-én alkalmazza.
 ///
-/// Az engine a saját 1 Hz-es timeréről ketyeg, nem az `onRepeatEvent`-ről
-/// (`eventAction: nothing()`). Minden `RaceSnapshot` `toJson()`-ja a
-/// plugin-csatornán JSON-stringként megy át; a UI-oldal `RaceSnapshot.fromJson`-
-/// nal fejti vissza.
-///
-/// **Interim (7-bg-d):** a forrás egy szintetikus [Race] (egyetlen bója), a
-/// telemetria no-op. A valódi, izolátumok közti Race-átadás a d4, a WAL-Drift
-/// telemetria a d5.
+/// Minden engine-snapshot `toJson()`-ja a plugin-csatornán JSON-stringként megy
+/// a UI-izolátumnak; az engine a saját 1 Hz-es timeréről ketyeg, nem az
+/// `onRepeatEvent`-ről (`eventAction: nothing()`). A telemetria a d5-ig no-op.
 class RaceEngineTaskHandler extends TaskHandler {
   Nmea0183TcpClient? _client;
   RaceEngine? _engine;
   StreamSubscription<RaceSnapshot>? _snapshotSub;
+
+  // Dup-init guard: az első init-parancs indítja az engine-t, a továbbiakat
+  // (pl. egy ismételt ready-kézfogás után) elnyeljük.
+  bool _started = false;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -44,9 +45,38 @@ class RaceEngineTaskHandler extends TaskHandler {
     );
     _client = client;
     _engine = engine;
-
     _snapshotSub = engine.snapshots.listen(_onSnapshot);
-    await engine.start(_interimRace());
+
+    // Ready-kézfogás: jelezzük, hogy fogadjuk a Race initet (A13). A start()
+    // csak az init-parancsra fut, így nincs versenyhelyzet a sendDataToTask és
+    // a kommunikációs port felállása között.
+    FlutterForegroundTask.sendDataToMain(
+      jsonEncode(<String, Object>{'type': 'ready'}),
+    );
+  }
+
+  @override
+  void onReceiveData(Object data) {
+    if (data is! String) {
+      return;
+    }
+    final map = jsonDecode(data) as Map<String, dynamic>;
+    switch (map['type'] as String?) {
+      case 'init':
+        if (_started) {
+          return;
+        }
+        _started = true;
+        final race = raceFromJson(map['race'] as Map<String, dynamic>);
+        final engine = _engine;
+        if (engine != null) {
+          unawaited(engine.start(race));
+        }
+      case 'start':
+        _engine?.applyStartCommand(_atFromMillis(map['at'] as int));
+      case 'finish':
+        _engine?.applyFinishCommand(_atFromMillis(map['at'] as int));
+    }
   }
 
   @override
@@ -77,20 +107,9 @@ class RaceEngineTaskHandler extends TaskHandler {
     FlutterForegroundTask.sendDataToMain(jsonEncode(snapshot.toJson()));
   }
 
-  // Interim szintetikus pálya a compute-hoz; a valódi Race-átadás a d4.
-  Race _interimRace() {
-    return Race.create(
-      id: 'interim',
-      name: 'Interim',
-      marks: const [
-        Mark(
-          sequence: 1,
-          name: 'Bóya 1',
-          position: Coordinate(latitude: 46.95, longitude: 18.1),
-        ),
-      ],
-    );
-  }
+  // Epoch-millis (UTC) → DateTime a parancs-időbélyegekhez (A13 wire-konvenció).
+  DateTime _atFromMillis(int millis) =>
+      DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
 }
 
 // Interim no-op telemetria: a valódi WAL-Drift logger a d5-ben.
