@@ -287,3 +287,48 @@ A 7-bg-d öt al-szeletre bomlik (egy logikai változás / commit):
 4. **d4** — cross-isolate `Race` átadás (A7) + aktív-bója továbblépés az engine-ben (A6).
 5. **d5** — valódi WAL-Drift telemetria-logger az izolátumban (A8).
 A push a szelet végén, zöld pre-flight / CI mellett.
+
+## d4 finomítás — cross-isolate Race, parancs-protokoll, lifecycle
+
+Az A6/A7 vázát a d4 konkretizálja (a (iii)-as lifecycle-döntéssel együtt).
+
+**A9 — Race/Mark codec helye és mechanikája.** `race_codec.dart` a
+`packages/data/lib/src/engine/`-ben (a `RaceSnapshot` mellett), top-level
+`raceToJson`/`raceFromJson` + `markToJson`/`markFromJson`, kézi JSON. A
+`shared` nem jöhet szóba (`Race` domain-entitás; `domain → shared` irány).
+Mechanika a `RaceSnapshot`-mintát követi: `DateTime` → epoch-millis int (UTC),
+enum → `.name`, `Coordinate` → `{lat, lon}`. A `fromJson` a teljes
+state-trojkát a direkt `Race(...)` ctor-ral építi (a `Race.create` mindig
+`notStarted`). A `Mark.roundedAt` is szerializálva (teljesség + post-race).
+
+**A10 — Init vs parancs-protokoll; a két Race-tulajdonos.** Belépéskor egyetlen
+teljes `Race` init megy át (`sendDataToTask` → `onReceiveData`). Futás közben
+NEM teljes-Race-replace: az index az engine-é (rounding), a status a UI-é
+(Start/Finish). A UI minimális parancsot küld (`{kind:'start'|'finish', at}`),
+az engine a saját `_race`-én a domain-factory-val (`start`/`finish`)
+alkalmazza. **Elvetett:** teljes-Race-replace index-merge-dzsel — a `finished`
+állapot `index==len` invariáns-sértése miatt nem tartható.
+
+**A11 — Mark-rounding az engine-ben (hely).** A `MarkRoundingDetector` az
+engine fieldje; az `_onTick`-ben a prediction ELŐTT fut, csak `active` státusz
+alatt; `true`-ra `roundCurrentMark` + `reset`. DB-visszaírás nélkül (ADR 0016
+D6 diszjunkt táblák; ADR 0017 D5 post-race re-derive).
+
+**A12 — Engine-lifecycle (iii) + boot-restore-mentesség.** Belépés indít,
+explicit „Leállítás” állít, a cél nem állít (`stopWithTask=false`). Külön
+`raceEngineSessionProvider` (explicit bool session-flag) vezérel, NEM az
+`activeRaceProvider` nem-null-sága — különben az `activeRacePersistenceProvider`
+boot-restore-ja akaratlanul indítaná az engine-t. A `raceEngineLifecycleProvider`
+(app-gyökér eager-watch) a flagre `host.start/stop`-ol; a `ServiceRequestFailure`
+a státuszsorba. **Elvetett:** az `activeRace` nem-null-ságára kötött lifecycle
+(boot-restore-konfliktus); a screen-tied lifecycle (ADR 0016 D5 ellen).
+
+### Következmény (d4 szelet-bontás)
+- **d4.1** `docs` — ez a szekció + ARCHITECTURE §8.9 + §8.4 pointer.
+- **d4.2** `feat(data)` — `race_codec.dart` + round-trip teszt.
+- **d4.3** `feat(data)` — mark-rounding az engine-be (`MarkRoundingDetector`
+  field, `_onTick`) + engine-teszt.
+- **d4.4** `feat(phone)` — `RaceEngineHost.start(Race)` + `onReceiveData` (init
+  + parancs) + `raceEngineSessionProvider` + `raceEngineLifecycleProvider` +
+  „Leállítás” akció + `_interimRace` ki + tesztek.
+- **d4.5** — mozgó replay-log + on-device verifikáció.

@@ -1907,6 +1907,10 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
 
 ### 8.4 Mark rounding figyelő
 
+> **d4 óta:** ez a UI-oldali figyelő kivezetve — az aktív-bója léptetés
+> az engine-be költözött (§8.9, ADR 0017 A6/A11). Az alábbi leírás a Fázis 5
+> állapotot dokumentálja.
+
 A `LiveRaceScreen`-hez kötött figyelő, ami a `boatState` pozíció-frissítéseit
 hallgatja, és a domain §7.7 `MarkRoundingDetector`-rel léptet a következő
 bójára. autoDispose `Provider<void>`, a screen eager-watch-olja — a screen a
@@ -2551,6 +2555,62 @@ wiring a cross-isolate Race-szel a d4-ben landol. A UI-oldali
 `snapshot.prediction.mark`-ból jön, az auto-továbblépés logikája az
 engine-be költözik (A6, d4). Seed az első snapshotig: üres `BoatState`,
 `null` wind/prediction/trend, `Connecting()`, üres warning-lista.
+
+---
+
+### 8.9 d4: cross-isolate Race, mark-rounding az engine-ben, lifecycle
+
+A d4 a §8.8 read-only tükröt egészíti ki: az engine valódi `Race`-t kap, és
+az aktív-bója léptetés is az engine-be kerül. A UI-oldali compute után most a
+verseny-állapot kezelése is oda költözik.
+
+**Cross-isolate Race.** A `Race`/`Mark` JSON-szerializáció a `data` izolátum-
+belépőjén él (`race_codec.dart`), mert a `Race` domain-entitás és a `shared`
+nem függhet a `domain`-tól (A7). Az „Élő nézet” megnyitásakor a teljes `Race`
+szerializálva megy az engine-be a plugin-csatornán (`sendDataToTask` →
+`onReceiveData`), és az engine ezzel indul a szintetikus `_interimRace`
+helyett. A `fromJson` a teljes state-trojkát (`status`, `activeMarkIndex`,
+`startedAt`, `finishedAt`) a direkt `Race(...)` ctor-ral építi vissza (nem
+`Race.create`, ami mindig `notStarted`).
+
+**Két Race-tulajdonos, parancs-protokoll.** A session alatt két fél tart
+Race-állapotot, ortogonális felelősséggel: a UI a `status`-t (a `race_detail`
+Start/Finish gombja → `activeRaceProvider`, DB-perzisztencia, időbélyegek a
+Fázis 8-hoz), az engine az `activeMarkIndex`-et (a mark-rounding lépteti). A
+teljes-Race-replace futás közben tilos: visszaállítaná az engine által
+léptetett indexet, vagy sértené a `Race` invariánst
+(`finished → index == marks.length`). Ezért futás közben a UI csak minimális
+parancs-üzenetet küld (`{kind: 'start'|'finish', at}`); az engine ezt a saját
+`_race`-én alkalmazza a domain-factory-val (`_race.start(at:)` /
+`_race.finish(at:)`), megtartva a saját indexét. Következmény: a `race_detail`
+bója-listája élőben a 0. bóját mutatja aktívnak (a UI-Race indexét senki nem
+lépteti), míg a `LiveRaceScreen` a `snapshot.prediction.mark`-ból helyesen
+lép. v1-ben elfogadott (post-race re-derive, ADR 0017 D5).
+
+**Mark-rounding az engine-ben.** A `MarkRoundingDetector` (§7.7, 50 m küszöb
++ 5 m hiszterézis) az engine fieldje. Az `_onTick`-ben, a prediction-számítás
+ELŐTT fut: `active` státusz + nem-null pozíció + aktív bója esetén
+`detector.tick(...)`; `true`-ra `_race = _race.roundCurrentMark(at: now)` +
+`detector.reset()`, így a snapshot ugyanabban a tickben már az új
+`prediction.mark`-ot viszi. Az engine NEM ír a `races` táblába (ADR 0016 D6:
+diszjunkt táblák). Az 1 Hz tick a régi pozíció-eseményvezérelt monitor helyett
+bőven elég felbontás a 50 m-es küszöbhöz (max ~10 m/tick).
+
+**Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
+belépéskor indul, és explicit „Leállítás”-ig fut — a screenről való kilépés,
+a háttérbe tétel és a cél (`finished`) sem állítja le (`stopWithTask=false`,
+ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
+`activeRacePersistenceProvider` boot-kor visszatölti, ami akaratlan
+boot-restore-t okozna. Ezért külön explicit session-állapot vezérli: egy
+`raceEngineSessionProvider` flag (az „Élő nézet” megnyitása `true`-ra, egy
+„Leállítás” akció `false`-ra állítja). Egy `raceEngineLifecycleProvider`
+(`Provider<void>`, app-gyökéren eager-watch a `telemetryLoggerProvider`
+mintájára) ezt a flaget listen-eli: `true` → `host.start()` + a Race init-
+küldés; `false` → `host.stop()`. A restore az `activeRace`-t visszatölti, de a
+session-flag `false` marad → boot-kor nincs auto-indítás. A
+`ServiceRequestResult` hibáját (`ServiceRequestFailure`) egy provider-
+állapotba vezetjük, amit a `LiveRaceScreen` státuszsora jelez (a vízen nincs
+debug).
 
 ---
 
