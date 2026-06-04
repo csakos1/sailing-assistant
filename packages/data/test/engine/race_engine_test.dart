@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show pi;
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
@@ -106,6 +107,73 @@ void main() {
 
     expect(source.disconnectCalled, isTrue);
     expect(logger.disposed, isTrue);
+  });
+
+  group('mark-rounding', () {
+    const metersPerDegLat = 6371000 * pi / 180;
+    const mark1 = Mark(
+      sequence: 1,
+      name: 'Bóya 1',
+      position: Coordinate(latitude: 46.9, longitude: 18),
+    );
+    const mark2 = Mark(
+      sequence: 2,
+      name: 'Bóya 2',
+      position: Coordinate(latitude: 46.8, longitude: 17.9),
+    );
+    final activeRace = Race.create(
+      id: 'rr',
+      name: 'Rounding',
+      marks: const [mark1, mark2],
+    ).start(at: eventTime);
+
+    // A mark1-től északra `metersNorth` méterre lévő pozíció (meridián
+    // mentén a Haversine pontosan R·Δlat).
+    Coordinate boatNorthOfMark1(double metersNorth) => Coordinate(
+      latitude: mark1.position.latitude + metersNorth / metersPerDegLat,
+      longitude: mark1.position.longitude,
+    );
+
+    Future<void> emitAtThenTick(double metersNorth, DateTime at) async {
+      source.emitEvent(PositionEvent(boatNorthOfMark1(metersNorth), eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('a hajó körözi a bóját, a következő bójára lép', () async {
+      // ARRANGE
+      await engine.start(activeRace);
+
+      // ACT — közelít a küszöbön belülre, majd a hiszterézist meghaladva
+      // távolodik.
+      await emitAtThenTick(40, tickTime);
+      await emitAtThenTick(10, tickTime.add(const Duration(seconds: 1)));
+      await emitAtThenTick(20, tickTime.add(const Duration(seconds: 2)));
+
+      // ASSERT — az első két tick az 1. bóját célozza, a harmadik a 2.-at.
+      expect(snapshots[0].prediction?.mark, mark1);
+      expect(snapshots[1].prediction?.mark, mark1);
+      expect(snapshots[2].prediction?.mark, mark2);
+    });
+
+    test('notStarted race alatt nem lép', () async {
+      // ARRANGE — notStarted, ugyanazok a bóják.
+      final notStarted = Race.create(
+        id: 'rr',
+        name: 'Rounding',
+        marks: const [mark1, mark2],
+      );
+      await engine.start(notStarted);
+
+      // ACT — ugyanaz a közelít-távolodik profil.
+      await emitAtThenTick(40, tickTime);
+      await emitAtThenTick(10, tickTime.add(const Duration(seconds: 1)));
+      await emitAtThenTick(20, tickTime.add(const Duration(seconds: 2)));
+
+      // ASSERT — végig az 1. bóját célozza (notStarted, marks[0]).
+      expect(snapshots.last.prediction?.mark, mark1);
+    });
   });
 }
 

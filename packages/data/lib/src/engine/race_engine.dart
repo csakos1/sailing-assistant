@@ -55,6 +55,11 @@ class RaceEngine {
   int _eventCount = 0;
   Race? _race;
 
+  // A mark-rounding detektor (stateful, egy aktív bójához egy minimum-
+  // profil). Megkerüléskor reseteljük; a léptetést a _maybeRoundMark
+  // végzi (ADR 0017 A11).
+  final MarkRoundingDetector _markRoundingDetector = MarkRoundingDetector();
+
   StreamSubscription<DomainEvent>? _eventSub;
   StreamSubscription<String>? _rawSub;
   StreamSubscription<DateTime>? _tickSub;
@@ -138,9 +143,14 @@ class RaceEngine {
     if (race == null || _snapshots.isClosed) {
       return;
     }
+    // A predikció előtt léptetjük az aktív bóját, ha a hajó körözte (csak
+    // active alatt, ADR 0017 A11) — a léptetett race-re prediktálunk.
+    final steppedRace = _maybeRoundMark(race, tick);
+    _race = steppedRace;
+
     final trend = _trend(history: _windHistory, window: _windWindow, now: tick);
     final prediction = _predict(
-      activeMark: race.activeMarkOrNull,
+      activeMark: steppedRace.activeMarkOrNull,
       boatState: _boatState,
       trend: trend,
       now: tick,
@@ -156,5 +166,25 @@ class RaceEngine {
         windShiftTrend: trend,
       ),
     );
+  }
+
+  // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active
+  // státusz + ismert pozíció + aktív bója esetén léptet; megkerüléskor a
+  // következő bójára vált és reseteli a detektort. DB-visszaírás nincs
+  // (ADR 0016 D6) — a progressziót a telemetria + snapshot rögzíti.
+  Race _maybeRoundMark(Race race, DateTime tick) {
+    if (race.status != RaceStatus.active) {
+      return race;
+    }
+    final position = _boatState.position;
+    final activeMark = race.activeMarkOrNull;
+    if (position == null || activeMark == null) {
+      return race;
+    }
+    if (_markRoundingDetector.tick(position, activeMark)) {
+      _markRoundingDetector.reset();
+      return race.roundCurrentMark(at: tick);
+    }
+    return race;
   }
 }
