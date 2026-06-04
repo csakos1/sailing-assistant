@@ -19,7 +19,6 @@ import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
-import 'package:phone/providers/mark_rounding_monitor_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/true_time_provider.dart';
@@ -82,9 +81,6 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     // Critical warningnál a grid 40%-ra tompul (nem rejtve) — a fókusz a
     // banneren maradjon (ADR 0014 D6).
     final gridOpacity = hasCriticalWarning ? 0.4 : 1.0;
-
-    // Az aktív bója auto-továbblépése (§8.4) — a screen mountjához kötve.
-    ref.watch(markRoundingMonitorProvider);
 
     if (race == null) {
       return Scaffold(

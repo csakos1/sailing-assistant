@@ -1,17 +1,17 @@
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/clock_provider.dart';
-import 'package:phone/providers/nmea_stream_provider.dart';
+import 'package:phone/providers/race_snapshot_provider.dart';
 
-/// A hajó pillanatnyi állapota az NMEA esemény-folyamból foldolva
-/// (ADR 0010 D1, ARCHITECTURE.md 8.6).
+/// A hajó pillanatnyi állapota az engine-snapshotból tükrözve
+/// (ADR 0017 addendum A4, ARCHITECTURE.md 8.8).
 ///
-/// Seedelt `AutoDisposeNotifier` a `connectionStatusProvider` (8.3)
-/// mintájára: a `build()` üres [BoatState]-tel seedel az app-órából, a
-/// [NmeaStream.events]-re iratkozik, és minden eseményt a domain
-/// `BoatStateReducer`-e (ADR 0017 D2) foldol be. A `lastUpdate` mindig a
-/// `clockProvider`-óra (receipt-idő); az [InstrumentTimeEvent]
-/// GPS-instantja **csak** az `instrumentTimeUtc`-be megy.
+/// A 7-bg-d előtt a `nmeaStreamProvider.events`-et foldolta a domain
+/// `BoatStateReducer`-rel; azóta a fold az engine háttér-izolátumában fut, és
+/// ez a provider a `raceSnapshotProvider` `boatState` mezőjét tükrözi
+/// (read-only). Még meg nem érkezett snapshot esetén üres [BoatState]-tel
+/// seedel az app-órából (`clockProvider`). Seedelt Notifier marad a §8.6-
+/// idióma szerint; a `build()` már nem foldol, hanem a snapshotból derivál.
 final boatStateProvider =
     AutoDisposeNotifierProvider<BoatStateNotifier, BoatState>(
       BoatStateNotifier.new,
@@ -22,11 +22,7 @@ class BoatStateNotifier extends AutoDisposeNotifier<BoatState> {
   @override
   BoatState build() {
     final clock = ref.watch(clockProvider);
-    final stream = ref.watch(nmeaStreamProvider);
-    final sub = stream.events.listen((event) {
-      state = const BoatStateReducer()(state, event, clock());
-    });
-    ref.onDispose(sub.cancel);
-    return BoatState(lastUpdate: clock());
+    return ref.watch(raceSnapshotProvider)?.boatState ??
+        BoatState(lastUpdate: clock());
   }
 }

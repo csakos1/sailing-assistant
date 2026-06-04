@@ -1,91 +1,62 @@
-import 'dart:async';
-
+import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/connection_status_provider.dart';
-import 'package:phone/providers/nmea_stream_provider.dart';
+import 'package:phone/providers/race_snapshot_provider.dart';
 
 void main() {
+  final clock = DateTime.utc(2026, 5, 28, 10);
+
+  RaceSnapshot snapshotWith(ConnectionStatus status) => RaceSnapshot(
+    eventCount: 1,
+    boatState: BoatState(lastUpdate: clock),
+    connectionStatus: status,
+    tickTime: clock,
+  );
+
+  ProviderContainer makeContainer(RaceSnapshot? snapshot) {
+    final container = ProviderContainer(
+      overrides: [
+        raceSnapshotProvider.overrideWith(() => _FixedSnapshot(snapshot)),
+      ],
+    );
+    addTearDown(container.dispose);
+    return container;
+  }
+
   group('connectionStatusProvider', () {
-    test('a kezdőértéket szinkron a currentStatus-ból seedeli', () {
-      final fake = _FakeNmeaStream(initial: const Connecting());
-      final container = ProviderContainer(
-        overrides: [nmeaStreamProvider.overrideWithValue(fake)],
+    test('nincs snapshot → Connecting (várjuk az első pillanatképet)', () {
+      expect(
+        makeContainer(null).read(connectionStatusProvider),
+        const Connecting(),
       );
-      addTearDown(container.dispose);
-
-      // A broadcast statusChanges NEM replay-eli az utolsót — ezért a
-      // notifier szinkron a currentStatus-ból kell vegye a seedet, hogy a
-      // badge azonnal helyes legyen (itt: Connecting), ne AsyncLoading-
-      // villogás (ADR 0006).
-      expect(container.read(connectionStatusProvider), const Connecting());
     });
 
-    test('a statusChanges eseményekre frissíti a state-et', () async {
-      final fake = _FakeNmeaStream(initial: const Connecting());
-      final container = ProviderContainer(
-        overrides: [nmeaStreamProvider.overrideWithValue(fake)],
+    test('snapshot → a connectionStatus-t tükrözi', () {
+      expect(
+        makeContainer(
+          snapshotWith(const Connected()),
+        ).read(connectionStatusProvider),
+        const Connected(),
       );
-      addTearDown(container.dispose);
-
-      // Aktív Riverpod-listener tartja életben az autoDispose providert,
-      // hogy a build()-ben regisztrált statusChanges-feliratkozás ne haljon
-      // meg — különben a teszt csak a rebuild-szeed értékét validálná, nem
-      // azt, hogy a listener tényleg frissít.
-      final sub = container.listen(connectionStatusProvider, (_, _) {});
-      addTearDown(sub.close);
-
-      fake.pushStatus(const Connected());
-      await pumpEventQueue();
-
-      expect(sub.read(), const Connected());
     });
 
-    test('a ConnectionError üzenetet a state-en megőrzi', () async {
-      final fake = _FakeNmeaStream(initial: const Connecting());
-      final container = ProviderContainer(
-        overrides: [nmeaStreamProvider.overrideWithValue(fake)],
-      );
-      addTearDown(container.dispose);
-
-      final sub = container.listen(connectionStatusProvider, (_, _) {});
-      addTearDown(sub.close);
-
-      fake.pushStatus(const ConnectionError('Kapcsolat megszakadt'));
-      await pumpEventQueue();
-
-      final state = sub.read();
+    test('a ConnectionError üzenetet megőrzi', () {
+      final state = makeContainer(
+        snapshotWith(const ConnectionError('Kapcsolat megszakadt')),
+      ).read(connectionStatusProvider);
       expect(state, isA<ConnectionError>());
       expect((state as ConnectionError).message, 'Kapcsolat megszakadt');
     });
   });
 }
 
-class _FakeNmeaStream implements NmeaStream {
-  _FakeNmeaStream({required ConnectionStatus initial}) : _current = initial;
+class _FixedSnapshot extends RaceSnapshotNotifier {
+  _FixedSnapshot(this._snapshot);
 
-  ConnectionStatus _current;
-  final StreamController<ConnectionStatus> _statusChanges =
-      StreamController<ConnectionStatus>.broadcast();
-
-  void pushStatus(ConnectionStatus status) {
-    _current = status;
-    _statusChanges.add(status);
-  }
+  final RaceSnapshot? _snapshot;
 
   @override
-  Stream<DomainEvent> get events => const Stream<DomainEvent>.empty();
-
-  @override
-  Stream<ConnectionStatus> get statusChanges => _statusChanges.stream;
-
-  @override
-  ConnectionStatus get currentStatus => _current;
-
-  @override
-  Future<void> connect() async {}
-
-  @override
-  Future<void> disconnect() async {}
+  RaceSnapshot? build() => _snapshot;
 }

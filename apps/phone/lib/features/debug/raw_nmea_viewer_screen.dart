@@ -2,7 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/l10n/app_localizations.dart';
-import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/raw_nmea_connection_status_provider.dart';
 import 'package:phone/providers/raw_nmea_lines_provider.dart';
 
 /// A Fázis 3 debug képernyő: a TCP kapcsolat-állapotot és a beérkező nyers
@@ -18,7 +18,7 @@ class RawNmeaViewerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final status = ref.watch(connectionStatusProvider);
+    final status = ref.watch(rawNmeaConnectionStatusProvider);
     final lines = ref.watch(rawNmeaLinesProvider);
 
     return Scaffold(

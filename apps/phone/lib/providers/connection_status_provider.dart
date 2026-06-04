@@ -1,14 +1,16 @@
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/providers/nmea_stream_provider.dart';
+import 'package:phone/providers/race_snapshot_provider.dart';
 
-/// A kapcsolat-állapot Riverpod-providere a UI connection-badge-hez és a
-/// warning-rendszerhez (§11.2, Fázis 6).
+/// A kapcsolat-állapot az engine-snapshotból tükrözve
+/// (ADR 0017 addendum A4, ARCHITECTURE.md 8.8).
 ///
-/// Seedelt `AutoDisposeNotifierProvider`: a `build()` SZINKRON a kliens
-/// `currentStatus`-ából veszi a kezdőértéket (a `statusChanges` broadcast NEM
-/// replay-eli az utolsót), majd a változásokra iratkozik — így a badge
-/// azonnal helyes értéket mutat, nincs `AsyncLoading`-villogás (ADR 0006).
+/// A 7-bg-d előtt a `nmeaStreamProvider.statusChanges`-re iratkozott; azóta az
+/// engine birtokolja a kapcsolatot, és ez a provider a `raceSnapshotProvider`
+/// `connectionStatus` mezőjét tükrözi. Még meg nem érkezett snapshot esetén
+/// `Connecting()` (várjuk az engine első pillanatképét); a warning-suppression
+/// ezt nem-`Connected`-ként kezeli (ADR 0014), így az első snapshotig a
+/// gateway-disconnected jelzés látszik, ami az első pillanatképpel feloldódik.
 final connectionStatusProvider =
     AutoDisposeNotifierProvider<ConnectionStatusNotifier, ConnectionStatus>(
       ConnectionStatusNotifier.new,
@@ -17,10 +19,6 @@ final connectionStatusProvider =
 /// A [connectionStatusProvider] notifier-implementációja.
 class ConnectionStatusNotifier extends AutoDisposeNotifier<ConnectionStatus> {
   @override
-  ConnectionStatus build() {
-    final stream = ref.watch(nmeaStreamProvider);
-    final sub = stream.statusChanges.listen((status) => state = status);
-    ref.onDispose(sub.cancel);
-    return stream.currentStatus;
-  }
+  ConnectionStatus build() =>
+      ref.watch(raceSnapshotProvider)?.connectionStatus ?? const Connecting();
 }
