@@ -22,6 +22,7 @@ class RaceSnapshot {
     required this.boatState,
     required this.connectionStatus,
     required this.tickTime,
+    this.raceStatus = RaceStatus.notStarted,
     this.wind,
     this.prediction,
     this.windShiftTrend,
@@ -39,6 +40,7 @@ class RaceSnapshot {
         json['connectionStatus'] as Map<String, dynamic>,
       ),
       tickTime: _dateTime(json['tickTime'] as num),
+      raceStatus: _raceStatusFromName(json['raceStatus'] as String?),
       wind: _mapOrNull(
         json['wind'] as Map<String, dynamic>?,
         _windDataFromJson,
@@ -63,6 +65,9 @@ class RaceSnapshot {
   /// A pillanatnyi kapcsolat-állapot (status-bar + warning-suppression).
   final ConnectionStatus connectionStatus;
 
+  /// A verseny állapota a tick pillanatában (a warning-gatinghez, A14).
+  final RaceStatus raceStatus;
+
   /// A legfrissebb szél-snapshot, vagy `null`, ha még nem érkezett.
   final WindData? wind;
 
@@ -85,6 +90,7 @@ class RaceSnapshot {
       'eventCount': eventCount,
       'boatState': _boatStateToJson(boatState),
       'connectionStatus': _connectionStatusToJson(connectionStatus),
+      'raceStatus': raceStatus.name,
       'tickTime': tickTime.millisecondsSinceEpoch,
       'wind': _mapOrNull(wind, _windDataToJson),
       'prediction': _mapOrNull(prediction, _markPredictionToJson),
@@ -286,6 +292,12 @@ ConnectionStatus _connectionStatusFromJson(Map<String, dynamic> m) =>
     };
 
 // --- Enum-név dekódolók (defenzív default) ---
+
+RaceStatus _raceStatusFromName(String? name) => switch (name) {
+  'active' => RaceStatus.active,
+  'finished' => RaceStatus.finished,
+  _ => RaceStatus.notStarted,
+};
 
 EtaSource _etaSourceFromName(String name) => switch (name) {
   'sog' => EtaSource.sog,

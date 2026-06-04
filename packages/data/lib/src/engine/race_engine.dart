@@ -186,6 +186,7 @@ class RaceEngine {
         eventCount: _eventCount,
         boatState: _boatState,
         connectionStatus: _nmeaStream.currentStatus,
+        raceStatus: steppedRace.status,
         tickTime: tick,
         wind: _wind,
         prediction: prediction,

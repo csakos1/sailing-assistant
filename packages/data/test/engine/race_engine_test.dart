@@ -62,6 +62,7 @@ void main() {
     expect(snap.eventCount, 1);
     expect(snap.boatState.position, boatPosition);
     expect(snap.tickTime, tickTime);
+    expect(snap.raceStatus, RaceStatus.notStarted);
     // Aktív bója + pozíció van → a prediction nem null, az aktív bójára szól.
     expect(snap.prediction?.mark, race.marks.first);
     expect(snap.prediction?.distanceToMark, isNotNull);

@@ -40,6 +40,7 @@ void main() {
         instrumentTimeUtc: instrumentTime,
       ),
       connectionStatus: const Connected(),
+      raceStatus: RaceStatus.active,
       tickTime: tickTime,
       wind: WindData(
         apparentAngle: const Angle(degrees: 35),
@@ -86,6 +87,7 @@ void main() {
       expect(restored.eventCount, original.eventCount);
       expect(restored.boatState, original.boatState);
       expect(restored.connectionStatus, isA<Connected>());
+      expect(restored.raceStatus, original.raceStatus);
       expect(restored.wind, original.wind);
       expect(restored.prediction, original.prediction);
       expect(restored.windShiftTrend, original.windShiftTrend);
