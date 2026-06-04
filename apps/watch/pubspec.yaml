@@ -12,8 +12,11 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.5.0
   shared:
     path: ../../packages/shared
+  wearable_bridge:
+    path: ../../packages/wearable_bridge
 
 dev_dependencies:
   flutter_test:
