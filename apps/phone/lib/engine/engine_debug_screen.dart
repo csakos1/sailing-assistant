@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:data/data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/engine/engine_heartbeat.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 
-/// Debug-képernyő a háttér-engine (7-bg-b) on-device verifikációjához.
+/// Debug-képernyő a háttér-engine on-device verifikációjához.
 ///
 /// Indítja/leállítja a foreground service-t, és kiírja a legutóbb fogadott
-/// életjelet. A zárolt képernyős bizonyíték az értesítés (a Pulzus-szám ott is
-/// nő); ez a readout csak előtérben frissül, mert a UI-izolátum háttérben pauzál.
+/// snapshot esemény-számát. A zárolt képernyős bizonyíték az értesítés (a szám
+/// ott is nő); ez a readout csak előtérben frissül, mert a UI-izolátum háttérben
+/// pauzál.
 class EngineDebugScreen extends ConsumerStatefulWidget {
   /// Létrehozza a debug-képernyőt.
   const EngineDebugScreen({super.key});
@@ -19,18 +20,18 @@ class EngineDebugScreen extends ConsumerStatefulWidget {
 }
 
 class _EngineDebugScreenState extends ConsumerState<EngineDebugScreen> {
-  StreamSubscription<EngineHeartbeat>? _subscription;
-  EngineHeartbeat? _lastHeartbeat;
+  StreamSubscription<RaceSnapshot>? _subscription;
+  RaceSnapshot? _lastSnapshot;
 
   @override
   void initState() {
     super.initState();
-    _subscription = ref.read(raceEngineHostProvider).heartbeats.listen((
-      heartbeat,
+    _subscription = ref.read(raceEngineHostProvider).snapshots.listen((
+      snapshot,
     ) {
       if (mounted) {
         setState(() {
-          _lastHeartbeat = heartbeat;
+          _lastSnapshot = snapshot;
         });
       }
     });
@@ -45,18 +46,18 @@ class _EngineDebugScreenState extends ConsumerState<EngineDebugScreen> {
   @override
   Widget build(BuildContext context) {
     final host = ref.watch(raceEngineHostProvider);
-    final last = _lastHeartbeat;
+    final last = _lastSnapshot;
     return Scaffold(
-      appBar: AppBar(title: const Text('Engine debug (7-bg-b)')),
+      appBar: AppBar(title: const Text('Engine debug')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               last == null
-                  ? 'Nincs még életjel'
-                  : 'Pulzus #${last.tickCount}\n'
-                        '${last.timestamp.toIso8601String()}',
+                  ? 'Nincs még snapshot'
+                  : 'Események #${last.eventCount}\n'
+                        '${last.tickTime.toIso8601String()}',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

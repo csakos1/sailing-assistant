@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:data/src/engine/race_engine_snapshot.dart';
+import 'package:data/src/engine/race_snapshot.dart';
 import 'package:data/src/nmea/client/raw_nmea_line_source.dart';
 import 'package:domain/domain.dart';
 
@@ -10,7 +10,7 @@ import 'package:domain/domain.dart';
 /// domain-eseményeket a [BoatStateReducer] / [WindHistoryReducer]
 /// segítségével élő állapottá foldol, a `tickSource` (default 1 Hz) minden
 /// ütésénél újraszámolja a wind-shift trendet és a [MarkPrediction]-t, és
-/// [RaceEngineSnapshot]-ot emittál. A nyers mondatokat — ha a forrás egyúttal
+/// [RaceSnapshot]-ot emittál. A nyers mondatokat — ha a forrás egyúttal
 /// [RawNmeaLineSource] — az injektált [TelemetryLogger]-nek adja át.
 ///
 /// A `domain` + `data` rétegre épül, a hoszt (foreground service / izolátum)
@@ -45,8 +45,8 @@ class RaceEngine {
   static const _trend = CalculateWindShiftTrend();
   static const _predict = ComputeMarkPrediction();
 
-  final StreamController<RaceEngineSnapshot> _snapshots =
-      StreamController<RaceEngineSnapshot>.broadcast();
+  final StreamController<RaceSnapshot> _snapshots =
+      StreamController<RaceSnapshot>.broadcast();
 
   // Élő, foldolt állapot — egy-tulajdonos: csak az engine írja.
   late BoatState _boatState;
@@ -60,7 +60,7 @@ class RaceEngine {
   StreamSubscription<DateTime>? _tickSub;
 
   /// A tick-enkénti pillanatképek folyama (a hoszt / UI-tükör fogyasztja).
-  Stream<RaceEngineSnapshot> get snapshots => _snapshots.stream;
+  Stream<RaceSnapshot> get snapshots => _snapshots.stream;
 
   /// Elindítja az adatfolyamot a `race`-hez: feliratkozik az eseményekre
   /// (fold) és — ha a forrás [RawNmeaLineSource] — a nyers sorokra
@@ -146,12 +146,14 @@ class RaceEngine {
       now: tick,
     );
     _snapshots.add(
-      RaceEngineSnapshot(
+      RaceSnapshot(
         eventCount: _eventCount,
         boatState: _boatState,
+        connectionStatus: _nmeaStream.currentStatus,
+        tickTime: tick,
         wind: _wind,
         prediction: prediction,
-        tickTime: tick,
+        windShiftTrend: trend,
       ),
     );
   }

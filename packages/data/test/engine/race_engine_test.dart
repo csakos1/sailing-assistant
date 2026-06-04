@@ -21,7 +21,7 @@ void main() {
   late _FakeTelemetryLogger logger;
   late StreamController<DateTime> tick;
   late RaceEngine engine;
-  late List<RaceEngineSnapshot> snapshots;
+  late List<RaceSnapshot> snapshots;
 
   setUp(() {
     source = _FakeNmeaSource();
