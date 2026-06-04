@@ -4,6 +4,7 @@ import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_persistence_provider.dart';
+import 'package:phone/providers/race_engine_lifecycle_provider.dart';
 import 'package:phone/providers/telemetry_logger_provider.dart';
 
 /// A Foretack app gyökér-widgetje.
@@ -29,7 +30,8 @@ class ForetackApp extends ConsumerWidget {
     // Eager watch: életre kelti a mellékhatás-providereket.
     ref
       ..watch(telemetryLoggerProvider)
-      ..watch(activeRacePersistenceProvider);
+      ..watch(activeRacePersistenceProvider)
+      ..watch(raceEngineLifecycleProvider);
 
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,

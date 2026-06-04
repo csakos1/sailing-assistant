@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/race_status_chip.dart';
 
@@ -39,6 +40,7 @@ class RaceDetailScreen extends ConsumerWidget {
   // start/finish-től (SRP): a start state-et vált, ez navigál.
   void _openLive(BuildContext context, WidgetRef ref, Race target) {
     ref.read(activeRaceProvider.notifier).activeRace = target;
+    ref.read(raceEngineSessionProvider.notifier).start();
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const LiveRaceScreen()),

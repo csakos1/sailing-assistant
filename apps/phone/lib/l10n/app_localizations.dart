@@ -148,6 +148,36 @@ abstract class AppLocalizations {
   /// **'ETA'**
   String get liveEta;
 
+  /// Tooltip: az élő követés leállítása (AppBar ikon).
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítás'**
+  String get liveStop;
+
+  /// A leállítás-megerősítő dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny leállítása'**
+  String get liveStopTitle;
+
+  /// A leállítás-megerősítő dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Biztosan leállítod az élő követést? A háttér-engine leáll.'**
+  String get liveStopMessage;
+
+  /// A leállítás-dialógus megszakító gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get liveStopCancel;
+
+  /// A leállítás-dialógus megerősítő gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítás'**
+  String get liveStopConfirm;
+
   /// ETA perc-egysége 60 perc felett (pl. 83 perc).
   ///
   /// In hu, this message translates to:

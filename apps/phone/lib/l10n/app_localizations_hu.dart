@@ -36,6 +36,22 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveEta => 'ETA';
 
   @override
+  String get liveStop => 'Leállítás';
+
+  @override
+  String get liveStopTitle => 'Verseny leállítása';
+
+  @override
+  String get liveStopMessage =>
+      'Biztosan leállítod az élő követést? A háttér-engine leáll.';
+
+  @override
+  String get liveStopCancel => 'Mégse';
+
+  @override
+  String get liveStopConfirm => 'Leállítás';
+
+  @override
   String get etaMinutesUnit => 'perc';
 
   @override

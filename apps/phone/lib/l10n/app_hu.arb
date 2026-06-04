@@ -37,6 +37,26 @@
   "@liveEta": {
     "description": "Cella-címke: becsült érkezés a bójához (ETA)."
   },
+  "liveStop": "Leállítás",
+  "@liveStop": {
+    "description": "Tooltip: az élő követés leállítása (AppBar ikon)."
+  },
+  "liveStopTitle": "Verseny leállítása",
+  "@liveStopTitle": {
+    "description": "A leállítás-megerősítő dialógus címe."
+  },
+  "liveStopMessage": "Biztosan leállítod az élő követést? A háttér-engine leáll.",
+  "@liveStopMessage": {
+    "description": "A leállítás-megerősítő dialógus szövege."
+  },
+  "liveStopCancel": "Mégse",
+  "@liveStopCancel": {
+    "description": "A leállítás-dialógus megszakító gombja."
+  },
+  "liveStopConfirm": "Leállítás",
+  "@liveStopConfirm": {
+    "description": "A leállítás-dialógus megerősítő gombja."
+  },
   "etaMinutesUnit": "perc",
   "@etaMinutesUnit": {
     "description": "ETA perc-egysége 60 perc felett (pl. 83 perc)."

@@ -19,6 +19,7 @@ import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/true_time_provider.dart';
@@ -64,6 +65,33 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     super.dispose();
   }
 
+  // A „Leállítás" akció: megerősítés után billenti a session-flaget
+  // false-ra (a lifecycle ettől állítja le a háttér-engine-t), majd
+  // visszanavigál.
+  Future<void> _confirmStop(BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.liveStopTitle),
+        content: Text(l10n.liveStopMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.liveStopCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.liveStopConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    ref.read(raceEngineSessionProvider.notifier).stop();
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -90,7 +118,16 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(race.name)),
+      appBar: AppBar(
+        title: Text(race.name),
+        actions: [
+          IconButton(
+            onPressed: () => unawaited(_confirmStop(context, l10n)),
+            icon: const Icon(Icons.stop_circle_outlined),
+            tooltip: l10n.liveStop,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
