@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:phone/engine/race_engine_host.dart';
 import 'package:phone/engine/race_engine_task_handler.dart';
 
@@ -43,9 +44,20 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     if (await FlutterForegroundTask.isRunningService) {
       await FlutterForegroundTask.stopService();
     }
+    // ADR 0017 A14: a service-izolátumbeli GNSS true-time-hoz FGS `location`
+    // típus kell; csak akkor vesszük fel, ha a futásidejű helyengedély megvan,
+    // különben az Android 14+ a service indítását SecurityExceptionnel dobná.
+    // Engedély nélkül connectedDevice-only → az engine fut, csak a GPS-idő
+    // marad jelöletlen (graceful degradáció).
+    final serviceTypes = <ForegroundServiceTypes>[
+      ForegroundServiceTypes.connectedDevice,
+    ];
+    if (await _hasLocationPermission()) {
+      serviceTypes.add(ForegroundServiceTypes.location);
+    }
     final result = await FlutterForegroundTask.startService(
       serviceId: 256,
-      serviceTypes: const [ForegroundServiceTypes.connectedDevice],
+      serviceTypes: serviceTypes,
       notificationTitle: 'Foretack — verseny aktív',
       notificationText: 'A háttér-engine indul…',
       callback: startCallback,
@@ -119,6 +131,17 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     if (permission != NotificationPermission.granted) {
       await FlutterForegroundTask.requestNotificationPermission();
     }
+  }
+
+  // Futásidejű helyengedély (whileInUse elég az FGS-hez); a dialógus a UI-
+  // izolátumból kérhető, mert a race-indításkor az Activity előtérben van.
+  Future<bool> _hasLocationPermission() async {
+    final initial = await Geolocator.checkPermission();
+    final permission = initial == LocationPermission.denied
+        ? await Geolocator.requestPermission()
+        : initial;
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
   }
 
   void _initService() {
