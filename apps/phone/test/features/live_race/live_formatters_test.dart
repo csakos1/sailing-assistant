@@ -3,15 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 
 void main() {
-  group('arrowSideFromSign', () {
-    test('positive -> right, negative -> left, zero/null -> none', () {
-      expect(arrowSideFromSign(32), ArrowSide.right);
-      expect(arrowSideFromSign(-47), ArrowSide.left);
-      expect(arrowSideFromSign(0), ArrowSide.none);
-      expect(arrowSideFromSign(null), ArrowSide.none);
-    });
-  });
-
   group('formatAngleMagnitude', () {
     test('renders magnitude without sign, rounded', () {
       expect(formatAngleMagnitude(const Angle(degrees: 32.4)), '32°');

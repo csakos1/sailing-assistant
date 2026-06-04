@@ -4,5 +4,6 @@
 /// data és application rétegek mind használhatnak.
 library;
 
+export 'src/live_formatters.dart';
 export 'src/result.dart';
 export 'src/watch_payload.dart';
