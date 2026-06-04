@@ -182,3 +182,108 @@ izolátum-liveness; (D6) Drift két-kapcsolat lock-mentesség.
 4. `feat(phone)` — `RaceEngineTaskHandler` bekötése a `RaceEngine`-be, interim snapshot (D9), a
    repeat-timer leváltása NMEA-hajtotta tickre.
 5. On-bench (replay) + on-device (Pixel, kijelző-off) verifikáció → push.
+
+## Addendum (7-bg-d) — snapshot-szerződés, provider-átszármaztatás, D5/D6 konkretizálás
+
+### Kontextus
+Az ADR 0017 D9 a teljes `RaceSnapshot`-ot a 7-bg-d-re halasztotta; a 7-bg-c az
+interim `RaceEngineSnapshot`-tal, `_NoopTelemetryLogger`-rel és szintetikus
+`Race`-szel zárt (on-device verifikálva, kijelző-off). A D5 (cross-isolate `Race`)
+és D6 (WAL-Drift telemetria) elvi szinten eldőlt, implementáció nélkül. Ez az
+addendum a 7-bg-d konkrét döntéseit rögzíti.
+
+### Döntés
+
+**A1 — Snapshot absztrakciós szint: domain-hű.** A `RaceSnapshot` (engine →
+telefon-UI tükör) a teljes domain-objektumokat szerializálja, nem lapított
+display-primitíveket. A telefon-UI a domain-objektumokat visszaépíti, így a
+presentation-réteg (`LiveRaceScreen` + widgetjei) érintetlen marad, és a
+value-object típusbiztonság megőrződik. A `WatchPayload` (ADR 0015) ettől
+függetlenül primitív transport marad az óra felé (az óra nem függ a `domain`-tól,
+ADR 0015 D6); a `RaceSnapshot` gazdagabb, és a `buildWatchPayload` ebből áll elő a
+7-bg-e-ben. Az elvetett alternatíva (display-primitív snapshot a telefonnak is) a
+presentation teljes átírását és a domain-típusok elvesztését jelentette volna.
+
+**A2 — Hely és szerializáció.** A `RaceSnapshot` a `packages/data`-ban él, a meglévő
+`RaceEngineSnapshot` mellett — **nem** a `shared`-ben. Indok: a domain-hű snapshot
+domain-objektumokat hordoz, a `data` pedig már függ a `domain`-tól; a `shared`-nek
+viszont nincs (és a `domain → shared` irány miatt nem is kaphat) `domain`-függést,
+különben körkörös lenne. A `phone` függ a `data`-tól → deszerializálni tud; az óra
+nem függ a `data`-tól, de nem is kell neki (ő a `WatchPayload`-ot kapja a
+`shared`-ből). Ez korrigálja az ADR 0016 D4 `packages/shared`-megjelölését a
+snapshotra. Plain class, **`Equatable` nélkül** — a `data` szándékosan nem függ az
+`equatable`-től (mint a `RaceEngineSnapshot`); a round-trip-teszt mezőnként
+ellenőriz, a nested domain-objektumok (`BoatState`/`WindData`/`MarkPrediction`) a
+saját `Equatable`-jükkel összevethetők. Kézzel írt `toJson`/`fromJson`, codegen
+nélkül. Mechanika a `WatchPayload`-mintát követve: `DateTime` →
+`millisecondsSinceEpoch` int (UTC-instant), `num`-on át dekódolva; `Duration` → int
+(ms); enumok (`EtaSource`, `WindShiftConfidence`, `BearingReference`) → `.name`
+String, hiányzó/ismeretlen értékre defenzív default; `ConnectionStatus` (sealed:
+`Connected`/`Connecting`/`Disconnected`/`ConnectionError(message)`) →
+diszkriminátor-tag + opcionális `message`; az opcionális mezők explicit `null`-ként
+mennek és jönnek. A nested value-objectek (`Coordinate`, `Bearing`, `Angle`,
+`Distance`, `Speed`, `Mark`) saját map-reprezentációt kapnak, és a validáció nélküli
+default const ctor-on át épülnek vissza (a forrás már validált — az engine adta).
+
+**A3 — Szerződés (mezők).**
+
+| Mező | Típus | Megjegyzés |
+|---|---|---|
+| `eventCount` | `int` | foldolt domain-események száma (liveness/debug; az `EngineHeartbeat` örököse) |
+| `boatState` | `BoatState` | a grid + status-bar forrása (teljes, domain-hű) |
+| `wind` | `WindData?` | „TWA most" (`trueAngleWater`); `null`, ha még nincs |
+| `prediction` | `MarkPrediction?` | hero-értékek; az élő aktív bója is innen (`prediction.mark`) |
+| `connectionStatus` | `ConnectionStatus` | status-bar + warning-suppression (tag-elt) |
+| `windShiftTrend` | `WindShiftTrend?` | a warning-jelenléthez (lásd A5) |
+| `tickTime` | `DateTime` | a snapshot ideje (app-óra) |
+
+A `Race` nem kel át a snapshotban — a verseny statikus metaadata (név + teljes
+bója-lista) a UI `activeRaceProvider`-ében marad (session-indításkor ismert).
+
+**A4 — Provider-átszármaztatás (read-only tükör).** A Fázis 3–5 UI-oldali NMEA-fold
+megszűnik: az engine az egyedüli NMEA-fogyasztó (ADR 0016 D1). A state-providerek a
+snapshot-streamre iratkoznak: `boatStateProvider` → `snapshot.boatState`,
+`windDataProvider` → `snapshot.wind`, `markPredictionProvider` →
+`snapshot.prediction`, `connectionStatusProvider` → `snapshot.connectionStatus`. A
+`LiveStatusBar` aktív-bója neve a `prediction.mark.name`-ből jön. A snapshot-stream
+csak aktív session alatt folyik (az engine ekkor fut).
+
+**A5 — Warningok (UI-oldal).** Az `EvaluateWarnings` use case változatlanul a
+UI-oldalon fut, a snapshot inputjaiból (`connectionStatus`, `boatState`,
+`windShiftTrend`) + a `raceStatus`-ból (`activeRaceProvider`) + a megmaradó
+UI-oldali `trueTime`-ból. Ezért a snapshot a teljes `WindShiftTrend?`-et viszi (nem
+`bool`-jelenlétet), hogy az `EvaluateWarnings` szignatúrája és tesztjei érintetlenek
+maradjanak (OCP). Megjegyzés: a 7-bg-e (óra-push az engine-ből) a warningokat és a
+`trueTime`/GNSS-anchort az engine-be húzza (a service-kontextusban kell a
+critical-warning + GPS-idő az óra payloadjához); a snapshot ezt nem zárja ki.
+
+**A6 — Aktív-bója továbblépés.** A mark-rounding monitor logikája az engine-be
+költözik (a 7-bg-c reducer-kiemelés mintájára: tiszta domain-logika, v1-ben az
+engine az egyetlen hívó), hogy a predikció a helyes aktív bójára szóljon, ahogy a
+hajó körözi a bójákat. Az engine a saját `Race`-példányán lépteti az aktív bóját; a
+snapshot az élő aktív bóját a `prediction.mark`-ban viszi. A DB-visszaírás v1
+post-race-re halasztva marad (ADR 0017 D5).
+
+**A7 — Cross-isolate `Race` (D5 konkretizálás).** Az aktív `Race`-t
+session-indításkor szerializáljuk (`id`, `name`, `marks`, `status`, `startedAt`) és
+a plugin-csatornán adjuk át az izolátumnak; az izolátum visszaépíti és
+`engine.start(race)`-szel indul, a szintetikus `_interimRace` helyett. A
+`Race`/`Mark` JSON-szerializáció a `data` izolátum-belépőjén él (a `shared` itt sem
+jöhet szóba, mert a `Race` domain-entitás); a pontos helyet a d4 rögzíti.
+
+**A8 — Valódi telemetria (D6 konkretizálás).** A `_NoopTelemetryLogger` helyére az
+izolátumon belül valódi `TelemetryLoggerImpl` kerül, külön Drift-kapcsolaton,
+WAL-módban; a séma-migrációt az UI birtokolja (a `TelemetryLogger` csak ír). Drift
+két-kapcsolat lock-ütközés esetén `DriftIsolate` a fallback — a d5-ben on-device
+verifikáljuk.
+
+### Következmény
+A 7-bg-d öt al-szeletre bomlik (egy logikai változás / commit):
+1. **d1** — `RaceSnapshot` DTO a `data`-ban + value-object szerializáció + round-trip-teszt.
+2. **d2** — `RaceEngineSnapshot → RaceSnapshot` mapping + host-stream szélesítés
+   (`EngineHeartbeat` leváltása), `engine_debug_screen` + `engine_test` frissítés.
+3. **d3** — UI-providerek átszármaztatása a snapshot-streamre + `LiveRaceScreen` az
+   engine-ből renderel.
+4. **d4** — cross-isolate `Race` átadás (A7) + aktív-bója továbblépés az engine-ben (A6).
+5. **d5** — valódi WAL-Drift telemetria-logger az izolátumban (A8).
+A push a szelet végén, zöld pre-flight / CI mellett.
