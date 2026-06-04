@@ -47,3 +47,24 @@ Egy meglévő plugin auto-regisztrálna, de harmadik-fél függés egy core-feat
 
 ### C. A push a UI-izolátumon át (`sendDataToMain` → a UI írja a `DataItem`-et)
 Kijelző-off alatt az UI-izolátum felfüggesztődik, így nem ír. Ugyanazon a követelményen bukik, mint az A.
+
+## Addendum A1 — Óra-oldali vétel (7-bg-f)
+
+A 7-bg-f-ben a plugin **kétirányúvá** válik: a `putRaceState` (push) mellé bekerül az óra-oldali **vétel** is. Ugyanaz a `wearable_bridge` plugin hosztolja mindkét véget (DRY, egy igazságforrás a channel-/path-nevekre).
+
+### A1.1 — Listener: `DataClient.addListener` + kezdeti latched olvasás
+A plugin az óra UI-engine `onAttachedToEngine`-jében regisztrál egy `DataClient.OnDataChangedListener`-t a `/race-state` path-ra, és **attach-kor egyszer** kiolvassa a meglévő latched `DataItem`-et (`getDataItems`), hogy a frissen megnyitott / ambientből ébredő óra azonnal a legutóbbi állapotot kapja (a 7-bg-g (2) követelmény). Az órán a UI-engine az aktív, primary kijelző (ADR 0016 használati mód), ezért a futó engine-hez kötött listener elég.
+
+### A1.2 — Híd: EventChannel, nyers JSON-string
+A natív listener a beérkező `DataItem` `payload` stringjét egy EventChannel `StreamHandler`-en továbbítja Dart felé; a dekódolás (`WatchPayload.fromJson`) az óra-app Dart-oldalán történik. A plugin DTO-mentes transport marad — szimmetrikus a push-szal (ahol a `apps/phone` kódol, a plugin csak átveszi a JSON-t).
+
+### A1.3 — A Dart EventChannel-wrapper az `apps/watch`-ban
+Tükrözi a phone-oldalt (a `PhoneWearableBridge` is az appban él, nem a pluginban). A plugin a `wearableRaceStateEventChannelName` konstanst exportálja (`com.csakos.foretack/wearable/events`); a wrapper az `apps/watch`-ban köti EventChannelre és `WatchPayload`-streammé alakítja egy Riverpod `WatchStateProvider`-nek.
+
+### A1.4 — Függőség-él
+A D4 szerinti `watch → wearable_bridge` itt jön létre (platform-adapter levél, mint a phone-on). Az óra emellett `watch → shared` (a `WatchPayload`-ért) és `watch → domain` (a megjelenítési konvenciókhoz, 7-bg-f UI).
+
+### Elvetett (A1)
+- **`WearableListenerService`** (manifest-deklarált, nem-futó appot ébresztő): v1-ben felesleges — az óra-app az aktív kijelző, nincs háttér-ébresztés igény. v1.5+-ra halasztva, ha a használat indokolja.
+- **`MessageClient`-poll a vételen:** a latched `DataItem` pont a pollozást váltja ki; az `addListener` + kezdeti olvasás elég.
+- **Dekódolás a pluginban:** a plugin transport, nem ismeri a `WatchPayload`-ot (a `shared` DTO-ja a két app közös szerződése).

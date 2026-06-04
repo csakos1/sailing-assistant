@@ -2892,7 +2892,15 @@ A meglévő Dart `PhoneWearableBridge` (§10.3) változatlanul a
 nem sérti az inward-pointing szabályt. A 7-bg-f-ben ugyanez a plugin hosztolja
 az óra-oldali vételt is (EventChannel + `DataListener`) — egy plugin, mindkét vég.
 
-A részletes döntést az **ADR 0018** rögzíti.
+A vétel konkrét alakja (7-bg-f): a natív oldal a `DataClient.addListener`-rel
+figyeli a `/race-state` path-ot, és attach-kor egyszer kiolvassa a latched
+`DataItem`-et (a frissen ébredő óra azonnal a legutóbbi állapotot kapja); a
+beérkező JSON-stringet egy EventChannelen adja Dart felé. A dekódolás
+(`WatchPayload.fromJson`) és a Riverpod `WatchStateProvider` az `apps/watch`-ban
+él — a plugin DTO-mentes transport marad, szimmetrikusan a push-szal.
+
+A részletes döntést az **ADR 0018** (D1–D4) és az **A1 addendum**
+(óra-oldali vétel) rögzíti.
 
 ---
 
