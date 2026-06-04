@@ -315,7 +315,7 @@ alatt; `true`-ra `roundCurrentMark` + `reset`. DB-visszaírás nélkül (ADR 001
 D6 diszjunkt táblák; ADR 0017 D5 post-race re-derive).
 
 **A12 — Engine-lifecycle (iii) + boot-restore-mentesség.** Belépés indít,
-explicit „Leállítás” állít, a cél nem állít (`stopWithTask=false`). Külön
+explicit „Leállítás” állít, a cél (`finished`) is lezárja a sessiont. A screenről való kilépés és a háttérbe tétel viszont nem állít le (`stopWithTask=false`). Külön
 `raceEngineSessionProvider` (explicit bool session-flag) vezérel, NEM az
 `activeRaceProvider` nem-null-sága — különben az `activeRacePersistenceProvider`
 boot-restore-ja akaratlanul indítaná az engine-t. A `raceEngineLifecycleProvider`

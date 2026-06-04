@@ -2431,8 +2431,7 @@ van — valós impl `WakelockPlus`-szal és keep-alive
 `screenWakeLockProvider`-rel —, hogy a screen widget-teszt no-op fake-kel
 override-olhasson (a plugin tesztben `MissingPluginException`-t dobna).
 
-**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg
-`status != finished`. Akció: `ref.read(activeRaceProvider.notifier)
+**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg `status != finished` (befejezett versenynél nincs élő nézet, mert a `finished` a sessiont is lezárja; ADR 0017 A12). Akció: `ref.read(activeRaceProvider.notifier)
 .activeRace = current` (a live-or-snapshot race, nem a nyers `race`, hogy ne
 clobbereljük az élő állapotot), majd `Navigator.push` a `LiveRaceScreen`-re.
 A start/finish gomb változatlan és ortogonális (SRP: a start state-et vált,
@@ -2597,9 +2596,7 @@ diszjunkt táblák). Az 1 Hz tick a régi pozíció-eseményvezérelt monitor he
 bőven elég felbontás a 50 m-es küszöbhöz (max ~10 m/tick).
 
 **Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
-belépéskor indul, és explicit „Leállítás”-ig fut — a screenről való kilépés,
-a háttérbe tétel és a cél (`finished`) sem állítja le (`stopWithTask=false`,
-ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
+belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
 `activeRacePersistenceProvider` boot-kor visszatölti, ami akaratlan
 boot-restore-t okozna. Ezért külön explicit session-állapot vezérli: egy
 `raceEngineSessionProvider` flag (az „Élő nézet” megnyitása `true`-ra, egy
