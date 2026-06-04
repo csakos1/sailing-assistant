@@ -10,6 +10,7 @@ import 'package:phone/app/geolocator_gnss_clock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/app/true_time_manager.dart';
 import 'package:phone/engine/engine_gateway_host.dart';
+import 'package:phone/engine/phone_wearable_bridge.dart';
 import 'package:phone/features/live_race/warning_l10n.dart';
 import 'package:phone/features/watch_sync/watch_payload_builder.dart';
 import 'package:phone/features/watch_sync/watch_sync_controller.dart';
@@ -45,8 +46,8 @@ void startCallback() {
 /// Az **óra-push** (ADR 0017 A14) is itt fut: minden snapshotra a service-
 /// izolátumbeli [TrueTimeManager] (GNSS) + [EvaluateWarnings] + a
 /// `buildWatchPayload` összeállítja a [WatchPayload]-ot, a [WatchSyncController]
-/// change-detectel, és a transporton küld. e2.2b-ben a transport még csak logol;
-/// a natív Data Layer-t az e3 köti be.
+/// change-detectel, és a transporton küld. A transport e3.1-től a
+/// `PhoneWearableBridge` (MethodChannel); a natív Data Layer-t az e3.2 köti be.
 class RaceEngineTaskHandler extends TaskHandler {
   Nmea0183TcpClient? _client;
   AppDatabase? _db;
@@ -93,7 +94,7 @@ class RaceEngineTaskHandler extends TaskHandler {
     )..start();
     _watchSync = WatchSyncController(
       buildPayload: _buildWatchPayload,
-      transport: _logWatchPayload,
+      transport: PhoneWearableBridge().send,
     );
 
     // Ready-kézfogás: jelezzük, hogy fogadjuk a Race initet (A13). A start()
@@ -210,18 +211,4 @@ class RaceEngineTaskHandler extends TaskHandler {
   // Epoch-millis (UTC) → DateTime a parancs-időbélyegekhez (A13 wire-konvenció).
   DateTime _atFromMillis(int millis) =>
       DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-}
-
-// Ideiglenes (e2.2b) stub transport: a payloadot logolja a natív Data Layer
-// helyett. A change-detect miatt csak változásra fut. Az e3 váltja le a valódi
-// PhoneWearableBridge-re (MethodChannel → Wearable Data Layer DataItem).
-Future<void> _logWatchPayload(WatchPayload payload) async {
-  developer.log(
-    'SOG=${payload.sogKnots?.toStringAsFixed(1)} '
-    'predTWA=${payload.predictedTwaAtMark?.toStringAsFixed(0)} '
-    'ETA=${payload.etaSeconds} '
-    'gpsTrusted=${payload.isGpsTimeTrusted} '
-    'crit=${payload.criticalWarnings.length}',
-    name: 'WatchPush',
-  );
 }
