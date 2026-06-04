@@ -2337,9 +2337,7 @@ haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
 | 5 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
 | 7 | GPS-idő (státuszsor) | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
 
-A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és az
-aktív bója neve (`activeRaceProvider` → `activeMarkOrNull?.name`, különben
-`—`).
+A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és a célbója neve: a stepped snapshot `prediction.mark.name`-jéből (így rounding után M1→M2 vált, egyezve a cellákkal), `prediction` hiányában (pre-fix / `finished`) az `activeRaceProvider` → `activeMarkOrNull?.name` fallbackre, különben `—`.
 
 **GPS-idő forrás (ADR 0012).** A 7. cella forrása **nem** az
 `instrumentTimeUtc`, hanem egy dedikált true-time forrás (telefon-GNSS anchor
@@ -2583,8 +2581,7 @@ parancs-üzenetet küld (`{kind: 'start'|'finish', at}`); az engine ezt a saját
 `_race`-én alkalmazza a domain-factory-val (`_race.start(at:)` /
 `_race.finish(at:)`), megtartva a saját indexét. Következmény: a `race_detail`
 bója-listája élőben a 0. bóját mutatja aktívnak (a UI-Race indexét senki nem
-lépteti), míg a `LiveRaceScreen` a `snapshot.prediction.mark`-ból helyesen
-lép. v1-ben elfogadott (post-race re-derive, ADR 0017 D5).
+lépteti), míg a `LiveRaceScreen` mindenben a `snapshot.prediction.mark`-ból lép — a cellák és a státuszsor célbója-neve egyaránt —, így az élő nézet önmagában konzisztens. v1-ben elfogadott (post-race re-derive, ADR 0017 D5).
 
 **Mark-rounding az engine-ben.** A `MarkRoundingDetector` (§7.7, 50 m küszöb
 + 5 m hiszterézis) az engine fieldje. Az `_onTick`-ben, a prediction-számítás
