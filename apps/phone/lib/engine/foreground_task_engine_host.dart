@@ -34,18 +34,22 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
 
     FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
 
-    final ServiceRequestResult result;
+    // Ha maradt árva service egy korábbi app-processből (a service túléli a
+    // taszk-eltávolítást), előbb teljesen leállítjuk. A restartService
+    // cold-launch után nem mindig köti újra a main↔task csatornát, így a
+    // ready-kézfogás (A13) elveszhet, az engine nem kapja meg az initet, és
+    // nem indul NMEA-kapcsolat (az eventCount 0 marad). A friss startService
+    // a most regisztrált callback-kel és tiszta isolate-tal indul.
     if (await FlutterForegroundTask.isRunningService) {
-      result = await FlutterForegroundTask.restartService();
-    } else {
-      result = await FlutterForegroundTask.startService(
-        serviceId: 256,
-        serviceTypes: const [ForegroundServiceTypes.connectedDevice],
-        notificationTitle: 'Foretack — verseny aktív',
-        notificationText: 'A háttér-engine indul…',
-        callback: startCallback,
-      );
+      await FlutterForegroundTask.stopService();
     }
+    final result = await FlutterForegroundTask.startService(
+      serviceId: 256,
+      serviceTypes: const [ForegroundServiceTypes.connectedDevice],
+      notificationTitle: 'Foretack — verseny aktív',
+      notificationText: 'A háttér-engine indul…',
+      callback: startCallback,
+    );
 
     // A ServiceRequestFailure üzenetét adjuk vissza (a UI a státuszsorba teszi,
     // A13); siker → null.
