@@ -44,6 +44,12 @@ final raceEngineLifecycleProvider = Provider<void>((ref) {
         host.sendStartCommand(startedAt);
       } else if (next.status == RaceStatus.finished && finishedAt != null) {
         host.sendFinishCommand(finishedAt);
+        // A cél terminális esemény: a sessiont is lezárjuk, így a
+        // háttér-engine leáll és a foreground-service értesítés
+        // eltűnik (ADR 0017 A12). A navigáció/háttérbe tétel továbbra
+        // sem állít le. [d5: graceful finish-then-stop a telemetria
+        // lezárásához a leállás előtt.]
+        ref.read(raceEngineSessionProvider.notifier).stop();
       }
     });
 });

@@ -74,7 +74,7 @@ void main() {
     expect(host.startCommands.single, fixedNow);
   });
 
-  test('active→finished átmenet → sendFinishCommand', () async {
+  test('active→finished → finish-parancs és a session leáll', () async {
     final started = race.start(at: fixedNow);
     container.read(activeRaceProvider.notifier).activeRace = started;
     container.read(raceEngineSessionProvider.notifier).start();
@@ -88,6 +88,9 @@ void main() {
     expect(host.startCommands, isEmpty);
     expect(host.finishCommands, hasLength(1));
     expect(host.finishCommands.single, fixedNow);
+    // A cél lezárja a sessiont (ADR 0017 A12) → host.stop + flag false.
+    expect(host.stopCount, 1);
+    expect(container.read(raceEngineSessionProvider), isFalse);
   });
 
   test('kiválasztás-csere (más race) → nincs parancs', () async {
