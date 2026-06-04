@@ -17,16 +17,24 @@ void startCallback() {
 }
 
 /// A háttér-feladat: az `onStart`-ban felépíti a [RaceEngine]-t (NMEA TCP +
-/// domain-compute), de NEM indítja — előbb egy `{type:'ready'}` jelet küld a
-/// hostnak (ready-kézfogás, ADR 0017 A13). A host erre küldi a teljes [Race]
-/// initet (`{type:'init', race:…}`), amire az engine elindul; futás közben a
-/// `{type:'start'|'finish', at}` parancsokat a saját `_race`-én alkalmazza.
+/// domain-compute + telemetria), de NEM indítja — előbb egy `{type:'ready'}`
+/// jelet küld a hostnak (ready-kézfogás, ADR 0017 A13). A host erre küldi a
+/// teljes [Race] initet (`{type:'init', race:…}`), amire az engine elindul;
+/// futás közben a `{type:'start'|'finish', at}` parancsokat a saját `_race`-én
+/// alkalmazza.
+///
+/// A telemetria a háttér-engine **saját, WAL-módú** [AppDatabase.secondary]
+/// kapcsolatára íródik (ADR 0017 D6): az izolátum a composition root, ezért itt
+/// nyitjuk a kapcsolatot, és a [TelemetryLoggerImpl]-en át injektáljuk az
+/// engine-be — az engine maga DB-agnosztikus marad. A teardownnál a záró flush
+/// (`engine.dispose()`) UTÁN zárjuk a kapcsolatot (graceful finish-then-stop).
 ///
 /// Minden engine-snapshot `toJson()`-ja a plugin-csatornán JSON-stringként megy
 /// a UI-izolátumnak; az engine a saját 1 Hz-es timeréről ketyeg, nem az
-/// `onRepeatEvent`-ről (`eventAction: nothing()`). A telemetria a d5-ig no-op.
+/// `onRepeatEvent`-ről (`eventAction: nothing()`).
 class RaceEngineTaskHandler extends TaskHandler {
   Nmea0183TcpClient? _client;
+  AppDatabase? _db;
   RaceEngine? _engine;
   StreamSubscription<RaceSnapshot>? _snapshotSub;
 
@@ -39,11 +47,15 @@ class RaceEngineTaskHandler extends TaskHandler {
     developer.log('RaceEngine indult (${starter.name})', name: 'RaceEngine');
 
     final client = Nmea0183TcpClient(host: engineGatewayHost());
+    // Másodlagos, WAL-módú telemetria-kapcsolat (ADR 0017 D6): kész sémát
+    // feltételez (a UI-izolátum már migrált), csak a telemetria-táblát írja.
+    final db = AppDatabase.secondary();
     final engine = RaceEngine(
       nmeaStream: client,
-      telemetryLogger: const _NoopTelemetryLogger(),
+      telemetryLogger: TelemetryLoggerImpl(db),
     );
     _client = client;
+    _db = db;
     _engine = engine;
     _snapshotSub = engine.snapshots.listen(_onSnapshot);
 
@@ -92,8 +104,11 @@ class RaceEngineTaskHandler extends TaskHandler {
       name: 'RaceEngine',
     );
     await _snapshotSub?.cancel();
+    // A telemetria záró flush-e az engine.dispose()-ban történik; a DB-t CSAK
+    // utána zárjuk, hogy az utolsó batch lemenjen (graceful finish-then-stop).
     await _engine?.dispose();
     await _client?.dispose();
+    await _db?.close();
   }
 
   // Egy engine-snapshotot JSON-stringként továbbít a UI-izolátumnak.
@@ -110,15 +125,4 @@ class RaceEngineTaskHandler extends TaskHandler {
   // Epoch-millis (UTC) → DateTime a parancs-időbélyegekhez (A13 wire-konvenció).
   DateTime _atFromMillis(int millis) =>
       DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-}
-
-// Interim no-op telemetria: a valódi WAL-Drift logger a d5-ben.
-class _NoopTelemetryLogger implements TelemetryLogger {
-  const _NoopTelemetryLogger();
-
-  @override
-  Future<void> log(TelemetryRecord record) async {}
-
-  @override
-  Future<void> dispose() async {}
 }
