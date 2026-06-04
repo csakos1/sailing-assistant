@@ -107,6 +107,32 @@ class RaceEngine {
     }
   }
 
+  /// A UI-tól érkező Start parancs alkalmazása az engine saját `_race`-én
+  /// (A10/A13): `notStarted → active` az `at` időbélyeggel. No-op, ha
+  /// nincs race vagy már nem `notStarted` — idempotens, a dup-parancs nem
+  /// dob (a `Race.start` assertje csak notStartedre enged). A rounding
+  /// által léptetett `activeMarkIndex` (induláskor 0) érintetlen marad.
+  void applyStartCommand(DateTime at) {
+    final race = _race;
+    if (race == null || race.status != RaceStatus.notStarted) {
+      return;
+    }
+    _race = race.start(at: at);
+  }
+
+  /// A UI-tól érkező Finish parancs alkalmazása (A10/A13):
+  /// `active → finished` az `at` időbélyeggel. No-op, ha nincs race vagy
+  /// nem `active`. A `finish` az indexet a domain-szabály szerint a
+  /// végére állítja (`index == marks.length`), így az aktív bója `null`,
+  /// és a mark-rounding nem léptet tovább.
+  void applyFinishCommand(DateTime at) {
+    final race = _race;
+    if (race == null || race.status != RaceStatus.active) {
+      return;
+    }
+    _race = race.finish(at: at);
+  }
+
   // Egyetlen esemény befoldolása az élő állapotba.
   void _onEvent(DomainEvent event) {
     _eventCount++;

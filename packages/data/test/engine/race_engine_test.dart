@@ -175,6 +175,86 @@ void main() {
       expect(snapshots.last.prediction?.mark, mark1);
     });
   });
+
+  group('parancs-protokoll (start/finish)', () {
+    const metersPerDegLat = 6371000 * pi / 180;
+    const mark1 = Mark(
+      sequence: 1,
+      name: 'Bóya 1',
+      position: Coordinate(latitude: 46.9, longitude: 18),
+    );
+    const mark2 = Mark(
+      sequence: 2,
+      name: 'Bóya 2',
+      position: Coordinate(latitude: 46.8, longitude: 17.9),
+    );
+    final notStartedRace = Race.create(
+      id: 'cmd',
+      name: 'Parancs',
+      marks: const [mark1, mark2],
+    );
+
+    Coordinate boatNorthOfMark1(double metersNorth) => Coordinate(
+      latitude: mark1.position.latitude + metersNorth / metersPerDegLat,
+      longitude: mark1.position.longitude,
+    );
+
+    Future<void> emitAtThenTick(double metersNorth, DateTime at) async {
+      source.emitEvent(PositionEvent(boatNorthOfMark1(metersNorth), eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('applyStartCommand active-ra vált → a mark-rounding lép', () async {
+      // ARRANGE — notStarted race; a parancs előtt nincs léptetés.
+      await engine.start(notStartedRace);
+
+      // ACT — start parancs, majd közelít a küszöbön belülre és távolodik.
+      engine.applyStartCommand(eventTime);
+      await emitAtThenTick(40, tickTime);
+      await emitAtThenTick(10, tickTime.add(const Duration(seconds: 1)));
+      await emitAtThenTick(20, tickTime.add(const Duration(seconds: 2)));
+
+      // ASSERT — a parancs után active, így a 3. tick a 2. bójára lép.
+      expect(snapshots[0].prediction?.mark, mark1);
+      expect(snapshots[2].prediction?.mark, mark2);
+    });
+
+    test('applyStartCommand no-op, ha már active (nem dob)', () async {
+      // ARRANGE — már active race.
+      await engine.start(notStartedRace.start(at: eventTime));
+
+      // ACT & ASSERT — a guard miatt a Race.start assertje nem fut le.
+      expect(() => engine.applyStartCommand(eventTime), returnsNormally);
+    });
+
+    test('applyFinishCommand a predikciót null-ra viszi', () async {
+      // ARRANGE — active race, egy tick még az 1. bóját célozza.
+      await engine.start(notStartedRace.start(at: eventTime));
+      await emitAtThenTick(40, tickTime);
+      expect(snapshots.last.prediction?.mark, mark1);
+
+      // ACT — finish parancs, majd egy tick.
+      engine.applyFinishCommand(tickTime.add(const Duration(seconds: 1)));
+      await emitAtThenTick(40, tickTime.add(const Duration(seconds: 2)));
+
+      // ASSERT — finished → nincs aktív bója → nincs prediction.
+      expect(snapshots.last.prediction, isNull);
+    });
+
+    test('applyFinishCommand no-op, ha nem active (notStarted)', () async {
+      // ARRANGE — notStarted race.
+      await engine.start(notStartedRace);
+
+      // ACT — finish parancs notStartedre (guard), majd egy tick.
+      engine.applyFinishCommand(eventTime);
+      await emitAtThenTick(40, tickTime);
+
+      // ASSERT — a finish nem futott le, az 1. bóját célozza.
+      expect(snapshots.last.prediction?.mark, mark1);
+    });
+  });
 }
 
 // Vezérelhető fake NMEA-forrás, ami nyers sorokat is ad (RawNmeaLineSource).
