@@ -192,6 +192,50 @@ void main() {
       expect(find.text('Elavult'), findsNothing);
     });
 
+    testWidgets('a státuszsor a stepped prediction-bóját mutatja, nem a '
+        'UI-Race aktív bójáját', (tester) async {
+      const m1 = Mark(
+        sequence: 1,
+        name: '1. bója',
+        position: Coordinate(latitude: 47, longitude: 18),
+      );
+      const m2 = Mark(
+        sequence: 2,
+        name: '2. bója',
+        position: Coordinate(latitude: 48, longitude: 19),
+      );
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        // A UI-Race aktív bója-indexe M1-en áll (0, senki nem lépteti).
+        race: Race.create(
+          id: 'r1',
+          name: 'Teszt verseny',
+          marks: const [m1, m2],
+        ),
+        // Az engine már M2-re lépett, ezért a prediction célbóya-mezője M2.
+        prediction: MarkPrediction(
+          mark: m2,
+          bearingToMark: const Bearing.true_(95),
+          courseCorrection: const Angle(degrees: 8),
+          distanceToMark: const Distance(meters: 450),
+          eta: const Duration(minutes: 7, seconds: 32),
+          etaSource: EtaSource.sog,
+          predictedTwaAtMark: const Angle(degrees: -47),
+          shiftConfidence: WindShiftConfidence.medium,
+          calculatedAt: now,
+        ),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+      );
+
+      // A célbója (M2) látszik a státuszsorban, az elhagyott M1 nem.
+      expect(find.text('2. bója'), findsOneWidget);
+      expect(find.text('1. bója'), findsNothing);
+    });
+
     testWidgets('shows the empty state when there is no active race', (
       tester,
     ) async {

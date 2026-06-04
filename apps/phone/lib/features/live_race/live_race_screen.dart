@@ -137,7 +137,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
             children: [
               LiveStatusBar(
                 connectionStatus: status,
-                markName: race.activeMarkOrNull?.name,
+                markName: prediction?.mark.name ?? race.activeMarkOrNull?.name,
                 trueTime: trueTime(),
                 isStale: _isStale(status: status, boat: boat, tick: tick),
               ),
