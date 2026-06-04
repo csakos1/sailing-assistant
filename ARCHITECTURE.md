@@ -3291,13 +3291,16 @@ Minimal subset, Wearable Data Layer-rel:
 dependencies:
     flutter:
       sdk: flutter
-    domain:
-      path: ../../packages/domain
+    flutter_riverpod: ^2.5.0
     shared:
       path: ../../packages/shared
-    flutter_riverpod: ^2.5.0
-    # Nincs data-függés: az óra nem NMEA-zik, csak renderel (ADR 0015 D6).
-    # A Wearable Data Layer hidat method/event channel köti (ADR 0015 D5).
+    wearable_bridge:
+      path: ../../packages/wearable_bridge
+    # Nincs data- és nincs domain-függés: a nyíl-konvenció és a formázók
+    # primitív-bemenettel a shared-ben élnek (ADR 0015 D8 + addendum); az óra
+    # csak a WatchPayload primitíveit rendereli. A natív vételt a wearable_bridge
+    # plugin EventChannelje adja (ADR 0018 A1). A wear_plus + rotary perem-navot
+    # az f3b-2/f3b-3 adja hozzá, on-device validálva.
 ```
 
 ### 13.5 Tools / nmea_replay

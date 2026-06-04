@@ -123,3 +123,23 @@ architektúra-döntéssé, és szinkronizálja a §10 / §4 / §13.4 / §1.2 sza
   nézet A/B + GPS-idő pötty), §13.4 (watch deps `domain` + `shared`), §4
   (watch-deps doc-drift), §1.2 (SOG mint v1 megjelenített watch-érték, VMG
   placeholder).
+
+## Addendum (2026-06) — Formázó-egyesítés a `shared`-ben, az óra elejti a `domain`-t
+
+A D8 az `arrowSideFromSign`-t a `shared`-be mozgatja; ezt kiterjesztjük a
+formázó-szabályokra is. Az óra a `WatchPayload` primitíveit rendereli
+(`double?`/`int?`/`DateTime?`), a phone `live_formatters.dart`-ja viszont
+domain-típusokat vesz (`Angle`/`Bearing`/`Distance`/`Duration`). Hogy a phone
+és az óra formázása garantáltan azonos legyen (ne csak konvencióból), a
+*szabályok* primitív-bemenettel a `shared`-be kerülnek: `formatDistanceMeters`,
+`formatEtaSeconds(.., {minutesUnit})`, `formatSignedDegrees`, `formatLocalClock`,
+`formatSpeedKnots`, valamint `ArrowSide` + `arrowSideFromSign` + `missingValue` +
+`missingTime`. A phone domain-típusos wrapperei ezekre delegálnak (pl.
+`formatDistance(Distance? d) => formatDistanceMeters(d?.meters)`); a
+`formatBearing` phone-only marad (az órán nincs bearing).
+
+Következmény: az óra deps-éből **kiesik a `domain`** (a D6 / §13.4 korábbi
+`domain`-listázását ez felülírja) — a watch tisztán prezentációs felület a
+`shared` primitív-DTO és formázók fölött. A perem-nav rotary-pluginja a
+`wear_os_scrollbar` (a megszűnt `wearable_rotary` helyett); a konkrét utat a
+7-bg-g körön on-device validáljuk.
