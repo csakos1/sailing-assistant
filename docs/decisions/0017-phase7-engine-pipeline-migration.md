@@ -323,6 +323,30 @@ boot-restore-ja akaratlanul indítaná az engine-t. A `raceEngineLifecycleProvid
 a státuszsorba. **Elvetett:** az `activeRace` nem-null-ságára kötött lifecycle
 (boot-restore-konfliktus); a screen-tied lifecycle (ADR 0016 D5 ellen).
 
+**A13 — Init-kézfogás, wire-diszkriminátor (task→UI), service-hiba felszínre.**
+A cross-isolate init (A7/A10) megbízhatóságát explicit *ready-kézfogás*
+biztosítja: a `RaceEngineTaskHandler.onStart` felépíti a klienst + engine-t és
+feliratkozik a snapshotokra, de NEM indít — egy `{type:'ready'}` jelet küld
+`sendDataToMain`-nel. A host erre válaszul küldi a teljes `Race` init-et
+(`sendDataToTask({type:'init', race:…})`), így nincs versenyhelyzet a service
+felállása és az első `sendDataToTask` között (az init nem veszhet el a port
+felállása előtt). **Wire-diszkriminátor:** a UI→task irány explicit
+`{type:'init'|'start'|'finish', …}` wrapper; a task→UI irányon a snapshot bare
+map marad, a host a `map['type'] == 'ready'` jelre figyel (a snapshot-mapnek
+nincs `type` kulcsa). Az init `race`-e a `raceToJson`; a start/finish parancs
+`at`-je a UI által beállított `startedAt`/`finishedAt` (epoch-millis UTC), így
+a UI és az engine `_race`-ének időbélyege konzisztens. Az engine a parancsot a
+saját `_race`-én a domain-factory-val alkalmazza (`applyStartCommand` /
+`applyFinishCommand`), megtartva a rounding által léptetett indexet (A10).
+
+**Service-hiba felszínre + leállítás.** A `host.start` elkapja a
+`ServiceRequestResult`-ot; `ServiceRequestFailure` esetén egy
+`engineServiceErrorProvider` (`StateProvider<String?>`) kapja a hibaüzenetet,
+amit a `LiveStatusBar` megjelenít (az A12 „státuszsorba" konkretizálása). A
+„Leállítás" akció a `LiveRaceScreen` AppBar-jában megerősítő dialógussal
+billenti a `raceEngineSessionProvider` flaget `false`-ra (verseny közbeni
+véletlen leállítás ellen), majd visszanavigál.
+
 ### Következmény (d4 szelet-bontás)
 - **d4.1** `docs` — ez a szekció + ARCHITECTURE §8.9 + §8.4 pointer.
 - **d4.2** `feat(data)` — `race_codec.dart` + round-trip teszt.
