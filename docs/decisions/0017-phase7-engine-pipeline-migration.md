@@ -356,3 +356,52 @@ véletlen leállítás ellen), majd visszanavigál.
   + parancs) + `raceEngineSessionProvider` + `raceEngineLifecycleProvider` +
   „Leállítás” akció + `_interimRace` ki + tesztek.
 - **d4.5** — mozgó replay-log + on-device verifikáció.
+
+## 7-bg-e finomítás — óra-push az engine-ből (A14)
+
+A 7-bg-e az óra-pusht (a slice 3 áthelyezett natív része + a payload-építés) a
+service-izolátumba teszi, és az A5-öt (warningok + true-time az engine-be)
+konkretizálja.
+
+**A14 — Payload-pipeline a task handlerben, a `RaceEngine` érintetlen.** A
+payload-építés (true-time + warning + `buildWatchPayload` + change-detect) a
+`RaceEngineTaskHandler`-be kerül (service-izolátum, `apps/phone` → importálhat
+phone-kódot), NEM a `RaceEngine`-be: a `data`-beli engine pure / replay-
+tesztelhető marad. Ez a d5 mintája — a task handler a composition root, ami a
+platform-dolgokat injektálja. Újrahasznosul ahogy van: `buildWatchPayload`
+(slice 1), `WatchSyncController.onTick` (slice 2), `EvaluateWarnings` (Fázis 6),
+a true-time anchor (ADR 0012). A `RaceSnapshot` egyetlen mezővel bővül:
+`raceStatus` (a `WindShiftTrendInsufficient` gatinghez). **Elvetett:** mindent a
+`RaceEngine`-be (1.A) — a snapshot + a `TrueTimeReading`/`Warning` átdrótozása
+nagyobb blast-radius, és platform-függést (geolocator) vinne a `data`-ba.
+
+**True-time a service-izolátumban.** A kijelző-off GPS-idő miatt a true-time
+(GNSS-anchor) a service-izolátumban fut (`geolocator`, FGS-típus `location` +
+`ACCESS_FINE_LOCATION`); a UI-ból átküldés nem járható (a UI-izolátum alszik). A
+telefon saját GPS-idő-cellája megtartja a UI-oldali `trueTimeProvider`-t
+(kijelző-on), függetlenül. Másodpercre szinkron a hajó műszerével: mindhárom
+felület ugyanazt a GPS-UTC instantot mutatja; a stale `instrumentTimeUtc`
+(4–6 mp késés) sehol nem jelenik meg.
+
+**Latched DataItem.** A natív transport `DataClient.putDataItem`-et használ
+(latched — az utolsó állapot perzisztál), NEM `MessageClient`-et; így az óra
+ébredéskor a legfrissebbet kapja, és a change-detecttel konzisztens.
+
+**Kadencia.** A push az 1 Hz `RaceSnapshot`-emitre fűzve — nincs külön timer (a
+`WatchPayload` `==`-ja kihagyja a `gpsTimeUtc`-t, az óra lokálisan extrapolál).
+
+**On-device bench-pontok:** (1) a `geolocator` működik-e a service-izolátumban
+(`location` FGS-típussal) — a GPS-idő-az-órán követelmény ezen áll; (2) a latched
+DataItem alvó óra ébredésekor a legfrissebbet adja-e.
+
+### Következmény (7-bg-e szelet-bontás)
+- **e1** `docs` — ez a szekció + ARCHITECTURE §10.3 reconcile.
+- **e2** `feat` — az engine-oldali payload-pipeline a task handlerben (true-time
+  + warning + `buildWatchPayload` + `WatchSyncController.onTick` change-detect) +
+  `raceStatus` a `RaceSnapshot`-ba (+ round-trip teszt); a transport stub
+  (`_NoopWatchTransport` / logger), így a szelet a natív réteg nélkül zöld +
+  on-bench tesztelhető.
+- **e3** `feat` — natív Data Layer transport: `PhoneWearableBridge` (MethodChannel
+  a service-izolátumon) → Kotlin `DataItem` a `/race-state`-re; FGS-típus
+  `location`; on-device verifikáció (geolocator-in-FGS + latched-resume). A vétel
+  az órán: 7-bg-f.
