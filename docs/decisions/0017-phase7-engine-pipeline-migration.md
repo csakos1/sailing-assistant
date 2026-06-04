@@ -342,7 +342,7 @@ saját `_race`-én a domain-factory-val alkalmazza (`applyStartCommand` /
 **Service-hiba felszínre + leállítás.** A `host.start` elkapja a
 `ServiceRequestResult`-ot; `ServiceRequestFailure` esetén egy
 `engineServiceErrorProvider` (`StateProvider<String?>`) kapja a hibaüzenetet,
-amit a `LiveStatusBar` megjelenít (az A12 „státuszsorba" konkretizálása). A
+amit a `LiveRaceScreen` a státuszsor melletti külön hibasorként jelenít meg (a `LiveStatusBar` widget változatlan; az A12 „státuszsorba" konkretizálása). A
 „Leállítás" akció a `LiveRaceScreen` AppBar-jában megerősítő dialógussal
 billenti a `raceEngineSessionProvider` flaget `false`-ra (verseny közbeni
 véletlen leállítás ellen), majd visszanavigál.
