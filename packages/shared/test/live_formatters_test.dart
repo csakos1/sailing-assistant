@@ -66,4 +66,15 @@ void main() {
       expect(formatLocalClock(null), missingTime);
     });
   });
+
+  group('formatSpeedKnots', () {
+    test('one decimal place', () {
+      expect(formatSpeedKnots(6.4), '6.4');
+      expect(formatSpeedKnots(0), '0.0');
+    });
+
+    test('null -> placeholder', () {
+      expect(formatSpeedKnots(null), missingValue);
+    });
+  });
 }

@@ -81,3 +81,12 @@ String formatLocalClock(DateTime? utc) {
   final second = local.second.toString().padLeft(2, '0');
   return '$hour:$minute:$second';
 }
+
+/// Egy sebesség csomóban, egy tizedesre (pl. `6.4`), vagy [missingValue] ha
+/// null. Az egységet (`kts`) a hívó címke adja, nem a formázó.
+String formatSpeedKnots(double? knots) {
+  if (knots == null) {
+    return missingValue;
+  }
+  return knots.toStringAsFixed(1);
+}
