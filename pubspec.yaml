@@ -11,6 +11,7 @@ workspace:
   - packages/domain
   - packages/data
   - packages/shared
+  - packages/wearable_bridge
   - apps/phone
   - apps/watch
   - tools/nmea_replay

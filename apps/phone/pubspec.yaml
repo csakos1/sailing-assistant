@@ -27,6 +27,8 @@ dependencies:
 
   uuid: ^4.5.1
   wakelock_plus: ^1.4.0
+  wearable_bridge:
+    path: ../../packages/wearable_bridge
 dev_dependencies:
   drift: ^2.33.0
   flutter_launcher_icons: ^0.14.4

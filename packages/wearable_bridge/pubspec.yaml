@@ -1,0 +1,25 @@
+name: wearable_bridge
+description: Wearable Data Layer transport — telefon→óra latched DataItem push.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.csakos.foretack.wearable_bridge
+        pluginClass: WearableBridgePlugin

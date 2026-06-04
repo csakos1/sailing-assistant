@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:phone/features/watch_sync/watch_transport.dart';
 import 'package:shared/shared.dart';
+import 'package:wearable_bridge/wearable_bridge.dart';
 
 /// A telefon→óra natív transport (e3): a [WatchPayload]-ot egy MethodChannelen
 /// átküldi a natív oldalnak, ami a Wearable Data Layer `/race-state` path-jára
@@ -19,9 +20,8 @@ class PhoneWearableBridge {
   /// Létrehozza a hidat. A [channel] tesztben felülírható (DIP); éles esetben a
   /// `com.csakos.foretack/wearable` csatorna.
   PhoneWearableBridge({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel(_channelName);
+    : _channel = channel ?? const MethodChannel(wearableMethodChannelName);
 
-  static const String _channelName = 'com.csakos.foretack/wearable';
   static const String _putRaceState = 'putRaceState';
 
   final MethodChannel _channel;
