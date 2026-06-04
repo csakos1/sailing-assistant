@@ -18,6 +18,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/engine_service_error_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
@@ -103,6 +104,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final tick = ref.watch(tickProvider).valueOrNull;
     final trueTime = ref.watch(trueTimeProvider);
     final warnings = ref.watch(activeWarningsProvider);
+    final serviceError = ref.watch(engineServiceErrorProvider);
     final hasCriticalWarning = warnings.any(
       (warning) => warning.severity == WarningSeverity.critical,
     );
@@ -140,6 +142,12 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                 isStale: _isStale(status: status, boat: boat, tick: tick),
               ),
               const SizedBox(height: 12),
+              if (serviceError != null) ...[
+                _EngineServiceErrorStrip(
+                  message: l10n.liveServiceError(serviceError),
+                ),
+                const SizedBox(height: 12),
+              ],
               WarningBanner(warnings: warnings),
               Expanded(
                 child: Opacity(
@@ -213,5 +221,48 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       return false;
     }
     return tick.difference(boat.lastUpdate) > const Duration(seconds: 5);
+  }
+}
+
+/// Egy teljes szélességű hibasor az élő képernyőn: a háttér-engine
+/// foreground-service indításának hibáját jeleníti meg (ADR 0017 A13). A
+/// `WarningBanner` strip-geometriáját követi, de szemantikailag külön —
+/// ez infrastruktúra-hiba (service-indítás), nem verseny-warning.
+class _EngineServiceErrorStrip extends StatelessWidget {
+  const _EngineServiceErrorStrip({required this.message});
+
+  /// A megjelenítendő, már lokalizált hibaüzenet.
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 18,
+            color: theme.colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

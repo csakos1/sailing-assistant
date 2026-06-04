@@ -178,6 +178,12 @@ abstract class AppLocalizations {
   /// **'Leállítás'**
   String get liveStopConfirm;
 
+  /// Hibasor az élő képernyőn: a háttér-engine foreground-service indítása sikertelen.
+  ///
+  /// In hu, this message translates to:
+  /// **'Háttér-engine hiba: {message}'**
+  String liveServiceError(String message);
+
   /// ETA perc-egysége 60 perc felett (pl. 83 perc).
   ///
   /// In hu, this message translates to:

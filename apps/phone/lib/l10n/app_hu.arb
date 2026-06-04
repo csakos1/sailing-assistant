@@ -57,6 +57,15 @@
   "@liveStopConfirm": {
     "description": "A leállítás-dialógus megerősítő gombja."
   },
+  "liveServiceError": "Háttér-engine hiba: {message}",
+  "@liveServiceError": {
+    "description": "Hibasor az élő képernyőn: a háttér-engine foreground-service indítása sikertelen.",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "etaMinutesUnit": "perc",
   "@etaMinutesUnit": {
     "description": "ETA perc-egysége 60 perc felett (pl. 83 perc)."

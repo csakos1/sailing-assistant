@@ -52,6 +52,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveStopConfirm => 'Leállítás';
 
   @override
+  String liveServiceError(String message) {
+    return 'Háttér-engine hiba: $message';
+  }
+
+  @override
   String get etaMinutesUnit => 'perc';
 
   @override

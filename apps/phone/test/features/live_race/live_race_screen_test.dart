@@ -11,6 +11,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/engine_service_error_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
@@ -122,6 +123,7 @@ Future<void> _pump(
   ScreenWakeLock? wakeLock,
   TrueTimeReading? trueTime,
   List<Warning> warnings = const [],
+  String? serviceError,
 }) async {
   tester.view.physicalSize = const Size(1000, 2000);
   tester.view.devicePixelRatio = 1.0;
@@ -141,6 +143,7 @@ Future<void> _pump(
         connectionStatusProvider.overrideWith(() => _FixedConnection(status)),
         markPredictionProvider.overrideWithValue(prediction),
         activeWarningsProvider.overrideWithValue(warnings),
+        engineServiceErrorProvider.overrideWith((ref) => serviceError),
         trueTimeProvider.overrideWithValue(() => reading),
         screenWakeLockProvider.overrideWithValue(
           wakeLock ?? const _NoopScreenWakeLock(),
@@ -365,6 +368,37 @@ void main() {
 
       expect(find.text('Kevés széladat a trendhez'), findsOneWidget);
       expect(_liveGridOpacity(tester), 1.0);
+    });
+
+    testWidgets('service-hiba → hibasor a státuszsor után', (tester) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+        serviceError: 'boom',
+      );
+
+      expect(find.text('Háttér-engine hiba: boom'), findsOneWidget);
+    });
+
+    testWidgets('nincs service-hiba → nincs hibasor', (tester) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _race(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+      );
+
+      expect(find.textContaining('Háttér-engine hiba'), findsNothing);
     });
   });
 }
