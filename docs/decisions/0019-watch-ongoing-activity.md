@@ -56,10 +56,14 @@ Vezérlés a UI-izolátumból: `WearOngoingActivity.start` / `.update` / `.stop`
 `flutter_foreground_task` óra-oldali újrahasznosítása ELVETVE. Az `androidx.wear:wear-ongoing`
 dep-et a plugin hozza (nem mi vesszük fel közvetlenül).
 
-**`foregroundServiceType = connectedDevice`** (`FOREGROUND_SERVICE_CONNECTED_DEVICE`): az
-óra-élmény teljes egészében a telefon-kapcsolatra épül, és a telefon ADR 0016 FGS-e is ezt
-használja. A plugin példájában szereplő `health` / `BODY_SENSORS` / sensors-rész elhagyva; csak
-`POST_NOTIFICATIONS` + a típus-permission kell.
+**`foregroundServiceType = specialUse`** (`FOREGROUND_SERVICE_SPECIAL_USE`): az on-device
+build kiderítette, hogy a `connectedDevice` API 34+-on egy companion-permet is megkövetel
+(BLUETOOTH_* / CHANGE_WIFI_STATE / CHANGE_NETWORK_STATE / …), amit az óra nem használ valósan
+— a `SecurityException` ettől dőlt el. A service egyetlen célja a kijelző láthatóan tartása,
+ami egyik szabványos típusba sem illik, ezért a `specialUse` az őszinte választás (a
+`PROPERTY_SPECIAL_USE_FGS_SUBTYPE` adja az indokot). Sideload (nincs Play-review) → súrlódás-
+mentes; nincs companion-perm és nincs `dataSync`-féle időkorlát. Marad: `POST_NOTIFICATIONS` +
+a típus-permission; a `health` / `BODY_SENSORS` / sensors-rész elhagyva.
 
 **Érettség-kockázat (tudatosan vállalva):** a plugin friss és kis adoptáltságú (3★, ~235
 letöltés), de a kitettség szűk (a service csak a kijelző-láthatóságot tartja; a Data Layer
