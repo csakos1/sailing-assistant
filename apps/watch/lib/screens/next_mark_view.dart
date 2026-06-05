@@ -43,7 +43,7 @@ class NextMarkView extends StatelessWidget {
             _title,
             style: TextStyle(color: colors.textSecondary, fontSize: 13),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
         ],
         FittedBox(
           fit: BoxFit.scaleDown,
@@ -68,7 +68,7 @@ class NextMarkView extends StatelessWidget {
                 ),
         ),
         if (!ambient) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
