@@ -24,7 +24,7 @@ void main() {
     ),
   );
 
-  testWidgets('renders title, predicted TWA, correction arrow and ETA', (
+  testWidgets('renders title, predicted TWA, correction value and ETA', (
     tester,
   ) async {
     await tester.pumpWidget(host(ambient: false));
@@ -32,6 +32,7 @@ void main() {
     expect(find.text('Tihany · 450 m'), findsOneWidget);
     expect(find.text('38°'), findsOneWidget); // pred-TWA hero magnitude
     expect(find.text('Korr.'), findsOneWidget);
+    expect(find.text('12°'), findsOneWidget); // korrekció magnitude
     expect(find.text('07:32'), findsOneWidget); // ETA
     // pred-TWA nyíl + korrekció nyíl.
     expect(find.byType(DirectionArrow), findsNWidgets(2));
@@ -43,6 +44,7 @@ void main() {
     expect(find.text('38°'), findsOneWidget);
     expect(find.text('Tihany · 450 m'), findsNothing); // cím rejtve
     expect(find.text('07:32'), findsNothing); // ETA rejtve
+    expect(find.text('12°'), findsNothing); // korrekció rejtve
     expect(find.byType(DirectionArrow), findsNothing); // accent nélkül
   });
 }

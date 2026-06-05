@@ -76,7 +76,7 @@ class NextMarkView extends StatelessWidget {
                 label: 'Korr.',
                 colors: colors,
                 value: ArrowedValue(
-                  value: '',
+                  value: formatDegreesMagnitude(payload.courseCorrection),
                   side: arrowSideFromSign(payload.courseCorrection),
                   kind: ArrowKind.correction,
                   colors: colors,
@@ -92,7 +92,7 @@ class NextMarkView extends StatelessWidget {
                   formatEtaSeconds(payload.etaSeconds, minutesUnit: 'perc'),
                   style: TextStyle(
                     color: colors.text,
-                    fontSize: 22,
+                    fontSize: 18,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
