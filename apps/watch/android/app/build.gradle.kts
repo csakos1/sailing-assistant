@@ -20,8 +20,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "dev.csakos.sailingassistant.watch"
+        // ADR 0018 A2: a Data Layer kézbesítéshez a telefonnal AZONOS applicationId kell
+        // (a DataItem app-privát: applicationId + aláírás párosítja a node-okat).
+        applicationId = "com.csakos.foretack"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Wear OS 3 baseline (API 30); a Watch4 Classic ezen indult. Fix érték, nem a Flutter-default.
