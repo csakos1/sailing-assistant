@@ -27,6 +27,7 @@ class ArrowedValue extends StatelessWidget {
     required this.valueColor,
     required this.fontSize,
     this.arrowSize = 18,
+    this.arrowColor,
     super.key,
   });
 
@@ -51,20 +52,28 @@ class ArrowedValue extends StatelessWidget {
   /// A nyíl-glyph mérete.
   final double arrowSize;
 
+  /// Opcionális nyíl-szín-felülírás: ha megadva (pl. ambientben tompított),
+  /// ez érvényes az oldal-alapú port/stbd szín helyett.
+  final Color? arrowColor;
+
   @override
   Widget build(BuildContext context) {
-    final arrowColor = arrowColorForSide(side, colors);
-    final arrow = arrowColor == null
+    final sideColor = arrowColorForSide(side, colors);
+    // none oldalnál nincs nyíl; egyébként a felülírás (ambient), különben az oldal-szín.
+    final resolvedArrowColor = sideColor == null
+        ? null
+        : (arrowColor ?? sideColor);
+    final arrow = resolvedArrowColor == null
         ? null
         : (kind == ArrowKind.twa
               ? DirectionArrow.twa(
                   side: side,
-                  color: arrowColor,
+                  color: resolvedArrowColor,
                   size: arrowSize,
                 )
               : DirectionArrow.correction(
                   side: side,
-                  color: arrowColor,
+                  color: resolvedArrowColor,
                   size: arrowSize,
                 ));
     final text = value.isEmpty

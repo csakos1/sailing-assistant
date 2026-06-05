@@ -6,8 +6,8 @@ import 'package:watch/widgets/watch_metrics.dart';
 
 /// „B" nézet — Köv. bója (taktika), alapnézet (§10.4). Cím-sor: a bója neve és
 /// a táv összevonva. Hero: a köv. bójánál várt TWA (predikció, teal, nyíl
-/// befelé). Alatta egy sorban a Korrekció (csak nyíl kifelé, szöveg nélkül) és
-/// az ETA. Ambientben csak a hero marad, tompítva, accent nélkül.
+/// befelé). Alatta egy sorban a Korrekció (fok-szám + nyíl kifelé) és az ETA.
+/// Ambientben csak a hero marad (a nyíl is, tompítva, accent nélkül).
 class NextMarkView extends StatelessWidget {
   /// Létrehozza a nézetet a megjelenítendő [payload]-dal.
   const NextMarkView({
@@ -47,25 +47,18 @@ class NextMarkView extends StatelessWidget {
         ],
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: ambient
-              ? Text(
-                  predicted,
-                  style: TextStyle(
-                    color: heroColor,
-                    fontSize: 52,
-                    height: 1,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
-              : ArrowedValue(
-                  value: predicted,
-                  side: arrowSideFromSign(payload.predictedTwaAtMark),
-                  kind: ArrowKind.twa,
-                  colors: colors,
-                  valueColor: heroColor,
-                  fontSize: 52,
-                  arrowSize: 26,
-                ),
+          child: ArrowedValue(
+            value: predicted,
+            side: arrowSideFromSign(payload.predictedTwaAtMark),
+            kind: ArrowKind.twa,
+            colors: colors,
+            valueColor: heroColor,
+            fontSize: 52,
+            arrowSize: 26,
+            // Ambientben tompított, accent nélküli nyíl (csak a helyzet számít);
+            // aktívban az oldal-alapú port/stbd szín.
+            arrowColor: ambient ? colors.textSecondary : null,
+          ),
         ),
         if (!ambient) ...[
           const SizedBox(height: 6),

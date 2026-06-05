@@ -3,6 +3,10 @@
     <uses-feature
         android:name="android.hardware.type.watch"
         android:required="true" />
+
+    <!-- Ambient (always-on) módhoz: a wear_plus ambient-figyelője ezzel
+         tartja a kijelzőn az appot tompított módban, számlap helyett. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <application
         android:label="watch"
         android:name="${applicationName}"

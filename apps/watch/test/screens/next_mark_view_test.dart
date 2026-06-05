@@ -38,13 +38,18 @@ void main() {
     expect(find.byType(DirectionArrow), findsNWidgets(2));
   });
 
-  testWidgets('shows only the muted hero in ambient mode', (tester) async {
+  testWidgets('shows the muted hero with a neutral arrow in ambient mode', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(ambient: true));
 
     expect(find.text('38°'), findsOneWidget);
     expect(find.text('Tihany · 450 m'), findsNothing); // cím rejtve
     expect(find.text('07:32'), findsNothing); // ETA rejtve
     expect(find.text('12°'), findsNothing); // korrekció rejtve
-    expect(find.byType(DirectionArrow), findsNothing); // accent nélkül
+    expect(
+      find.byType(DirectionArrow),
+      findsOneWidget,
+    ); // a hero tompított nyila
   });
 }
