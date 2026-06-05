@@ -7,6 +7,14 @@
     <!-- Ambient (always-on) módhoz: a wear_plus ambient-figyelője ezzel
          tartja a kijelzőn az appot tompított módban, számlap helyett. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- ADR 0019: a verseny-display Ongoing Activity-t egy foreground service
+         (a wear_ongoing_activity plugin OngoingActivityService-e) hordozza, hogy
+         a kijelző a számlapra-esés (Timeout #2) ellen látható maradjon. A
+         connectedDevice típus: az óra-élmény a telefon-kapcsolatra épül; a
+         POST_NOTIFICATIONS az ongoing notificationhoz kell (Wear OS 4 / API 33+). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:label="watch"
         android:name="${applicationName}"
@@ -38,6 +46,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- ADR 0019: a wear_ongoing_activity plugin foreground service-e.
+             stopWithTask=true: az app kilövése leállítja (az órán nincs ok
+             túlélni, szemben a telefon háttér-engine-jével). -->
+        <service
+            android:name="dev.rexios.wear_ongoing_activity.OngoingActivityService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice"
+            android:stopWithTask="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

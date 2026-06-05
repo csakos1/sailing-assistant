@@ -10,8 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.5.0
+  permission_handler: ^12.0.0
   shared:
     path: ../../packages/shared
+  wear_ongoing_activity: ^0.1.6
   wear_plus: ^1.2.4
   wearable_bridge:
     path: ../../packages/wearable_bridge

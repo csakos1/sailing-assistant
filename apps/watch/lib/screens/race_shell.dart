@@ -8,6 +8,7 @@ import 'package:watch/screens/next_mark_view.dart';
 import 'package:watch/screens/speed_view.dart';
 import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
+import 'package:watch/watch_sync/race_ongoing_activity.dart';
 import 'package:watch/watch_sync/watch_clock_provider.dart';
 
 /// A két verseny-nézet (A↔B) háza: fix GPS-idő fejléc, vízszintes `PageView`
@@ -43,6 +44,7 @@ class _RaceShellState extends ConsumerState<RaceShell> {
 
   late final PageController _controller;
   late final StreamSubscription<int> _rotarySteps;
+  late final RaceOngoingActivity _ongoing;
   int _page = _markPage;
 
   @override
@@ -54,10 +56,17 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     // AsyncValue de-duplikációját, hogy két azonos lépés se vesszen el.
     final deltas = ref.read(rotaryScrollSourceProvider)();
     _rotarySteps = rotaryPageSteps(deltas).listen(_stepBy);
+    // ADR 0019: a kijelző mountjakor indul a verseny Ongoing Activity (a
+    // számlapra-esés / Timeout #2 ellen), a dispose-ban áll le — a telefon
+    // ScreenWakeLock-mintájának óra-oldali, láthatósági párja. Az instance-t
+    // itt fogjuk el, mert a dispose-ban a ref már nem biztonságos.
+    _ongoing = ref.read(raceOngoingActivityProvider);
+    unawaited(_ongoing.start());
   }
 
   @override
   void dispose() {
+    unawaited(_ongoing.stop());
     _rotarySteps.cancel();
     _controller.dispose();
     super.dispose();
