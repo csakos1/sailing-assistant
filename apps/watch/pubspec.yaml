@@ -2,25 +2,21 @@ name: watch
 description: Sailing Assistant Wear OS app.
 publish_to: none
 version: 0.1.0+1
-
 environment:
   sdk: ^3.11.0
   flutter: ">=3.41.0"
-
 resolution: workspace
-
 dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.5.0
   shared:
     path: ../../packages/shared
+  wear_plus: ^1.2.4
   wearable_bridge:
     path: ../../packages/wearable_bridge
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
 flutter:
   uses-material-design: true
