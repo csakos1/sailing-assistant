@@ -38,3 +38,34 @@ Ez kis fogyasztású (a kijelző ambientben dimmel, nem teljes fényerő). A tel
 - **Csak ambient** (AmbientLifecycleObserver / `wear_plus`): nem akadályozza a Timeout #2-t → a számlap visszatér. Ez volt a megfigyelt hiba.
 - **Teljes wakelock** (`FLAG_KEEP_SCREEN_ON` / `wakelock_plus`, kijelző végig ON): megbízható, de túl sok aksi; elvetve.
 - **`WearableListenerService` / service nélkül**: nem tartja az appot a Timeout #2 ellen.
+
+## Addendum A1 — A hordozó a `wear_ongoing_activity` plugin (a `flutter_foreground_task` elvetve)
+
+A D2 a `flutter_foreground_task` órán-újrahasznosítását javasolta hordozónak. A 7-bg-g
+implementáció előtti API-verifikáció ezt felülírja.
+
+**Lelet:** a `flutter_foreground_task` modellje a háttér-izolátum (TaskHandler) köré épül — az
+órán erre NINCS szükség: az óra nem futtatja az engine-t, a `wearable_bridge` event-channel a
+UI-engine-re kézbesíti a latched payload-ot, és nekünk csak a kijelzőn-tartás kell. A
+`flutter_foreground_task` így egy felesleges háttér-izolátumot hozna létre, pusztán hogy egy
+FGS-t hosztoljon.
+
+**Döntés:** a hordozó a `wear_ongoing_activity` (rexios.dev, BSD-3, Android-only) plugin, ami
+saját foreground service-t + `OngoingActivity`-t csomagol, a mi oldalunkon natív Kotlin nélkül.
+Vezérlés a UI-izolátumból: `WearOngoingActivity.start` / `.update` / `.stop`. A
+`flutter_foreground_task` óra-oldali újrahasznosítása ELVETVE. Az `androidx.wear:wear-ongoing`
+dep-et a plugin hozza (nem mi vesszük fel közvetlenül).
+
+**`foregroundServiceType = connectedDevice`** (`FOREGROUND_SERVICE_CONNECTED_DEVICE`): az
+óra-élmény teljes egészében a telefon-kapcsolatra épül, és a telefon ADR 0016 FGS-e is ezt
+használja. A plugin példájában szereplő `health` / `BODY_SENSORS` / sensors-rész elhagyva; csak
+`POST_NOTIFICATIONS` + a típus-permission kell.
+
+**Érettség-kockázat (tudatosan vállalva):** a plugin friss és kis adoptáltságú (3★, ~235
+letöltés), de a kitettség szűk (a service csak a kijelző-láthatóságot tartja; a Data Layer
+kézbesítés és a domain-számítás független tőle), és a B-terv (`flutter_foreground_task` + natív
+`androidx.wear:wear-ongoing`) bármikor elérhető fallback.
+
+**On-device igazolandó (a D2 szerint változatlanul):** a touch-intent a `MainActivity`-t
+nyitja-e (a plugin app-privát service-e a launcher content-intentre eshet vissza); a SM-R880
+tényleges Wear OS verziója (a Timeout #2 / AOD viselkedés verzió-érzékeny).
