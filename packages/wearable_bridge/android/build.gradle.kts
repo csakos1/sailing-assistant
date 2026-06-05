@@ -71,8 +71,10 @@ android {
 }
 
 dependencies {
-    // Wear OS Data Layer API — a plugin a DataClient fogyasztója.
-    implementation("com.google.android.gms:play-services-wearable:20.0.1")
+    // api (nem implementation): a plugin publikus típusa implementálja a
+    // DataClient.OnDataChangedListener-t, ezért a fogyasztó (pl. az apps/phone
+    // GeneratedPluginRegistrant) compile-classpath-jára is kell (ADR 0018 D2).
+    api("com.google.android.gms:play-services-wearable:20.0.1")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
 }
