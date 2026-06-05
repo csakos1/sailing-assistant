@@ -140,6 +140,10 @@ domain-típusokat vesz (`Angle`/`Bearing`/`Distance`/`Duration`). Hogy a phone
 
 Következmény: az óra deps-éből **kiesik a `domain`** (a D6 / §13.4 korábbi
 `domain`-listázását ez felülírja) — a watch tisztán prezentációs felület a
-`shared` primitív-DTO és formázók fölött. A perem-nav rotary-pluginja a
-`wear_os_scrollbar` (a megszűnt `wearable_rotary` helyett); a konkrét utat a
-7-bg-g körön on-device validáljuk.
+`shared` primitív-DTO és formázók fölött. A `wear_plus` adja az ambient / round kezelést. A perem-nav (lap-snap A↔B)
+viszont **nem** a `wear_os_scrollbar` — az scroll-eszköz, nem lap-nav —, hanem
+egy minimál saját rotary EventChannel: a watch
+`MainActivity.onGenericMotionEvent` a perem `AXIS_SCROLL`-deltáját egy
+EventChannelen átadja, és a Dart-oldal küszöbre `PageController`-rel vált lapot
+(a megszűnt `wearable_rotary` mintájára, külön dep nélkül). A konkrét
+rotary-viselkedést a 7-bg-g körön on-device validáljuk.

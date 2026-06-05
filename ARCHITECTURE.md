@@ -2832,14 +2832,16 @@ Piros téma v2-deferred). Két nézet, a forgatható peremmel váltva; az **alap
 a B**. Mindkét nézet tetején a **GPS-idő** (`HH:mm:ss`, JetBrains Mono) és egy
 **állapot-pötty** (megbízható idő → teal, egyébként tompított).
 
-**Nézet A — Sebesség.** Hero: **SOG** (`kts`, középre igazítva). Alatta **VMG**
-(`kts`) — v1-ben placeholder `—` (a `vmgKnots` mindig null, v2-ben kötjük be).
-Plusz a **TWA most** (fok, előjeles), port/stbd nyíllal **befelé**.
+**Nézet A — Sebesség.** Hero: **SOG** (`kts`, középre). Alatta **egy sorban,
+azonos betűmérettel** a **VMG** (`kts`, v1-ben placeholder `—` — a `vmgKnots`
+mindig null, v2-ben kötjük be) és a **TWA most** (fok, előjeles), port/stbd
+nyíllal **befelé**.
 
-**Nézet B — Köv. bója (taktika), alapnézet.** Hero: a **TWA a köv. bójánál**
-(predikció, fok előjeles, teal, nyíl befelé). Plusz **Korrekció** (fok előjeles,
-csak nyíl **kifelé**, szöveg nélkül), **ETA** (`m:ss`), **Bója táv** (`m`/`km`);
-a cím a bója neve.
+**Nézet B — Köv. bója (taktika), alapnézet.** A GPS-idő sor alatt egy
+**cím-sor**: a bója neve és a **Bója táv** (`m`/`km`) összevonva (pl.
+`Tihany · 450 m`). Hero: a **TWA a köv. bójánál** (predikció, fok előjeles,
+teal, nyíl **befelé**). Alatta **egy sorban, azonos betűmérettel** a
+**Korrekció** (csak nyíl **kifelé**, szöveg nélkül) és az **ETA** (`m:ss`).
 
 A nyíl-konvenció a phone §8.7 `arrowSideFromSign`-jával közös (a slice 5-ben a
 `shared`-be mozgatva): az oldal az előjelből (stbd/port), a szín a hajós
@@ -2855,7 +2857,19 @@ Vulcan-buffering miatt 4–6 mp-et késik), hanem a telefon true-time forrása
 (`gpsTimeUtc` + `isGpsTimeTrusted`); a watch **local időben** rendereli
 (`toLocal()`, Europe/Budapest, DST-aware). Az `instrumentTimeUtc` a telefonon
 marad cross-check/staleness szerepben. Friss idő híján `--:--:--` + tompított
-pötty.
+pötty. Az órán a kapott `gpsTimeUtc`-t a watch **lokálisan, monoton** görgeti
+előre (1 Hz ticker + `Stopwatch`-horgony a payload-érkezéskor), mert a payload
+csak change-detectre érkezik — így a kijelzett másodperc két payload közt is
+folyamatosan lép.
+
+**Nav és ambient.** A két nézet egy **vízszintes `PageView`**-ban (A↔B):
+érintéssel swipe-olva **és** a forgatható peremmel. A perem `AXIS_SCROLL`-ja a
+watch `MainActivity.onGenericMotionEvent`-jéből egy EventChannelen át a
+`PageController`-t lépteti (lap-snap; nem scroll, ezért **nem**
+`wear_os_scrollbar`, hanem minimál saját híd a megszűnt `wearable_rotary`
+mintájára). Ambientben (`wear_plus` `AmbientMode`) csak a hero és a GPS-idő
+marad, tompított palettával, szín-accent nélkül, a rendszer ambient-kadenciáján;
+aktív kijelzőn az always-on él.
 
 ### 10.5 Korlátok
 
@@ -3296,11 +3310,13 @@ dependencies:
       path: ../../packages/shared
     wearable_bridge:
       path: ../../packages/wearable_bridge
+    wear_plus: ^1.2.4
     # Nincs data- és nincs domain-függés: a nyíl-konvenció és a formázók
     # primitív-bemenettel a shared-ben élnek (ADR 0015 D8 + addendum); az óra
     # csak a WatchPayload primitíveit rendereli. A natív vételt a wearable_bridge
-    # plugin EventChannelje adja (ADR 0018 A1). A wear_plus + rotary perem-navot
-    # az f3b-2/f3b-3 adja hozzá, on-device validálva.
+    # plugin EventChannelje adja (ADR 0018 A1). A wear_plus az ambient/round
+    # kezelést adja; a rotary perem-nav (lap-snap A↔B) minimál saját
+    # EventChannel (onGenericMotionEvent → PageController), nem wear_os_scrollbar.
 ```
 
 ### 13.5 Tools / nmea_replay
