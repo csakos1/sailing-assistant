@@ -2,6 +2,7 @@ package com.csakos.foretack.wearable_bridge
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
@@ -21,6 +22,7 @@ private const val WEARABLE_CHANNEL = "com.csakos.foretack/wearable"
 private const val WEARABLE_EVENT_CHANNEL = "com.csakos.foretack/wearable/events"
 private const val RACE_STATE_PATH = "/race-state"
 private const val PAYLOAD_KEY = "payload"
+private const val TAG = "WearableBridge"
 
 // Kétirányú Wearable Data Layer híd (ADR 0018 + A1):
 //  - push (telefon): putRaceState -> latched DataItem a /race-state path-ra;
@@ -57,9 +59,16 @@ class WearableBridgePlugin :
         val request = PutDataMapRequest.create(RACE_STATE_PATH).apply {
           dataMap.putString(PAYLOAD_KEY, json)
         }.asPutDataRequest().setUrgent()
+        Log.d(TAG, "putRaceState -> putDataItem (${json.length} char)")
         Wearable.getDataClient(appContext).putDataItem(request)
-          .addOnSuccessListener { result.success(null) }
-          .addOnFailureListener { e -> result.error("WEARABLE_FAILED", e.message, null) }
+          .addOnSuccessListener {
+            Log.d(TAG, "putDataItem OK")
+            result.success(null)
+          }
+          .addOnFailureListener { e ->
+            Log.w(TAG, "putDataItem FAILED: ${e.message}")
+            result.error("WEARABLE_FAILED", e.message, null)
+          }
       }
       else -> result.notImplemented()
     }
@@ -71,6 +80,7 @@ class WearableBridgePlugin :
     eventSink = events
     val dataClient = Wearable.getDataClient(appContext)
     dataClient.addListener(this)
+    Log.d(TAG, "watch listener attached")
     // Kezdeti latched olvasás: a frissen megnyitott / ébredő óra azonnal a
     // legutóbbi /race-state állapotot kapja, nem várja meg a következő pusht.
     val uri = Uri.Builder()
@@ -102,6 +112,7 @@ class WearableBridgePlugin :
   // A DataItem payload-stringjét továbbítja Dart felé (a dekódolás ott történik).
   private fun emit(item: DataItem) {
     val json = DataMapItem.fromDataItem(item).dataMap.getString(PAYLOAD_KEY) ?: return
+    Log.d(TAG, "emit -> Dart (${json.length} char)")
     eventSink?.success(json)
   }
 
