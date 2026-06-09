@@ -1,0 +1,17 @@
+name: prediction_probe
+description: CLI — read-only replay harness validating ADR 0020/0021 predictions.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  args: ^2.6.0
+  domain:
+  shared:
+
+dev_dependencies:
+  test: ^1.25.0

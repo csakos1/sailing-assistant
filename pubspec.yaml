@@ -15,6 +15,7 @@ workspace:
   - apps/phone
   - apps/watch
   - tools/nmea_replay
+  - tools/prediction_probe
 
 dev_dependencies:
   melos: ^7.3.0
