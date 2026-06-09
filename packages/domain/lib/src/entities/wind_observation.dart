@@ -1,3 +1,4 @@
+import 'package:domain/src/entities/twd_quality.dart';
 import 'package:domain/src/value_objects/bearing.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
@@ -31,6 +32,7 @@ class WindObservation extends Equatable {
   WindObservation({
     required this.twd,
     required this.timestamp,
+    this.twdQuality = TwdQuality.live,
   }) : assert(
          twd.reference == BearingReference.trueNorth,
          'twd mező trueNorth-referenciájú Bearing-et tárol.',
@@ -42,20 +44,25 @@ class WindObservation extends Equatable {
   /// A megfigyelés időbélyege.
   final DateTime timestamp;
 
+  /// A derivált TWD minősége (live / held / unavailable). Alap: live.
+  final TwdQuality twdQuality;
+
   /// Immutable update. Simple-form: `null` paraméter "ne változtass"
   /// jelentéssel bír.
   WindObservation copyWith({
     Bearing? twd,
     DateTime? timestamp,
+    TwdQuality? twdQuality,
   }) {
     return WindObservation(
       twd: twd ?? this.twd,
       timestamp: timestamp ?? this.timestamp,
+      twdQuality: twdQuality ?? this.twdQuality,
     );
   }
 
   @override
-  List<Object?> get props => [twd, timestamp];
+  List<Object?> get props => [twd, timestamp, twdQuality];
 
   @override
   bool? get stringify => true;
