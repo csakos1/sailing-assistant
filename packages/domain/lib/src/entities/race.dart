@@ -88,6 +88,17 @@ class Race extends Equatable {
   Mark? get activeMarkOrNull =>
       activeMarkIndex < marks.length ? marks[activeMarkIndex] : null;
 
+  /// A következő bóya (a köv. szár fix irányának számításához,
+  /// ADR 0021), vagy `null`, ha nincs köv. szár.
+  ///
+  /// `marks[activeMarkIndex + 1]`, ha az index tartományon belül van;
+  /// egyébként `null`. notStarted → `marks[1]` (ha van), active → a
+  /// soron következő bóya, az utolsó aktív bóyán és `finished`
+  /// állapotban → `null` (nincs köv. szár → a predikció elnémul).
+  /// Tisztán bounds-alapú, az `activeMarkOrNull` mintáját követi.
+  Mark? get nextMarkOrNull =>
+      activeMarkIndex + 1 < marks.length ? marks[activeMarkIndex + 1] : null;
+
   /// State-átmenet: [RaceStatus.notStarted] → [RaceStatus.active].
   ///
   /// Csak `notStarted` állapotból hívható. Az `activeMarkIndex` 0 marad

@@ -418,4 +418,59 @@ void main() {
       expect(aborted.activeMarkOrNull, isNull);
     });
   });
+
+  group('nextMarkOrNull', () {
+    test('notStarted → a második bóya (marks[1])', () {
+      // ARRANGE & ACT — rajt előtt az aktív az első, a köv. a második.
+      final race = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB],
+      );
+      // ASSERT
+      expect(race.nextMarkOrNull, markB);
+    });
+    test('aktív verseny: a köv. bóya az activeMarkIndex + 1', () {
+      // ARRANGE
+      final started = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB, markC],
+      ).start(at: startTime);
+      // ACT & ASSERT — a köv. bóya egy szárral az aktív előtt jár.
+      expect(started.nextMarkOrNull, markB);
+      final afterA = started.roundCurrentMark(at: roundTime);
+      expect(afterA.nextMarkOrNull, markC);
+    });
+    test('utolsó aktív bóya → null (nincs köv. szár)', () {
+      // ARRANGE
+      final started = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB, markC],
+      ).start(at: startTime);
+      // ACT — kétszer körözünk: markC lesz aktív, nincs marks[3].
+      final afterA = started.roundCurrentMark(at: roundTime);
+      final atLast = afterA.roundCurrentMark(at: roundTime);
+      // ASSERT
+      expect(atLast.activeMarkOrNull, markC);
+      expect(atLast.nextMarkOrNull, isNull);
+    });
+    test('egyetlen bójás pálya → null', () {
+      // ARRANGE & ACT
+      final single = Race.create(id: 'r1', name: 'V', marks: const [markA]);
+      // ASSERT — nincs marks[1].
+      expect(single.nextMarkOrNull, isNull);
+    });
+    test('finished → null', () {
+      // ARRANGE & ACT
+      final finished = Race.create(
+        id: 'r1',
+        name: 'V',
+        marks: const [markA, markB],
+      ).start(at: startTime).finish(at: finishTime);
+      // ASSERT — finished állapotban nincs köv. szár.
+      expect(finished.nextMarkOrNull, isNull);
+    });
+  });
 }
