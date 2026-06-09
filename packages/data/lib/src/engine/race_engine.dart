@@ -44,6 +44,7 @@ class RaceEngine {
   static const _windReducer = WindHistoryReducer();
   static const _trend = CalculateWindShiftTrend();
   static const _predict = ComputeMarkPrediction();
+  static const _derive = DeriveTrueWindDirection();
 
   final StreamController<RaceSnapshot> _snapshots =
       StreamController<RaceSnapshot>.broadcast();
@@ -52,6 +53,9 @@ class RaceEngine {
   late BoatState _boatState;
   WindData? _wind;
   List<WindObservation> _windHistory = const <WindObservation>[];
+  // A stateless DeriveTrueWindDirection görgető párja (ADR 0020 D3):
+  // csak a live becslés frissíti, egyébként az utolsó jót tartja.
+  Bearing? _lastGoodTwd;
   int _eventCount = 0;
   Race? _race;
 
@@ -139,11 +143,27 @@ class RaceEngine {
     _boatState = _boatReducer(_boatState, event, _now());
     if (event case WindEvent(:final data)) {
       _wind = data;
-      final twd = data.trueDirectionGround;
+      // TWD a COG + csúcs-relatív TWA-ból (ADR 0020): a MWD-alapú
+      // trueDirectionGround megbízhatatlan a kalibrálatlan ZG100 miatt.
+      final estimate = _derive(
+        boatState: _boatState,
+        wind: data,
+        lastGoodTwd: _lastGoodTwd,
+      );
+      // Csak a live becslés görgeti a lastGoodTwd-t; held/unavailable tartja.
+      if (estimate.quality == TwdQuality.live) {
+        _lastGoodTwd = estimate.twd;
+      }
+      final twd = estimate.twd;
+      // unavailable -> twd null -> nem fűzünk observationt (history-kihagyás).
       if (twd != null) {
         _windHistory = _windReducer(
           _windHistory,
-          WindObservation(twd: twd, timestamp: data.timestamp),
+          WindObservation(
+            twd: twd,
+            timestamp: data.timestamp,
+            twdQuality: estimate.quality,
+          ),
         );
       }
     }
