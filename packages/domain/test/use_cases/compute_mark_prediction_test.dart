@@ -3,6 +3,7 @@ import 'package:domain/src/entities/eta_source.dart';
 import 'package:domain/src/entities/mark.dart';
 import 'package:domain/src/entities/wind_shift_confidence.dart';
 import 'package:domain/src/entities/wind_shift_trend.dart';
+import 'package:domain/src/use_cases/calculate_bearing_to_mark.dart';
 import 'package:domain/src/use_cases/compute_mark_prediction.dart';
 import 'package:domain/src/value_objects/bearing.dart';
 import 'package:domain/src/value_objects/coordinate.dart';
@@ -11,12 +12,25 @@ import 'package:test/test.dart';
 
 void main() {
   const boatPosition = Coordinate(latitude: 46, longitude: 17);
-  // A bója pontosan a hajótól északra (Δlon = 0) → a Haversine-távolság
-  // R·Δlat, a bearing pedig pontosan 0° true.
+  // Az aktív bója pontosan a hajótól északra (Δlon = 0) → a Haversine-
+  // távolság R·Δlat, a bearing pedig pontosan 0° true.
   const mark = Mark(
     sequence: 1,
     name: '1. bója',
     position: Coordinate(latitude: 46.01, longitude: 17),
+  );
+  // A köv. bója az aktívtól keletre → bearing(aktív→köv) ≈ 90°, eltér a
+  // hajó→aktív 0°-tól; ez különbözteti meg a köv-szár-referenciát.
+  const nextMark = Mark(
+    sequence: 2,
+    name: '2. bója',
+    position: Coordinate(latitude: 46.01, longitude: 17.02),
+  );
+  // A hajóhoz közeli (≈33 m) bója a freeze-teszthez.
+  const nearMark = Mark(
+    sequence: 1,
+    name: 'közeli',
+    position: Coordinate(latitude: 46.0003, longitude: 17),
   );
   final now = DateTime.utc(2026, 5, 25, 12);
   final trend = WindShiftTrend(
@@ -34,6 +48,7 @@ void main() {
 
       final result = sut(
         activeMark: null,
+        nextMark: nextMark,
         boatState: boatState,
         trend: trend,
         now: now,
@@ -47,6 +62,7 @@ void main() {
 
       final result = sut(
         activeMark: mark,
+        nextMark: nextMark,
         boatState: boatState,
         trend: trend,
         now: now,
@@ -65,6 +81,7 @@ void main() {
 
       final result = sut(
         activeMark: mark,
+        nextMark: nextMark,
         boatState: boatState,
         trend: trend,
         now: now,
@@ -95,6 +112,7 @@ void main() {
 
       final result = sut(
         activeMark: mark,
+        nextMark: nextMark,
         boatState: boatState,
         trend: null,
         now: now,
@@ -116,6 +134,7 @@ void main() {
 
       final result = sut(
         activeMark: mark,
+        nextMark: nextMark,
         boatState: boatState,
         trend: trend,
         now: now,
@@ -138,6 +157,7 @@ void main() {
 
       final result = sut(
         activeMark: mark,
+        nextMark: nextMark,
         boatState: boatState,
         trend: trend,
         now: now,
@@ -148,5 +168,97 @@ void main() {
       expect(p.courseCorrection, isNull);
       expect(p.eta, isNotNull);
     });
+
+    test(
+      'utolsó láb (nincs köv. bója) → predicted TWA null, többi mező él',
+      () {
+        final boatState = BoatState(
+          lastUpdate: now,
+          position: boatPosition,
+          courseOverGround: const Bearing.true_(90),
+          speedOverGround: const Speed(metersPerSecond: 5),
+        );
+
+        final result = sut(
+          activeMark: mark,
+          nextMark: null,
+          boatState: boatState,
+          trend: trend,
+          now: now,
+        );
+
+        expect(result, isNotNull);
+        final p = result!;
+        // Nincs köv. szár → nincs köv-szár-TWA, de a navigáció él.
+        expect(p.predictedTwaAtMark, isNull);
+        expect(p.bearingToMark.degrees, closeTo(0, 0.001));
+        expect(p.eta, isNotNull);
+      },
+    );
+
+    test('a bója 50 m-es körén belül → predicted TWA null (freeze)', () {
+      final boatState = BoatState(
+        lastUpdate: now,
+        position: boatPosition,
+        courseOverGround: const Bearing.true_(90),
+        speedOverGround: const Speed(metersPerSecond: 5),
+      );
+
+      final result = sut(
+        activeMark: nearMark,
+        nextMark: mark,
+        boatState: boatState,
+        trend: trend,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      final p = result!;
+      expect(p.distanceToMark.meters, lessThan(50));
+      expect(p.predictedTwaAtMark, isNull);
+      // A bearing a freeze ellenére is él.
+      expect(p.bearingToMark, isNotNull);
+    });
+
+    test(
+      'a predikció a köv. szárhoz (aktív→köv) mér, nem a hajó→aktív-hoz',
+      () {
+        // shiftRate 0 → nincs eltolás, így predictedTwd == currentTwd (200),
+        // és a TWA pontosan currentTwd - bearing(aktív→köv). A köv. szár
+        // ≈90° keletre, a hajó→aktív 0° északra — a kettő élesen elválik.
+        final flatTrend = WindShiftTrend(
+          shiftRateDegPerMinute: 0,
+          currentTwd: const Bearing.true_(200),
+          confidence: WindShiftConfidence.high,
+          sampleCount: 15,
+          windowDuration: const Duration(minutes: 10),
+        );
+        final boatState = BoatState(
+          lastUpdate: now,
+          position: boatPosition,
+          courseOverGround: const Bearing.true_(90),
+          speedOverGround: const Speed(metersPerSecond: 5),
+        );
+
+        final result = sut(
+          activeMark: mark,
+          nextMark: nextMark,
+          boatState: boatState,
+          trend: flatTrend,
+          now: now,
+        );
+
+        final legBearing = const CalculateBearingToMark()(
+          mark.position,
+          nextMark.position,
+        );
+        final expected = const Bearing.true_(200) - legBearing;
+        expect(result, isNotNull);
+        expect(
+          result!.predictedTwaAtMark!.degrees,
+          closeTo(expected.degrees, 1e-9),
+        );
+      },
+    );
   });
 }

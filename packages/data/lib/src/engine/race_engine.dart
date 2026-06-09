@@ -177,6 +177,7 @@ class RaceEngine {
     final trend = _trend(history: _windHistory, window: _windWindow, now: tick);
     final prediction = _predict(
       activeMark: steppedRace.activeMarkOrNull,
+      nextMark: steppedRace.nextMarkOrNull,
       boatState: _boatState,
       trend: trend,
       now: tick,

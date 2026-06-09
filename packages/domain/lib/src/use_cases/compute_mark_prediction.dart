@@ -29,6 +29,13 @@ import 'package:meta/meta.dart';
 /// composite a v2 belépési pontja: `PolarRepository`, polár-aware ETA).
 /// A ctor `const`, az osztály `@immutable`.
 ///
+/// **Köv-szár-TWA (ADR 0021).** A `predictedTwaAtMark` referenciája a
+/// **következő szár fix iránya** (`bearing(activeMark → nextMark)`), nem
+/// a hajó→aktív-bója irány. Az utolsó lábon (nincs `nextMark`) és a bója
+/// [_freezeRadiusMeters]-es körén belül a predikció `null`, a többi mező
+/// megmarad. A kapuzás (konfidencia, ±cap, ablak) a 7.5
+/// `PredictTwaAtMark`-ban van.
+///
 /// **Mark-rounding nincs benne** — az állapotos `MarkRoundingDetector`
 /// (7.7) az application rétegben fut külön (8.4).
 @immutable
@@ -53,6 +60,10 @@ class ComputeMarkPrediction {
   final CalculateEtaToMark _eta;
   final PredictTwaAtMark _predict;
 
+  /// A predikciót elnémító bója-körzet sugara méterben (ADR 0021 D4):
+  /// ezen belül a bearing/ETA instabil, ezért nincs köv-szár-TWA.
+  static const double _freezeRadiusMeters = 50;
+
   /// Egyetlen prediction-snapshot az [activeMark]-ra a [boatState] és a
   /// [trend] aktuális értékéből, [now] időbélyeggel.
   ///
@@ -61,12 +72,18 @@ class ComputeMarkPrediction {
   /// sem értelmezhető. A [trend]-et kész állapotban kapja (a provider
   /// hívja a 7.4-et); a window-kezelés az application réteg dolga (SRP).
   ///
+  /// A köv-szár-TWA-hoz a [nextMark] is kell (ADR 0021): a `legBearing`
+  /// = `bearing(activeMark → nextMark)`. Ha [nextMark] `null` (utolsó láb)
+  /// vagy a bója [_freezeRadiusMeters]-es körén belül vagyunk, a
+  /// `predictedTwaAtMark` `null`, de a többi mező él.
+  ///
   /// A részeredmények null-szemantikája átöröklődik a [MarkPrediction]-
   /// be: nincs effektív irány → `courseCorrection` null; SOG drift alatt
   /// → `eta` null és `etaSource` `unknown`; nincs (elég jó) trend →
   /// `predictedTwaAtMark` null és `shiftConfidence` `low`.
   MarkPrediction? call({
     required Mark? activeMark,
+    required Mark? nextMark,
     required BoatState boatState,
     required WindShiftTrend? trend,
     required DateTime now,
@@ -88,11 +105,19 @@ class ComputeMarkPrediction {
       distance: distance,
       speedOverGround: boatState.speedOverGround,
     );
-    final predictedTwa = _predict(
-      courseToMark: bearing,
-      trend: trend,
-      timeToMark: eta,
-    );
+
+    // Köv-szár-TWA (ADR 0021): a referencia a KÖVETKEZŐ szár fix iránya
+    // (aktív→köv. bója), NEM a hajó→aktív-bója irány. Utolsó lábon
+    // (nincs köv. bója) vagy a bója freeze-körén belül a predikció null
+    // — a többi mező (bearing, distance, ETA) megmarad.
+    final predictedTwa =
+        (nextMark == null || distance.meters <= _freezeRadiusMeters)
+        ? null
+        : _predict(
+            nextLegBearing: _bearing(activeMark.position, nextMark.position),
+            trend: trend,
+            timeToMark: eta,
+          );
 
     return MarkPrediction(
       mark: activeMark,
