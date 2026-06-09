@@ -87,6 +87,10 @@
   "@warningWindShiftTrendInsufficient": {
     "description": "Warning (info): még nincs elég széladat a trend becsléséhez."
   },
+  "warningSuspectHeading": "Iránytű gyanús – heading és irány eltér",
+  "@warningSuspectHeading": {
+    "description": "Warning (warning): a heading tartósan eltér a haladási iránytól (ZG100)."
+  },
 
   "appTitle": "Foretack",
   "@appTitle": {

@@ -72,6 +72,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get warningWindShiftTrendInsufficient => 'Kevés széladat a trendhez';
 
   @override
+  String get warningSuspectHeading => 'Iránytű gyanús – heading és irány eltér';
+
+  @override
   String get appTitle => 'Foretack';
 
   @override

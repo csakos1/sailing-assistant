@@ -187,5 +187,86 @@ void main() {
         ]);
       });
     });
+
+    group('SuspectHeadingWarning', () {
+      // Heading és COG egyaránt trueNorth (ADR 0013); a küszöb 35°, 2.0 kn.
+      BoatState boatHeadingCog({
+        required double headingDeg,
+        required double cogDeg,
+        required double sogMps,
+      }) {
+        return BoatState(
+          lastUpdate: lastUpdate,
+          position: position,
+          headingTrue: Bearing.true_(headingDeg),
+          courseOverGround: Bearing.true_(cogDeg),
+          speedOverGround: Speed(metersPerSecond: sogMps),
+        );
+      }
+
+      test('SOG és eltérés is a küszöb fölött → tartalmazza', () {
+        // 60° eltérés, ~3 kn (1.54 m/s) → mindkét feltétel teljesül.
+        final result = evaluate(
+          boatState: boatHeadingCog(headingDeg: 100, cogDeg: 160, sogMps: 1.54),
+        );
+
+        expect(result, contains(const SuspectHeadingWarning()));
+      });
+
+      test('SOG a küszöb alatt → nem tartalmazza', () {
+        // ~1 kn (0.51 m/s) a 2.0 kn kapu alatt → nincs riasztás.
+        final result = evaluate(
+          boatState: boatHeadingCog(headingDeg: 100, cogDeg: 160, sogMps: 0.51),
+        );
+
+        expect(result, isNot(contains(const SuspectHeadingWarning())));
+      });
+
+      test('eltérés a küszöb alatt → nem tartalmazza', () {
+        // 10° eltérés bőven a 35° alatt, hiába gyors a hajó.
+        final result = evaluate(
+          boatState: boatHeadingCog(headingDeg: 100, cogDeg: 110, sogMps: 3),
+        );
+
+        expect(result, isNot(contains(const SuspectHeadingWarning())));
+      });
+
+      test('pontosan a küszöbön (35°, 2.0 kn) → tartalmazza (>=)', () {
+        // Inkluzív küszöb: a pont-küszöbnyi eset is riaszt.
+        final result = evaluate(
+          boatState: boatHeadingCog(
+            headingDeg: 100,
+            cogDeg: 135,
+            sogMps: 1.0289,
+          ),
+        );
+
+        expect(result, contains(const SuspectHeadingWarning()));
+      });
+
+      test('hiányzó heading → nem tartalmazza', () {
+        // Heading nélkül nem számolható az eltérés.
+        final result = evaluate(
+          boatState: BoatState(
+            lastUpdate: lastUpdate,
+            position: position,
+            courseOverGround: const Bearing.true_(160),
+            speedOverGround: const Speed(metersPerSecond: 1.54),
+          ),
+        );
+
+        expect(result, isNot(contains(const SuspectHeadingWarning())));
+      });
+
+      test('nem csatlakozott → elnyomva a gating miatt', () {
+        // A gateway-gating minden downstream warningot elnyom.
+        final result = evaluate(
+          connectionStatus: const Disconnected(),
+          boatState: boatHeadingCog(headingDeg: 100, cogDeg: 160, sogMps: 1.54),
+        );
+
+        expect(result, isNot(contains(const SuspectHeadingWarning())));
+      });
+    });
   });
 }

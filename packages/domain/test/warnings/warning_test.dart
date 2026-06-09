@@ -14,16 +14,18 @@ void main() {
           const WindShiftTrendInsufficient().codeId,
           'wind_shift_trend_insufficient',
         );
+        expect(const SuspectHeadingWarning().codeId, 'suspect_heading');
       });
 
-      test('a négy v1 codeId egyedi', () {
+      test('az öt v1 codeId egyedi', () {
         final ids = <String>{
           const GatewayDisconnected().codeId,
           const GpsSignalLost().codeId,
           const GpsTimeUnsynced().codeId,
           const WindShiftTrendInsufficient().codeId,
+          const SuspectHeadingWarning().codeId,
         };
-        expect(ids, hasLength(4));
+        expect(ids, hasLength(5));
       });
     });
 
@@ -35,6 +37,13 @@ void main() {
 
       test('a GPS-idő-szinkronhiány warning', () {
         expect(const GpsTimeUnsynced().severity, WarningSeverity.warning);
+      });
+
+      test('a gyanús iránytű warning', () {
+        expect(
+          const SuspectHeadingWarning().severity,
+          WarningSeverity.warning,
+        );
       });
 
       test('az elégtelen szél-trend info', () {

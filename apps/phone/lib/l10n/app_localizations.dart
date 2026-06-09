@@ -214,6 +214,12 @@ abstract class AppLocalizations {
   /// **'Kevés széladat a trendhez'**
   String get warningWindShiftTrendInsufficient;
 
+  /// Warning (warning): a heading tartósan eltér a haladási iránytól (ZG100).
+  ///
+  /// In hu, this message translates to:
+  /// **'Iránytű gyanús – heading és irány eltér'**
+  String get warningSuspectHeading;
+
   /// Az app neve a launcher / recents képernyőn.
   ///
   /// In hu, this message translates to:

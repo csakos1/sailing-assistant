@@ -94,3 +94,17 @@ final class WindShiftTrendInsufficient extends Warning {
   @override
   List<Object?> get props => const [];
 }
+
+/// Az iránytű (ZG100) gyanús: a heading tartósan eltér a haladási iránytól
+/// (ADR 0020 D5). A heading-alapú kijelzések és a `MWD` ilyenkor gyanúsak,
+/// de a derivált TWD (§6.5) és a predikció ettől függetlenül helyes.
+final class SuspectHeadingWarning extends Warning {
+  /// Gyanús-iránytű jelző.
+  const SuspectHeadingWarning();
+  @override
+  String get codeId => 'suspect_heading';
+  @override
+  WarningSeverity get severity => WarningSeverity.warning;
+  @override
+  List<Object?> get props => const [];
+}
