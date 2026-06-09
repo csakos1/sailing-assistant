@@ -337,14 +337,20 @@ sailing-assistant/                        # GitHub repo root
 │   │       │   └── sentences/                            # 0183 decode unit tests
 │   │       └── persistence/
 │   │
-│   └── shared/                           # Cross-cutting utilities
+│   ├── shared/                           # Cross-cutting utilities
+│   │   ├── lib/
+│   │   │   ├── shared.dart
+│   │   │   └── src/
+│   │   │       ├── result.dart                          # Result<T, E> sealed class
+│   │   │       ├── extensions/
+│   │   │       └── constants/
+│   │   └── test/
+│   │
+│   └── wearable_bridge/                  # Android-only Flutter plugin (ADR 0018): Wearable Data Layer transport
 │       ├── lib/
-│       │   ├── shared.dart
-│       │   └── src/
-│       │       ├── result.dart                          # Result<T, E> sealed class
-│       │       ├── extensions/
-│       │       └── constants/
-│       └── test/
+│       │   └── wearable_bridge.dart      # Dart plugin API: push + EventChannel vetel
+│       ├── android/src/main/kotlin/.../WearableBridgePlugin.kt   # latched putDataItem + DataListener
+│       └── pubspec.yaml
 │
 ├── apps/
 │   ├── phone/                            # Phone Flutter app
@@ -394,15 +400,28 @@ sailing-assistant/                        # GitHub repo root
 │       ├── lib/
 │       │   ├── main.dart
 │       │   ├── screens/
-│       │   │   ├── primary_view.dart                   # Nagy számok
-│       │   │   └── secondary_view.dart                 # Részletes
-│       │   ├── providers/
-│       │   │   └── watch_state_provider.dart
-│       │   └── platform/
-│       │       └── data_layer_channel.dart             # Method channel a natív felé
-│       ├── android/
-│       │   └── app/src/main/kotlin/
-│       │       └── DataLayerService.kt                 # Wearable Data Layer hídja
+│       │   │   ├── watch_home_view.dart                # AsyncValue-gate → RaceShell
+│       │   │   ├── race_shell.dart                     # PageView A↔B + perem-nav + Ongoing Activity (ADR 0019)
+│       │   │   ├── speed_view.dart                     # A-nezet (SOG hero)
+│       │   │   └── next_mark_view.dart                 # B-nezet (predikalt TWA hero)
+│       │   ├── watch_sync/
+│       │   │   ├── watch_state_provider.dart           # vetel → WatchPayload decode → StreamProvider
+│       │   │   ├── watch_clock.dart                    # GPS-ido monoton gorgetes (ADR 0012)
+│       │   │   ├── watch_clock_provider.dart           # 1 Hz ora-tick
+│       │   │   ├── gps_clock_reading.dart              # ora-olvasat value object
+│       │   │   └── race_ongoing_activity.dart          # Ongoing Activity seam + adapter (ADR 0019)
+│       │   ├── rotary/
+│       │   │   ├── rotary_scroll_provider.dart         # bezel EventChannel → stream
+│       │   │   └── rotary_page_stepper.dart            # deltak → lap-snap (PageController)
+│       │   ├── theme/
+│       │   │   ├── watch_colors.dart
+│       │   │   └── watch_theme.dart                    # sotet-only tema
+│       │   └── widgets/
+│       │       ├── watch_metrics.dart                  # ArrowedValue cellak
+│       │       └── direction_arrow.dart                # oldal-nyil glyph
+│       ├── android/app/src/main/
+│       │   ├── kotlin/dev/csakos/.../watch/MainActivity.kt   # rotary onGenericMotionEvent override
+│       │   └── res/drawable/ic_ongoing.xml                   # Ongoing Activity statikus ikon (ADR 0019)
 │       ├── pubspec.yaml
 │       └── test/
 │
@@ -2916,6 +2935,38 @@ beérkező JSON-stringet egy EventChannelen adja Dart felé. A dekódolás
 A részletes döntést az **ADR 0018** (D1–D4) és az **A1 addendum**
 (óra-oldali vétel) rögzíti.
 
+### 10.8 Óra-oldali always-on: Ongoing Activity (ADR 0019)
+
+A Wear OS always-on kétlépcsős: Timeout #1 után a kijelző ambient (dimmelt)
+állapotba megy, Timeout #2 után visszaesik a számlapra. A v1-core
+követelmény, hogy a verseny-kijelző a verseny alatt **láthatóan maradjon**, és
+csuklóemelésre mindig az app jöjjön elő, ne a számlap. Az ambient
+(`wear_plus` / AmbientLifecycle) CSAK a #1-et kezeli; a #2-t (Wear OS 5+) egy
+**Ongoing Activity** akadályozza meg.
+
+A hordozó a **`wear_ongoing_activity`** plugin (saját foreground service +
+`OngoingActivity`, a mi oldalunkon natív Kotlin nélkül, a UI-izolátumból
+`start`/`stop`). A `flutter_foreground_task` óra-oldali újrahasznosítása
+ELVETVE: az a háttér-izolátum köré épül, amire az órán nincs szükség (az engine
+a telefonon fut, a vételt a `wearable_bridge` EventChannelje a UI-engine-re
+kézbesíti). Az FGS-típus **`specialUse`** (`FOREGROUND_SERVICE_SPECIAL_USE` +
+`PROPERTY_SPECIAL_USE_FGS_SUBTYPE`): a `connectedDevice` API 34+-on a
+típus-permen FELÜL companion-permet (BLUETOOTH_* / CHANGE_WIFI_STATE / …)
+követelne, amit az óra nem használ → `SecurityException`. A `specialUse` a
+service őszinte típusa (egyetlen célja a kijelző láthatóan tartása),
+companion-perm és időkorlát nélkül. Az Ongoing Activity-t látható ongoing
+notification hordozza → a `POST_NOTIFICATIONS` (API 33+) engedélyt a
+`permission_handler` indítás előtt elkéri.
+
+Architektúra: egy `RaceOngoingActivity` DIP-varrat + a
+`WearOngoingActivityAdapter` (az egyetlen natív-érintő pont), a `RaceShell`
+mount/dispose-ához kötve (`initState` → `start()`, `dispose` → `stop()`) — a
+telefon `ScreenWakeLock` óra-oldali, láthatósági párja. A `start()`/`stop()`
+`try`/log-gal védett (graceful degradáció a vízen). A tesztek spy-jal
+felülírják a providert. Az ambient (+`WAKE_LOCK`) a #1 dimmelt állapothoz
+megmarad; a teljes-fényerős wakelock elvetve (aksi). A részletes döntést az
+**ADR 0019** + **Addendum A1** rögzíti.
+
 ---
 
 ## 11. Hibakezelés és warning rendszer
@@ -3262,39 +3313,30 @@ name: data
 ### 13.3 `apps/phone`
 
 ```yaml
-name: phone
-  environment:
-    sdk: ^3.11.0
-    flutter: ">=3.41.0"
-  
-  dependencies:
-    flutter:
-      sdk: flutter
-    flutter_localizations:
-      sdk: flutter
-    domain:
-      path: ../../packages/domain
-    data:
-      path: ../../packages/data
-    shared:
-      path: ../../packages/shared
-    flutter_riverpod: ^2.5.0
-    riverpod_annotation: ^2.5.0
-    go_router: ^14.0.0
-    intl: ^0.19.0
-    freezed_annotation: ^2.4.0
-    json_annotation: ^4.9.0
-    uuid: ^4.5.1
-  
-  dev_dependencies:
-    flutter_test:
-      sdk: flutter
-    build_runner: ^2.4.0
-    drift: ^2.33.0
-    freezed: ^2.5.0
-    json_serializable: ^6.8.0
-    riverpod_generator: ^2.4.0
-    very_good_analysis: ^9.0.0
+dependencies:
+  cupertino_icons: ^1.0.8
+  data:
+    path: ../../packages/data
+  domain:
+    path: ../../packages/domain
+  flutter:
+    sdk: flutter
+  flutter_foreground_task: ^9.2.2   # háttér-RaceEngine FGS (ADR 0016)
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.5.0          # klasszikus Riverpod, NINCS codegen
+  geolocator: ^14.0.0               # GNSS true-time anchor (ADR 0012)
+  shared:
+    path: ../../packages/shared
+  uuid: ^4.5.1
+  wakelock_plus: ^1.4.0             # előtér-UI kényelmi wakelock (nem load-bearing)
+  wearable_bridge:                  # natív Wearable Data Layer transport (ADR 0018)
+    path: ../../packages/wearable_bridge
+dev_dependencies:
+  drift: ^2.33.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_test:
+    sdk: flutter
 ```
 
 ### 13.4 `apps/watch`
@@ -3303,20 +3345,24 @@ Minimal subset, Wearable Data Layer-rel:
 
 ```yaml
 dependencies:
-    flutter:
-      sdk: flutter
-    flutter_riverpod: ^2.5.0
-    shared:
-      path: ../../packages/shared
-    wearable_bridge:
-      path: ../../packages/wearable_bridge
-    wear_plus: ^1.2.4
-    # Nincs data- és nincs domain-függés: a nyíl-konvenció és a formázók
-    # primitív-bemenettel a shared-ben élnek (ADR 0015 D8 + addendum); az óra
-    # csak a WatchPayload primitíveit rendereli. A natív vételt a wearable_bridge
-    # plugin EventChannelje adja (ADR 0018 A1). A wear_plus az ambient/round
-    # kezelést adja; a rotary perem-nav (lap-snap A↔B) minimál saját
-    # EventChannel (onGenericMotionEvent → PageController), nem wear_os_scrollbar.
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.0
+  permission_handler: ^12.0.0       # POST_NOTIFICATIONS az Ongoing Activity-hez (ADR 0019)
+  shared:
+    path: ../../packages/shared
+  wear_ongoing_activity: ^0.1.6     # always-on Ongoing Activity hordozó, specialUse FGS (ADR 0019)
+  wear_plus: ^1.2.4                 # ambient/round (Timeout #1 dimmelt állapot)
+  wearable_bridge:
+    path: ../../packages/wearable_bridge
+# Nincs data- és nincs domain-függés: a nyíl-konvenció és a formázók
+# primitív-bemenettel a shared-ben élnek (ADR 0015 D8 + addendum); az óra csak a
+# WatchPayload primitíveit rendereli. A natív vételt a wearable_bridge plugin
+# EventChannelje adja (ADR 0018 A1). A rotary perem-nav (lap-snap A↔B) minimál
+# saját EventChannel (onGenericMotionEvent → PageController), nem
+# wear_os_scrollbar. Az always-on Ongoing Activity-t (ADR 0019, §10.8) a
+# wear_ongoing_activity hordozza specialUse FGS-ként; NINCS flutter_foreground_task
+# az órán.
 ```
 
 ### 13.5 Tools / nmea_replay
