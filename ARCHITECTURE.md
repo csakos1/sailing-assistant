@@ -1504,6 +1504,15 @@ class CalculateWindShiftTrend {
 }
 ```
 
+**ADR 0023 — az r² már csak a kapu, a UI-konfidencia a hibasávból.** A fenti
+`confidence` (r²-besorolás) ezentúl **kizárólag a 7.5 extrapolációs kapuját**
+vezérli (low → slope 0), NEM a UI-bizalmat. A `WindShiftTrend` három additív,
+regresszió-statisztika mezővel bővül — `residualStdErrorDeg` (a reziduál-szórás
+fokban), `slopeStdErrorDegPerMin` (a meredekség standard hibája) és
+`meanSampleTime` (az ablak idő-súlypontja) —, amiket a belső `linearRegression`
+immár visszaad. A UI-felé menő `WindShiftConfidence` a predikció **előrejelzési
+hibasávjából** képződik (lásd 7.5b, ADR 0023).
+
 ### 7.5 PredictTwaAtMark
 
 ```dart
@@ -1582,6 +1591,30 @@ class PredictTwaAtMark {
   }
 }
 ```
+
+### 7.5b EstimatePredictionConfidence (előrejelzési hibasáv, ADR 0023)
+
+A `PredictTwaAtMark` immár nemcsak az `Angle` TWA-t adja vissza, hanem a hozzá
+tartozó **hibasávot** is — a kapu-döntés, az `effectiveEta` és a trend
+regresszió-statisztikái mind itt ismertek. Az új pure use case a sávot és a
+szintet képzi:
+
+```dart
+EstimatePredictionConfidence(
+  residualStdErrorDeg: s,
+  slopeStdErrorDegPerMin: slopeSE,
+  horizon: h,            // Duration.zero, ha a kapu nullazta a slope-ot
+) -> ({double bandDegrees, WindShiftConfidence confidence})
+```
+
+`band = sqrt(s² + (slopeSE · hPerc)²)`, ahol `hPerc =
+((now + effectiveEta) − meanSampleTime)` percben; a kapuzott (low r²) ágon
+`horizon = 0`, így `band = s`. Küszöbök (settings-hangolható): `band ≤ 6°` →
+high, `band ≤ 15°` → medium, egyébként low; a 2026-06-06 logon kalibrálva (a
+`prediction_probe` új `band=` oszlopával). A sáv az ADR 0021 kaput **nem**
+módosítja: a kapu dönti az extrapolációt, a sáv a megjelenített bizalmat. A
+stabil szél (kicsi `s`) így high-ra kerül, a zajos (nagy `s`) low-ra, és a
+távoli bója (nagy `slopeSE · hPerc`) lejjebb csúszik.
 
 ### 7.6 CalculateEtaToMark
 
@@ -1835,6 +1868,15 @@ seam-et, mert a composite a v2 belépési pontja (`PolarRepository`). Az
 `Bearing`-et vár.
 
 > **v2 változás**: az osztályhoz hozzákerül egy `PolarRepository` függőség és egy `Polar?` paraméter, a `_eta` hívás polár-aware lesz, az `etaSource` pedig értelemszerűen `polar` is lehet.
+
+**ADR 0023 — a band és a band-alapú konfidencia a `MarkPrediction`-en.** A
+`MarkPrediction` új additív mezőt kap: `forecastBandDegrees` (`double?`, `null`
+ha nincs predikció). A composite a `_predict` (7.5) eredményéből veszi a
+`predictedTwaAtMark`-ot, a `forecastBandDegrees`-t ÉS a `shiftConfidence`-t —
+utóbbi tehát már **nem** a `trend.confidence`-ből, hanem a hibasávból (7.5b)
+jön. Predikció hiányában (utolsó láb / 50 m freeze) a band `null`, a
+`shiftConfidence` `low`. A mező a `RaceSnapshot`-ra és a `WatchPayload`-ra is
+átkerül (additív, default-tal), és a `snapshot_logs` is rögzíti.
 
 ---
 
@@ -2978,19 +3020,28 @@ folyamatosan lép.
 watch `MainActivity.onGenericMotionEvent`-jéből egy EventChannelen át a
 `PageController`-t lépteti (lap-snap; nem scroll, ezért **nem**
 `wear_os_scrollbar`, hanem minimál saját híd a megszűnt `wearable_rotary`
-mintájára). Ambientben (`wear_plus` `AmbientMode`) csak a hero és a GPS-idő
+mintájára). Ambientben (`wear_plus` `AmbientMode`) a hero, a GPS-idő, és a
+predikció-bizalom (±° sáv + halvány alsó ív, ADR 0023 D8)
 marad, tompított palettával, szín-accent nélkül, a rendszer ambient-kadenciáján;
 aktív kijelzőn az always-on él.
 
-**Trust-jelzés a köv-TWA-n (ADR 0020 D7).** A B-nézet hero két, egymástól
-független megbízhatósági jelet hordoz, a phone §8.7-tel azonos szemantikával. A
-**predikció-konfidencia** (`WindShiftConfidence`, a payload `shiftConfidence`
-mezőjéből) a hero ALATT három pötty (`●○○`/`●●○`/`●●●`), a phone
-`confidence_dots` leképezését követve. A **TWD-minőség** (`TwdQuality`, a payload
-`twdQuality` mezőjéből) a hero **opacitásán**: `live` = teljes; `held` =
-tompított (~60%) + diszkrét „tartott" jel; `unavailable` = `—`. A két csatorna
-ortogonális (pötty vs. opacitás), így nem keverednek; ambientben (csak hero +
-GPS-idő) a TWD-minőség-jelzés elmarad.
+**Trust-jelzés a köv-TWA-n (ADR 0020 D7 + ADR 0023).** A B-nézet hero két,
+egymástól független megbízhatósági jelet hordoz. (1) A **predikció-bizalom** két
+csatornán: a hero ALATT a **±° hibasáv** (a payload `forecastBandDegrees`-éből) —
+ez a fő, **szín-független** trust-szám, amit ambientben és színvesztéskor is
+olvasol —, és a kerek lap **ALSÓ peremén** egy **konfidencia-ív**, aminek a
+**színe és hossza** a `shiftConfidence`-szint (`high` = teal, `medium` = amber,
+`low` = szürke; **piros nincs**, az a warning-csatorna). Az ív peremlátással is
+olvasható, és a felső peremet a GPS-idő foglalja. A korábbi három pötty az órán
+**megszűnik** (a telefon §8.7 dots-a marad; a két platform azonos metrikát,
+eltérő vizuált rendereel — a bucket-szemantika egyetlen igazságforrás, az
+`EstimatePredictionConfidence`). (2) A **TWD-minőség** (`twdQuality`) ortogonális
+csatornán: a hero **opacitásán** + „tartott" jelzéssel (`live` = teljes; `held` =
+~60% + „tartott"; `unavailable` = `—`). A két kérdés külön: *„pontos-e a jóslat"
+(ív + ±°)* és *„friss-e a mögötte lévő szél" (opacitás + tartott)*. **Ambientben
+a predikció-bizalom megmarad** (a ±° sáv + a halvány alsó ív, ~1/perc kadencián,
+burn-in-biztos; ADR 0023 D8); ott a szín lewasholhat, ezért a ±° viszi a
+trust-et, a „tartott" felirat pedig elmaradhat.
 
 ### 10.5 Korlátok
 
