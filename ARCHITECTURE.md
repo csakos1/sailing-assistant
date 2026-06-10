@@ -2733,6 +2733,17 @@ class TelemetryRecords extends Table {
   TextColumn get decodedJson => text().nullable()(); // v1: null; post-race re-decode
 }
 
+// Kiszámolt-érték telemetria: race-enként az 1 Hz-es RaceSnapshot JSON-blobja
+// post-race elemzéshez (ADR 0022). Row-class: SnapshotLogRow.
+@DataClassName('SnapshotLogRow')
+@TableIndex(name: 'snapshot_log_race_time', columns: {#raceId, #timestamp})
+class SnapshotLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get raceId => text().references(Races, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get timestamp => dateTime()();
+  TextColumn get snapshotJson => text()();           // jsonEncode(snapshot.toJson())
+}
+
 class Settings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -2746,6 +2757,12 @@ class Settings extends Table {
 > `schemaVersion` 1 → 2, `onUpgrade`-ben `m.createTable(settings)` (CSAK az új
 > tábla, nem `createAll`); a `beforeOpen` FK-pragma marad. Ez a projekt első
 > valódi migrációja.
+
+> **v2 → v3 migráció (Fázis 8 előkészítés, ADR 0022)**: a `SnapshotLogs`
+> tábla a kiszámolt-érték telemetriához. `schemaVersion` 2 → 3,
+> `onUpgrade`-ben `if (from < 3) m.createTable(snapshotLogs)` (CSAK az új
+> tábla). Migráció-tulajdonos a UI-izolátum; a másodlagos engine-kapcsolat
+> kész sémát feltételez (ADR 0017 D6).
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
@@ -2851,6 +2868,18 @@ class TelemetryLoggerImpl implements TelemetryLogger {
 > engine-sessionhöz kötött (`_race != null`), nem az `activeRaceProvider`-
 > höz; a záró flush a `RaceEngine.dispose()`-ban, a kapcsolat zárása ELŐTT
 > történik (graceful finish-then-stop).
+
+> **ADR 0022 (snapshot-telemetria)**: a háttér-engine a `RaceSnapshot`-ot
+> is perzisztálja a kiszámolt-érték telemetriához — egy adat-rétegbeli
+> `SnapshotLogger` absztrakción át (a `TelemetryLogger` mintája; az
+> interfész a `data`-ban, mert a `RaceSnapshot` data-layer DTO, a domain
+> nem hivatkozhat rá). A `SnapshotLoggerImpl` a **másodlagos
+> `AppDatabase.secondary()` kapcsolaton** ír (1 Hz, a `_onTick`
+> snapshot-emitje után, `unawaited`, nincs buffer; a `log` internál
+> try/catch — egy DB-hiba nem szakíthatja meg a snapshot-streamet). Az
+> engine diszjunkt táblái így **`telemetry_records` + `snapshot_logs`**. A
+> `RaceEngine` ctor `_NoopSnapshotLogger`-t kap default-nak → a
+> replay/teszt/`prediction_probe` út DB-írás nélkül fut.
 
 ---
 
