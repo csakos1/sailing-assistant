@@ -24,6 +24,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveTwaNext => 'TWA köv.';
 
   @override
+  String get liveTwdHeld => 'tartott';
+
+  @override
   String get liveBearing => 'Bearing';
 
   @override

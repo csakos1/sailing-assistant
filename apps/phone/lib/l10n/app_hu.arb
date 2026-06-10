@@ -21,6 +21,10 @@
   "@liveTwaNext": {
     "description": "Cella-címke: a következő bójánál várható TWA."
   },
+  "liveTwdHeld": "tartott",
+  "@liveTwdHeld": {
+    "description": "Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7)."
+  },
   "liveBearing": "Bearing",
   "@liveBearing": {
     "description": "Cella-címke: irány a bójához (abszolút bearing)."

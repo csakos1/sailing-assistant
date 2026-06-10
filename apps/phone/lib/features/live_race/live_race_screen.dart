@@ -6,11 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
-import 'package:phone/features/live_race/widgets/confidence_dots.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
 import 'package:phone/features/live_race/widgets/live_status_bar.dart';
 import 'package:phone/features/live_race/widgets/metric_cell.dart';
 import 'package:phone/features/live_race/widgets/metric_value_text.dart';
+import 'package:phone/features/live_race/widgets/next_twa_value.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -24,6 +24,7 @@ import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/true_time_provider.dart';
+import 'package:phone/providers/twd_quality_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
 /// Az élő verseny-képernyő (§8.7): a compute-rétegből fogyaszt, és a 7 v1
@@ -98,6 +99,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final l10n = AppLocalizations.of(context)!;
     final race = ref.watch(activeRaceProvider);
     final prediction = ref.watch(markPredictionProvider);
+    final twdQuality = ref.watch(twdQualityProvider);
     final wind = ref.watch(windDataProvider);
     final boat = ref.watch(boatStateProvider);
     final status = ref.watch(connectionStatusProvider);
@@ -164,16 +166,10 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                       ),
                       MetricCell(
                         label: l10n.liveTwaNext,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TwaValue(prediction?.predictedTwaAtMark),
-                            if (prediction != null) ...[
-                              const SizedBox(height: 4),
-                              ConfidenceDots(prediction.shiftConfidence),
-                            ],
-                          ],
+                        child: NextTwaValue(
+                          twa: prediction?.predictedTwaAtMark,
+                          twdQuality: twdQuality,
+                          confidence: prediction?.shiftConfidence,
                         ),
                       ),
                       MetricCell(

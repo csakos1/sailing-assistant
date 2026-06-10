@@ -124,6 +124,12 @@ abstract class AppLocalizations {
   /// **'TWA köv.'**
   String get liveTwaNext;
 
+  /// Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7).
+  ///
+  /// In hu, this message translates to:
+  /// **'tartott'**
+  String get liveTwdHeld;
+
   /// Cella-címke: irány a bójához (abszolút bearing).
   ///
   /// In hu, this message translates to:
