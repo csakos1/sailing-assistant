@@ -212,3 +212,86 @@ szerint, a TWD-derivációt egy `Provider`/`Notifier`-be zárva.
 - **§7.4 (wind-shift):** a bemenő TWD forrása derivált (nem `MWD`).
 - **Warning-szakasz / ADR 0014:** `SuspectHeadingWarning` + HU ARB kulcs.
 - **§14 Fázis 9:** a vízi-validáció előfeltétele ez az ADR + a replay-bizonyítás.
+
+
+## Addendum (D7) — A TWD-minőség és a predikció-konfidencia prezentációs felülete
+
+### Kontextus
+
+A D4 bevezette a `TwdQuality`-t (`live` / `held` / `unavailable`) a
+`WindObservation`-ön, kimondott céllal: „hogy a trend és a UI tudja, mennyire
+friss a minta". A minőség azonban eddig csak az engine belső wind-history-jában
+élt: a `RaceEngine._onEvent` kiszámolja az `estimate.quality`-t és beteszi a
+`WindObservation`-be, de az `_onTick` a `RaceSnapshot`-ot a nyers `_wind` +
+`prediction` + `trend` hármasból építi — a minőséget **eldobja**. Így sem a
+telefon-UI, sem az óra nem látja, mennyire bízhat a köv-bója-TWA-ban.
+
+Az óra a primary élő kijelző verseny közben (ADR 0016 / 0019: telefon zsebben,
+kijelző off), tehát a predikció megbízhatóságát ott **pláne** látni kell. A
+köv-TWA-ra két, egymástól független „trust" jellemző:
+
+- **predikció-konfidencia** (`WindShiftConfidence` `low`/`medium`/`high`,
+  r²-alapú): a wind-shift trend lineáris illesztésének jósága;
+- **TWD-minőség** (`TwdQuality`): a predikciót tápláló szélirány-input
+  frissessége (`live` = friss COG-alapú derivált, `held` = utolsó jó érték
+  tartva, `unavailable` = nincs használható TWD).
+
+A telefon a konfidenciát már jelzi (§8.7 confidence-pöttyök + hero-szín), a
+TWD-minőséget nem. Az óra egyiket sem.
+
+### Döntés
+
+**D7.1 — Az engine megtartja a legutóbbi TWD-minőséget.** A `RaceEngine` egy
+`TwdQuality _lastTwdQuality` mezőt görget (a `_lastGoodTwd` mellett): az
+`_onEvent` minden szél-eseménynél a derivált `estimate.quality`-re állítja;
+kiinduló érték `TwdQuality.unavailable` (még nincs szél). Az `_onTick` ezt teszi
+a snapshotba.
+
+**D7.2 — A `RaceSnapshot` hordozza a minőséget.** A `RaceSnapshot` (engine →
+telefon-UI tükör, ADR 0017 A1) egy top-level `TwdQuality twdQuality` mezővel
+bővül (default `unavailable`), kézzel írt `toJson` / `fromJson`-nal (enum
+`.name`, defenzív default-dekódolással, mint a `RaceStatus` / `EtaSource`). A
+`prediction.shiftConfidence` már a snapshotban van, így a konfidenciához nincs
+snapshot-bővítés. Elvetett alternatíva: a teljes legutóbbi `WindObservation`
+becsomagolása — redundáns a `windShiftTrend.currentTwd`-vel, és felesleges
+serializációt vinne be.
+
+**D7.3 — A `WatchPayload` hordozza mindkét trust-jelet.** A `WatchPayload`
+(telefon → óra primitív transport; az óra nem függ a `domain`-tól, ADR 0015 D6)
+két új mezővel bővül: `twdQuality` és `shiftConfidence`, mindkettő String
+(`.name`); az óra lokálisan képezi le render-állapotra. A `buildWatchPayload` a
+snapshot `twdQuality`-jéből és a `prediction.shiftConfidence`-ből tölti. Ezzel
+**egyetlen** payload-kontraktus-bővítés fedi a TWD-minőséget ÉS a korábban
+queue-olt óra-konfidencia-indikátort — nem két külön churn. Ez egyúttal
+**konkretizálja és lezárja** az addig nyitott ADR 0015 D2 addendumot a
+konfidencia-mezőre.
+
+**D7.4 — Két ortogonális vizuális csatorna, telefonon és órán azonos
+szemantikával.** A két trust-jel külön vizuális csatornán fut, hogy ne
+keveredjenek:
+
+- A **konfidencia** marad a pötty-csatornán (a telefonon a meglévő
+  hero-szín/hue is): telefon §8.7 változatlan; az órán a B-nézet hero ALATT
+  három pötty, a telefon `confidence_dots` leképezését követve (egy
+  igazságforrás a pötty-szemantikára).
+- A **TWD-minőség** a hero **opacitásán / diszkrét jelölésén** jelenik meg, ami
+  ortogonális a confidence-színre, így nem ütközik vele: `live` = teljes
+  opacitás; `held` = tompított (~60%) + diszkrét „tartott" jel; `unavailable` =
+  `—` / szürke (a `predictedTwaAtMark` ilyenkor jellemzően úgyis `null`).
+
+A pontos widget-szintű elhelyezést (telefon `twa_value` / `confidence_dots`,
+óra B-nézet hero) a feature-szeletek rögzítik; ez az addendum a kontraktust és a
+vizuális elvet dönti el.
+
+### Következmények
+
+- A D4 célja („a UI tudja, mennyire friss a minta") most a prezentációig
+  teljesül — a telefonon és az órán is.
+- Az ADR 0015 D2 addendum (óra-konfidencia-indikátor) **lezárul**: a
+  `shiftConfidence` a `WatchPayload`-ra kerül, a pötty-indikátor az óra
+  B-nézetére.
+- A `RaceSnapshot` és a `WatchPayload` kontraktus-bővítés **additív**
+  (default-tal), így a `main` szeletenként zöld marad; a round-trip / payload
+  tesztek mezőnként ellenőriznek.
+- A `SuspectHeadingWarning` (D5) megjelenítése külön már működik (generikus
+  `WarningBanner` + `warning_l10n` exhaustive ág) — ezt az addendum nem érinti.
