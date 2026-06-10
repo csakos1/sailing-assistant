@@ -74,6 +74,7 @@ void main() {
         sampleCount: 18,
         windowDuration: const Duration(minutes: 10),
       ),
+      twdQuality: TwdQuality.held,
     );
 
     test('teljes snapshot round-trip — minden mező megőrződik', () {
@@ -91,7 +92,27 @@ void main() {
       expect(restored.wind, original.wind);
       expect(restored.prediction, original.prediction);
       expect(restored.windShiftTrend, original.windShiftTrend);
+      expect(restored.twdQuality, original.twdQuality);
       expect(restored.tickTime, original.tickTime);
+    });
+
+    test('a twdQuality default + hiányzó kulcs unavailable-re dekódol', () {
+      // ARRANGE — minimális snapshot, twdQuality explicit nincs megadva.
+      final minimal = RaceSnapshot(
+        eventCount: 0,
+        boatState: BoatState(lastUpdate: boatTime),
+        connectionStatus: const Disconnected(),
+        tickTime: tickTime,
+      );
+      // A toJson-ből kivesszük a kulcsot — régi / forward-kompat payload.
+      final json = minimal.toJson()..remove('twdQuality');
+
+      // ACT
+      final restored = RaceSnapshot.fromJson(json);
+
+      // ASSERT — a default és a defenzív dekóder is unavailable.
+      expect(minimal.twdQuality, TwdQuality.unavailable);
+      expect(restored.twdQuality, TwdQuality.unavailable);
     });
 
     test('valódi jsonEncode/jsonDecode körön át is megőrződik (natív híd)', () {

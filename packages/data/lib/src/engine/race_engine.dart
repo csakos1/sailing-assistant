@@ -56,6 +56,9 @@ class RaceEngine {
   // A stateless DeriveTrueWindDirection görgető párja (ADR 0020 D3):
   // csak a live becslés frissíti, egyébként az utolsó jót tartja.
   Bearing? _lastGoodTwd;
+  // A legutóbbi TWD-derivációs minőség (ADR 0020 D7): a snapshotba kerül, hogy
+  // a UI jelezhesse, mennyire friss a köv-bója-TWA-t tápláló szélirány.
+  TwdQuality _lastTwdQuality = TwdQuality.unavailable;
   int _eventCount = 0;
   Race? _race;
 
@@ -150,6 +153,9 @@ class RaceEngine {
         wind: data,
         lastGoodTwd: _lastGoodTwd,
       );
+      // A legutóbbi minőség a snapshotba (ADR 0020 D7): a held/unavailable is
+      // eljut a UI-ig, nem csak a live.
+      _lastTwdQuality = estimate.quality;
       // Csak a live becslés görgeti a lastGoodTwd-t; held/unavailable tartja.
       if (estimate.quality == TwdQuality.live) {
         _lastGoodTwd = estimate.twd;
@@ -212,6 +218,7 @@ class RaceEngine {
         wind: _wind,
         prediction: prediction,
         windShiftTrend: trend,
+        twdQuality: _lastTwdQuality,
       ),
     );
   }

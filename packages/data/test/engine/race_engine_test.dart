@@ -256,6 +256,48 @@ void main() {
       expect(snapshots.last.prediction?.mark, mark1);
     });
   });
+
+  group('TWD-minőség a snapshotban (ADR 0020 D7)', () {
+    test('live: COG+SOG mozgásban + bow TWA → twdQuality live', () async {
+      // ARRANGE — előbb a COG/SOG (a derive a _boatState-ből veszi), majd
+      // a szél; a derive a WindEvent ágában fut.
+      await engine.start(race);
+      const cog = Bearing.true_(95);
+      final wind = WindData(
+        apparentAngle: const Angle(degrees: 30),
+        apparentSpeed: const Speed(metersPerSecond: 6),
+        timestamp: eventTime,
+        trueAngleWater: const Angle(degrees: 40), // csúcs-relatív TWA
+      );
+      source
+        ..emitEvent(
+          CogSogEvent(cog, const Speed(metersPerSecond: 3), eventTime),
+        )
+        ..emitEvent(WindEvent(wind));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT — SOG 3 m/s (> 1.5 kn) → COG-kapu nyit, friss bow TWA → live.
+      expect(snapshots.single.twdQuality, TwdQuality.live);
+    });
+
+    test('unavailable: csak pozíció, nincs szél → default marad', () async {
+      // ARRANGE — WindEvent nélkül a derive sosem fut → marad a default.
+      await engine.start(race);
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.twdQuality, TwdQuality.unavailable);
+    });
+  });
 }
 
 // Vezérelhető fake NMEA-forrás, ami nyers sorokat is ad (RawNmeaLineSource).

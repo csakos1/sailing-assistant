@@ -26,6 +26,7 @@ class RaceSnapshot {
     this.wind,
     this.prediction,
     this.windShiftTrend,
+    this.twdQuality = TwdQuality.unavailable,
   });
 
   /// Visszaépít egy pillanatképet a [json] `Map<String, dynamic>`-ból. A
@@ -53,6 +54,7 @@ class RaceSnapshot {
         json['windShiftTrend'] as Map<String, dynamic>?,
         _windShiftTrendFromJson,
       ),
+      twdQuality: _twdQualityFromName(json['twdQuality'] as String?),
     );
   }
 
@@ -78,6 +80,11 @@ class RaceSnapshot {
   /// warning-jelenléthez a UI-oldalon (ADR 0017 addendum A5).
   final WindShiftTrend? windShiftTrend;
 
+  /// A TWD-derivációs minőség a tick pillanatában (ADR 0020 D7): `live` friss
+  /// COG-alapú derivált, `held` az utolsó jó értéket tartja, `unavailable`
+  /// nincs használható TWD. A UI ennek alapján jelzi a TWA megbízhatóságát.
+  final TwdQuality twdQuality;
+
   /// A tick app-óra ideje.
   final DateTime tickTime;
 
@@ -95,6 +102,7 @@ class RaceSnapshot {
       'wind': _mapOrNull(wind, _windDataToJson),
       'prediction': _mapOrNull(prediction, _markPredictionToJson),
       'windShiftTrend': _mapOrNull(windShiftTrend, _windShiftTrendToJson),
+      'twdQuality': twdQuality.name,
     };
   }
 }
@@ -297,6 +305,12 @@ RaceStatus _raceStatusFromName(String? name) => switch (name) {
   'active' => RaceStatus.active,
   'finished' => RaceStatus.finished,
   _ => RaceStatus.notStarted,
+};
+
+TwdQuality _twdQualityFromName(String? name) => switch (name) {
+  'live' => TwdQuality.live,
+  'held' => TwdQuality.held,
+  _ => TwdQuality.unavailable,
 };
 
 EtaSource _etaSourceFromName(String name) => switch (name) {
