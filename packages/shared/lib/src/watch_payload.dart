@@ -26,6 +26,8 @@ final class WatchPayload extends Equatable {
     this.vmgKnots,
     this.currentTwa,
     this.predictedTwaAtMark,
+    this.twdQuality,
+    this.shiftConfidence,
     this.courseCorrection,
     this.etaSeconds,
     this.distanceMeters,
@@ -48,6 +50,8 @@ final class WatchPayload extends Equatable {
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
       currentTwa: (json['currentTwa'] as num?)?.toDouble(),
       predictedTwaAtMark: (json['predictedTwaAtMark'] as num?)?.toDouble(),
+      twdQuality: json['twdQuality'] as String?,
+      shiftConfidence: json['shiftConfidence'] as String?,
       courseCorrection: (json['courseCorrection'] as num?)?.toDouble(),
       etaSeconds: (json['etaSeconds'] as num?)?.toInt(),
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
@@ -82,6 +86,16 @@ final class WatchPayload extends Equatable {
   /// Predikált TWA a következő bójánál, fok, előjeles.
   final double? predictedTwaAtMark;
 
+  /// A TWD-deriváció minősége (`TwdQuality.name`), vagy `null`,
+  /// ha nincs adat. Az óra ebből rajzolja a köv-TWA hero
+  /// opacitását (ADR 0020 D7).
+  final String? twdQuality;
+
+  /// A szélfordulás-predikció konfidenciája
+  /// (`WindShiftConfidence.name`), vagy `null`, ha nincs predikció.
+  /// Az óra B-nézet pötty-indikátora ebből rajzol (ADR 0015 D2).
+  final String? shiftConfidence;
+
   /// Javasolt kurzus-korrekció, fok, előjeles.
   final double? courseCorrection;
 
@@ -110,6 +124,8 @@ final class WatchPayload extends Equatable {
       'vmgKnots': vmgKnots,
       'currentTwa': currentTwa,
       'predictedTwaAtMark': predictedTwaAtMark,
+      'twdQuality': twdQuality,
+      'shiftConfidence': shiftConfidence,
       'courseCorrection': courseCorrection,
       'etaSeconds': etaSeconds,
       'distanceMeters': distanceMeters,
@@ -125,6 +141,8 @@ final class WatchPayload extends Equatable {
     vmgKnots,
     currentTwa,
     predictedTwaAtMark,
+    twdQuality,
+    shiftConfidence,
     courseCorrection,
     etaSeconds,
     distanceMeters,

@@ -19,6 +19,7 @@ WatchPayload buildWatchPayload({
   required DateTime now,
   WindData? windData,
   MarkPrediction? prediction,
+  TwdQuality twdQuality = TwdQuality.unavailable,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -36,6 +37,8 @@ WatchPayload buildWatchPayload({
     // A vmgKnots tudatosan kimarad: v1-ben mindig null, a slot v2-re rezervált.
     currentTwa: windData?.trueAngleWater?.degrees,
     predictedTwaAtMark: prediction?.predictedTwaAtMark?.degrees,
+    twdQuality: twdQuality.name,
+    shiftConfidence: prediction?.shiftConfidence.name,
     courseCorrection: prediction?.courseCorrection?.degrees,
     etaSeconds: prediction?.eta?.inSeconds,
     distanceMeters: prediction?.distanceToMark.meters,

@@ -194,6 +194,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       now: DateTime.now(),
       windData: snapshot.wind,
       prediction: snapshot.prediction,
+      twdQuality: snapshot.twdQuality,
     );
   }
 

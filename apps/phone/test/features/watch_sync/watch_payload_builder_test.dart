@@ -45,6 +45,7 @@ void main() {
       List<Warning> activeWarnings = const <Warning>[],
       WindData? windData,
       MarkPrediction? prediction,
+      TwdQuality twdQuality = TwdQuality.unavailable,
     }) {
       return buildWatchPayload(
         boatState: boatState ?? BoatState(lastUpdate: now),
@@ -56,6 +57,7 @@ void main() {
         now: now,
         windData: windData,
         prediction: prediction,
+        twdQuality: twdQuality,
       );
     }
 
@@ -65,6 +67,7 @@ void main() {
         boatState: fullBoat,
         windData: fullWind,
         prediction: fullPrediction,
+        twdQuality: TwdQuality.live,
       );
 
       // Assert
@@ -80,6 +83,8 @@ void main() {
       expect(payload.distanceMeters, 1200);
       expect(payload.markName, 'Tihany');
       expect(payload.criticalWarnings, isEmpty);
+      expect(payload.twdQuality, 'live');
+      expect(payload.shiftConfidence, 'high');
     });
 
     test('null prediction blanks the mark-derived fields', () {
@@ -92,6 +97,7 @@ void main() {
       expect(payload.etaSeconds, isNull);
       expect(payload.distanceMeters, isNull);
       expect(payload.markName, isNull);
+      expect(payload.shiftConfidence, isNull);
       expect(payload.currentTwa, 35);
     });
 
@@ -119,6 +125,34 @@ void main() {
         payload.criticalWarnings,
         equals(<String>['gateway_disconnected', 'gps_signal_lost']),
       );
+    });
+
+    test('twdQuality defaults to unavailable when not supplied', () {
+      // Act
+      final payload = build();
+
+      // Assert
+      expect(payload.twdQuality, 'unavailable');
+    });
+
+    test('twdQuality maps through to its enum name', () {
+      // Act
+      final payload = build(twdQuality: TwdQuality.held);
+
+      // Assert
+      expect(payload.twdQuality, 'held');
+    });
+
+    test('payloads differing only in twdQuality are not equal', () {
+      // A change-detect alapja: a hero-opacitás váltásához (live→
+      // held) is új DataItemet kell küldeni, ezért a twdQuality
+      // bekerül a props-ba.
+      // Act
+      final live = build(twdQuality: TwdQuality.live);
+      final held = build(twdQuality: TwdQuality.held);
+
+      // Assert
+      expect(live, isNot(equals(held)));
     });
 
     for (final (source, trusted) in const <(TrueTimeSource, bool)>[
