@@ -2567,6 +2567,17 @@ class ConfidenceColors extends ThemeExtension<ConfidenceColors> {
 }
 ```
 
+**TWD-minőség-jelzés.** A pred-TWA cellán a confidence-jelzéssel ortogonális
+második megbízhatósági csatorna a **TWD-minőség** (`TwdQuality`, ADR 0020 D7):
+míg a confidence (pontok + szín) a wind-shift trend illesztésének jóságát
+mutatja, a TWD-minőség a predikciót tápláló szélirány-input frissességét. A
+`twdQualityProvider` (§8.8, az engine-snapshot `twdQuality` mezőjéből) adja; a
+hero **opacitásán** jelenik meg (ortogonális a confidence-színre, így nem
+ütközik): `live` = teljes opacitás; `held` = tompított (~60%) + diszkrét
+„tartott" jel (a legutóbbi jó értéket tartjuk); `unavailable` = `—` (a
+`predictedTwaAtMark` ilyenkor jellemzően úgyis `null`). A telefon és az óra
+azonos szemantikát követ (§10.4).
+
 ### 8.8 7-bg-d: élő providerek átszármaztatása az engine-snapshotra (ADR 0017 A4)
 
 A háttér-futás (ADR 0016) óta az NMEA-pipeline + domain-compute az engine
@@ -2594,6 +2605,7 @@ windDataProvider          → snapshot?.wind
 windShiftTrendProvider    → snapshot?.windShiftTrend
 markPredictionProvider    → snapshot?.prediction
 connectionStatusProvider  → snapshot?.connectionStatus ?? const Connecting()
+twdQualityProvider        → snapshot?.twdQuality ?? TwdQuality.unavailable
 ```
 
 A compute use case-ek (`BoatStateReducer`, `CalculateWindShiftTrend`,
@@ -2872,6 +2884,8 @@ class WatchPayload {
   final double? vmgKnots;               // knots; v1: mindig null (v2 slot)
   final double? currentTwa;             // fok, signed
   final double? predictedTwaAtMark;     // fok, signed
+  final String? twdQuality;             // TwdQuality.name; az óra render-állapotra képezi (ADR 0020 D7)
+  final String? shiftConfidence;        // WindShiftConfidence.name; az óra B-nézet pötty-indikátora
   final double? courseCorrection;       // fok, signed
   final int? etaSeconds;                // az óra m:ss-re formáz
   final double? distanceMeters;         // az óra m/km-re formáz
@@ -2938,6 +2952,16 @@ watch `MainActivity.onGenericMotionEvent`-jéből egy EventChannelen át a
 mintájára). Ambientben (`wear_plus` `AmbientMode`) csak a hero és a GPS-idő
 marad, tompított palettával, szín-accent nélkül, a rendszer ambient-kadenciáján;
 aktív kijelzőn az always-on él.
+
+**Trust-jelzés a köv-TWA-n (ADR 0020 D7).** A B-nézet hero két, egymástól
+független megbízhatósági jelet hordoz, a phone §8.7-tel azonos szemantikával. A
+**predikció-konfidencia** (`WindShiftConfidence`, a payload `shiftConfidence`
+mezőjéből) a hero ALATT három pötty (`●○○`/`●●○`/`●●●`), a phone
+`confidence_dots` leképezését követve. A **TWD-minőség** (`TwdQuality`, a payload
+`twdQuality` mezőjéből) a hero **opacitásán**: `live` = teljes; `held` =
+tompított (~60%) + diszkrét „tartott" jel; `unavailable` = `—`. A két csatorna
+ortogonális (pötty vs. opacitás), így nem keverednek; ambientben (csak hero +
+GPS-idő) a TWD-minőség-jelzés elmarad.
 
 ### 10.5 Korlátok
 
