@@ -20,6 +20,7 @@ void main() {
 
   late _FakeNmeaSource source;
   late _FakeTelemetryLogger logger;
+  late _FakeSnapshotLogger snapshotLogger;
   late StreamController<DateTime> tick;
   late RaceEngine engine;
   late List<RaceSnapshot> snapshots;
@@ -27,10 +28,12 @@ void main() {
   setUp(() {
     source = _FakeNmeaSource();
     logger = _FakeTelemetryLogger();
+    snapshotLogger = _FakeSnapshotLogger();
     tick = StreamController<DateTime>();
     engine = RaceEngine(
       nmeaStream: source,
       telemetryLogger: logger,
+      snapshotLogger: snapshotLogger,
       tickSource: tick.stream,
       now: () => fixedNow,
     );
@@ -43,6 +46,31 @@ void main() {
     await source.close();
     await tick.close();
   });
+
+  test(
+    'minden tick a snapshot-loggernek adja a snapshotot a raceId-vel',
+    () async {
+      // ARRANGE — aktív race + pozíció, hogy a tick snapshotot adjon.
+      await engine.start(race);
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+
+      // ACT — két tick.
+      tick.add(tickTime);
+      await pumpEventQueue();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT — mindkét snapshot a loggerhez ért, a race id-jával; a
+      // logolt snapshot UGYANAZ a példány, mint az emittált.
+      expect(snapshotLogger.entries, hasLength(2));
+      expect(snapshotLogger.entries.first.raceId, race.id);
+      expect(
+        snapshotLogger.entries.first.snapshot,
+        same(snapshots.first),
+      );
+    },
+  );
 
   test('start csatlakozik a forráshoz', () async {
     await engine.start(race);
@@ -346,6 +374,19 @@ class _FakeTelemetryLogger implements TelemetryLogger {
 
   @override
   Future<void> log(TelemetryRecord record) async => records.add(record);
+
+  @override
+  Future<void> dispose() async => disposed = true;
+}
+
+// Fake snapshot-logger: a (raceId, snapshot) párokat rögzíti.
+class _FakeSnapshotLogger implements SnapshotLogger {
+  final List<({String raceId, RaceSnapshot snapshot})> entries = [];
+  bool disposed = false;
+
+  @override
+  Future<void> log(String raceId, RaceSnapshot snapshot) async =>
+      entries.add((raceId: raceId, snapshot: snapshot));
 
   @override
   Future<void> dispose() async => disposed = true;

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:data/src/engine/race_snapshot.dart';
+import 'package:data/src/engine/snapshot_logger.dart';
 import 'package:data/src/nmea/client/raw_nmea_line_source.dart';
 import 'package:domain/domain.dart';
 
@@ -22,11 +23,13 @@ class RaceEngine {
   RaceEngine({
     required NmeaStream nmeaStream,
     required TelemetryLogger telemetryLogger,
+    SnapshotLogger snapshotLogger = const _NoopSnapshotLogger(),
     Stream<DateTime>? tickSource,
     Duration windWindow = const Duration(minutes: 10),
     DateTime Function() now = DateTime.now,
   }) : _nmeaStream = nmeaStream,
        _telemetryLogger = telemetryLogger,
+       _snapshotLogger = snapshotLogger,
        _windWindow = windWindow,
        _now = now,
        _tickSource =
@@ -35,6 +38,7 @@ class RaceEngine {
 
   final NmeaStream _nmeaStream;
   final TelemetryLogger _telemetryLogger;
+  final SnapshotLogger _snapshotLogger;
   final Stream<DateTime> _tickSource;
   final Duration _windWindow;
   final DateTime Function() _now;
@@ -109,6 +113,7 @@ class RaceEngine {
   Future<void> dispose() async {
     await stop();
     await _telemetryLogger.dispose();
+    await _snapshotLogger.dispose();
     if (!_snapshots.isClosed) {
       await _snapshots.close();
     }
@@ -208,19 +213,23 @@ class RaceEngine {
       trend: trend,
       now: tick,
     );
-    _snapshots.add(
-      RaceSnapshot(
-        eventCount: _eventCount,
-        boatState: _boatState,
-        connectionStatus: _nmeaStream.currentStatus,
-        raceStatus: steppedRace.status,
-        tickTime: tick,
-        wind: _wind,
-        prediction: prediction,
-        windShiftTrend: trend,
-        twdQuality: _lastTwdQuality,
-      ),
+    // A snapshotot lokális változóba emeljük: az emit után a
+    // snapshot-logger ugyanazt a példányt kapja (ADR 0022 D4).
+    final snapshot = RaceSnapshot(
+      eventCount: _eventCount,
+      boatState: _boatState,
+      connectionStatus: _nmeaStream.currentStatus,
+      raceStatus: steppedRace.status,
+      tickTime: tick,
+      wind: _wind,
+      prediction: prediction,
+      windShiftTrend: trend,
+      twdQuality: _lastTwdQuality,
     );
+    _snapshots.add(snapshot);
+    // unawaited + a logger internál try/catch: egy DB-hiba sem
+    // szakíthatja meg a snapshot-streamet (defenzív elv).
+    unawaited(_snapshotLogger.log(steppedRace.id, snapshot));
   }
 
   // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active
@@ -242,4 +251,17 @@ class RaceEngine {
     }
     return race;
   }
+}
+
+/// No-op SnapshotLogger: a RaceEngine ctor alapértelmezése. A replay/
+/// teszt/prediction_probe út DB-írás nélkül fut; a phone composition
+/// root ad valódi SnapshotLoggerImpl-t (ADR 0022 D3).
+class _NoopSnapshotLogger implements SnapshotLogger {
+  const _NoopSnapshotLogger();
+
+  @override
+  Future<void> log(String raceId, RaceSnapshot snapshot) async {}
+
+  @override
+  Future<void> dispose() async {}
 }

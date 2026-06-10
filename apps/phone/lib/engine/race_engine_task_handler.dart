@@ -79,6 +79,7 @@ class RaceEngineTaskHandler extends TaskHandler {
     final engine = RaceEngine(
       nmeaStream: client,
       telemetryLogger: TelemetryLoggerImpl(db),
+      snapshotLogger: SnapshotLoggerImpl(db),
     );
     _client = client;
     _db = db;
