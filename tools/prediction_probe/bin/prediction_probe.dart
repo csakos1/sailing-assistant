@@ -190,7 +190,8 @@ void _printSample(ProbeSample sample, double nearMeters) {
     '(${sample.twdQuality.name})  '
     'rate=$rate conf=${conf.padRight(6)} '
     'eta=${etaText.padLeft(5)} leg=$legBearing  '
-    'PRED=${_fmtTwa(prediction.predictedTwaAtMark)}$near',
+    'PRED=${_fmtTwa(prediction.predictedTwaAtMark)} '
+    'band=${_fmtBand(prediction.forecastBandDegrees)}$near',
   );
 }
 
@@ -232,6 +233,10 @@ String _fmtTwa(Angle? twa) {
   final side = twa.degrees >= 0 ? 'jobb' : 'bal ';
   return '$side ${twa.degrees.abs().round().toString().padLeft(3)}°';
 }
+
+/// A predikció hibasávja (band) emberi formája fokban; `null` → `—`.
+String _fmtBand(double? band) =>
+    band == null ? '—' : '±${band.toStringAsFixed(1)}°';
 
 /// `HH:MM:SS` az időbélyegből (UTC).
 String _hms(DateTime t) =>

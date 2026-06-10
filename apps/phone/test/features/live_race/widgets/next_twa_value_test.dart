@@ -14,6 +14,7 @@ void main() {
       required Angle? twa,
       required TwdQuality twdQuality,
       required WindShiftConfidence? confidence,
+      double? bandDegrees,
     }) {
       return tester.pumpWidget(
         MaterialApp(
@@ -25,6 +26,7 @@ void main() {
               twa: twa,
               twdQuality: twdQuality,
               confidence: confidence,
+              bandDegrees: bandDegrees,
             ),
           ),
         ),
@@ -110,6 +112,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(ConfidenceDots), findsNothing);
+    });
+
+    testWidgets('band renders the ±degrees label', (tester) async {
+      await pump(
+        tester,
+        twa: const Angle(degrees: 40),
+        twdQuality: TwdQuality.live,
+        confidence: WindShiftConfidence.high,
+        bandDegrees: 7,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('±7°'), findsOneWidget);
     });
   });
 }

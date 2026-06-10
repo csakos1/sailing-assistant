@@ -170,6 +170,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                           twa: prediction?.predictedTwaAtMark,
                           twdQuality: twdQuality,
                           confidence: prediction?.shiftConfidence,
+                          bandDegrees: prediction?.forecastBandDegrees,
                         ),
                       ),
                       MetricCell(

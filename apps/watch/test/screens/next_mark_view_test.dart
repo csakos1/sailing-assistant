@@ -4,8 +4,8 @@ import 'package:shared/shared.dart';
 import 'package:watch/screens/next_mark_view.dart';
 import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/theme/watch_theme.dart';
+import 'package:watch/widgets/confidence_arc.dart';
 import 'package:watch/widgets/direction_arrow.dart';
-import 'package:watch/widgets/watch_trust.dart';
 
 void main() {
   final colors = watchDarkTheme.extension<WatchColors>()!;
@@ -25,17 +25,21 @@ void main() {
     ),
   );
 
-  WatchPayload payloadWith({String? twdQuality, String? shiftConfidence}) =>
-      WatchPayload(
-        timestamp: DateTime.utc(2026, 6, 2, 10, 30),
-        predictedTwaAtMark: -38,
-        courseCorrection: 12,
-        etaSeconds: 452,
-        distanceMeters: 450,
-        markName: 'Tihany',
-        twdQuality: twdQuality,
-        shiftConfidence: shiftConfidence,
-      );
+  WatchPayload payloadWith({
+    String? twdQuality,
+    String? shiftConfidence,
+    double? forecastBandDegrees,
+  }) => WatchPayload(
+    timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+    predictedTwaAtMark: -38,
+    courseCorrection: 12,
+    etaSeconds: 452,
+    distanceMeters: 450,
+    markName: 'Tihany',
+    twdQuality: twdQuality,
+    shiftConfidence: shiftConfidence,
+    forecastBandDegrees: forecastBandDegrees,
+  );
 
   Widget hostFor(WatchPayload p, {required bool ambient}) => MaterialApp(
     theme: watchDarkTheme,
@@ -52,8 +56,10 @@ void main() {
     return f.evaluate().isEmpty ? null : tester.widget<Opacity>(f).opacity;
   }
 
+  ConfidenceArc arcWidget(WidgetTester tester) =>
+      tester.widget<ConfidenceArc>(find.byType(ConfidenceArc));
+
   testWidgets('held dims the hero and shows the held marker', (tester) async {
-    // Act
     await tester.pumpWidget(
       hostFor(
         payloadWith(twdQuality: 'held', shiftConfidence: 'medium'),
@@ -61,14 +67,11 @@ void main() {
       ),
     );
 
-    // Assert
     expect(heroOpacity(tester), 0.6);
     expect(find.text('tartott'), findsOneWidget);
   });
 
-  testWidgets('live keeps the hero un-dimmed, no held marker', (
-    tester,
-  ) async {
+  testWidgets('live keeps the hero un-dimmed, no held marker', (tester) async {
     await tester.pumpWidget(
       hostFor(
         payloadWith(twdQuality: 'live', shiftConfidence: 'high'),
@@ -80,32 +83,60 @@ void main() {
     expect(find.text('tartott'), findsNothing);
   });
 
-  testWidgets('ambient hides the held marker, dimming and dots', (
+  testWidgets('confidence drives the bottom arc (colour + length)', (
+    tester,
+  ) async {
+    // high → teal, teljes ív
+    await tester.pumpWidget(
+      hostFor(payloadWith(shiftConfidence: 'high'), ambient: false),
+    );
+    expect(find.byType(ConfidenceArc), findsOneWidget);
+    expect(arcWidget(tester).color, colors.signal);
+    expect(arcWidget(tester).fraction, 1);
+
+    // medium → borostyán, rövidebb ív
+    await tester.pumpWidget(
+      hostFor(payloadWith(shiftConfidence: 'medium'), ambient: false),
+    );
+    expect(arcWidget(tester).color, colors.amber);
+    expect(arcWidget(tester).fraction, lessThan(1));
+
+    // nincs predikció-konfidencia → nincs ív
+    await tester.pumpWidget(hostFor(payloadWith(), ambient: false));
+    expect(find.byType(ConfidenceArc), findsNothing);
+  });
+
+  testWidgets('band renders the ±degrees label', (tester) async {
+    await tester.pumpWidget(
+      hostFor(
+        payloadWith(shiftConfidence: 'high', forecastBandDegrees: 7),
+        ambient: false,
+      ),
+    );
+
+    expect(find.text('±7°'), findsOneWidget);
+  });
+
+  testWidgets('ambient keeps the arc and band, hides held marker + dimming', (
     tester,
   ) async {
     await tester.pumpWidget(
       hostFor(
-        payloadWith(twdQuality: 'held', shiftConfidence: 'high'),
+        payloadWith(
+          twdQuality: 'held',
+          shiftConfidence: 'high',
+          forecastBandDegrees: 5,
+        ),
         ambient: true,
       ),
     );
 
     expect(heroOpacity(tester), isNull); // ambientben nincs TWD-opacitás
-    expect(find.text('tartott'), findsNothing);
-    expect(find.byType(WatchConfidenceDots), findsNothing);
-  });
-
-  testWidgets('confidence drives the dots in active mode', (tester) async {
-    // high → 3 kitöltött pötty
-    await tester.pumpWidget(
-      hostFor(payloadWith(shiftConfidence: 'high'), ambient: false),
-    );
-    expect(find.byType(WatchConfidenceDots), findsOneWidget);
-    expect(find.byIcon(Icons.circle), findsNWidgets(3));
-
-    // nincs predikció-konfidencia → nincs pötty
-    await tester.pumpWidget(hostFor(payloadWith(), ambient: false));
-    expect(find.byType(WatchConfidenceDots), findsNothing);
+    expect(find.text('tartott'), findsNothing); // ambientben elmarad
+    // A trust ambientben is megmarad (ADR 0023 D8).
+    expect(find.byType(ConfidenceArc), findsOneWidget);
+    expect(arcWidget(tester).ambient, isTrue);
+    expect(find.text('±5°'), findsOneWidget);
   });
 
   testWidgets('renders title, predicted TWA, correction value and ETA', (

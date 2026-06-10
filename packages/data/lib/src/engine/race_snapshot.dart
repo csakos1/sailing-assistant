@@ -237,6 +237,7 @@ Map<String, dynamic> _markPredictionToJson(MarkPrediction p) =>
       'courseCorrection': _mapOrNull(p.courseCorrection, _angleToJson),
       'etaMs': p.eta?.inMilliseconds,
       'predictedTwaAtMark': _mapOrNull(p.predictedTwaAtMark, _angleToJson),
+      'forecastBandDegrees': p.forecastBandDegrees,
     };
 
 MarkPrediction _markPredictionFromJson(
@@ -257,6 +258,7 @@ MarkPrediction _markPredictionFromJson(
     m['predictedTwaAtMark'] as num?,
     _angleFromJson,
   ),
+  forecastBandDegrees: (m['forecastBandDegrees'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _windShiftTrendToJson(WindShiftTrend t) =>
@@ -266,6 +268,9 @@ Map<String, dynamic> _windShiftTrendToJson(WindShiftTrend t) =>
       'confidence': t.confidence.name,
       'sampleCount': t.sampleCount,
       'windowDurationMs': t.windowDuration.inMilliseconds,
+      'residualStdErrorDeg': t.residualStdErrorDeg,
+      'slopeStdErrorDegPerMin': t.slopeStdErrorDegPerMin,
+      'meanSampleTimeMs': t.meanSampleTime.millisecondsSinceEpoch,
     };
 
 WindShiftTrend _windShiftTrendFromJson(Map<String, dynamic> m) =>
@@ -277,6 +282,9 @@ WindShiftTrend _windShiftTrendFromJson(Map<String, dynamic> m) =>
       windowDuration: Duration(
         milliseconds: (m['windowDurationMs'] as num).toInt(),
       ),
+      residualStdErrorDeg: (m['residualStdErrorDeg'] as num).toDouble(),
+      slopeStdErrorDegPerMin: (m['slopeStdErrorDegPerMin'] as num).toDouble(),
+      meanSampleTime: _dateTime(m['meanSampleTimeMs'] as num),
     );
 
 // --- ConnectionStatus (sealed → tag + opcionális message) ---

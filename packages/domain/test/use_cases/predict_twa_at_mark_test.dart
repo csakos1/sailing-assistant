@@ -8,15 +8,21 @@ import 'package:test/test.dart';
 void main() {
   group('PredictTwaAtMark', () {
     const useCase = PredictTwaAtMark();
+    // Determinisztikus "most" — a band-horizont anchora.
+    final now = DateTime.utc(2026, 1, 1, 12);
 
     // Közös trend fixtúra. A confidence MOST SZÁMÍT (ADR 0021: low → nincs
     // extrapoláció); a happy-path tesztekhez high-ot adunk, a kapuzás-
-    // tesztek expliciten állítják. windowDuration 10 perc, így a 600 mp-nél
-    // rövidebb timeToMark nem ütközik az ablak-korlátba.
+    // tesztek expliciten állítják. A band-mezők default-jai kicsik, hogy
+    // a TWA-assertekbe ne szóljanak bele; a band-tesztek expliciten
+    // állítják őket. A meanSampleTime default a now − 5 perc (centroid).
     WindShiftTrend trendWith({
       required double shiftRate,
       required Bearing currentTwd,
       WindShiftConfidence confidence = WindShiftConfidence.high,
+      double residualStdError = 1,
+      double slopeStdError = 0.1,
+      DateTime? meanSampleTime,
     }) {
       return WindShiftTrend(
         shiftRateDegPerMinute: shiftRate,
@@ -24,19 +30,22 @@ void main() {
         confidence: confidence,
         sampleCount: 12,
         windowDuration: const Duration(minutes: 10),
+        residualStdErrorDeg: residualStdError,
+        slopeStdErrorDegPerMin: slopeStdError,
+        meanSampleTime:
+            meanSampleTime ?? now.subtract(const Duration(minutes: 5)),
       );
     }
 
     group('null-szemantika', () {
       test('null trend → null', () {
-        // ARRANGE & ACT
         final result = useCase(
           nextLegBearing: const Bearing.true_(90),
           trend: null,
           timeToMark: const Duration(seconds: 600),
+          now: now,
         );
 
-        // ASSERT
         expect(result, isNull);
       });
 
@@ -45,6 +54,7 @@ void main() {
           nextLegBearing: const Bearing.true_(90),
           trend: trendWith(shiftRate: 6, currentTwd: const Bearing.true_(100)),
           timeToMark: null,
+          now: now,
         );
 
         expect(result, isNull);
@@ -58,9 +68,10 @@ void main() {
           nextLegBearing: const Bearing.true_(45),
           trend: trendWith(shiftRate: 5, currentTwd: const Bearing.true_(45)),
           timeToMark: Duration.zero,
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 0)));
+        expect(result?.twa, equals(const Angle(degrees: 0)));
       });
 
       test('pozitív shift (clockwise) → előre tolt TWA', () {
@@ -70,9 +81,10 @@ void main() {
           nextLegBearing: const Bearing.true_(90),
           trend: trendWith(shiftRate: 6, currentTwd: const Bearing.true_(100)),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 40)));
+        expect(result?.twa, equals(const Angle(degrees: 40)));
       });
 
       test('negatív shift (counterclockwise) → port felé tolt TWA', () {
@@ -82,9 +94,10 @@ void main() {
           nextLegBearing: const Bearing.true_(90),
           trend: trendWith(shiftRate: -6, currentTwd: const Bearing.true_(100)),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: -20)));
+        expect(result?.twa, equals(const Angle(degrees: -20)));
       });
     });
 
@@ -96,9 +109,10 @@ void main() {
           nextLegBearing: const Bearing.true_(0),
           trend: trendWith(shiftRate: 6, currentTwd: const Bearing.true_(350)),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 20)));
+        expect(result?.twa, equals(const Angle(degrees: 20)));
       });
 
       test('200°-os nyers különbség → signed shortest-path -160', () {
@@ -108,9 +122,10 @@ void main() {
           nextLegBearing: const Bearing.true_(0),
           trend: trendWith(shiftRate: 6, currentTwd: const Bearing.true_(170)),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: -160)));
+        expect(result?.twa, equals(const Angle(degrees: -160)));
       });
     });
 
@@ -126,9 +141,10 @@ void main() {
             confidence: WindShiftConfidence.low,
           ),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 10)));
+        expect(result?.twa, equals(const Angle(degrees: 10)));
       });
 
       test('medium confidence → extrapolál (csak low szűr)', () {
@@ -142,9 +158,10 @@ void main() {
             confidence: WindShiftConfidence.medium,
           ),
           timeToMark: const Duration(minutes: 5),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 40)));
+        expect(result?.twa, equals(const Angle(degrees: 40)));
       });
 
       test('a nagy eltolás ±30°-ra vágódik (cap)', () {
@@ -154,9 +171,10 @@ void main() {
           nextLegBearing: const Bearing.true_(20),
           trend: trendWith(shiftRate: 10, currentTwd: const Bearing.true_(50)),
           timeToMark: const Duration(minutes: 8),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 60)));
+        expect(result?.twa, equals(const Angle(degrees: 60)));
       });
 
       test('az extrapoláció a regressziós ablakra korlátozódik', () {
@@ -167,9 +185,72 @@ void main() {
           nextLegBearing: const Bearing.true_(90),
           trend: trendWith(shiftRate: 2, currentTwd: const Bearing.true_(100)),
           timeToMark: const Duration(minutes: 30),
+          now: now,
         );
 
-        expect(result, equals(const Angle(degrees: 30)));
+        expect(result?.twa, equals(const Angle(degrees: 30)));
+      });
+    });
+
+    group('előrejelzési hibasáv és konfidencia (ADR 0023)', () {
+      test('kapuzott (low) ág → band = reziduál-szórás, low', () {
+        // Low → horizon 0, a slope-tag eltűnik → band = residualStdError.
+        // residualStdError 20 → band 20 → low (> 15). A slopeStdError
+        // irreleváns (kapuzva).
+        final result = useCase(
+          nextLegBearing: const Bearing.true_(90),
+          trend: trendWith(
+            shiftRate: 6,
+            currentTwd: const Bearing.true_(100),
+            confidence: WindShiftConfidence.low,
+            residualStdError: 20,
+            slopeStdError: 5,
+          ),
+          timeToMark: const Duration(minutes: 5),
+          now: now,
+        );
+
+        expect(result?.twa, equals(const Angle(degrees: 10)));
+        expect(result?.bandDegrees, closeTo(20, 1e-9));
+        expect(result?.confidence, WindShiftConfidence.low);
+      });
+
+      test('slope-bizonytalanság · horizont → band 6 határ → high', () {
+        // residual 0, slopeSE 0.6 °/perc; meanSampleTime now − 5 perc,
+        // timeToMark 5 perc → horizon (now+5)−(now−5) = 10 perc.
+        // band = sqrt(0 + (0.6·10)²) = 6 → high (≤ 6 határ).
+        final result = useCase(
+          nextLegBearing: const Bearing.true_(90),
+          trend: trendWith(
+            shiftRate: 0,
+            currentTwd: const Bearing.true_(100),
+            residualStdError: 0,
+            slopeStdError: 0.6,
+          ),
+          timeToMark: const Duration(minutes: 5),
+          now: now,
+        );
+
+        expect(result?.bandDegrees, closeTo(6, 1e-9));
+        expect(result?.confidence, WindShiftConfidence.high);
+      });
+
+      test('csak reziduum (stabil, de szórt) → medium', () {
+        // residual 8, slopeSE 0 → band = 8 → medium (≤ 15).
+        final result = useCase(
+          nextLegBearing: const Bearing.true_(90),
+          trend: trendWith(
+            shiftRate: 0,
+            currentTwd: const Bearing.true_(100),
+            residualStdError: 8,
+            slopeStdError: 0,
+          ),
+          timeToMark: const Duration(minutes: 5),
+          now: now,
+        );
+
+        expect(result?.bandDegrees, closeTo(8, 1e-9));
+        expect(result?.confidence, WindShiftConfidence.medium);
       });
     });
   });

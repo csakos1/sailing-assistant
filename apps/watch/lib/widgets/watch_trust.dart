@@ -6,49 +6,20 @@ import 'package:watch/theme/watch_colors.dart';
 /// (`TwdQuality.name`); ismeretlen/`null` → nem held (biztonságos default).
 bool isTwdHeld(String? twdQuality) => twdQuality == 'held';
 
-/// A `shiftConfidence` payload-String → kitöltött pöttyök száma (1..3), vagy
-/// `null`, ha nincs aktív predikció / ismeretlen érték. A String a
-/// payload-kontraktus (`WindShiftConfidence.name`); a leképezés a phone
-/// `confidence_dots`-ét követi (§10.4).
-int? confidenceDotCount(String? shiftConfidence) => switch (shiftConfidence) {
-  'low' => 1,
-  'medium' => 2,
-  'high' => 3,
+/// A `shiftConfidence` payload-String → az alsó perem-ív **színe és hossza**
+/// (ADR 0023 D7), vagy `null`, ha nincs aktív predikció / ismeretlen érték.
+///
+/// A szint mindkét vizuális dimenziót kódolja: `high` = teal + teljes ív,
+/// `medium` = borostyán + ~kétharmad, `low` = szürke + ~harmad. A `low`
+/// szándékosan szürke (nem piros) — a piros a warning-csatorna (D7). A String a
+/// payload-kontraktus (`WindShiftConfidence.name`); a bucket-szemantika
+/// egyetlen igazságforrásból (`EstimatePredictionConfidence`) jön.
+({Color color, double fraction})? confidenceArc(
+  String? shiftConfidence,
+  WatchColors colors,
+) => switch (shiftConfidence) {
+  'high' => (color: colors.signal, fraction: 1),
+  'medium' => (color: colors.amber, fraction: 0.66),
+  'low' => (color: colors.textTertiary, fraction: 0.33),
   _ => null,
 };
-
-/// Három-szegmenses pötty-indikátor a predikció-konfidenciához (§10.4):
-/// 1→`●○○`, 2→`●●○`, 3→`●●●`. A shape hordozza az infót (színvak-safe), a
-/// watch-palettával színezve (a phone `ConfidenceColors` itt nem elérhető).
-class WatchConfidenceDots extends StatelessWidget {
-  /// Létrehozza a pötty-sort a kitöltött szegmensek [filled] számával (1..3).
-  const WatchConfidenceDots({
-    required this.filled,
-    required this.colors,
-    super.key,
-  });
-
-  /// A kitöltött pöttyök száma (1..3).
-  final int filled;
-
-  /// A téma szín-tokenjei.
-  final WatchColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (i) {
-        final isOn = i < filled;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Icon(
-            isOn ? Icons.circle : Icons.circle_outlined,
-            size: 7,
-            color: isOn ? colors.text : colors.textTertiary,
-          ),
-        );
-      }),
-    );
-  }
-}

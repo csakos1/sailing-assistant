@@ -39,6 +39,7 @@ WatchPayload buildWatchPayload({
     predictedTwaAtMark: prediction?.predictedTwaAtMark?.degrees,
     twdQuality: twdQuality.name,
     shiftConfidence: prediction?.shiftConfidence.name,
+    forecastBandDegrees: prediction?.forecastBandDegrees,
     courseCorrection: prediction?.courseCorrection?.degrees,
     etaSeconds: prediction?.eta?.inSeconds,
     distanceMeters: prediction?.distanceToMark.meters,

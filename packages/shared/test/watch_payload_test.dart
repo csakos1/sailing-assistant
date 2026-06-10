@@ -16,6 +16,7 @@ void main() {
       double sogKnots = 6.4,
       double currentTwa = -42.5,
       double predictedTwaAtMark = 38,
+      double forecastBandDegrees = 4.5,
       double courseCorrection = -7.5,
       int etaSeconds = 154,
       double distanceMeters = 480,
@@ -29,6 +30,7 @@ void main() {
         sogKnots: sogKnots,
         currentTwa: currentTwa,
         predictedTwaAtMark: predictedTwaAtMark,
+        forecastBandDegrees: forecastBandDegrees,
         courseCorrection: courseCorrection,
         etaSeconds: etaSeconds,
         distanceMeters: distanceMeters,
@@ -204,6 +206,12 @@ void main() {
 
         // Assert
         expect(base, isNot(equals(withExtra)));
+      });
+
+      test('differs when forecastBandDegrees changes', () {
+        final base = sample();
+        final wider = sample(forecastBandDegrees: 11);
+        expect(base, isNot(equals(wider)));
       });
     });
   });

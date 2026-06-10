@@ -8,6 +8,8 @@ void main() {
     // Az invariáns-tesztek mindegyikében újrahasznosítjuk a TWD-t;
     // const lokális declaration, mert a `Bearing.true_` const ctor.
     const validTwd = Bearing.true_(180);
+    // Determinisztikus idő-súlypont a band-mezőkhöz (UTC instant).
+    final meanTime = DateTime.utc(2026, 5, 17, 12);
 
     WindShiftTrend buildValid() => WindShiftTrend(
       shiftRateDegPerMinute: 1.5,
@@ -15,6 +17,9 @@ void main() {
       confidence: WindShiftConfidence.high,
       sampleCount: 30,
       windowDuration: const Duration(minutes: 10),
+      residualStdErrorDeg: 1.2,
+      slopeStdErrorDegPerMin: 0.3,
+      meanSampleTime: meanTime,
     );
 
     group('construction', () {
@@ -28,6 +33,9 @@ void main() {
         expect(trend.confidence, equals(WindShiftConfidence.high));
         expect(trend.sampleCount, equals(30));
         expect(trend.windowDuration, equals(const Duration(minutes: 10)));
+        expect(trend.residualStdErrorDeg, equals(1.2));
+        expect(trend.slopeStdErrorDegPerMin, equals(0.3));
+        expect(trend.meanSampleTime, equals(meanTime));
       });
 
       test('zero shift rate is allowed (stable wind)', () {
@@ -38,6 +46,9 @@ void main() {
             confidence: WindShiftConfidence.low,
             sampleCount: 10,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 0,
+            slopeStdErrorDegPerMin: 0,
+            meanSampleTime: meanTime,
           ),
           returnsNormally,
         );
@@ -51,6 +62,9 @@ void main() {
             confidence: WindShiftConfidence.medium,
             sampleCount: 15,
             windowDuration: const Duration(minutes: 5),
+            residualStdErrorDeg: 2,
+            slopeStdErrorDegPerMin: 0.5,
+            meanSampleTime: meanTime,
           ),
           returnsNormally,
         );
@@ -66,6 +80,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -79,6 +96,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: -1,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -92,6 +112,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: Duration.zero,
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -105,6 +128,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: const Duration(minutes: -1),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -118,6 +144,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -131,6 +160,9 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -144,6 +176,73 @@ void main() {
             confidence: WindShiftConfidence.high,
             sampleCount: 30,
             windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+
+      test('negative residualStdErrorDeg → AssertionError', () {
+        expect(
+          () => WindShiftTrend(
+            shiftRateDegPerMinute: 1,
+            currentTwd: validTwd,
+            confidence: WindShiftConfidence.high,
+            sampleCount: 30,
+            windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: -0.1,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+
+      test('NaN residualStdErrorDeg → AssertionError', () {
+        expect(
+          () => WindShiftTrend(
+            shiftRateDegPerMinute: 1,
+            currentTwd: validTwd,
+            confidence: WindShiftConfidence.high,
+            sampleCount: 30,
+            windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: double.nan,
+            slopeStdErrorDegPerMin: 0.1,
+            meanSampleTime: meanTime,
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+
+      test('negative slopeStdErrorDegPerMin → AssertionError', () {
+        expect(
+          () => WindShiftTrend(
+            shiftRateDegPerMinute: 1,
+            currentTwd: validTwd,
+            confidence: WindShiftConfidence.high,
+            sampleCount: 30,
+            windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: -0.1,
+            meanSampleTime: meanTime,
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      });
+
+      test('non-finite slopeStdErrorDegPerMin → AssertionError', () {
+        expect(
+          () => WindShiftTrend(
+            shiftRateDegPerMinute: 1,
+            currentTwd: validTwd,
+            confidence: WindShiftConfidence.high,
+            sampleCount: 30,
+            windowDuration: const Duration(minutes: 10),
+            residualStdErrorDeg: 1,
+            slopeStdErrorDegPerMin: double.infinity,
+            meanSampleTime: meanTime,
           ),
           throwsA(isA<AssertionError>()),
         );
@@ -172,6 +271,22 @@ void main() {
 
         expect(a, isNot(equals(b)));
       });
+
+      test('different residualStdErrorDeg → not equal', () {
+        final a = buildValid();
+        final b = a.copyWith(residualStdErrorDeg: 9.9);
+
+        expect(a, isNot(equals(b)));
+      });
+
+      test('different meanSampleTime → not equal', () {
+        final a = buildValid();
+        final b = a.copyWith(
+          meanSampleTime: meanTime.add(const Duration(minutes: 1)),
+        );
+
+        expect(a, isNot(equals(b)));
+      });
     });
 
     group('copyWith', () {
@@ -191,13 +306,21 @@ void main() {
         expect(b.currentTwd, equals(a.currentTwd));
         expect(b.confidence, equals(a.confidence));
         expect(b.windowDuration, equals(a.windowDuration));
+        expect(b.residualStdErrorDeg, equals(a.residualStdErrorDeg));
+        expect(b.slopeStdErrorDegPerMin, equals(a.slopeStdErrorDegPerMin));
+        expect(b.meanSampleTime, equals(a.meanSampleTime));
       });
 
-      test('windowDuration override', () {
+      test('band-mezők override-ja', () {
         final a = buildValid();
-        final b = a.copyWith(windowDuration: const Duration(minutes: 20));
+        final b = a.copyWith(
+          residualStdErrorDeg: 4,
+          slopeStdErrorDegPerMin: 0.9,
+        );
 
-        expect(b.windowDuration, equals(const Duration(minutes: 20)));
+        expect(b.residualStdErrorDeg, equals(4));
+        expect(b.slopeStdErrorDegPerMin, equals(0.9));
+        expect(b.shiftRateDegPerMinute, equals(a.shiftRateDegPerMinute));
       });
     });
   });

@@ -10,21 +10,26 @@ void main() {
         final y = <double>[1, 3, 5, 7, 9];
 
         // Act
-        final (slope, rSquared) = linearRegression(x, y);
+        final reg = linearRegression(x, y);
 
         // Assert
-        expect(slope, closeTo(2, 1e-9));
-        expect(rSquared, closeTo(1, 1e-9));
+        expect(reg.slope, closeTo(2, 1e-9));
+        expect(reg.rSquared, closeTo(1, 1e-9));
+        // Perfekt illesztés → nincs reziduum, a meredekség hibája is 0.
+        expect(reg.residualStdError, closeTo(0, 1e-9));
+        expect(reg.slopeStdError, closeTo(0, 1e-9));
+        expect(reg.meanX, closeTo(2, 1e-9));
       });
 
       test('perfect anti-correlation y = -2x + 1 → slope = -2, r² = 1', () {
         final x = <double>[0, 1, 2, 3, 4];
         final y = <double>[1, -1, -3, -5, -7];
 
-        final (slope, rSquared) = linearRegression(x, y);
+        final reg = linearRegression(x, y);
 
-        expect(slope, closeTo(-2, 1e-9));
-        expect(rSquared, closeTo(1, 1e-9));
+        expect(reg.slope, closeTo(-2, 1e-9));
+        expect(reg.rSquared, closeTo(1, 1e-9));
+        expect(reg.residualStdError, closeTo(0, 1e-9));
       });
 
       test('noisy data → slope ~ ground truth, r² ∈ (0.99, 1)', () {
@@ -43,11 +48,15 @@ void main() {
           9.05,
         ];
 
-        final (slope, rSquared) = linearRegression(x, y);
+        final reg = linearRegression(x, y);
 
-        expect(slope, closeTo(1, 0.05));
-        expect(rSquared, greaterThan(0.99));
-        expect(rSquared, lessThan(1));
+        expect(reg.slope, closeTo(1, 0.05));
+        expect(reg.rSquared, greaterThan(0.99));
+        expect(reg.rSquared, lessThan(1));
+        // Zaj jelen → pozitív reziduál-szórás és meredekség-hiba.
+        expect(reg.residualStdError, greaterThan(0));
+        expect(reg.slopeStdError, greaterThan(0));
+        expect(reg.meanX, closeTo(4.5, 1e-9));
       });
 
       test('large absolute x (epoch-skála) → numerically stable', () {
@@ -57,42 +66,71 @@ void main() {
         final x = <double>[29000000, 29000001, 29000002, 29000003];
         final y = <double>[10, 20, 30, 40];
 
-        final (slope, rSquared) = linearRegression(x, y);
+        final reg = linearRegression(x, y);
 
-        expect(slope, closeTo(10, 1e-6));
-        expect(rSquared, closeTo(1, 1e-9));
+        expect(reg.slope, closeTo(10, 1e-6));
+        expect(reg.rSquared, closeTo(1, 1e-9));
+        expect(reg.meanX, closeTo(29000001.5, 1e-3));
       });
     });
 
-    group('NaN-tuple edge cases', () {
-      test('empty input → (NaN, NaN)', () {
-        final (slope, rSquared) = linearRegression(<double>[], <double>[]);
-        expect(slope.isNaN, isTrue);
-        expect(rSquared.isNaN, isTrue);
+    group('regresszió-statisztikák (ADR 0023)', () {
+      test('ismert reziduum → s a négyzetes hibából, n−2 dof', () {
+        // x=[0,1,2,3], y=[1,0,1,4]. A reziduumok (+1,−1,−1,+1) a centered
+        // x-re ortogonálisak → az OLS slope pontosan 1 (a true slope).
+        // SSres = Σr² = 4; s = sqrt(SSres/(n−2)) = sqrt(4/2) = sqrt(2).
+        // Sxx = Σ(x−1.5)² = 5; slopeSE = s/sqrt(Sxx) = sqrt(2/5).
+        final x = <double>[0, 1, 2, 3];
+        final y = <double>[1, 0, 1, 4];
+
+        final reg = linearRegression(x, y);
+
+        expect(reg.slope, closeTo(1, 1e-9));
+        expect(reg.residualStdError, closeTo(1.4142136, 1e-6));
+        expect(reg.slopeStdError, closeTo(0.6324555, 1e-6));
+        expect(reg.meanX, closeTo(1.5, 1e-9));
+      });
+    });
+
+    group('NaN-record edge cases', () {
+      test('empty input → minden mező NaN', () {
+        final reg = linearRegression(<double>[], <double>[]);
+        expect(reg.slope.isNaN, isTrue);
+        expect(reg.rSquared.isNaN, isTrue);
+        expect(reg.residualStdError.isNaN, isTrue);
+        expect(reg.slopeStdError.isNaN, isTrue);
+        expect(reg.meanX.isNaN, isTrue);
       });
 
-      test('single point → (NaN, NaN)', () {
-        final (slope, rSquared) = linearRegression(<double>[5], <double>[10]);
-        expect(slope.isNaN, isTrue);
-        expect(rSquared.isNaN, isTrue);
+      test('single point → minden mező NaN', () {
+        final reg = linearRegression(<double>[5], <double>[10]);
+        expect(reg.slope.isNaN, isTrue);
+        expect(reg.rSquared.isNaN, isTrue);
+        expect(reg.residualStdError.isNaN, isTrue);
+        expect(reg.slopeStdError.isNaN, isTrue);
+        expect(reg.meanX.isNaN, isTrue);
       });
 
-      test('constant x (vertical fit) → (NaN, NaN)', () {
+      test('constant x (vertical fit) → minden mező NaN', () {
         final x = <double>[3, 3, 3, 3];
         final y = <double>[1, 2, 3, 4];
 
-        final (slope, rSquared) = linearRegression(x, y);
-        expect(slope.isNaN, isTrue);
-        expect(rSquared.isNaN, isTrue);
+        final reg = linearRegression(x, y);
+        expect(reg.slope.isNaN, isTrue);
+        expect(reg.rSquared.isNaN, isTrue);
+        expect(reg.residualStdError.isNaN, isTrue);
+        expect(reg.slopeStdError.isNaN, isTrue);
       });
 
-      test('constant y (no variance) → (NaN, NaN)', () {
+      test('constant y (no variance) → minden mező NaN', () {
         final x = <double>[1, 2, 3, 4];
         final y = <double>[5, 5, 5, 5];
 
-        final (slope, rSquared) = linearRegression(x, y);
-        expect(slope.isNaN, isTrue);
-        expect(rSquared.isNaN, isTrue);
+        final reg = linearRegression(x, y);
+        expect(reg.slope.isNaN, isTrue);
+        expect(reg.rSquared.isNaN, isTrue);
+        expect(reg.residualStdError.isNaN, isTrue);
+        expect(reg.slopeStdError.isNaN, isTrue);
       });
     });
 

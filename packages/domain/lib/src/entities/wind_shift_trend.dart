@@ -6,8 +6,9 @@ import 'package:meta/meta.dart';
 /// Wind-shift trend snapshot, melyet a `CalculateWindShiftTrend` use
 /// case (ARCHITECTURE.md 7.4) számol egy adott [windowDuration]
 /// ablakra sliding-window lineáris regresszióval. A regresszió slope-ja
-/// adja a TWD változási rátáját, az r² értéke pedig a konfidencia-
-/// besorolást.
+/// adja a TWD változási rátáját, az r² értéke a kapuzás-konfidenciát,
+/// a reziduál- és meredekség-szórás pedig az ADR 0023 előrejelzési
+/// hibasáv (band) bemeneteit.
 ///
 /// **Pozitív [shiftRateDegPerMinute] óramutató járásával egyező
 /// (clockwise) forgást jelez** (pl. É → ÉK → K → DK), negatív érték
@@ -20,9 +21,25 @@ import 'package:meta/meta.dart';
 /// a 7.5 `PredictTwaAtMark` pedig ezt veszi az extrapoláció kiindulási
 /// pontjának (`predictedTwd = currentTwd + shiftRate * timeToMark`).
 ///
+/// **A [confidence] (r²) az ADR 0023 óta KIZÁRÓLAG az extrapolációs
+/// kapu** (7.5: low → nincs extrapoláció). A *megjelenített* UI-bizalmat
+/// az előrejelzési hibasáv adja (7.5b `EstimatePredictionConfidence`),
+/// ami a [residualStdErrorDeg]-ból, a [slopeStdErrorDegPerMin]-ból és a
+/// horizon-ból képződik.
+///
 /// A [sampleCount] és [windowDuration] elsősorban diagnosztika célt
 /// szolgál: UI tooltip ("trend X perc / Y minta alapján"), telemetria-
 /// log, és pl. a Warning rendszer küszöb-ellenőrzései.
+///
+/// **Regresszió-statisztikák (ADR 0023).**
+/// - [residualStdErrorDeg]: a regresszió körüli reziduál-szórás fokban
+///   (`s`). Stabil, jól illeszkedő szélnél kicsi.
+/// - [slopeStdErrorDegPerMin]: a meredekség standard hibája fok/perc-ben
+///   (`slopeSE`). A horizonttal szorozva adja a band slope-bizonytalansági
+///   tagját.
+/// - [meanSampleTime]: a regresszió idő-súlypontja (az x-átlag
+///   visszafejtve DateTime-má, UTC instant). A band horizontja ehhez
+///   méri a jövőbeli érkezést: `h = (now + effectiveEta) − meanSampleTime`.
 ///
 /// **Invariánsok** (assert):
 /// - [currentTwd] trueNorth-referenciájú — a TWD a definíció szerint
@@ -32,6 +49,8 @@ import 'package:meta/meta.dart';
 /// - [shiftRateDegPerMinute] véges (nem NaN, nem ±∞) — a 7.4 use case
 ///   szűri ki a konstans-y és degenerált eseteket, mielőtt ezt az
 ///   entitást konstruálná.
+/// - [residualStdErrorDeg] és [slopeStdErrorDegPerMin] véges, nem-negatív
+///   — a 7.4 a degenerált (NaN) regressziót már kiszűrte.
 ///
 /// **Insufficient-sample szemantika:** ha az ablakban a 7.4 küszöbe
 /// (default 10) alatti minta esik, a use case `null`-t ad vissza és
@@ -47,6 +66,9 @@ class WindShiftTrend extends Equatable {
     required this.confidence,
     required this.sampleCount,
     required this.windowDuration,
+    required this.residualStdErrorDeg,
+    required this.slopeStdErrorDegPerMin,
+    required this.meanSampleTime,
   }) : assert(
          currentTwd.reference == BearingReference.trueNorth,
          'currentTwd trueNorth-referenciájú Bearing-et tárol (TWD).',
@@ -59,6 +81,14 @@ class WindShiftTrend extends Equatable {
        assert(
          shiftRateDegPerMinute.isFinite,
          'shiftRateDegPerMinute véges szám (nem NaN, nem ±∞).',
+       ),
+       assert(
+         residualStdErrorDeg.isFinite && residualStdErrorDeg >= 0,
+         'residualStdErrorDeg véges, nem-negatív fok.',
+       ),
+       assert(
+         slopeStdErrorDegPerMin.isFinite && slopeStdErrorDegPerMin >= 0,
+         'slopeStdErrorDegPerMin véges, nem-negatív fok/perc.',
        );
 
   /// Az ablakra illesztett lineáris regresszió slope-ja fok/perc
@@ -71,19 +101,30 @@ class WindShiftTrend extends Equatable {
   /// műveletet a konstrukció előtt.
   final Bearing currentTwd;
 
-  /// r²-alapú konfidencia-besorolás. A 7.4 küszöbök: r² > 0.7 → high,
-  /// r² > 0.4 → medium, egyébként → low.
+  /// r²-alapú besorolás. Az ADR 0023 óta CSAK az extrapolációs kapu
+  /// (7.5): low (r² ≤ 0.4) → nincs extrapoláció. A UI-bizalom a band-ből
+  /// jön, nem ebből.
   final WindShiftConfidence confidence;
 
   /// A regresszióba bemenő minta-pontok száma. A 7.4 `_minSampleCount`
   /// küszöb (default 10) alatt nincs trend (a use case null-t ad).
   final int sampleCount;
 
-  /// Az ablak hossza, amit a hívó (8.3 `windShiftWindowSettingProvider`)
-  /// ad át a use case-nek. Általában 10 perc Lake Balaton-os tour-race
-  /// kontextusban; settings-vezérelt, hogy a felhasználó hangolhassa
-  /// a verseny során.
+  /// Az ablak hossza, amit a hívó (8.3 `windShiftTrendProvider`) ad át a
+  /// use case-nek. Általában 10 perc Lake Balaton-os tour-race
+  /// kontextusban; egyelőre in-memory konstans (ADR 0010 D3 / 0011 D1).
   final Duration windowDuration;
+
+  /// Reziduál-szórás fokban (`s`) — a band reziduum-tagja (ADR 0023).
+  final double residualStdErrorDeg;
+
+  /// A meredekség standard hibája fok/perc-ben (`slopeSE`) — a band
+  /// slope-bizonytalansági tagja a horizonttal szorozva (ADR 0023).
+  final double slopeStdErrorDegPerMin;
+
+  /// A regresszió idő-súlypontja (x-átlag DateTime-má fejtve, UTC
+  /// instant) — a band horizontjának referenciapontja (ADR 0023).
+  final DateTime meanSampleTime;
 
   /// Immutable update. Simple-form: `null` paraméter "ne változtass"
   /// jelentéssel bír. Mivel a [WindShiftTrend] számolt érték, ezt
@@ -96,6 +137,9 @@ class WindShiftTrend extends Equatable {
     WindShiftConfidence? confidence,
     int? sampleCount,
     Duration? windowDuration,
+    double? residualStdErrorDeg,
+    double? slopeStdErrorDegPerMin,
+    DateTime? meanSampleTime,
   }) {
     return WindShiftTrend(
       shiftRateDegPerMinute:
@@ -104,6 +148,10 @@ class WindShiftTrend extends Equatable {
       confidence: confidence ?? this.confidence,
       sampleCount: sampleCount ?? this.sampleCount,
       windowDuration: windowDuration ?? this.windowDuration,
+      residualStdErrorDeg: residualStdErrorDeg ?? this.residualStdErrorDeg,
+      slopeStdErrorDegPerMin:
+          slopeStdErrorDegPerMin ?? this.slopeStdErrorDegPerMin,
+      meanSampleTime: meanSampleTime ?? this.meanSampleTime,
     );
   }
 
@@ -114,6 +162,9 @@ class WindShiftTrend extends Equatable {
     confidence,
     sampleCount,
     windowDuration,
+    residualStdErrorDeg,
+    slopeStdErrorDegPerMin,
+    meanSampleTime,
   ];
 
   @override

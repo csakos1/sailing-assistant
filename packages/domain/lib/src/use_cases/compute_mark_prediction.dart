@@ -29,12 +29,15 @@ import 'package:meta/meta.dart';
 /// composite a v2 belépési pontja: `PolarRepository`, polár-aware ETA).
 /// A ctor `const`, az osztály `@immutable`.
 ///
-/// **Köv-szár-TWA (ADR 0021).** A `predictedTwaAtMark` referenciája a
-/// **következő szár fix iránya** (`bearing(activeMark → nextMark)`), nem
-/// a hajó→aktív-bója irány. Az utolsó lábon (nincs `nextMark`) és a bója
-/// [_freezeRadiusMeters]-es körén belül a predikció `null`, a többi mező
-/// megmarad. A kapuzás (konfidencia, ±cap, ablak) a 7.5
-/// `PredictTwaAtMark`-ban van.
+/// **Köv-szár-TWA (ADR 0021) + band (ADR 0023).** A `predictedTwaAtMark`
+/// referenciája a **következő szár fix iránya** (`bearing(activeMark →
+/// nextMark)`), nem a hajó→aktív-bója irány. A 7.5 `PredictTwaAtMark`
+/// mostantól `TwaPrediction`-t ad (TWA + band + konfidencia); a composite
+/// ebből tölti a `predictedTwaAtMark`-ot, a `forecastBandDegrees`-t ÉS a
+/// `shiftConfidence`-t — utóbbi tehát már nem a `trend.confidence`-ből.
+/// Az utolsó lábon (nincs `nextMark`) és a bója [_freezeRadiusMeters]-es
+/// körén belül a predikció `null` (band `null`, confidence `low`), a többi
+/// mező megmarad. A kapuzás (konfidencia, ±cap, ablak) a 7.5-ben van.
 ///
 /// **Mark-rounding nincs benne** — az állapotos `MarkRoundingDetector`
 /// (7.7) az application rétegben fut külön (8.4).
@@ -75,12 +78,14 @@ class ComputeMarkPrediction {
   /// A köv-szár-TWA-hoz a [nextMark] is kell (ADR 0021): a `legBearing`
   /// = `bearing(activeMark → nextMark)`. Ha [nextMark] `null` (utolsó láb)
   /// vagy a bója [_freezeRadiusMeters]-es körén belül vagyunk, a
-  /// `predictedTwaAtMark` `null`, de a többi mező él.
+  /// `predictedTwaAtMark` `null`, a `forecastBandDegrees` `null`, a
+  /// `shiftConfidence` `low`; de a többi mező él.
   ///
   /// A részeredmények null-szemantikája átöröklődik a [MarkPrediction]-
   /// be: nincs effektív irány → `courseCorrection` null; SOG drift alatt
-  /// → `eta` null és `etaSource` `unknown`; nincs (elég jó) trend →
-  /// `predictedTwaAtMark` null és `shiftConfidence` `low`.
+  /// → `eta` null és `etaSource` `unknown`; nincs (elég jó) trend / nincs
+  /// predikció → `predictedTwaAtMark` + `forecastBandDegrees` null és
+  /// `shiftConfidence` `low`.
   MarkPrediction? call({
     required Mark? activeMark,
     required Mark? nextMark,
@@ -110,13 +115,14 @@ class ComputeMarkPrediction {
     // (aktív→köv. bója), NEM a hajó→aktív-bója irány. Utolsó lábon
     // (nincs köv. bója) vagy a bója freeze-körén belül a predikció null
     // — a többi mező (bearing, distance, ETA) megmarad.
-    final predictedTwa =
+    final prediction =
         (nextMark == null || distance.meters <= _freezeRadiusMeters)
         ? null
         : _predict(
             nextLegBearing: _bearing(activeMark.position, nextMark.position),
             trend: trend,
             timeToMark: eta,
+            now: now,
           );
 
     return MarkPrediction(
@@ -126,8 +132,9 @@ class ComputeMarkPrediction {
       distanceToMark: distance,
       eta: eta,
       etaSource: eta != null ? EtaSource.sog : EtaSource.unknown,
-      predictedTwaAtMark: predictedTwa,
-      shiftConfidence: trend?.confidence ?? WindShiftConfidence.low,
+      predictedTwaAtMark: prediction?.twa,
+      forecastBandDegrees: prediction?.bandDegrees,
+      shiftConfidence: prediction?.confidence ?? WindShiftConfidence.low,
       calculatedAt: now,
     );
   }

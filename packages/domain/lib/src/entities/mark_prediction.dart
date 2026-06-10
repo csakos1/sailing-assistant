@@ -20,13 +20,21 @@ import 'package:meta/meta.dart';
 /// részlegesen hiányozhatnak, ezért egyes mezők nullable:
 ///
 /// - [eta] és [predictedTwaAtMark] null, ha a számolás nem futott le
-///   (SOG hiányzik / drift-szint alatti; trend hiányzik / low conf).
+///   (SOG hiányzik / drift-szint alatti; trend hiányzik / utolsó láb /
+///   freeze-kör).
+/// - [forecastBandDegrees] null, ha nincs predikció (ADR 0023). Ha van
+///   predikció, a `±` előrejelzési hibasáv fokban.
 /// - [courseCorrection] null, ha a hajó effektív iránya
 ///   (`BoatState.effectiveDirection`) ismeretlen. Tudatos eltérés az
 ///   ARCHITECTURE.md 7.8 `Angle.zero()` fallback-mintájától: a `0°`
 ///   szemantikailag "perfekt course" jelentésű, és nem keverhető össze
 ///   a "nem tudjuk a heading-et" esettel. A UI így explicit különbséget
 ///   tehet, és nem a Warning-rendszerre vár szelektív decoration-hoz.
+///
+/// **A [shiftConfidence] az ADR 0023 óta a band-ből jön.** A composite
+/// a 7.5 `PredictTwaAtMark` `TwaPrediction`-jéből veszi (ami a 7.5b band
+/// bucketje), NEM a `trend.confidence` (r²) értékből. Predikció hiányában
+/// a default [WindShiftConfidence.low].
 ///
 /// **Invariánsok (assert-tel kódolva).**
 ///
@@ -37,6 +45,7 @@ import 'package:meta/meta.dart';
 ///   egyetlen invariáns: ha nincs ETA, a forrás `unknown`; ha van, a
 ///   forrás `sog` (v1) vagy `polar` (v2). Exhaustive switch kódolja,
 ///   új `EtaSource` érték a fordítóhibával jelez.
+/// - [forecastBandDegrees] null vagy véges, nem-negatív fok.
 @immutable
 class MarkPrediction extends Equatable {
   /// Új snapshot. Az invariánsokat assertek ellenőrzik.
@@ -50,6 +59,7 @@ class MarkPrediction extends Equatable {
     this.courseCorrection,
     this.eta,
     this.predictedTwaAtMark,
+    this.forecastBandDegrees,
   }) : assert(
          bearingToMark.reference == BearingReference.trueNorth,
          'bearingToMark mező trueNorth-referenciájú Bearing-et tárol.',
@@ -57,6 +67,11 @@ class MarkPrediction extends Equatable {
        assert(
          _etaInvariantHolds(eta, etaSource),
          'eta == null ↔ etaSource == unknown invariáns sérült.',
+       ),
+       assert(
+         forecastBandDegrees == null ||
+             (forecastBandDegrees.isFinite && forecastBandDegrees >= 0),
+         'forecastBandDegrees null vagy véges, nem-negatív fok.',
        );
 
   /// Melyik bóyára vonatkozik a prediction.
@@ -81,11 +96,16 @@ class MarkPrediction extends Equatable {
   final EtaSource etaSource;
 
   /// A bóyán érkezéskor várható TWA, signed. `null`, ha nincs elég
-  /// trend-adat vagy az ETA hiányzik.
+  /// trend-adat, az ETA hiányzik, utolsó láb, vagy a freeze-körön belül.
   final Angle? predictedTwaAtMark;
 
-  /// A wind-shift trend konfidenciája a számítás pillanatában.
-  /// Default-ja [WindShiftConfidence.low], ha trend nem érhető el.
+  /// A predikció érkezéskori előrejelzési hibasávja fokban (`±`), vagy
+  /// `null` ha nincs predikció (ADR 0023). Ortogonális a [shiftConfidence]
+  /// bucket-szinttel: a sáv a folytonos érték, a szint a sávozott jelzés.
+  final double? forecastBandDegrees;
+
+  /// A predikció megjelenítési konfidenciája a band-ből (ADR 0023).
+  /// Default-ja [WindShiftConfidence.low], ha nincs predikció.
   final WindShiftConfidence shiftConfidence;
 
   /// A snapshot előállításának időbélyege.
@@ -103,8 +123,8 @@ class MarkPrediction extends Equatable {
 
   /// Immutable update. Simple-form: `null` paraméter "ne változtass"
   /// jelentéssel bír. A nullable mezők ([courseCorrection], [eta],
-  /// [predictedTwaAtMark]) null-ra állításához új [MarkPrediction]
-  /// kell — copyWith-tel nem érhető el.
+  /// [predictedTwaAtMark], [forecastBandDegrees]) null-ra állításához új
+  /// [MarkPrediction] kell — copyWith-tel nem érhető el.
   ///
   /// Figyelem: az [eta] és [etaSource] invariáns-csatolt — ha az
   /// egyiket változtatod, gondoskodj a párjáról is, különben a
@@ -119,6 +139,7 @@ class MarkPrediction extends Equatable {
     Angle? courseCorrection,
     Duration? eta,
     Angle? predictedTwaAtMark,
+    double? forecastBandDegrees,
   }) {
     return MarkPrediction(
       mark: mark ?? this.mark,
@@ -130,6 +151,7 @@ class MarkPrediction extends Equatable {
       courseCorrection: courseCorrection ?? this.courseCorrection,
       eta: eta ?? this.eta,
       predictedTwaAtMark: predictedTwaAtMark ?? this.predictedTwaAtMark,
+      forecastBandDegrees: forecastBandDegrees ?? this.forecastBandDegrees,
     );
   }
 
@@ -144,6 +166,7 @@ class MarkPrediction extends Equatable {
     courseCorrection,
     eta,
     predictedTwaAtMark,
+    forecastBandDegrees,
   ];
 
   @override

@@ -19,6 +19,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     required this.critical,
     required this.port,
     required this.starboard,
+    this.amber = const Color(0xFFFFB300),
   });
 
   /// Háttér (OLED-fekete).
@@ -33,10 +34,10 @@ class WatchColors extends ThemeExtension<WatchColors> {
   /// Másodlagos szöveg / label.
   final Color textSecondary;
 
-  /// Tercier / tompított (pl. nem megbízható GPS-idő pötty).
+  /// Tercier / tompított (pl. nem megbízható GPS-idő pötty; low konfidencia-ív).
   final Color textTertiary;
 
-  /// Live / optimális (teal) — friss GPS, predikció.
+  /// Live / optimális (teal) — friss GPS, predikció; high konfidencia-ív.
   final Color signal;
 
   /// Kritikus (warning keret / ikon).
@@ -47,6 +48,11 @@ class WatchColors extends ThemeExtension<WatchColors> {
 
   /// Jobb (starboard, zöld) — hajós konvenció.
   final Color starboard;
+
+  /// Borostyán — a medium predikció-konfidencia (alsó ív) színe (ADR 0023 D7).
+  /// Additív token; a default a kanonikus téma-érték, így a meglévő
+  /// [WatchColors]-konstrukciók (téma + tesztek) változatlanul fordulnak.
+  final Color amber;
 
   @override
   WatchColors copyWith({
@@ -59,6 +65,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     Color? critical,
     Color? port,
     Color? starboard,
+    Color? amber,
   }) => WatchColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -69,6 +76,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     critical: critical ?? this.critical,
     port: port ?? this.port,
     starboard: starboard ?? this.starboard,
+    amber: amber ?? this.amber,
   );
 
   @override
@@ -88,6 +96,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
       critical: Color.lerp(critical, other.critical, t) ?? critical,
       port: Color.lerp(port, other.port, t) ?? port,
       starboard: Color.lerp(starboard, other.starboard, t) ?? starboard,
+      amber: Color.lerp(amber, other.amber, t) ?? amber,
     );
   }
 }

@@ -34,6 +34,7 @@ void main() {
       courseCorrection: const Angle(degrees: 10),
       eta: const Duration(seconds: 600),
       predictedTwaAtMark: const Angle(degrees: 45),
+      forecastBandDegrees: 6.5,
     );
 
     // Fake lokalizáló: a codeId-t adja, hogy a tartalom-átvitel ellenőrizhető.
@@ -85,6 +86,7 @@ void main() {
       expect(payload.criticalWarnings, isEmpty);
       expect(payload.twdQuality, 'live');
       expect(payload.shiftConfidence, 'high');
+      expect(payload.forecastBandDegrees, 6.5);
     });
 
     test('null prediction blanks the mark-derived fields', () {

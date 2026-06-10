@@ -12,6 +12,9 @@ void main() {
     confidence: WindShiftConfidence.high,
     sampleCount: 15,
     windowDuration: const Duration(minutes: 10),
+    residualStdErrorDeg: 1,
+    slopeStdErrorDegPerMin: 0.1,
+    meanSampleTime: lastUpdate,
   );
 
   // Alap: csatlakozott, van fix, nincs trend, nincs verseny → tiszta

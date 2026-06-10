@@ -66,6 +66,7 @@ void main() {
         courseCorrection: const Angle(degrees: 12),
         eta: const Duration(minutes: 4, seconds: 25),
         predictedTwaAtMark: const Angle(degrees: -38),
+        forecastBandDegrees: 6.5,
       ),
       windShiftTrend: WindShiftTrend(
         shiftRateDegPerMinute: 1.5,
@@ -73,6 +74,9 @@ void main() {
         confidence: WindShiftConfidence.medium,
         sampleCount: 18,
         windowDuration: const Duration(minutes: 10),
+        residualStdErrorDeg: 1.4,
+        slopeStdErrorDegPerMin: 0.35,
+        meanSampleTime: calcTime,
       ),
       twdQuality: TwdQuality.held,
     );

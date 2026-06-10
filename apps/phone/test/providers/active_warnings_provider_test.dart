@@ -39,6 +39,9 @@ void main() {
     confidence: WindShiftConfidence.high,
     sampleCount: 15,
     windowDuration: const Duration(minutes: 10),
+    residualStdErrorDeg: 1.2,
+    slopeStdErrorDegPerMin: 0.3,
+    meanSampleTime: anchorUtc,
   );
 
   late StreamController<DateTime> ticks;

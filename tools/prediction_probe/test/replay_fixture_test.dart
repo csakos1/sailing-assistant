@@ -105,6 +105,21 @@ void main() {
         .length;
     expect(live, greaterThan(report.samples.length ~/ 2));
   });
+
+  test('emits a forecast band wherever a next-leg TWA is predicted', () {
+    final withTwa = report.samples
+        .where((s) => s.prediction?.predictedTwaAtMark != null)
+        .toList();
+    expect(withTwa, isNotEmpty);
+    // Ahol van köv-szár-TWA, ott a band sem null és nem-negatív (ADR 0023).
+    for (final sample in withTwa) {
+      expect(sample.prediction!.forecastBandDegrees, isNotNull);
+      expect(
+        sample.prediction!.forecastBandDegrees,
+        greaterThanOrEqualTo(0),
+      );
+    }
+  });
 }
 
 /// Egy érték-lista mediánja; a lista nem lehet üres. Páros

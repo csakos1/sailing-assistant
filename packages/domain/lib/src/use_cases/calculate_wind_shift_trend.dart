@@ -4,45 +4,13 @@ import 'package:domain/src/entities/wind_observation.dart';
 import 'package:domain/src/entities/wind_shift_confidence.dart';
 import 'package:domain/src/entities/wind_shift_trend.dart';
 import 'package:domain/src/value_objects/bearing.dart';
-import 'package:meta/meta.dart';
 
-/// Sliding-window lineáris regresszióval becsüli a wind-shift trend
-/// rátáját és megbízhatóságát egy [WindObservation]-history-ból.
-///
-/// **Domain háttér.** Tour-race kontextusban a TWD (True Wind
-/// Direction) folyamatosan változik — emelkedő (clockwise) vagy
-/// süllyedő (counterclockwise) trend-tel. A vitorlázó a 7.5
-/// `PredictTwaAtMark`-on keresztül ezt az becslést a következő bóya
-/// felé tartó kurzus szempontjából értelmezi (lift vs header), és
-/// kormányzási döntéseket hoz alapján.
-///
-/// **Pure-function design — Opció β (injektált `now`).** A [call]
-/// minden iterációban kötelező [DateTime] paramétert vár, NEM belső
-/// `DateTime.now()`. Ezáltal: (1) a 7.8 `ComputeMarkPrediction` egy
-/// tick timestamp-jét csorgatja le minden függő use case-be, így egy
-/// iteráción belül konzisztens időképpel dolgozunk; (2) a tesztek
-/// determinisztikusak — a `now` fix value-val állítható, nincs
-/// szükség Clock interface mock-ra; (3) a számítás idempotens.
-///
-/// **Null return — kétféle eset, ugyanaz a szemantika.** A use case
-/// `null`-t ad vissza, ha (a) a `history` `now - window`
-/// időintervallumában kevesebb mint `_minSampleCount` (=10) minta
-/// van — "insufficient signal"; vagy (b) a regresszió degenerált
-/// (slope vagy r² NaN: konstans-y vagy konstans-x input) —
-/// "degenerate fit". Mindkettő ugyanazt jelenti a hívónak: nincs
-/// használható trend most. A low confidence külön érték az enumban,
-/// és nem keverhető a "nincs adat" esettel.
-///
-/// **Numerikus heavy-lift a `_internal/`-ben.** Az angle-unwrap és a
-/// regresszió library-internal top-level függvények
-/// (`_internal/angle_unwrap.dart`, `_internal/linear_regression.dart`),
-/// külön unit-tesztelve. Ez a use case egy vékony orchestrator:
-/// szűri az ablakot, hívja a két helpert, ellenőrzi az eredményt,
-/// sávolja a konfidenciát, és összeállítja a `WindShiftTrend`-et.
-@immutable
+/// Sliding-window lineáris regresszió a TWD-történetre: a slope adja a
+/// szélfordulás rátáját, az r² a kapuzás-konfidenciát (ADR 0023 óta CSAK
+/// az extrapolációs kapu), a reziduál-/meredekség-szórás pedig az ADR 0023
+/// előrejelzési hibasáv (band) bemeneteit.
 class CalculateWindShiftTrend {
-  /// Const ctor — a use case stateless, példány-egyenlőség nem
-  /// releváns; const-elve egyetlen instance is elég.
+  /// Const ctor — a use case stateless.
   const CalculateWindShiftTrend();
 
   /// Az ablakba eső minimum minta-szám, ami alatt nincs trend
@@ -55,8 +23,9 @@ class CalculateWindShiftTrend {
   /// Sliding-window lineáris regressziót illeszt a [history]-ben
   /// szereplő TWD-mintákra, amelyek a [now]-tól [window]-időre
   /// visszamenőleg esnek. A regresszió slope-jából a fok/perc
-  /// shift-rátát, az r² értékéből a `WindShiftConfidence`-
-  /// besorolást adja vissza.
+  /// shift-rátát, az r² értékéből a `WindShiftConfidence`-besorolást,
+  /// a reziduál-/meredekség-szórásból pedig az ADR 0023 band-bemeneteit
+  /// adja vissza.
   ///
   /// Pure-function — a [now] kötelező paraméter, NEM belső
   /// `DateTime.now()` hívás. A 7.8 `ComputeMarkPrediction` egy
@@ -66,8 +35,8 @@ class CalculateWindShiftTrend {
   ///
   /// @return WindShiftTrend ha legalább [_minSampleCount] (=10)
   /// minta esik az ablakba ÉS a regresszió jól értelmezett (sem
-  /// slope, sem r² nem NaN); egyébként null. A null itt
-  /// "insufficient/degenerate signal" jelentésű — a low confidence
+  /// slope, sem r², sem a std-hibák nem NaN); egyébként null. A null
+  /// itt "insufficient/degenerate signal" jelentésű — a low confidence
   /// külön érték az enumban.
   WindShiftTrend? call({
     required List<WindObservation> history,
@@ -87,31 +56,44 @@ class CalculateWindShiftTrend {
 
     // Lineáris regresszió: x = perc óta epoch, y = unwrap-elt TWD
     // (lásd _internal/linear_regression.dart).
-    final (slope, rSquared) = linearRegression(
+    final reg = linearRegression(
       recent.map((o) => o.timestamp.millisecondsSinceEpoch / 60000).toList(),
       unwrapped,
     );
 
     // Degenerált illesztés (konstans y → r² NaN; konstans x → slope
-    // NaN) → null. Konzisztens a "nincs üres/invalid WindShiftTrend"
-    // invariánssal.
-    if (!slope.isFinite || !rSquared.isFinite) {
+    // NaN; n < 3 → std-hibák NaN) → null. Konzisztens a "nincs üres/
+    // invalid WindShiftTrend" invariánssal.
+    if (!reg.slope.isFinite ||
+        !reg.rSquared.isFinite ||
+        !reg.residualStdError.isFinite ||
+        !reg.slopeStdError.isFinite) {
       return null;
     }
 
-    // r² küszöbök → konfidencia-szintek.
-    final confidence = switch (rSquared) {
+    // r² küszöbök → konfidencia-szintek (ADR 0023 óta: a kapu).
+    final confidence = switch (reg.rSquared) {
       > 0.7 => WindShiftConfidence.high,
       > 0.4 => WindShiftConfidence.medium,
       _ => WindShiftConfidence.low,
     };
 
+    // A regresszió idő-súlypontja: meanX perc-óta-epoch → UTC instant.
+    // A band-horizont (7.5b) ehhez méri a jövőbeli érkezést.
+    final meanSampleTime = DateTime.fromMillisecondsSinceEpoch(
+      (reg.meanX * 60000).round(),
+      isUtc: true,
+    );
+
     return WindShiftTrend(
-      shiftRateDegPerMinute: slope,
+      shiftRateDegPerMinute: reg.slope,
       currentTwd: Bearing.true_(unwrapped.last % 360),
       confidence: confidence,
       sampleCount: recent.length,
       windowDuration: window,
+      residualStdErrorDeg: reg.residualStdError,
+      slopeStdErrorDegPerMin: reg.slopeStdError,
+      meanSampleTime: meanSampleTime,
     );
   }
 }

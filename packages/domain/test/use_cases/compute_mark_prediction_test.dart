@@ -33,12 +33,18 @@ void main() {
     position: Coordinate(latitude: 46.0003, longitude: 17),
   );
   final now = DateTime.utc(2026, 5, 25, 12);
+  // A band-mezők 0-k → band 0 → a predikció confidence-e high. A wiring-
+  // tesztek a band TARTALMÁTÓL függetlenek; a band matekját a 7.5/7.5b
+  // tesztek fedik.
   final trend = WindShiftTrend(
     shiftRateDegPerMinute: 2,
     currentTwd: const Bearing.true_(200),
     confidence: WindShiftConfidence.high,
     sampleCount: 15,
     windowDuration: const Duration(minutes: 10),
+    residualStdErrorDeg: 0,
+    slopeStdErrorDegPerMin: 0,
+    meanSampleTime: now,
   );
   const sut = ComputeMarkPrediction();
 
@@ -98,6 +104,8 @@ void main() {
       expect(p.eta, isNotNull);
       expect(p.etaSource, EtaSource.sog);
       expect(p.predictedTwaAtMark, isNotNull);
+      // A band (0) végigfut a composite-on; a confidence a band-ből high.
+      expect(p.forecastBandDegrees, closeTo(0, 1e-9));
       expect(p.shiftConfidence, WindShiftConfidence.high);
       expect(p.calculatedAt, now);
     });
@@ -121,6 +129,7 @@ void main() {
       expect(result, isNotNull);
       final p = result!;
       expect(p.predictedTwaAtMark, isNull);
+      expect(p.forecastBandDegrees, isNull);
       expect(p.shiftConfidence, WindShiftConfidence.low);
     });
 
@@ -191,6 +200,7 @@ void main() {
         final p = result!;
         // Nincs köv. szár → nincs köv-szár-TWA, de a navigáció él.
         expect(p.predictedTwaAtMark, isNull);
+        expect(p.forecastBandDegrees, isNull);
         expect(p.bearingToMark.degrees, closeTo(0, 0.001));
         expect(p.eta, isNotNull);
       },
@@ -216,6 +226,7 @@ void main() {
       final p = result!;
       expect(p.distanceToMark.meters, lessThan(50));
       expect(p.predictedTwaAtMark, isNull);
+      expect(p.forecastBandDegrees, isNull);
       // A bearing a freeze ellenére is él.
       expect(p.bearingToMark, isNotNull);
     });
@@ -232,6 +243,9 @@ void main() {
           confidence: WindShiftConfidence.high,
           sampleCount: 15,
           windowDuration: const Duration(minutes: 10),
+          residualStdErrorDeg: 0,
+          slopeStdErrorDegPerMin: 0,
+          meanSampleTime: now,
         );
         final boatState = BoatState(
           lastUpdate: now,

@@ -28,6 +28,7 @@ final class WatchPayload extends Equatable {
     this.predictedTwaAtMark,
     this.twdQuality,
     this.shiftConfidence,
+    this.forecastBandDegrees,
     this.courseCorrection,
     this.etaSeconds,
     this.distanceMeters,
@@ -52,6 +53,7 @@ final class WatchPayload extends Equatable {
       predictedTwaAtMark: (json['predictedTwaAtMark'] as num?)?.toDouble(),
       twdQuality: json['twdQuality'] as String?,
       shiftConfidence: json['shiftConfidence'] as String?,
+      forecastBandDegrees: (json['forecastBandDegrees'] as num?)?.toDouble(),
       courseCorrection: (json['courseCorrection'] as num?)?.toDouble(),
       etaSeconds: (json['etaSeconds'] as num?)?.toInt(),
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
@@ -96,6 +98,12 @@ final class WatchPayload extends Equatable {
   /// Az óra B-nézet pötty-indikátora ebből rajzol (ADR 0015 D2).
   final String? shiftConfidence;
 
+  /// A pred-TWA előrejelzési hibasávja fokban (`±`), vagy `null`, ha nincs
+  /// predikció. Az óra a köv-TWA hero alatt `±fok` sávként + alsó ívként
+  /// jeleníti meg (ADR 0023). Folytonos érték; a [shiftConfidence] ennek
+  /// sávozott szintje.
+  final double? forecastBandDegrees;
+
   /// Javasolt kurzus-korrekció, fok, előjeles.
   final double? courseCorrection;
 
@@ -126,6 +134,7 @@ final class WatchPayload extends Equatable {
       'predictedTwaAtMark': predictedTwaAtMark,
       'twdQuality': twdQuality,
       'shiftConfidence': shiftConfidence,
+      'forecastBandDegrees': forecastBandDegrees,
       'courseCorrection': courseCorrection,
       'etaSeconds': etaSeconds,
       'distanceMeters': distanceMeters,
@@ -143,6 +152,7 @@ final class WatchPayload extends Equatable {
     predictedTwaAtMark,
     twdQuality,
     shiftConfidence,
+    forecastBandDegrees,
     courseCorrection,
     etaSeconds,
     distanceMeters,
