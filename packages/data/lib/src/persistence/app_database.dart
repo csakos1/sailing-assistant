@@ -1,6 +1,7 @@
 import 'package:data/src/persistence/tables/marks_table.dart';
 import 'package:data/src/persistence/tables/races_table.dart';
 import 'package:data/src/persistence/tables/settings_table.dart';
+import 'package:data/src/persistence/tables/snapshot_logs_table.dart';
 import 'package:data/src/persistence/tables/telemetry_records_table.dart';
 import 'package:domain/domain.dart';
 import 'package:drift/drift.dart';
@@ -14,7 +15,7 @@ part 'app_database.g.dart';
 /// egy query). Háttér-isolate-on fut (drift_flutter), hogy a hosszú write-ok
 /// ne jankolják a UI-t. Teszthez az executor injektálható
 /// (`NativeDatabase.memory()`), production-ben a `driftDatabase` adja.
-@DriftDatabase(tables: [Races, Marks, TelemetryRecords, Settings])
+@DriftDatabase(tables: [Races, Marks, TelemetryRecords, Settings, SnapshotLogs])
 class AppDatabase extends _$AppDatabase {
   /// A UI-izolátum elsődleges kapcsolata: production-ben drift_flutter named DB
   /// háttér-isolate-on, teszthez injektált executor. **Ez migrálja a sémát.**
@@ -35,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _assumeMigrated;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +59,11 @@ class AppDatabase extends _$AppDatabase {
       // új táblát hozzuk létre — createAll a meglévő táblákon hibázna.
       if (from < 2) {
         await m.createTable(settings);
+      }
+      // v2 → v3 (ADR 0022): a SnapshotLogs tábla a kiszámolt-érték
+      // telemetriához. CSAK az új tábla.
+      if (from < 3) {
+        await m.createTable(snapshotLogs);
       }
     },
     beforeOpen: (_) async {

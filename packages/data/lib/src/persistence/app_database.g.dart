@@ -1465,6 +1465,312 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
   }
 }
 
+class $SnapshotLogsTable extends SnapshotLogs
+    with TableInfo<$SnapshotLogsTable, SnapshotLogRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SnapshotLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES races (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _snapshotJsonMeta = const VerificationMeta(
+    'snapshotJson',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotJson = GeneratedColumn<String>(
+    'snapshot_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, raceId, timestamp, snapshotJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'snapshot_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SnapshotLogRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('snapshot_json')) {
+      context.handle(
+        _snapshotJsonMeta,
+        snapshotJson.isAcceptableOrUnknown(
+          data['snapshot_json']!,
+          _snapshotJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_snapshotJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SnapshotLogRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SnapshotLogRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      snapshotJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_json'],
+      )!,
+    );
+  }
+
+  @override
+  $SnapshotLogsTable createAlias(String alias) {
+    return $SnapshotLogsTable(attachedDatabase, alias);
+  }
+}
+
+class SnapshotLogRow extends DataClass implements Insertable<SnapshotLogRow> {
+  final int id;
+  final String raceId;
+  final DateTime timestamp;
+  final String snapshotJson;
+  const SnapshotLogRow({
+    required this.id,
+    required this.raceId,
+    required this.timestamp,
+    required this.snapshotJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['race_id'] = Variable<String>(raceId);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['snapshot_json'] = Variable<String>(snapshotJson);
+    return map;
+  }
+
+  SnapshotLogsCompanion toCompanion(bool nullToAbsent) {
+    return SnapshotLogsCompanion(
+      id: Value(id),
+      raceId: Value(raceId),
+      timestamp: Value(timestamp),
+      snapshotJson: Value(snapshotJson),
+    );
+  }
+
+  factory SnapshotLogRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SnapshotLogRow(
+      id: serializer.fromJson<int>(json['id']),
+      raceId: serializer.fromJson<String>(json['raceId']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      snapshotJson: serializer.fromJson<String>(json['snapshotJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'raceId': serializer.toJson<String>(raceId),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'snapshotJson': serializer.toJson<String>(snapshotJson),
+    };
+  }
+
+  SnapshotLogRow copyWith({
+    int? id,
+    String? raceId,
+    DateTime? timestamp,
+    String? snapshotJson,
+  }) => SnapshotLogRow(
+    id: id ?? this.id,
+    raceId: raceId ?? this.raceId,
+    timestamp: timestamp ?? this.timestamp,
+    snapshotJson: snapshotJson ?? this.snapshotJson,
+  );
+  SnapshotLogRow copyWithCompanion(SnapshotLogsCompanion data) {
+    return SnapshotLogRow(
+      id: data.id.present ? data.id.value : this.id,
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      snapshotJson: data.snapshotJson.present
+          ? data.snapshotJson.value
+          : this.snapshotJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnapshotLogRow(')
+          ..write('id: $id, ')
+          ..write('raceId: $raceId, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('snapshotJson: $snapshotJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, raceId, timestamp, snapshotJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SnapshotLogRow &&
+          other.id == this.id &&
+          other.raceId == this.raceId &&
+          other.timestamp == this.timestamp &&
+          other.snapshotJson == this.snapshotJson);
+}
+
+class SnapshotLogsCompanion extends UpdateCompanion<SnapshotLogRow> {
+  final Value<int> id;
+  final Value<String> raceId;
+  final Value<DateTime> timestamp;
+  final Value<String> snapshotJson;
+  const SnapshotLogsCompanion({
+    this.id = const Value.absent(),
+    this.raceId = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.snapshotJson = const Value.absent(),
+  });
+  SnapshotLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required String raceId,
+    required DateTime timestamp,
+    required String snapshotJson,
+  }) : raceId = Value(raceId),
+       timestamp = Value(timestamp),
+       snapshotJson = Value(snapshotJson);
+  static Insertable<SnapshotLogRow> custom({
+    Expression<int>? id,
+    Expression<String>? raceId,
+    Expression<DateTime>? timestamp,
+    Expression<String>? snapshotJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (raceId != null) 'race_id': raceId,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (snapshotJson != null) 'snapshot_json': snapshotJson,
+    });
+  }
+
+  SnapshotLogsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? raceId,
+    Value<DateTime>? timestamp,
+    Value<String>? snapshotJson,
+  }) {
+    return SnapshotLogsCompanion(
+      id: id ?? this.id,
+      raceId: raceId ?? this.raceId,
+      timestamp: timestamp ?? this.timestamp,
+      snapshotJson: snapshotJson ?? this.snapshotJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (snapshotJson.present) {
+      map['snapshot_json'] = Variable<String>(snapshotJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnapshotLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('raceId: $raceId, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('snapshotJson: $snapshotJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1474,9 +1780,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $SnapshotLogsTable snapshotLogs = $SnapshotLogsTable(this);
   late final Index telemetryRaceTime = Index(
     'telemetry_race_time',
     'CREATE INDEX telemetry_race_time ON telemetry_records (race_id, timestamp)',
+  );
+  late final Index snapshotLogRaceTime = Index(
+    'snapshot_log_race_time',
+    'CREATE INDEX snapshot_log_race_time ON snapshot_logs (race_id, timestamp)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -1487,7 +1798,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     marks,
     telemetryRecords,
     settings,
+    snapshotLogs,
     telemetryRaceTime,
+    snapshotLogRaceTime,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1504,6 +1817,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('telemetry_records', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'races',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('snapshot_logs', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -1569,6 +1889,24 @@ final class $$RacesTableReferences
     final cache = $_typedResult.readTableOrNull(
       _telemetryRecordsRefsTable($_db),
     );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SnapshotLogsTable, List<SnapshotLogRow>>
+  _snapshotLogsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.snapshotLogs,
+    aliasName: $_aliasNameGenerator(db.races.id, db.snapshotLogs.raceId),
+  );
+
+  $$SnapshotLogsTableProcessedTableManager get snapshotLogsRefs {
+    final manager = $$SnapshotLogsTableTableManager(
+      $_db,
+      $_db.snapshotLogs,
+    ).filter((f) => f.raceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_snapshotLogsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1660,6 +1998,31 @@ class $$RacesTableFilterComposer extends Composer<_$AppDatabase, $RacesTable> {
           }) => $$TelemetryRecordsTableFilterComposer(
             $db: $db,
             $table: $db.telemetryRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> snapshotLogsRefs(
+    Expression<bool> Function($$SnapshotLogsTableFilterComposer f) f,
+  ) {
+    final $$SnapshotLogsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.snapshotLogs,
+      getReferencedColumn: (t) => t.raceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SnapshotLogsTableFilterComposer(
+            $db: $db,
+            $table: $db.snapshotLogs,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1801,6 +2164,31 @@ class $$RacesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> snapshotLogsRefs<T extends Object>(
+    Expression<T> Function($$SnapshotLogsTableAnnotationComposer a) f,
+  ) {
+    final $$SnapshotLogsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.snapshotLogs,
+      getReferencedColumn: (t) => t.raceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SnapshotLogsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.snapshotLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$RacesTableTableManager
@@ -1816,7 +2204,11 @@ class $$RacesTableTableManager
           $$RacesTableUpdateCompanionBuilder,
           (RaceRow, $$RacesTableReferences),
           RaceRow,
-          PrefetchHooks Function({bool marksRefs, bool telemetryRecordsRefs})
+          PrefetchHooks Function({
+            bool marksRefs,
+            bool telemetryRecordsRefs,
+            bool snapshotLogsRefs,
+          })
         > {
   $$RacesTableTableManager(_$AppDatabase db, $RacesTable table)
     : super(
@@ -1876,12 +2268,17 @@ class $$RacesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({marksRefs = false, telemetryRecordsRefs = false}) {
+              ({
+                marksRefs = false,
+                telemetryRecordsRefs = false,
+                snapshotLogsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (marksRefs) db.marks,
                     if (telemetryRecordsRefs) db.telemetryRecords,
+                    if (snapshotLogsRefs) db.snapshotLogs,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -1924,6 +2321,27 @@ class $$RacesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (snapshotLogsRefs)
+                        await $_getPrefetchedData<
+                          RaceRow,
+                          $RacesTable,
+                          SnapshotLogRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$RacesTableReferences
+                              ._snapshotLogsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$RacesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).snapshotLogsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.raceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -1944,7 +2362,11 @@ typedef $$RacesTableProcessedTableManager =
       $$RacesTableUpdateCompanionBuilder,
       (RaceRow, $$RacesTableReferences),
       RaceRow,
-      PrefetchHooks Function({bool marksRefs, bool telemetryRecordsRefs})
+      PrefetchHooks Function({
+        bool marksRefs,
+        bool telemetryRecordsRefs,
+        bool snapshotLogsRefs,
+      })
     >;
 typedef $$MarksTableCreateCompanionBuilder =
     MarksCompanion Function({
@@ -2740,6 +3162,301 @@ typedef $$SettingsTableProcessedTableManager =
       SettingRow,
       PrefetchHooks Function()
     >;
+typedef $$SnapshotLogsTableCreateCompanionBuilder =
+    SnapshotLogsCompanion Function({
+      Value<int> id,
+      required String raceId,
+      required DateTime timestamp,
+      required String snapshotJson,
+    });
+typedef $$SnapshotLogsTableUpdateCompanionBuilder =
+    SnapshotLogsCompanion Function({
+      Value<int> id,
+      Value<String> raceId,
+      Value<DateTime> timestamp,
+      Value<String> snapshotJson,
+    });
+
+final class $$SnapshotLogsTableReferences
+    extends BaseReferences<_$AppDatabase, $SnapshotLogsTable, SnapshotLogRow> {
+  $$SnapshotLogsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RacesTable _raceIdTable(_$AppDatabase db) => db.races.createAlias(
+    $_aliasNameGenerator(db.snapshotLogs.raceId, db.races.id),
+  );
+
+  $$RacesTableProcessedTableManager get raceId {
+    final $_column = $_itemColumn<String>('race_id')!;
+
+    final manager = $$RacesTableTableManager(
+      $_db,
+      $_db.races,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_raceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SnapshotLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $SnapshotLogsTable> {
+  $$SnapshotLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RacesTableFilterComposer get raceId {
+    final $$RacesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableFilterComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SnapshotLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SnapshotLogsTable> {
+  $$SnapshotLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RacesTableOrderingComposer get raceId {
+    final $$RacesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableOrderingComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SnapshotLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SnapshotLogsTable> {
+  $$SnapshotLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => column,
+  );
+
+  $$RacesTableAnnotationComposer get raceId {
+    final $$RacesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SnapshotLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SnapshotLogsTable,
+          SnapshotLogRow,
+          $$SnapshotLogsTableFilterComposer,
+          $$SnapshotLogsTableOrderingComposer,
+          $$SnapshotLogsTableAnnotationComposer,
+          $$SnapshotLogsTableCreateCompanionBuilder,
+          $$SnapshotLogsTableUpdateCompanionBuilder,
+          (SnapshotLogRow, $$SnapshotLogsTableReferences),
+          SnapshotLogRow,
+          PrefetchHooks Function({bool raceId})
+        > {
+  $$SnapshotLogsTableTableManager(_$AppDatabase db, $SnapshotLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SnapshotLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SnapshotLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SnapshotLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> raceId = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<String> snapshotJson = const Value.absent(),
+              }) => SnapshotLogsCompanion(
+                id: id,
+                raceId: raceId,
+                timestamp: timestamp,
+                snapshotJson: snapshotJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String raceId,
+                required DateTime timestamp,
+                required String snapshotJson,
+              }) => SnapshotLogsCompanion.insert(
+                id: id,
+                raceId: raceId,
+                timestamp: timestamp,
+                snapshotJson: snapshotJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SnapshotLogsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({raceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (raceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.raceId,
+                                referencedTable: $$SnapshotLogsTableReferences
+                                    ._raceIdTable(db),
+                                referencedColumn: $$SnapshotLogsTableReferences
+                                    ._raceIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SnapshotLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SnapshotLogsTable,
+      SnapshotLogRow,
+      $$SnapshotLogsTableFilterComposer,
+      $$SnapshotLogsTableOrderingComposer,
+      $$SnapshotLogsTableAnnotationComposer,
+      $$SnapshotLogsTableCreateCompanionBuilder,
+      $$SnapshotLogsTableUpdateCompanionBuilder,
+      (SnapshotLogRow, $$SnapshotLogsTableReferences),
+      SnapshotLogRow,
+      PrefetchHooks Function({bool raceId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2752,4 +3469,6 @@ class $AppDatabaseManager {
       $$TelemetryRecordsTableTableManager(_db, _db.telemetryRecords);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$SnapshotLogsTableTableManager get snapshotLogs =>
+      $$SnapshotLogsTableTableManager(_db, _db.snapshotLogs);
 }
