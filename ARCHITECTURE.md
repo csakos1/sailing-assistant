@@ -3021,7 +3021,7 @@ watch `MainActivity.onGenericMotionEvent`-jéből egy EventChannelen át a
 `PageController`-t lépteti (lap-snap; nem scroll, ezért **nem**
 `wear_os_scrollbar`, hanem minimál saját híd a megszűnt `wearable_rotary`
 mintájára). Ambientben (`wear_plus` `AmbientMode`) a hero, a GPS-idő, és a
-predikció-bizalom (±° sáv + halvány alsó ív, ADR 0023 D8)
+predikció-bizalom (±° sáv + halvány jobb-perem-ív, ADR 0023 D8)
 marad, tompított palettával, szín-accent nélkül, a rendszer ambient-kadenciáján;
 aktív kijelzőn az always-on él.
 
@@ -3029,17 +3029,22 @@ aktív kijelzőn az always-on él.
 egymástól független megbízhatósági jelet hordoz. (1) A **predikció-bizalom** két
 csatornán: a hero ALATT a **±° hibasáv** (a payload `forecastBandDegrees`-éből) —
 ez a fő, **szín-független** trust-szám, amit ambientben és színvesztéskor is
-olvasol —, és a kerek lap **ALSÓ peremén** egy **konfidencia-ív**, aminek a
+olvasol —, és a kerek lap **JOBB peremén** egy **konfidencia-ív**, aminek a
 **színe és hossza** a `shiftConfidence`-szint (`high` = teal, `medium` = amber,
 `low` = szürke; **piros nincs**, az a warning-csatorna). Az ív peremlátással is
-olvasható, és a felső peremet a GPS-idő foglalja. A korábbi három pötty az órán
+olvasható, a jobb perem szabad a felső GPS-idő fejléctől és az alsó lap-pöttyöktől
+is; a `RaceShell` a fizikai lap teljes képernyős háttér-rétegébe rajzolja,
+ezért a sugár a lap négyzetéből származik, és minden óra-méreten
+(Watch4 42 mm, Watch6 Classic 47 mm) és ambientben is a peremen ül. Az ív
+a **B (köv. bója) lapra kapuzott** (`_page == _markPage`); a SpeedView-nak
+nincs predikció-konfidenciája. A korábbi három pötty az órán
 **megszűnik** (a telefon §8.7 dots-a marad; a két platform azonos metrikát,
 eltérő vizuált rendereel — a bucket-szemantika egyetlen igazságforrás, az
 `EstimatePredictionConfidence`). (2) A **TWD-minőség** (`twdQuality`) ortogonális
 csatornán: a hero **opacitásán** + „tartott" jelzéssel (`live` = teljes; `held` =
 ~60% + „tartott"; `unavailable` = `—`). A két kérdés külön: *„pontos-e a jóslat"
 (ív + ±°)* és *„friss-e a mögötte lévő szél" (opacitás + tartott)*. **Ambientben
-a predikció-bizalom megmarad** (a ±° sáv + a halvány alsó ív, ~1/perc kadencián,
+a predikció-bizalom megmarad** (a ±° sáv + a halvány jobb-perem-ív, ~1/perc kadencián,
 burn-in-biztos; ADR 0023 D8); ott a szín lewasholhat, ezért a ±° viszi a
 trust-et, a „tartott" felirat pedig elmaradhat.
 
