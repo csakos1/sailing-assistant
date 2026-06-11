@@ -56,3 +56,10 @@ class WatchClock {
     return GpsClockReading(displayUtc: anchorUtc.add(elapsed), isTrusted: true);
   }
 }
+
+/// Pure: az [estimatedUtc] becsült órából a következő másodperc-határig
+/// hátralévő ms (ADR 0012 Addendum 1 D-b). Anchor híján (`null`) 1000 ms
+/// fallback ütem. A láncolt kijelző-tick ezzel igazodik a valódi
+/// másodperc-határhoz, és a jitter nem halmozódik (minden ütem frissen számol).
+int millisToNextSecond(DateTime? estimatedUtc) =>
+    estimatedUtc == null ? 1000 : 1000 - estimatedUtc.millisecond;
