@@ -3138,7 +3138,7 @@ megmarad; a teljes-fényerős wakelock elvetve (aksi). A részletes döntést az
 
 A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz a
 döntött alakot tükrözi. A korábbi vázlat a sealed `ConnectionStatus`, a
-tick/clock-seam és a jelenlegi `BoatState`-mezok elottrol való, ezért átírva.
+tick/clock-seam és a jelenlegi `BoatState`-mezők előttről való, ezért átírva.
 
 ### 11.1 Réteg és alak (ADR 0014 D1–D3)
 
