@@ -210,3 +210,36 @@ band-alapú bucketből). Additív, kis kockázat, a meglévő widget-teszt marad
   §10.4 (óra B-nézet), §10.6 (ambient) — a sync külön commit.
 - A §5.1/3 konfidencia-hangolás ebbe olvad; a kalibráció a 2026-06-06 logon
   történik.
+---
+
+## Addendum 1 — jobb-perem revízió (2026-06-11)
+
+A D7 az óra B-nézetén a konfidencia-ívet a kerek lap **alsó** peremére tette.
+On-water (Galaxy Watch4 42 mm és Galaxy Watch6 Classic 47 mm) kiderült, hogy ez
+nem a fizikai peremen rajzolódik:
+
+- Az ív a `NextMarkView`-on belül, a `PageView` lapjában élt, amit a `RaceShell`
+  `Column`-ja fent a GPS-idő fejléccel, lent a lap-pöttyökkel bevág. A painter a
+  bevágott, nem-négyzetes téglalapból számolta a középpontot és a sugarat, ezért
+  aktívban az ív feljebb csúszott (az ETA/Korr. alá), ambientben pedig leért, de
+  a két vége elszakadt a peremtől.
+- A `PageView` ráadásul klippeli a lapjait (viewport `Clip.hardEdge`), így a
+  lapon belülről az ív elvileg sem érheti el a fizikai peremet.
+
+**Revízió.** Az ívet a `RaceShell` **teljes képernyős háttér-rétegébe** emeljük
+(a `Column` mögé, `Stack`-ben), és a kerek lap **jobb** peremére centráljuk
+(canvas-szög 0 = 3 óra; a `start` immár `-sweep / 2`). A jobb perem szabad a
+felső GPS-idő fejléctől és az alsó lap-pöttyöktől is. A sugár a fizikai lap
+négyzetéből származik (`min(w, h) / 2 − inset`), ezért méret-arányosan
+skálázódik — a 42 mm-es és a 47 mm-es lapon is a peremen ül, per-eszköz
+elágazás nélkül —, és a réteg inset-független, így aktívban és ambientben
+egyaránt jó.
+
+Az ív a **B (köv. bója) lapra kapuzott** (`_page == _markPage`): a SpeedView-nak
+nincs predikció-konfidenciája. A `NextMarkView` megtartja a `±°` sávot (a fő,
+szín-független trust-szám, D8). A szín-/hossz-leképezés és a `WindShiftConfidence`
+származtatása **változatlan** — csak az ív geometriája és a rajzolás helye
+módosul.
+
+**Nyitva hagyva.** Lapozás közben az ív a swipe felénél (`onPageChanged`) vált,
+nem folyamatosan — v1-ben elfogadott.
