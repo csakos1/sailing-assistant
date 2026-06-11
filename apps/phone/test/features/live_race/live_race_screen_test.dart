@@ -12,10 +12,10 @@ import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
+import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
-import 'package:phone/providers/true_time_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
 class _FixedActiveRace extends ActiveRaceNotifier {
@@ -144,7 +144,9 @@ Future<void> _pump(
         markPredictionProvider.overrideWithValue(prediction),
         activeWarningsProvider.overrideWithValue(warnings),
         engineServiceErrorProvider.overrideWith((ref) => serviceError),
-        trueTimeProvider.overrideWithValue(() => reading),
+        gpsTimeReadingProvider.overrideWith(
+          (ref) => Stream<TrueTimeReading>.value(reading),
+        ),
         screenWakeLockProvider.overrideWithValue(
           wakeLock ?? const _NoopScreenWakeLock(),
         ),

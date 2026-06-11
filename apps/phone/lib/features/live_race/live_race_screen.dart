@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/screen_wake_lock.dart';
+import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
 import 'package:phone/features/live_race/widgets/live_status_bar.dart';
@@ -19,11 +20,11 @@ import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
+import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
-import 'package:phone/providers/true_time_provider.dart';
 import 'package:phone/providers/twd_quality_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
@@ -104,7 +105,9 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final boat = ref.watch(boatStateProvider);
     final status = ref.watch(connectionStatusProvider);
     final tick = ref.watch(tickProvider).valueOrNull;
-    final trueTime = ref.watch(trueTimeProvider);
+    final gpsTime =
+        ref.watch(gpsTimeReadingProvider).valueOrNull ??
+        const TrueTimeReading(utc: null, source: TrueTimeSource.none);
     final warnings = ref.watch(activeWarningsProvider);
     final serviceError = ref.watch(engineServiceErrorProvider);
     final hasCriticalWarning = warnings.any(
@@ -140,7 +143,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
               LiveStatusBar(
                 connectionStatus: status,
                 markName: prediction?.mark.name ?? race.activeMarkOrNull?.name,
-                trueTime: trueTime(),
+                trueTime: gpsTime,
                 isStale: _isStale(status: status, boat: boat, tick: tick),
               ),
               const SizedBox(height: 12),
