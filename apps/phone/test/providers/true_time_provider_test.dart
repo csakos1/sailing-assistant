@@ -25,10 +25,10 @@ void main() {
   }
 
   test('első attempt előtt → none (üres cella)', () {
-    // ARRANGE — a fix nem ér be (a teszt nem pumpol)
-    final container = makeContainer(gnss: () async => fixUtc);
+    // ARRANGE — a burst nem cseng le (a teszt nem pumpol)
+    final container = makeContainer(gnss: () => Stream<DateTime>.value(fixUtc));
 
-    // ACT — azonnal olvasunk, mielőtt az async attempt lefutna
+    // ACT — azonnal olvasunk, mielőtt az async burst lefutna
     final reading = container.read(trueTimeProvider)();
 
     // ASSERT
@@ -36,24 +36,29 @@ void main() {
     expect(reading.utc, isNull);
   });
 
-  test('sikeres GNSS-fix → gnss forrás, nem-null idő', () async {
-    // ARRANGE
-    final container = makeContainer(gnss: () async => fixUtc);
+  test(
+    'sikeres GNSS-fix (egy mintás burst) → gnss forrás, nem-null idő',
+    () async {
+      // ARRANGE
+      final container = makeContainer(
+        gnss: () => Stream<DateTime>.value(fixUtc),
+      );
 
-    // ACT — a build elindítja az attemptet, megvárjuk
-    final read = container.read(trueTimeProvider);
-    await pumpEventQueue();
-    final reading = read();
+      // ACT — a build elindítja a burstöt, megvárjuk a lecsengést
+      final read = container.read(trueTimeProvider);
+      await pumpEventQueue();
+      final reading = read();
 
-    // ASSERT — a forrás-wiring; a pontos extrapolációt a pure teszt fedi
-    expect(reading.source, TrueTimeSource.gnss);
-    expect(reading.utc, isNotNull);
-  });
+      // ASSERT — a forrás-wiring; a pontos extrapolációt a pure teszt fedi
+      expect(reading.source, TrueTimeSource.gnss);
+      expect(reading.utc, isNotNull);
+    },
+  );
 
-  test('nincs fix → wallClockUnsynced fallback', () async {
-    // ARRANGE
+  test('üres burst (nincs minta) → wallClockUnsynced fallback', () async {
+    // ARRANGE — a stream nem ad mintát
     final container = makeContainer(
-      gnss: () async => null,
+      gnss: Stream<DateTime>.empty,
       wall: () => wallNow,
     );
 

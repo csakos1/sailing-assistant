@@ -1,20 +1,19 @@
 import 'package:geolocator/geolocator.dart';
 
-/// A `geolocator` pluginra épülő valós `GnssClock` (ADR 0012).
+/// A `geolocator` pluginra épülő valós `GnssClock` (ADR 0012 + Addendum 1).
 ///
 /// Ez az egyetlen hely, ahol a plugint közvetlenül hívjuk — így a true-time
-/// seam fake függvénnyel tesztelhető marad. Androidon a
+/// seam fake stream-mel tesztelhető marad. Rövid pozíció-stream: minden
+/// `Position` időbélyege (`Position.timestamp`) a műholdból derivált UTC. A
 /// `forceLocationManager: true` a legacy LocationManager GPS-providerét
-/// kényszeríti, ahol a fix időbélyege (`Position.timestamp`) a műholdból
-/// derivált UTC — ezt akarjuk, nem a battery-optimalizált fused provider
-/// (kevésbé garantált idő-forrás) értékét. Az `accuracy` alapból
-/// `LocationAccuracy.best`, ezért nem adjuk meg explicit. Az időkorlát
-/// megakadályozza, hogy egy beragadt fix blokkolja a re-anchor ciklust.
-Future<DateTime?> geolocatorCurrentUtcFix() async {
-  const fixTimeLimit = Duration(seconds: 15);
+/// kényszeríti (garantáltabb idő-forrás, mint a battery-optimalizált fused
+/// provider). A burst hosszát és zárását a hívó `TrueTimeManager` szabja (D4:
+/// nem folyamatos GPS) — a feliratkozás megszüntetése zárja a streamet.
+/// Engedély/szolgáltatás hiányában üres stream → a D6 fallback-lánc dönt.
+Stream<DateTime> geolocatorFixStream() async* {
   try {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      return null;
+      return;
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -22,18 +21,14 @@ Future<DateTime?> geolocatorCurrentUtcFix() async {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      return null;
+      return;
     }
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: AndroidSettings(
-        forceLocationManager: true,
-        timeLimit: fixTimeLimit,
-      ),
-    );
-    return position.timestamp.toUtc();
   } on Exception {
-    // Bármilyen plugin-hiba (időtúllépés, szolgáltatás-leállás közben stb.)
-    // = nincs használható fix → null; az ADR 0012 D6 fallback-lánca dönt.
-    return null;
+    // Engedély/szolgáltatás-hiba → üres stream (a D6 fallback dönt).
+    return;
   }
+  final stream = Geolocator.getPositionStream(
+    locationSettings: AndroidSettings(forceLocationManager: true),
+  );
+  yield* stream.map((position) => position.timestamp.toUtc());
 }

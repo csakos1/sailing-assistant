@@ -106,3 +106,30 @@ TrueTimeAnchor resolveAnchor({
     source: TrueTimeSource.wallClockUnsynced,
   );
 }
+
+/// Egy GNSS-fix-minta a re-anchor burstből (ADR 0012 Addendum 1 D-a): a fix
+/// műholdas UTC-je + a burst-lokális monoton óra eltelt ideje a minta
+/// beérkezésekor.
+typedef GnssSample = ({DateTime fixUtc, Duration sampleElapsed});
+
+/// Pure: a burst-mintákból a min-késésű horgony UTC-je (ADR 0012 Addendum 1).
+///
+/// A [samples] közül azt választja, amelynek a `fixUtc - sampleElapsed`
+/// offszetje maximális, majd a [burstElapsed]-del a horgony pillanatára
+/// vetíti. Indoklás (NTP min-RTT analóg): a kézbesítési késés az offszetet
+/// csak csökkenteni tudja, ezért a maximum a legkisebb késésű — leghűbb —
+/// minta. Így a fix kora NEM épül be az anchorba (szemben a future
+/// feloldásakor nullázott monoton órával).
+///
+/// Invariáns: [samples] nem üres — az üres burstöt a hívó kezeli (null fix →
+/// D6 fallback).
+DateTime selectBestAnchorUtc(List<GnssSample> samples, Duration burstElapsed) {
+  var best = samples.first.fixUtc.subtract(samples.first.sampleElapsed);
+  for (final sample in samples.skip(1)) {
+    final candidate = sample.fixUtc.subtract(sample.sampleElapsed);
+    if (candidate.isAfter(best)) {
+      best = candidate;
+    }
+  }
+  return best.add(burstElapsed);
+}

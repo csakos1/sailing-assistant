@@ -90,7 +90,7 @@ class RaceEngineTaskHandler extends TaskHandler {
     // GNSS-fix forrással, így kijelző-off mellett is van GPS-idő; a controller
     // change-detectel, a transport (e2.2b: log) küld.
     _trueTime = TrueTimeManager(
-      gnssClock: geolocatorCurrentUtcFix,
+      gnssClock: geolocatorFixStream,
       wallClock: DateTime.now,
     )..start();
     _watchSync = WatchSyncController(
