@@ -53,8 +53,8 @@ class _ConfidenceArcPainter extends CustomPainter {
   final double fraction;
   final bool ambient;
 
-  /// A teljes (high) ív szögnyílása radiánban (~100°).
-  static const double _maxSweepRad = 100 * math.pi / 180;
+  /// A teljes (high) ív szögnyílása radiánban (~84°).
+  static const double _maxSweepRad = 84 * math.pi / 180;
 
   /// Az ív behúzása a lap pereméhez képest, pixelben.
   static const double _inset = 6;
