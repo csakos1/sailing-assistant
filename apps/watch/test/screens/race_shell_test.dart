@@ -11,14 +11,28 @@ import 'package:watch/theme/watch_theme.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
 import 'package:watch/watch_sync/race_ongoing_activity.dart';
 import 'package:watch/watch_sync/watch_clock_provider.dart';
+import 'package:watch/widgets/confidence_arc.dart';
 
 void main() {
   final colors = watchDarkTheme.extension<WatchColors>()!;
   final payload = WatchPayload(timestamp: DateTime.utc(2026, 6, 2, 10, 30));
 
+  // Predikció-konfidenciát hordozó payload az ív-tesztekhez (B-lap).
+  final arcPayload = WatchPayload(
+    timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+    predictedTwaAtMark: -38,
+    courseCorrection: 12,
+    etaSeconds: 452,
+    distanceMeters: 450,
+    markName: 'Tihany',
+    shiftConfidence: 'high',
+  );
+
   Widget host({
     required Stream<double> rotary,
     required RaceOngoingActivity ongoing,
+    WatchPayload? payloadOverride,
+    bool ambient = false,
   }) => ProviderScope(
     overrides: [
       rotaryScrollSourceProvider.overrideWithValue(() => rotary),
@@ -31,7 +45,11 @@ void main() {
     child: MaterialApp(
       theme: watchDarkTheme,
       home: Scaffold(
-        body: RaceShell(payload: payload, colors: colors, ambient: false),
+        body: RaceShell(
+          payload: payloadOverride ?? payload,
+          colors: colors,
+          ambient: ambient,
+        ),
       ),
     ),
   );
@@ -96,6 +114,81 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(spy.stopCount, 1);
+  });
+
+  testWidgets('a konfidencia-ív a B-lapon látszik (jobb perem)', (
+    tester,
+  ) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: arcPayload,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final arc = tester.widget<ConfidenceArc>(find.byType(ConfidenceArc));
+    expect(arc.color, colors.signal); // high → teal
+    expect(arc.fraction, 1);
+    expect(arc.ambient, isFalse);
+  });
+
+  testWidgets('a konfidencia-ív az A-lapon nem látszik', (tester) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: arcPayload,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Egy detent vissza → A (sebesség) nézet: ott nincs predikció-konfidencia.
+    deltas.add(-1);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ConfidenceArc), findsNothing);
+  });
+
+  testWidgets('a konfidencia-ív ambientben is megmarad a B-lapon', (
+    tester,
+  ) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: arcPayload,
+        ambient: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<ConfidenceArc>(find.byType(ConfidenceArc)).ambient,
+      isTrue,
+    );
+  });
+
+  testWidgets('predikció-konfidencia nélkül nincs ív', (tester) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(rotary: deltas.stream, ongoing: _SpyOngoingActivity()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ConfidenceArc), findsNothing);
   });
 }
 

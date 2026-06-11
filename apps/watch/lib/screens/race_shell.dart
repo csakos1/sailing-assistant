@@ -10,12 +10,19 @@ import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
 import 'package:watch/watch_sync/race_ongoing_activity.dart';
 import 'package:watch/watch_sync/watch_clock_provider.dart';
+import 'package:watch/widgets/confidence_arc.dart';
+import 'package:watch/widgets/watch_trust.dart';
 
 /// A két verseny-nézet (A↔B) háza: fix GPS-idő fejléc, vízszintes `PageView`
 /// (alapnézet B), és a perem-forgatás lap-navigációja (ADR 0015 Addendum). A
 /// GPS-idő a `watchClockProvider`-ből ketyeg; az értékeket a két nézet
 /// rendereli. Az ambient-tompítást a hívó adja az [ambient] zászlóval (a
 /// `wear_plus` `AmbientMode`-ból), így ez a widget natív-mentes és tesztelhető.
+///
+/// A predikció-konfidencia ívét (ADR 0023 D7, jobb-perem revízió) is a ház
+/// rajzolja: a fizikai kerek lap JOBB peremére, a teljes képernyőt kitöltő
+/// háttér-rétegben — így független a fejléc/lap-pötty insetektől, és minden
+/// óra-méreten a peremen ül. Csak a B (köv. bója) lapon látszik.
 class RaceShell extends ConsumerStatefulWidget {
   /// Létrehozza a házat a megjelenítendő [payload]-dal.
   const RaceShell({
@@ -89,32 +96,54 @@ class _RaceShellState extends ConsumerState<RaceShell> {
         ref.watch(watchClockProvider).valueOrNull ??
         const GpsClockReading.untrusted();
 
-    return Column(
+    // Konfidencia-ív (ADR 0023 D7, jobb-perem revízió): a fizikai kerek lap
+    // JOBB peremén, a teljes képernyőt kitöltő háttér-rétegben — független a
+    // fejléc/lap-pötty insetektől, ezért minden órán és ambientben is a valódi
+    // peremen ül. Csak a B (köv. bója) lapon, és csak ha van predikció-
+    // konfidencia (a SpeedView-nak nincs).
+    final arc = _page == _markPage
+        ? confidenceArc(widget.payload.shiftConfidence, widget.colors)
+        : null;
+
+    return Stack(
       children: [
-        _GpsTimeHeader(
-          reading: reading,
-          colors: widget.colors,
-          ambient: widget.ambient,
-        ),
-        Expanded(
-          child: PageView(
-            controller: _controller,
-            onPageChanged: (page) => setState(() => _page = page),
-            children: [
-              SpeedView(
-                payload: widget.payload,
-                colors: widget.colors,
-                ambient: widget.ambient,
-              ),
-              NextMarkView(
-                payload: widget.payload,
-                colors: widget.colors,
-                ambient: widget.ambient,
-              ),
-            ],
+        if (arc != null)
+          Positioned.fill(
+            child: ConfidenceArc(
+              color: arc.color,
+              fraction: arc.fraction,
+              ambient: widget.ambient,
+            ),
           ),
+        Column(
+          children: [
+            _GpsTimeHeader(
+              reading: reading,
+              colors: widget.colors,
+              ambient: widget.ambient,
+            ),
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (page) => setState(() => _page = page),
+                children: [
+                  SpeedView(
+                    payload: widget.payload,
+                    colors: widget.colors,
+                    ambient: widget.ambient,
+                  ),
+                  NextMarkView(
+                    payload: widget.payload,
+                    colors: widget.colors,
+                    ambient: widget.ambient,
+                  ),
+                ],
+              ),
+            ),
+            if (!widget.ambient)
+              _PageDots(active: _page, colors: widget.colors),
+          ],
         ),
-        if (!widget.ambient) _PageDots(active: _page, colors: widget.colors),
       ],
     );
   }

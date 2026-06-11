@@ -4,7 +4,6 @@ import 'package:shared/shared.dart';
 import 'package:watch/screens/next_mark_view.dart';
 import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/theme/watch_theme.dart';
-import 'package:watch/widgets/confidence_arc.dart';
 import 'package:watch/widgets/direction_arrow.dart';
 
 void main() {
@@ -56,9 +55,6 @@ void main() {
     return f.evaluate().isEmpty ? null : tester.widget<Opacity>(f).opacity;
   }
 
-  ConfidenceArc arcWidget(WidgetTester tester) =>
-      tester.widget<ConfidenceArc>(find.byType(ConfidenceArc));
-
   testWidgets('held dims the hero and shows the held marker', (tester) async {
     await tester.pumpWidget(
       hostFor(
@@ -83,29 +79,6 @@ void main() {
     expect(find.text('tartott'), findsNothing);
   });
 
-  testWidgets('confidence drives the bottom arc (colour + length)', (
-    tester,
-  ) async {
-    // high → teal, teljes ív
-    await tester.pumpWidget(
-      hostFor(payloadWith(shiftConfidence: 'high'), ambient: false),
-    );
-    expect(find.byType(ConfidenceArc), findsOneWidget);
-    expect(arcWidget(tester).color, colors.signal);
-    expect(arcWidget(tester).fraction, 1);
-
-    // medium → borostyán, rövidebb ív
-    await tester.pumpWidget(
-      hostFor(payloadWith(shiftConfidence: 'medium'), ambient: false),
-    );
-    expect(arcWidget(tester).color, colors.amber);
-    expect(arcWidget(tester).fraction, lessThan(1));
-
-    // nincs predikció-konfidencia → nincs ív
-    await tester.pumpWidget(hostFor(payloadWith(), ambient: false));
-    expect(find.byType(ConfidenceArc), findsNothing);
-  });
-
   testWidgets('band renders the ±degrees label', (tester) async {
     await tester.pumpWidget(
       hostFor(
@@ -117,7 +90,7 @@ void main() {
     expect(find.text('±7°'), findsOneWidget);
   });
 
-  testWidgets('ambient keeps the arc and band, hides held marker + dimming', (
+  testWidgets('ambient keeps the band, hides held marker + dimming', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -133,9 +106,7 @@ void main() {
 
     expect(heroOpacity(tester), isNull); // ambientben nincs TWD-opacitás
     expect(find.text('tartott'), findsNothing); // ambientben elmarad
-    // A trust ambientben is megmarad (ADR 0023 D8).
-    expect(find.byType(ConfidenceArc), findsOneWidget);
-    expect(arcWidget(tester).ambient, isTrue);
+    // A ±° sáv ambientben is megmarad (ADR 0023 D8); az ívet a RaceShell adja.
     expect(find.text('±5°'), findsOneWidget);
   });
 

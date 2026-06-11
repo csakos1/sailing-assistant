@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/theme/watch_colors.dart';
-import 'package:watch/widgets/confidence_arc.dart';
 import 'package:watch/widgets/direction_arrow.dart';
 import 'package:watch/widgets/watch_metrics.dart';
 import 'package:watch/widgets/watch_trust.dart';
@@ -9,12 +8,13 @@ import 'package:watch/widgets/watch_trust.dart';
 /// „B" nézet — Köv. bója (taktika), alapnézet (§10.4). Cím-sor: a bója neve és
 /// a táv összevonva. Hero: a köv. bójánál várt TWA (predikció, teal, nyíl
 /// befelé). A hero alatt a predikció ±° hibasávja (a fő, szín-független
-/// trust-szám), a kerek lap alsó peremén pedig a konfidencia-ív (szín + hossz
-/// = szint, ADR 0023 D7). Alatta egy sorban a Korrekció és az ETA.
+/// trust-szám). A predikció-konfidencia ívét (szín + hossz = szint, ADR 0023
+/// D7, jobb-perem revízió) a `RaceShell` rajzolja a fizikai lap JOBB peremére,
+/// teljes képernyős rétegben — ezért az nem itt, hanem a házban él.
 ///
-/// Ambientben a hero, a ±° sáv és a halvány alsó ív marad (a versenyző a
-/// legtöbbet az ambient kijelzőt nézi, ADR 0023 D8); a cím, a „tartott"
-/// felirat és a Korr./ETA sor elmarad.
+/// Ambientben a hero és a ±° sáv marad (a versenyző a legtöbbet az ambient
+/// kijelzőt nézi, ADR 0023 D8); a cím, a „tartott" felirat és a Korr./ETA sor
+/// elmarad.
 class NextMarkView extends StatelessWidget {
   /// Létrehozza a nézetet a megjelenítendő [payload]-dal.
   const NextMarkView({
@@ -43,7 +43,6 @@ class NextMarkView extends StatelessWidget {
     final predicted = formatDegreesMagnitude(payload.predictedTwaAtMark);
     final isHeld = isTwdHeld(payload.twdQuality);
     final band = payload.forecastBandDegrees;
-    final arc = confidenceArc(payload.shiftConfidence, colors);
 
     // A köv-TWA hero; held esetén AKTÍVBAN tompítjuk (nincs friss derivált
     // szélirány). Ambientben a paletta tompít, ezért ott nincs külön Opacity.
@@ -137,19 +136,6 @@ class NextMarkView extends StatelessWidget {
       ],
     );
 
-    return Stack(
-      children: [
-        // Alsó perem-ív (ADR 0023 D7): csak ha van predikció-konfidencia.
-        if (arc != null)
-          Positioned.fill(
-            child: ConfidenceArc(
-              color: arc.color,
-              fraction: arc.fraction,
-              ambient: ambient,
-            ),
-          ),
-        Center(child: column),
-      ],
-    );
+    return Center(child: column);
   }
 }

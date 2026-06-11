@@ -2,10 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Alsó perem-ív a predikció-konfidenciához (ADR 0023 D7): a kerek lap **ALSÓ**
-/// peremén egy ív, aminek a [color]-a és [fraction]-je (hossza) a
-/// shiftConfidence-szintet kódolja. A felső peremet a GPS-idő foglalja, ezért
-/// lent. Ambientben halványabb és vékonyabb (a ±° szám viszi a trust-et, D8).
+/// Jobb perem-ív a predikció-konfidenciához (ADR 0023 D7, jobb-perem revízió):
+/// a kerek lap **JOBB** peremén egy ív, aminek a [color]-a és a [fraction]-je
+/// (hossza) a shiftConfidence-szintet kódolja. A jobb perem a felső GPS-idő
+/// fejléctől és az alsó lap-pöttyöktől is szabad. A `RaceShell` a teljes
+/// képernyős háttér-rétegben rajzolja, ezért a fizikai lap peremén ül — minden
+/// óra-méreten és ambientben is. Ambientben halványabb és vékonyabb (a ±° szám
+/// viszi a trust-et, D8).
 ///
 /// A festő (`_ConfidenceArcPainter`) privát; a widget a tesztelhető felület
 /// (a teszt a [color]/[fraction] mezőkre asszertál, nem pixelre).
@@ -67,8 +70,9 @@ class _ConfidenceArcPainter extends CustomPainter {
     final radius = math.min(size.width, size.height) / 2 - _inset;
     final sweep = _maxSweepRad * fraction.clamp(0, 1);
 
-    // A lap aljára centráljuk: lefelé = pi/2 (canvas-szög, 0 = 3 óra).
-    final start = math.pi / 2 - sweep / 2;
+    // A lap jobb peremére centráljuk: jobbra = 0 (canvas-szög, 0 = 3 óra), a
+    // sweep felét fölé, felét alá nyitva.
+    final start = -sweep / 2;
 
     final paint = Paint()
       ..style = PaintingStyle.stroke
