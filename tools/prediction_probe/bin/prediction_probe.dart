@@ -174,6 +174,8 @@ void _printSample(ProbeSample sample, double nearMeters) {
       : '${trend.shiftRateDegPerMinute >= 0 ? '+' : ''}'
             '${trend.shiftRateDegPerMinute.toStringAsFixed(1)}°/min';
   final conf = trend?.confidence.name ?? '—';
+  // Az íven látszó, band-alapú bucket (ADR 0023) — nem a conf= r²-kapuja.
+  final uiConf = prediction.shiftConfidence.name;
   final legBearing = next == null
       ? '  —'
       : _bearing(active.position, next.position).degrees.round().toString();
@@ -188,7 +190,7 @@ void _printSample(ProbeSample sample, double nearMeters) {
     'SOG=${sogKnots == null ? " — " : sogKnots.toStringAsFixed(1)}  '
     'TWD=${sample.twd.degrees.round().toString().padLeft(3)}'
     '(${sample.twdQuality.name})  '
-    'rate=$rate conf=${conf.padRight(6)} '
+    'rate=$rate conf=${conf.padRight(6)} uiconf=${uiConf.padRight(6)} '
     'eta=${etaText.padLeft(5)} leg=$legBearing  '
     'PRED=${_fmtTwa(prediction.predictedTwaAtMark)} '
     'band=${_fmtBand(prediction.forecastBandDegrees)}$near',
