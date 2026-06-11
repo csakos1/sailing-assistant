@@ -2457,7 +2457,8 @@ cross-check / staleness szerepben: a kijelzett idő ≥ a stream-instant, a
 különbség ~ a transzport-késés; ha egy küszöb (default 10 mp) fölé nő,
 staleness-jelzés (a chip vs. §11 Warning közti döntés impl-szintű). A true-time forrást a `trueTimeProvider` (keep-alive) adja egy
 `TrueTimeReading Function()` callable-ként (a `clockProvider`-seam
-mintájára), amit a GPS-cella az 1 Hz tick-en hív; a `TrueTimeReading` az
+mintájára), amit a GPS-cella egy dedikált,
+másodperc-határra igazított 1 Hz olvasaton hív (Addendum 1 D-b); a `TrueTimeReading` az
 `utc`-t és a `source`-ot (`gnss` / `sessionAnchor` / `wallClockUnsynced` /
 `none`) hordozza. Az anchort (`anchorUtc` + monoton `Stopwatch`) a notifier
 tartja, a kijelzett idő pure `extrapolate(anchorUtc, monotonicElapsed)`. A
@@ -2465,7 +2466,12 @@ GNSS-fixet a `geolocator` (thin platform-plugin, mint a `wakelock_plus`;
 `forceLocationManager`, GPS-UTC timestamp) adja egy `GnssClock`
 DIP-absztrakció mögött — fake-elhető, a replay-tesztek determinisztikusak
 maradnak. A seam lusta (első fix a live screen mountjakor), re-anchor 2
-percenként (cold-start 20 mp retry). A D5 cross-check v1-ben belső
+percenként (cold-start 20 mp retry). A re-anchor egy rövid
+pozíció-stream-burstöt vesz (~5 minta / max 6 mp, aztán zár — a D4
+battery-elv él), és egy pure `selectBestAnchorUtc` a min-késésű
+mintát választja (max `fixUtc - elapsed`), a horgony pillanatára
+vetítve — így a fix kora nem épül be a GPS-időbe (Addendum 1 D-a).
+A D5 cross-check v1-ben belső
 diagnosztika; a §11-be kötött `GpsTimeUnsynced` Warning Fázis 6.
 
 A `markPrediction == null` (nincs aktív bója vagy pozíció) esetén a 2–6
@@ -3011,7 +3017,8 @@ Vulcan-buffering miatt 4–6 mp-et késik), hanem a telefon true-time forrása
 (`toLocal()`, Europe/Budapest, DST-aware). Az `instrumentTimeUtc` a telefonon
 marad cross-check/staleness szerepben. Friss idő híján `--:--:--` + tompított
 pötty. Az órán a kapott `gpsTimeUtc`-t a watch **lokálisan, monoton** görgeti
-előre (1 Hz ticker + `Stopwatch`-horgony a payload-érkezéskor), mert a payload
+előre (`Stopwatch`-horgony a payload-érkezéskor, másodperc-határra igazított
+láncolt tick — Addendum 1 D-b), mert a payload
 csak change-detectre érkezik — így a kijelzett másodperc két payload közt is
 folyamatosan lép.
 
