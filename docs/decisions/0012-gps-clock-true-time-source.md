@@ -1,73 +1,75 @@
-# ADR 0012 — GPS-idő mint true-time forrás (telefon-GNSS anchor + monoton extrapoláció)
+---
 
-## Státusz
-Elfogadva — 2026-05
+## Addendum 1 — Horgony-kor + tick-fázis javítás (2026-06)
 
-## Kontextus
-A LiveRaceScreen státuszsorának GPS-idő mezője ma a streamből kiolvasott
-értéket mutatja: boatStateProvider → instrumentTimeUtc → toLocal()
-(ARCHITECTURE.md §8.7 / §10.4). Az instrumentTimeUtc az RMC dátum+idő
-mezőiből összefűzött GPS-instant. Az eredeti szándék: chartplotter-egyezés.
+### Kontextus (Addendum)
+A 2026-06-i vízi teszt feltárta: az app GPS-órája 1–2 mp-et késik a Vulcanhoz
+(és a rendezőség GPS-órájához) képest — telefonon ÉS órán, egymással
+szinkronban, megbízható (teal) jelzés mellett. A szinkronitás közös upstream
+okra mutat: az óra a telefon `gpsTimeUtc`-jét örökli, tehát a hiba a telefon
+true-time anchorában keletkezik, nem a BT-transzportban.
 
-Vízi teszt (2026-05) feltárta: a Vulcan NMEA-over-WiFi (TCP 10110) kimenete
-köteges, 4–6 mp-es transzport-késéssel flush-öl. Egy Foretacktól független
-capture (Serial WiFi Terminal) megerősíti: az RMC GPS-instantja (09:06:47 UTC)
-a telefonhoz a prefix szerint ~4 mp-cel később (11:06:51 helyi) érkezik. Vagyis
-az instrumentTimeUtc helyes érték, de mindig 4–6 mp-et késik — épp az eredeti
-szándék bukik el rajta.
+Két, egymásra rakódó gyökérok:
 
-Követelmény: a rajthoz az app órájának másodperc-pontosan egyeznie kell a
-műszer és a rendezőség GPS-órájával (UTC). Futás közben nincs internet → NTP
-nem opció. A telefon wall-clock-ja nem GPS-pontos.
+1. Horgony-kor (fő ok). A `TrueTimeManager._attemptAnchor` a monoton
+   `Stopwatch`-ot a `getCurrentPosition` future-jának FELOLDÁSAKOR nullázza —
+   nem a fix keletkezésekor. A fix-várakozás + plugin-csatorna + callback ideje
+   (~0,3–1,5 mp) tartósan beépül az anchorba: a `fixUtc` (a műholdas UTC)
+   helyes, de a hozzá tartozó monoton origó túl későn indul, így a kijelzett idő
+   pont a fix korával késik. A D3 monoton ketyegtetés helyes; a hiba a monoton
+   origó rögzítési pillanata.
+2. Tick-fázis. A kijelző-tick szabad/véletlen fázisú (`Timer.periodic(1 s)`); a
+   számjegy a valódi másodperc-határ után 0–1 mp-cel vált, tartósan. A kettő
+   együtt adja az 1–2 mp-et.
 
-Kulcs: az adatnak nincs a streamtől független forrása, de az IDŐNEK van — a
-telefon saját GNSS-vevője ugyanabból a forrásból (műhold) adja az UTC-t, mint a
-műszer, transzport-késés és internet nélkül.
+### Döntés (Addendum)
 
-## Döntés
-- D1 — Idő-seam. A presentation a GPS-idő cellához egy dedikált "true-time"
-  forrást fogyaszt (a clockProvider-seam mintájára / mögé), NEM az
-  instrumentTimeUtc-t. A domain platform-független marad (DIP); a GNSS-olvasás
-  data/platform-réteg.
-- D2 — Elsődleges (és gyakorlatilag kötelező) anchor: a telefon saját GNSS-
-  vevője. Egy fix → műholdas UTC (a fix toLocal()/UTC ideje, NEM a nyers GPS-
-  week-idő). Közös forrás a műszerrel → <1 mp egyezés.
-- D3 — Ketyegtetés monoton órával. kijelzett = anchorUtc + monotonElapsed, ahol
-  az eltelt időt Stopwatch (monoton) adja, NEM DateTime.now() különbség.
-  Néhány percenként re-anchor friss GNSS-fixszel.
-- D4 — Battery. Nem folyamatos GPS: rövid, alkalmi fix; a pozíció a műszerből.
-- D5 — Stream cross-check + staleness. Az instrumentTimeUtc megmarad, de nem a
-  kijelző forrása: (a) cross-check — kijelzett >= stream-instant, a különbség ~
-  a transzport-késés (a normál 4–6 mp NEM riaszt); (b) staleness-jelzés, ha a
-  különbség egy küszöb (default 10 mp) fölé nő.
-- D6 — Fallback-lánc, ha GNSS nincs: (1) korábbi session-anchor → tovább monoton
-  órán; (2) ha sosem volt → telefon wall-clock EXPLICIT "nem szinkronizált"
-  jelzéssel (megbízhatatlan, mert a telefon-óra ≠ GPS és nincs NTP); (3) stream-
-  instant + késés-becslés csak diagnosztika. A megjelenítés mindig jelzi a
-  forrást/megbízhatóságot.
-- D7 — UTC explicit. Mindig UTC-t tartunk és toLocal()-lal jelenítünk meg; nyers
-  GPS-week-idő sosem a kijelzőre.
+- D-a — Friss anchor min-késésű mintaválasztással (a fő javítás). A re-anchor
+  egy-lövésű `getCurrentPosition` helyett rövid pozíció-stream-burst: ~5 minta
+  vagy max 6 mp, aztán a stream zárása (a D4 battery-elv ÉL — NEM folyamatos
+  GPS). Minden mintát a beérkezésekor egy burst-lokális monoton órával
+  párosítunk: `(fixUtc, mintaElapsed)`. Egy pure `selectBestAnchorUtc` a
+  maximális `fixUtc − mintaElapsed` offszetű mintát választja, és a burst-végi
+  eltelt idővel a horgony pillanatára vetíti előre. Indoklás (NTP min-RTT
+  analóg): a kézbesítési késés a `fixUtc − elapsed` offszetet csak csökkenteni
+  tudja, tehát a maximum a legkisebb késésű — leghűbb — minta. Várt anchor-hiba
+  ~1 mp-ről ≲0,1 mp-re. A pure rész mock nélkül tesztelhető; a meglévő
+  `extrapolate`/`readingAfter`/`resolveAnchor` ÉRINTETLEN (OCP) — csak az
+  imperatív héj (`_attemptAnchor`) és a `GnssClock` seam változik. A seam
+  `Future<DateTime?>` → `Stream<DateTime>` (fix-stream); a szignatúra-kaszkád
+  (`gnss_clock.dart` + `geolocator_gnss_clock.dart` + `true_time_manager.dart` +
+  `gnss_clock_provider.dart` + a `race_engine_task_handler` direkt konstruálás +
+  tesztek) EGY vertikális commit.
 
-## Következmények
-- Az óra a műszerrel <1 mp-en egyezik internet nélkül is, simán ketyeg, immunis
-  a wall-clock-ugrásokra.
-- Új platform-függőség az apps/phone-ban: location/GNSS (Android
-  ACCESS_FINE_LOCATION). DIP megmarad.
-- §8.7 / §10.4 módosul: a GPS-idő forrása a true-time seam; az instrumentTimeUtc
-  cross-check/staleness szerepre vált.
-- A stream-adat (TWA, pozíció) továbbra is 4–6 mp-et késik — NEM ennek az ADR-
-  nek a hatóköre (boat-side).
-- A true-time seam fake-elhető; a replay-tesztek determinisztikusak maradnak.
+- D-b — Másodperc-határra igazított kijelző-tick. A `Timer.periodic` helyett
+  láncolt, önkorrigáló `Timer`: minden tick a becsült óra
+  (`displayUtc.millisecond`) alapján a következő másodperc-határig ütemez, így a
+  számjegy a valódi határon vált és a jitter nem halmozódik. Az órán a
+  `watchClockProvider`-ben; a telefon GPS-cellája egy ugyanígy igazított,
+  dedikált 1 Hz olvasatot kap. A globális `tickProvider`-hez NEM nyúlunk (az
+  compute-kadencia, SRP).
 
-## Elvetett alternatívák
-- A — Stream-instant + lokális elapsed: simán ketyeg, de 4–6 mp-et késik → a
-  rajt-igényt nem teljesíti.
-- B — Telefon wall-clock NTP-re: nincs internet, és a telefon-óra ≠ GPS → csak
-  megbízhatatlan fallback.
-- C — Egyszeri manuális szinkron: manuális, hibázható; a GNSS automatikus és
-  pontosabb. Megtartható kényelmi/fallback gombnak.
-- D — Folyamatos telefon-GPS: battery-zabáló és felesleges.
+- D-c — Otthoni mérés a vízi teszt előtt. Referencia: NTP-pontos óra (time.is) a
+  telefon mellett, a javítás előtt ÉS után. Elfogadás: a másodperc-váltás
+  ±0,3 mp-en belül a referenciához képest.
 
-## Felülvizsgálat
-Vízi teszt (Fázis 9) után; ha a GNSS-anchor lassú fix-időt vagy battery-gondot
-ad; ha a leap-second/UTC-kezelésben anomália van.
+- D-d — HALASZTVA: a BT-késés NTP-stílusú kompenzációja az óra-anchorban. A
+  `WatchClock.onPayload` a payload `gpsTimeUtc`-jét érkezéskor horgonyozza → a
+  BT-kézbesítési késés elvileg beépül. Mivel a vízen a telefon és az óra
+  szinkronban volt (a BT-késés a percepciós küszöb alatt), és a
+  payload-szerződést érintené (ADR 0015), csak akkor vesszük elő, ha a D-c mérés
+  után az óra mérhetően elmarad a telefontól.
+
+### Következmények (Addendum)
+- A `GnssClock` seam `Stream<DateTime>`-re vált; a burst zárása a feliratkozás
+  megszüntetésével történik (D4: rövid, alkalmi GPS, nem folyamatos).
+- Üres burst (GPS ki / engedély megtagadva / timeout) → nincs minta →
+  `fixUtc = null` → a D6 fallback-lánc dönt (változatlan).
+- A replay-tesztek determinisztikusak maradnak: a seam fake stream-mel
+  megadható; a `selectBestAnchorUtc` pure.
+- A §8.7 (anchor-burst + a GPS-cella dedikált igazított olvasata) és a §10.4 (az
+  óra igazított tick-je) szinkronizálandó.
+
+### Felülvizsgálat (Addendum)
+A D-c mérés dönt a D-d-ről. Ha a stream-burst lassú fix-időt vagy battery-gondot
+ad, a minta-szám / 6 mp cap hangolható.
