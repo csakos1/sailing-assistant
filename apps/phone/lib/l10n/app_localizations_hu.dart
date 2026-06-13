@@ -55,6 +55,27 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveStopConfirm => 'Leállítás';
 
   @override
+  String get liveRoundMark => 'Boja megvan';
+
+  @override
+  String get liveRoundMarkTitle => 'Boja megkerelve?';
+
+  @override
+  String liveRoundMarkMessage(String mark) {
+    return 'Megjelolod a(z) $mark bojat megkerultnek?';
+  }
+
+  @override
+  String get liveRoundMarkMessageGeneric =>
+      'Megjelelod a jelenlegi bojat megkerultnek?';
+
+  @override
+  String get liveRoundMarkCancel => 'Megse';
+
+  @override
+  String get liveRoundMarkConfirm => 'Megvan';
+
+  @override
   String liveServiceError(String message) {
     return 'Háttér-engine hiba: $message';
   }

@@ -66,6 +66,9 @@ class _FakeRaceEngineHost implements RaceEngineHost {
   bool isStarted = false;
 
   @override
+  void sendRoundMarkCommand() {}
+
+  @override
   Stream<RaceSnapshot> get snapshots => _controller.stream;
 
   void emit(RaceSnapshot snapshot) => _controller.add(snapshot);

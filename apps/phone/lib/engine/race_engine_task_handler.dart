@@ -127,6 +127,8 @@ class RaceEngineTaskHandler extends TaskHandler {
         _engine?.applyStartCommand(_atFromMillis(map['at'] as int));
       case 'finish':
         _engine?.applyFinishCommand(_atFromMillis(map['at'] as int));
+      case 'roundMark':
+        _engine?.applyRoundMarkCommand();
     }
   }
 

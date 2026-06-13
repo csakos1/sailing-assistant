@@ -145,6 +145,25 @@ class RaceEngine {
     _race = race.finish(at: at);
   }
 
+  /// A UI-t�l �rkez? manu�lis b�ja-megker�l�s parancs alkalmaz�sa: a
+  /// haj�s k�zzel jelzi, hogy vette a b�j�t. Az�rt kell, mert pontatlan
+  /// boja-koordin�t�n�l a haj� sosem �ri el a detektor 50 m-es k�sz�b�t,
+  /// �gy az auto-rounding nem l�ptetne (az eg�sz versenyen az els? b�j�ra
+  /// vinne). Az `at` az engine saj�t �r�ja (`_now`), egyezve a tick-alap�
+  /// auto-�ttal. No-op, ha nincs race vagy nem `active` ? a
+  /// `Race.roundCurrentMark` assertje csak activere enged, az utols� b�j�n
+  /// a domain auto-finish-el. A detektort resetelj�k, hogy a k�zi l�ptet�s
+  /// ut�n az �j b�j�hoz tiszta minimum-profilb�l induljon (mint a
+  /// `_maybeRoundMark`).
+  void applyRoundMarkCommand() {
+    final race = _race;
+    if (race == null || race.status != RaceStatus.active) {
+      return;
+    }
+    _markRoundingDetector.reset();
+    _race = race.roundCurrentMark(at: _now());
+  }
+
   // Egyetlen esemény befoldolása az élő állapotba.
   void _onEvent(DomainEvent event) {
     _eventCount++;

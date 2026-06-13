@@ -184,6 +184,42 @@ abstract class AppLocalizations {
   /// **'Leállítás'**
   String get liveStopConfirm;
 
+  /// Gomb az elo kepernyon: a jelenlegi boja kezi megjelolese megkerultnek.
+  ///
+  /// In hu, this message translates to:
+  /// **'Boja megvan'**
+  String get liveRoundMark;
+
+  /// A kezi boja-megkerules megerosito dialogus cime.
+  ///
+  /// In hu, this message translates to:
+  /// **'Boja megkerelve?'**
+  String get liveRoundMarkTitle;
+
+  /// A kezi boja-megkerules dialogus szovege a celboja nevevel.
+  ///
+  /// In hu, this message translates to:
+  /// **'Megjelolod a(z) {mark} bojat megkerultnek?'**
+  String liveRoundMarkMessage(String mark);
+
+  /// A dialogus szovege, ha a celboja neve nem ismert (pl. nincs GPS-pozicio).
+  ///
+  /// In hu, this message translates to:
+  /// **'Megjelelod a jelenlegi bojat megkerultnek?'**
+  String get liveRoundMarkMessageGeneric;
+
+  /// A kezi boja-megkerules dialogus megszakito gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Megse'**
+  String get liveRoundMarkCancel;
+
+  /// A kezi boja-megkerules dialogus megerosito gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Megvan'**
+  String get liveRoundMarkConfirm;
+
   /// Hibasor az élő képernyőn: a háttér-engine foreground-service indítása sikertelen.
   ///
   /// In hu, this message translates to:

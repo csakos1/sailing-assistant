@@ -22,6 +22,7 @@ import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
 import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
+import 'package:phone/providers/race_engine_host_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
@@ -93,6 +94,41 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     ref.read(raceEngineSessionProvider.notifier).stop();
     if (!context.mounted) return;
     Navigator.of(context).pop();
+  }
+
+  // A „Bója megvan" akció: megerősítés után roundMark parancsot küld az
+  // engine-nek, ami lépteti az aktív bóját (a `_maybeRoundMark` kézi párja).
+  // Pontatlan boja-koordinátánál ez a gyors megoldás, amikor az auto-
+  // detektor 50 m-es küszöbét sosem éri el. A célbója nevét csak akkor
+  // mutatjuk, ha ismert (nincs GPS-pozíciónál a generikus szöveg megy).
+  Future<void> _confirmRoundMark(
+    BuildContext context,
+    AppLocalizations l10n,
+    String? markName,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.liveRoundMarkTitle),
+        content: Text(
+          markName == null
+              ? l10n.liveRoundMarkMessageGeneric
+              : l10n.liveRoundMarkMessage(markName),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.liveRoundMarkCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.liveRoundMarkConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    ref.read(raceEngineHostProvider).sendRoundMarkCommand();
   }
 
   @override
@@ -205,6 +241,22 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                   ),
                 ),
               ),
+              // Manuális bója-megkerülés: csak active alatt, és az Opacity-n
+              // KÍVÜL, hogy kritikus warning mellett (tompított grid) is
+              // léptethess.
+              if (race.status == RaceStatus.active) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => unawaited(
+                      _confirmRoundMark(context, l10n, prediction?.mark.name),
+                    ),
+                    icon: const Icon(Icons.flag_outlined),
+                    label: Text(l10n.liveRoundMark),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
