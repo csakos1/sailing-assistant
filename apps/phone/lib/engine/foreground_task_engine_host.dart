@@ -92,6 +92,13 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
   }
 
   @override
+  void sendRoundMarkCommand() {
+    FlutterForegroundTask.sendDataToTask(
+      jsonEncode(<String, Object>{'type': 'roundMark'}),
+    );
+  }
+
+  @override
   Future<void> stop() async {
     FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
     await FlutterForegroundTask.stopService();

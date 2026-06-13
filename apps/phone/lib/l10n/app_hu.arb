@@ -1,6 +1,5 @@
 {
   "@@locale": "hu",
-
   "liveOpen": "Élő nézet",
   "@liveOpen": {
     "description": "Gomb a race-detailen: az élő verseny-képernyő megnyitása."
@@ -61,6 +60,35 @@
   "@liveStopConfirm": {
     "description": "A leállítás-dialógus megerősítő gombja."
   },
+  "liveRoundMark": "Boja megvan",
+  "@liveRoundMark": {
+    "description": "Gomb az elo kepernyon: a jelenlegi boja kezi megjelolese megkerultnek."
+  },
+  "liveRoundMarkTitle": "Boja megkerelve?",
+  "@liveRoundMarkTitle": {
+    "description": "A kezi boja-megkerules megerosito dialogus cime."
+  },
+  "liveRoundMarkMessage": "Megjelolod a(z) {mark} bojat megkerultnek?",
+  "@liveRoundMarkMessage": {
+    "description": "A kezi boja-megkerules dialogus szovege a celboja nevevel.",
+    "placeholders": {
+      "mark": {
+        "type": "String"
+      }
+    }
+  },
+  "liveRoundMarkMessageGeneric": "Megjelelod a jelenlegi bojat megkerultnek?",
+  "@liveRoundMarkMessageGeneric": {
+    "description": "A dialogus szovege, ha a celboja neve nem ismert (pl. nincs GPS-pozicio)."
+  },
+  "liveRoundMarkCancel": "Megse",
+  "@liveRoundMarkCancel": {
+    "description": "A kezi boja-megkerules dialogus megszakito gombja."
+  },
+  "liveRoundMarkConfirm": "Megvan",
+  "@liveRoundMarkConfirm": {
+    "description": "A kezi boja-megkerules dialogus megerosito gombja."
+  },
   "liveServiceError": "Háttér-engine hiba: {message}",
   "@liveServiceError": {
     "description": "Hibasor az élő képernyőn: a háttér-engine foreground-service indítása sikertelen.",
@@ -74,7 +102,6 @@
   "@etaMinutesUnit": {
     "description": "ETA perc-egysége 60 perc felett (pl. 83 perc)."
   },
-
   "warningGatewayDisconnected": "Nincs kapcsolat a műszerekkel",
   "@warningGatewayDisconnected": {
     "description": "Warning (critical): megszakadt az NMEA-adatfolyam (gateway-kapcsolat)."
@@ -95,37 +122,30 @@
   "@warningSuspectHeading": {
     "description": "Warning (warning): a heading tartósan eltér a haladási iránytól (ZG100)."
   },
-
   "appTitle": "Foretack",
   "@appTitle": {
     "description": "Az app neve a launcher / recents képernyőn."
   },
-
   "viewerTitle": "Nyers NMEA folyam",
   "@viewerTitle": {
     "description": "A debug raw-NMEA viewer címsora."
   },
-
   "viewerEmptyState": "Még nem érkezett sor.",
   "@viewerEmptyState": {
     "description": "A viewer üres állapotának üzenete (még nincs adat)."
   },
-
   "statusConnecting": "Csatlakozás…",
   "@statusConnecting": {
     "description": "Connection status — TCP socket nyitás folyamatban."
   },
-
   "statusConnected": "Csatlakozva",
   "@statusConnected": {
     "description": "Connection status — aktív kapcsolat, adat érkezik."
   },
-
   "statusDisconnected": "Nincs kapcsolat",
   "@statusDisconnected": {
     "description": "Connection status — még soha nem csatlakozott, vagy disconnect() lefutott."
   },
-
   "statusError": "Hiba: {message}",
   "@statusError": {
     "description": "Connection status — szakadás üzenettel.",
@@ -135,22 +155,18 @@
       }
     }
   },
-
   "setupTitle": "Új verseny",
   "@setupTitle": {
     "description": "A race-setup képernyő címsora."
   },
-
   "setupRaceNameLabel": "Verseny neve",
   "@setupRaceNameLabel": {
     "description": "A verseny nevének beviteli mezője."
   },
-
   "setupRaceNameRequired": "Adj meg egy nevet.",
   "@setupRaceNameRequired": {
     "description": "Validációs hiba: a verseny neve üres."
   },
-
   "setupMarkHeader": "{number}. bója",
   "@setupMarkHeader": {
     "description": "Egy bója-sor fejléce a sorszámmal.",
@@ -160,127 +176,102 @@
       }
     }
   },
-
   "setupMarkNameLabel": "Bója neve",
   "@setupMarkNameLabel": {
     "description": "Egy bója nevének beviteli mezője."
   },
-
   "setupMarkNameRequired": "Adj meg egy nevet.",
   "@setupMarkNameRequired": {
     "description": "Validációs hiba: a bója neve üres."
   },
-
   "setupLatitudeLabel": "Szélesség (°)",
   "@setupLatitudeLabel": {
     "description": "Egy bója szélességének mezője, decimális fokban."
   },
-
   "setupLongitudeLabel": "Hosszúság (°)",
   "@setupLongitudeLabel": {
     "description": "Egy bója hosszúságának mezője, decimális fokban."
   },
-
   "setupInvalidNumber": "Érvénytelen szám.",
   "@setupInvalidNumber": {
     "description": "Validációs hiba: a mező nem értelmezhető számként."
   },
-
   "setupLatitudeOutOfRange": "A szélesség -90 és 90 fok között lehet.",
   "@setupLatitudeOutOfRange": {
     "description": "Validációs hiba: a szélesség tartományon kívül."
   },
-
   "setupLongitudeOutOfRange": "A hosszúság -180 és 180 fok között lehet.",
   "@setupLongitudeOutOfRange": {
     "description": "Validációs hiba: a hosszúság tartományon kívül."
   },
-
   "setupAddMark": "Bója hozzáadása",
   "@setupAddMark": {
     "description": "Gomb: új bója-sor hozzáadása."
   },
-
   "setupRemoveMark": "Bója törlése",
   "@setupRemoveMark": {
     "description": "Tooltip: az adott bója-sor eltávolítása."
   },
-
   "setupSave": "Mentés",
   "@setupSave": {
     "description": "Gomb: a verseny mentése és visszatérés a listához."
   },
-
   "raceStatusNotStarted": "Nem indult",
   "@raceStatusNotStarted": {
     "description": "Verseny-státusz: még nem indult el."
   },
-
   "raceStatusActive": "Folyamatban",
   "@raceStatusActive": {
     "description": "Verseny-státusz: aktív, folyamatban van."
   },
-
   "raceStatusFinished": "Befejezve",
   "@raceStatusFinished": {
     "description": "Verseny-státusz: befejeződött."
   },
-
   "detailStart": "Indítás",
   "@detailStart": {
     "description": "Gomb: a verseny elindítása (notStarted -> active)."
   },
-
   "detailFinish": "Befejezés",
   "@detailFinish": {
     "description": "Gomb: a verseny befejezése (active -> finished)."
   },
-
   "detailDelete": "Törlés",
   "@detailDelete": {
     "description": "Tooltip: a verseny törlése (AppBar ikon)."
   },
-
   "detailDeleteTitle": "Verseny törlése",
   "@detailDeleteTitle": {
     "description": "A törlés-megerősítő dialógus címe."
   },
-
   "detailDeleteMessage": "Biztosan törlöd ezt a versenyt?",
   "@detailDeleteMessage": {
     "description": "A törlés-megerősítő dialógus szövege."
   },
-
   "detailDeleteCancel": "Mégse",
   "@detailDeleteCancel": {
     "description": "A törlés-dialógus megszakító gombja."
   },
-
   "detailDeleteConfirm": "Törlés",
   "@detailDeleteConfirm": {
     "description": "A törlés-dialógus megerősítő gombja."
   },
-
   "listTitle": "Versenyek",
   "@listTitle": {
     "description": "A versenylista (home) képernyő címsora."
   },
-
   "listEmpty": "Még nincs verseny. Adj hozzá egyet a + gombbal.",
   "@listEmpty": {
     "description": "A lista üres állapotának üzenete."
   },
-
   "listError": "Nem sikerült betölteni a versenyeket.",
   "@listError": {
     "description": "A lista hiba-állapotának üzenete."
   },
-
   "listAddRace": "Új verseny",
   "@listAddRace": {
     "description": "Tooltip: a FAB, ami a setup képernyőt nyitja."
   },
-
   "listMarkCount": "{count} bója",
   "@listMarkCount": {
     "description": "Egy versenysor alcíme: a bóyák száma.",

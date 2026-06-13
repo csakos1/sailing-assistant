@@ -20,6 +20,12 @@ abstract interface class RaceEngineHost {
   /// Finish parancs az engine-nek (`active → finished`) az [at] időponttal.
   void sendFinishCommand(DateTime at);
 
+  /// Manu�lis b�ja-megker�l�s parancs az engine-nek: a haj�s k�zzel jelzi,
+  /// hogy vette a b�j�t (pontatlan boja-koordin�t�n�l, amikor az auto-
+  /// detektor 50 m-es k�sz�b�t sosem �ri el). Az engine a saj�t �r�j�val
+  /// b�lyegez, ez�rt nincs `at`.
+  void sendRoundMarkCommand();
+
   /// Leállítja a service-t és a háttér-izolátumot.
   Future<void> stop();
 
