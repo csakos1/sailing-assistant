@@ -436,10 +436,18 @@ sailing-assistant/                        # GitHub repo root
     │   │   └── logged_line_test.dart
     │   └── pubspec.yaml
     ├── nmea_inspector/                   # CLI: nyers 0183 mondat-dump dekódolása debughoz
+    ├── prediction_probe/                 # CLI: read-only replay-harness, ADR 0020/0021/0023 predikció-validáció
+    ├── race_analyzer/                    # CLI: post-race elemző a snapshot_logs-on, ADR 0025
     └── sample_logs/                      # Példa NMEA 0183 logok (Vulcan WiFi dump); YDVR DAT→YD RAW a v1.5+ adapterhez
 ```
 
 > **v2-ben hozzákerül**: `apps/phone/lib/features/polar_import/`, `packages/domain/lib/src/repositories/polar_repository.dart`, `packages/data/lib/src/persistence/tables/polars_table.dart` és kapcsolódó komponensek.
+
+> **Post-race elemzés (ADR 0025)**: a `tools/race_analyzer` pure-Dart CLI a
+> `snapshot_logs`-ot olvassa (közvetlen `sqlite3`, nem a Flutter-kötött
+> `RaceSnapshot.fromJson`-on át), és a next-bója-TWA predikciót értékeli
+> (predikált-vs-tényleges TWA + hibasáv-találat). A részletes fa a
+> feature-rel landol.
 
 ### 4.2 Miért monorepo?
 
