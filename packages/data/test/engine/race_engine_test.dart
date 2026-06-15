@@ -285,6 +285,95 @@ void main() {
     });
   });
 
+  group('parancs-protokoll (roundMark)', () {
+    const metersPerDegLat = 6371000 * pi / 180;
+    const mark1 = Mark(
+      sequence: 1,
+      name: 'Bóya 1',
+      position: Coordinate(latitude: 46.9, longitude: 18),
+    );
+    const mark2 = Mark(
+      sequence: 2,
+      name: 'Bóya 2',
+      position: Coordinate(latitude: 46.8, longitude: 17.9),
+    );
+    final notStartedRace = Race.create(
+      id: 'rm',
+      name: 'RoundMark',
+      marks: const [mark1, mark2],
+    );
+
+    Coordinate boatNorthOf(Mark mark, double metersNorth) => Coordinate(
+      latitude: mark.position.latitude + metersNorth / metersPerDegLat,
+      longitude: mark.position.longitude,
+    );
+
+    Future<void> emitNorthOfThenTick(
+      Mark mark,
+      double metersNorth,
+      DateTime at,
+    ) async {
+      source.emitEvent(
+        PositionEvent(boatNorthOf(mark, metersNorth), eventTime),
+      );
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('active-ban a következő bójára lép', () async {
+      // ARRANGE — active race; 200 m-en a detektor magától nem lépne.
+      await engine.start(notStartedRace.start(at: eventTime));
+      await emitNorthOfThenTick(mark1, 200, tickTime);
+      expect(snapshots.last.prediction?.mark, mark1);
+
+      // ACT — kézi bója-megkerülés parancs, majd egy tick.
+      engine.applyRoundMarkCommand();
+      await emitNorthOfThenTick(
+        mark1,
+        200,
+        tickTime.add(const Duration(seconds: 1)),
+      );
+
+      // ASSERT — a parancs léptetett: a 2. bóját célozza.
+      expect(snapshots.last.prediction?.mark, mark2);
+    });
+
+    test('léptet, majd a 2. bóját auto-körözi (reset)', () async {
+      // ARRANGE — active race; az 1. bóját kézzel körözzük → 2. bója.
+      await engine.start(notStartedRace.start(at: eventTime));
+      engine.applyRoundMarkCommand();
+
+      // ACT — a 2. bója köré közelít-távolodik. A reset után a detektor
+      // tiszta lapról a 2. bóját követi; reset nélkül a régi closest-approach
+      // állapot meghamisítaná a körözést.
+      await emitNorthOfThenTick(mark2, 40, tickTime);
+      await emitNorthOfThenTick(
+        mark2,
+        10,
+        tickTime.add(const Duration(seconds: 1)),
+      );
+      await emitNorthOfThenTick(
+        mark2,
+        20,
+        tickTime.add(const Duration(seconds: 2)),
+      );
+
+      // ASSERT — a 2. (utolsó) bóját az auto-detektor körözte → finished.
+      expect(snapshots.last.prediction, isNull);
+    });
+
+    test('no-op, ha nem active (notStarted) — nem dob, nem lép', () async {
+      // ARRANGE — notStarted race.
+      await engine.start(notStartedRace);
+
+      // ACT & ASSERT — a guard miatt a Race.roundCurrentMark assertje nem fut.
+      expect(engine.applyRoundMarkCommand, returnsNormally);
+      await emitNorthOfThenTick(mark1, 200, tickTime);
+      expect(snapshots.last.prediction?.mark, mark1);
+    });
+  });
+
   group('TWD-minőség a snapshotban (ADR 0020 D7)', () {
     test('live: COG+SOG mozgásban + bow TWA → twdQuality live', () async {
       // ARRANGE — előbb a COG/SOG (a derive a _boatState-ből veszi), majd
