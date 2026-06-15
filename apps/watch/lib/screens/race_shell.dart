@@ -5,15 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/rotary/rotary_scroll_provider.dart';
 import 'package:watch/screens/next_mark_view.dart';
+import 'package:watch/screens/round_mark_view.dart';
 import 'package:watch/screens/speed_view.dart';
 import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
 import 'package:watch/watch_sync/race_ongoing_activity.dart';
+import 'package:watch/watch_sync/round_mark_sender.dart';
 import 'package:watch/watch_sync/watch_clock_provider.dart';
 import 'package:watch/widgets/confidence_arc.dart';
 import 'package:watch/widgets/watch_trust.dart';
 
-/// A két verseny-nézet (A↔B) háza: fix GPS-idő fejléc, vízszintes `PageView`
+/// A három verseny-nézet (A↔B↔C) háza: fix GPS-idő fejléc, vízszintes `PageView`
 /// (alapnézet B), és a perem-forgatás lap-navigációja (ADR 0015 Addendum). A
 /// GPS-idő a `watchClockProvider`-ből ketyeg; az értékeket a két nézet
 /// rendereli. Az ambient-tompítást a hívó adja az [ambient] zászlóval (a
@@ -46,8 +48,9 @@ class RaceShell extends ConsumerStatefulWidget {
 }
 
 class _RaceShellState extends ConsumerState<RaceShell> {
-  // Alapnézet: B (köv. bója) — a headline feature. Lapok: 0 = A, 1 = B.
+  // Alapnézet: B (köv. bója) — a headline feature. Lapok: 0 = A, 1 = B, 2 = C.
   static const _markPage = 1;
+  static const _roundPage = 2;
 
   late final PageController _controller;
   late final StreamSubscription<int> _rotarySteps;
@@ -80,7 +83,7 @@ class _RaceShellState extends ConsumerState<RaceShell> {
   }
 
   void _stepBy(int step) {
-    final target = (_page + step).clamp(0, _markPage);
+    final target = (_page + step).clamp(0, _roundPage);
     if (target != _page) {
       _controller.animateToPage(
         target,
@@ -137,11 +140,21 @@ class _RaceShellState extends ConsumerState<RaceShell> {
                     colors: widget.colors,
                     ambient: widget.ambient,
                   ),
+                  RoundMarkView(
+                    payload: widget.payload,
+                    colors: widget.colors,
+                    ambient: widget.ambient,
+                    onSend: ref.read(roundMarkSenderProvider),
+                  ),
                 ],
               ),
             ),
             if (!widget.ambient)
-              _PageDots(active: _page, colors: widget.colors),
+              _PageDots(
+                active: _page,
+                count: _roundPage + 1,
+                colors: widget.colors,
+              ),
           ],
         ),
       ],
@@ -192,9 +205,14 @@ class _GpsTimeHeader extends StatelessWidget {
 }
 
 class _PageDots extends StatelessWidget {
-  const _PageDots({required this.active, required this.colors});
+  const _PageDots({
+    required this.active,
+    required this.count,
+    required this.colors,
+  });
 
   final int active;
+  final int count;
   final WatchColors colors;
 
   @override
@@ -204,7 +222,7 @@ class _PageDots extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var page = 0; page <= 1; page++)
+          for (var page = 0; page < count; page++)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
               child: Container(
