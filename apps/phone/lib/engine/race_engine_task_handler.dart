@@ -5,6 +5,7 @@ import 'dart:ui' show Locale;
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:phone/app/geolocator_gnss_clock.dart';
 import 'package:phone/app/true_time.dart';
@@ -16,6 +17,7 @@ import 'package:phone/features/watch_sync/watch_payload_builder.dart';
 import 'package:phone/features/watch_sync/watch_sync_controller.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:shared/shared.dart';
+import 'package:wearable_bridge/wearable_bridge.dart';
 
 /// A háttér-izolátum belépési pontja.
 ///
@@ -53,6 +55,10 @@ class RaceEngineTaskHandler extends TaskHandler {
   AppDatabase? _db;
   RaceEngine? _engine;
   StreamSubscription<RaceSnapshot>? _snapshotSub;
+
+  // Óra → telefon kézi „bója megvan” parancs vétele (ADR 0024); a
+  // service-izolátumban él, ezért kijelző-off telefonnal is megérkezik.
+  StreamSubscription<dynamic>? _roundMarkSub;
 
   // Óra-push (A14): a service-izolátumbeli true-time, a change-detect
   // controller, és a legutóbbi snapshot a payload-építéshez.
@@ -96,6 +102,20 @@ class RaceEngineTaskHandler extends TaskHandler {
     _watchSync = WatchSyncController(
       buildPayload: _buildWatchPayload,
       transport: PhoneWearableBridge().send,
+    );
+
+    // Óra → telefon kézi „bója megvan” parancs (ADR 0024). A service-
+    // izolátumban iratkozunk fel, így kijelző-off telefonnal is
+    // megérkezik; a parancsnak nincs payloadja — a jel maga a parancs.
+    const roundMarkChannel = EventChannel(wearableRoundMarkEventChannelName);
+    _roundMarkSub = roundMarkChannel.receiveBroadcastStream().listen(
+      (_) {
+        developer.log('round-mark parancs az óráról', name: 'RaceEngine');
+        _engine?.applyRoundMarkCommand();
+      },
+      onError: (Object error) {
+        developer.log('round-mark stream hiba: $error', name: 'RaceEngine');
+      },
     );
 
     // Ready-kézfogás: jelezzük, hogy fogadjuk a Race initet (A13). A start()
@@ -145,6 +165,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       name: 'RaceEngine',
     );
     await _snapshotSub?.cancel();
+    await _roundMarkSub?.cancel();
     // Az óra-push leállítása a telemetria-flush ELŐTT: ne épüljön/küldjön
     // payload teardown közben.
     _watchSync?.dispose();
