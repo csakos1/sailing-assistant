@@ -2705,7 +2705,7 @@ Fázis 8-hoz), az engine az `activeMarkIndex`-et (a mark-rounding lépteti). A
 teljes-Race-replace futás közben tilos: visszaállítaná az engine által
 léptetett indexet, vagy sértené a `Race` invariánst
 (`finished → index == marks.length`). Ezért futás közben a UI csak minimális
-parancs-üzenetet küld (`{kind: 'start'|'finish', at}`); az engine ezt a saját
+parancs-üzenetet küld (`{type: 'start'|'finish', at}`); az engine ezt a saját
 `_race`-én alkalmazza a domain-factory-val (`_race.start(at:)` /
 `_race.finish(at:)`), megtartva a saját indexét. Következmény: a `race_detail`
 bója-listája élőben a 0. bóját mutatja aktívnak (a UI-Race indexét senki nem
@@ -2719,6 +2719,17 @@ ELŐTT fut: `active` státusz + nem-null pozíció + aktív bója esetén
 `prediction.mark`-ot viszi. Az engine NEM ír a `races` táblába (ADR 0016 D6:
 diszjunkt táblák). Az 1 Hz tick a régi pozíció-eseményvezérelt monitor helyett
 bőven elég felbontás a 50 m-es küszöbhöz (max ~10 m/tick).
+
+**Manuális bója-megkerülés (ADR 0024).** A pontatlan bizottsági
+koordinátára (a beírt bója 100–150 m-rel arrébb is lehet, így a detektor
+50 m-es küszöbét sosem éri el) egy kézi parancs felel: `{type:'roundMark'}`
+(`at` nélkül). A `RaceEngine.applyRoundMarkCommand()` a `_maybeRoundMark`
+kézi párja — `detector.reset()` + `_race.roundCurrentMark(at: _now())` —,
+no-op, ha nem `active` (az utolsó bóján a domain auto-finish-el). A
+telefonon a `LiveRaceScreen` „Bója megvan" gombja küldi (csak `active`,
+megerősítő dialog) a `sendDataToTask`-on; az óráról a fordított csatorna
+(§10.9) ugyanezt a parancsot a service-izolátumba juttatja. A
+`start`/`finish`/`roundMark` mind `type`-kulcsú.
 
 **Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
 belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
@@ -2987,7 +2998,7 @@ A natív küldés (ADR 0015 D5): a `WatchTransport` produkciós implementációj
 ### 10.4 Watch UI
 
 A watch app kerek kijelzőre optimalizált, **sötét témával** (v1; a Napfény /
-Piros téma v2-deferred). Két nézet, a forgatható peremmel váltva; az **alapnézet
+Piros téma v2-deferred). Három nézet, a forgatható peremmel váltva; az **alapnézet
 a B**. Mindkét nézet tetején a **GPS-idő** (`HH:mm:ss`, JetBrains Mono) és egy
 **állapot-pötty** (megbízható idő → teal, egyébként tompított).
 
@@ -3001,6 +3012,14 @@ nyíllal **befelé**.
 `Tihany · 450 m`). Hero: a **TWA a köv. bójánál** (predikció, fok előjeles,
 teal, nyíl **befelé**). Alatta **egy sorban, azonos betűmérettel** a
 **Korrekció** (csak nyíl **kifelé**, szöveg nélkül) és az **ETA** (`m:ss`).
+
+**Nézet C — Bója-megerősítés (ADR 0024).** Egy nagy, **kör alakú teal
+gomb** középen, **press-and-hold ~1 s** gesztussal és kitöltő gyűrűvel: a
+hold végén az óra a `wearable_bridge`-en át parancsot küld a telefonnak
+(§10.9), rövid send-tick haptickal. A léptetést **erősebb haptic** erősíti
+meg, amikor a következő payloadban a célbója-név átvált
+(round-trip-tudatos). A szándékos hold a véletlen advance ellen véd (egy
+laza tap nem léptet). A C lapon nincs konfidencia-ív (az a B-re kapuzott).
 
 A nyíl-konvenció a phone §8.7 `arrowSideFromSign`-jával közös (a slice 5-ben a
 `shared`-be mozgatva): az oldal az előjelből (stbd/port), a szín a hajós
@@ -3022,7 +3041,7 @@ láncolt tick — Addendum 1 D-b), mert a payload
 csak change-detectre érkezik — így a kijelzett másodperc két payload közt is
 folyamatosan lép.
 
-**Nav és ambient.** A két nézet egy **vízszintes `PageView`**-ban (A↔B):
+**Nav és ambient.** A három nézet egy **vízszintes `PageView`**-ban (A↔B↔C):
 érintéssel swipe-olva **és** a forgatható peremmel. A perem `AXIS_SCROLL`-ja a
 watch `MainActivity.onGenericMotionEvent`-jéből egy EventChannelen át a
 `PageController`-t lépteti (lap-snap; nem scroll, ezért **nem**
@@ -3100,6 +3119,10 @@ beérkező JSON-stringet egy EventChannelen adja Dart felé. A dekódolás
 A részletes döntést az **ADR 0018** (D1–D4) és az **A1 addendum**
 (óra-oldali vétel) rögzíti.
 
+A `wearable_bridge` az ADR 0024-ben egy **fordított parancs-iránnyal** is
+bővül (óra → telefon, `/round-mark`, `MessageClient`); a részleteket lásd
+§10.9 — egy plugin, mindkét vég, mindkét irány.
+
 ### 10.8 Óra-oldali always-on: Ongoing Activity (ADR 0019)
 
 A Wear OS always-on kétlépcsős: Timeout #1 után a kijelző ambient (dimmelt)
@@ -3133,6 +3156,43 @@ megmarad; a teljes-fényerős wakelock elvetve (aksi). A részletes döntést az
 **ADR 0019** + **Addendum A1** rögzíti.
 
 ---
+
+
+### 10.9 Fordított parancs-csatorna: kézi bója-megerősítés az óráról (ADR 0024)
+
+A telefon-gomb (§8.9) a saját, ébren lévő UI-processében hívja a hostot; az
+óráról jövő kézi „bója megvan" parancsnak fordított csatorna kell, mert az
+óra eddig csak *fogadott* (§10.7). Két megkötés vezeti a tervet:
+
+1. **A parancs `MessageClient`, nem `DataItem`.** A `DataItem` *állapotot*
+   tart (latched, az utolsó győz), egy egyszeri parancsra a
+   replay/idempotencia miatt rossz. A `MessageClient.sendMessage` fire-once,
+   pont parancsra való. A „MessageClient alvó eszköznek elveszne" aggály
+   (ADR 0018) itt nem áll fenn: a vevő a telefon, ami a verseny alatt FGS-ben
+   ébren van.
+2. **A parancs a SERVICE-izolátumba landol, nem a UI-izolátumba.** Pocketed /
+   kijelző-off telefonon a UI-izolátum fel van függesztve (§10.6); az engine a
+   service-izolátumban él (FGS), oda kell érkeznie. Ez teszi lehetővé, hogy az
+   óra-gomb a zsebben lévő, kijelző-off telefonnal is működjön.
+
+A `wearable_bridge` plugin (§10.7) ezzel kétirányúvá válik. A `/round-mark`
+path-on: az óra-oldal a `sendRoundMark` MethodChannel-hívásra a connected
+telefon-node-ra `MessageClient.sendMessage`-t küld (üres payload — DTO-mentes
+transport); a telefon-oldal `MessageClient.addListener`-rel figyel, és a
+beérkező parancsot egy új parancs-EventChannelen a service-izolátum
+`RaceEngineTaskHandler`-ének adja, ami `_engine.applyRoundMarkCommand()`-ot hív
+(§8.9). A `flutter_foreground_task` a pub-plugineket a háttér-engine-re is
+felregisztrálja, így a plugin listenere a service-izolátumon él.
+
+Óra-UI (§10.4 Nézet C): a `RaceShell` PageView-ja egy harmadik, **C** lappal
+bővül, nagy kör alakú teal gombbal és **press-and-hold ~1 s** gesztussal. A
+hold végén send-tick haptic; a tényleges léptetést erősebb haptic erősíti meg,
+amikor a következő `WatchPayload`-ban a célbója-név átvált (round-trip-tudatos,
+explicit ack nélkül). `sendMessage`-hibára (nincs BT-kapcsolat) haptic + rövid
+„nincs kapcsolat"; ~2 s debounce a dupla-küldés ellen. A stray parancs a
+telefonon ártalmatlan (`applyRoundMarkCommand` no-op, ha nem `active`).
+
+A részletes döntést az **ADR 0024** rögzíti.
 
 ## 11. Hibakezelés és warning rendszer
 
