@@ -8,26 +8,13 @@ import 'package:race_analyzer/race_analyzer.dart';
 //
 // A kov-boja-TWA predikcio minoseget meri a rogzitett (eles) outputbol
 // (ADR 0025): predikalt-vs-tenyleges TWA, sav-talalat, megbizhatosag-elony.
-// Az elemzo-logika a lib/-ben (a fixture-teszt is azt hivja); ez csak az
-// arg-parse + az I/O-hej. A tool kizarolag OLVAS.
+// Bemenet: a snapshot_logs-bol exportalt JSON-lines (ADR 0025 Addendum 1);
+// a DB->JSONL receptet a --help mutatja. Az elemzo-logika a lib/-ben; ez
+// csak az arg-parse + az I/O-hej. A tool kizarolag OLVAS.
 // ---------------------------------------------------------------------------
 
 void main(List<String> arguments) {
   final parser = ArgParser()
-    ..addFlag(
-      'jsonl',
-      negatable: false,
-      help: 'A bemenet JSON-lines fixtura (nem SQLite DB).',
-    )
-    ..addFlag(
-      'list-races',
-      negatable: false,
-      help: 'A snapshot_logs-ban levo race-ek listazasa (DB-input).',
-    )
-    ..addOption(
-      'race',
-      help: 'A race_id, amit elemezni kell (DB-input; tobb race eseten kell).',
-    )
     ..addFlag(
       'csv',
       negatable: false,
@@ -81,19 +68,7 @@ void main(List<String> arguments) {
     return;
   }
 
-  final List<AnalyzerSnapshot> snapshots;
-  if (results.flag('jsonl') || path.endsWith('.jsonl')) {
-    snapshots = readSnapshotsFromJsonl(path);
-  } else {
-    // DB-input: race-listazas, vagy egy konkret race elemzese.
-    final raceId = results.option('race');
-    if (results.flag('list-races') || raceId == null) {
-      _printRaceList(path);
-      return;
-    }
-    snapshots = readSnapshotsFromDb(path, raceId);
-  }
-
+  final snapshots = readSnapshotsFromJsonl(path);
   if (snapshots.isEmpty) {
     stderr.writeln('Nincs snapshot a bemenetben.');
     exitCode = 65; // EX_DATAERR
@@ -134,29 +109,11 @@ AnalysisParams? _parseParams(ArgResults results) {
   );
 }
 
-void _printRaceList(String dbPath) {
-  final races = listRacesInDb(dbPath);
-  if (races.isEmpty) {
-    stdout.writeln('Nincs race a snapshot_logs-ban.');
-    return;
-  }
-  stdout.writeln('${races.length} race a snapshot_logs-ban:\n');
-  for (final race in races) {
-    final marks = race.markNames.isEmpty
-        ? '-'
-        : (race.markNames.toList()..sort()).join(',');
-    stdout.writeln(
-      '  race_id=${race.raceId}  n=${race.snapshotCount}  '
-      '~${race.span.inMinutes} perc  nev=${race.raceName ?? '?'}  '
-      'bojak=$marks',
-    );
-  }
-  stdout.writeln('\nElemzeshez: race_analyzer <db> --race <race_id>');
-}
-
 String _usage(ArgParser parser) =>
-    'Hasznalat: race_analyzer <snapshot_logs.sqlite | fixtura.jsonl> '
-    '[opciok]\n\n'
+    'Hasznalat: race_analyzer <snapshot_logs.jsonl> [opciok]\n\n'
     'Post-race elemzo a kov-boja-TWA predikcio minosegere (ADR 0025):\n'
     'predikalt-vs-tenyleges TWA, sav-talalat, megbizhatosag-elony.\n\n'
+    'DB->JSONL a rendszer sqlite3 CLI-vel:\n'
+    '  sqlite3 <db> "SELECT snapshot_json FROM snapshot_logs '
+    'WHERE race_id=\'<id>\' ORDER BY timestamp" > <race>.jsonl\n\n'
     '${parser.usage}';

@@ -12,7 +12,6 @@ resolution: workspace
 
 dependencies:
   args: ^2.6.0
-  sqlite3: ^3.1.5
 
 dev_dependencies:
   test: ^1.25.0
