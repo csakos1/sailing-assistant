@@ -201,3 +201,106 @@ A tool v1-ben **strukturált szöveges reportot** ír stdoutra (a
   analyzer-szakasz — a sync külön `docs(architecture)` commit.
 - A vízi round-trip validáció (valódi snapshot_logs a következő vízi
   tesztről) → Fázis 9; ezt az ADR nem váltja ki, a hangolás alapját adja.
+## Addendum 1 — A DB-olvasás kivezetése: a JSONL az egyetlen beolvasási út
+
+### Státusz
+
+Elfogadva — 2026-06-16. A D1–D6 implementálva (a `tools/race_analyzer`
+CLI commitolva + tesztelve). Ez az addendum a **D2 SQLite-olvasó ágát
+vezeti vissza**: a tool a továbbiakban kizárólag JSON-lines bemenetből
+olvas; a `snapshot_logs` SQLite-ból JSONL-be a rendszer `sqlite3`
+parancssori eszközével konvertálunk.
+
+### Kontextus
+
+A D2 a `snapshot_logs`-ot a toolból, közvetlenül `package:sqlite3`-mal
+olvasta. A fixtúra-futás értelmezésekor — amikor a teljes race-DB-t
+futtattuk a tool DB-ágán — ez `dart run` alatt elbukott:
+
+```
+Unhandled exception: Invalid argument(s): Couldn't resolve native
+function 'sqlite3_initialize' ... No available native assets.
+Attempted to fallback to process lookup ... undefined symbol:
+sqlite3_initialize.
+```
+
+Ok: a `sqlite3` 3.0-ban a natív SQLite betöltése `DynamicLibrary`
+helyett **build-hookokra (native/code assets)** vált. A `@Native`
+bindingek (a `libsqlite3.g.dart`) a native-assets feloldásra építenek,
+amit a csupasz `dart run` nem futtat le; emiatt a folyamat-szintű
+szimbólumkeresésre esik vissza, ahol nincs `sqlite3_initialize`. A 2.x
+korabeli `open.overrideFor` workaround ezért itt nem alkalmazható.
+
+Az app a telefonon megy, mert a Flutter-build pipeline feloldja a natív
+libet (a `drift` tranzitív `sqlite3`-on át); a pure-Dart `tools`-tool
+`dart run`-ban nem rendelkezik ezzel. A native-assets bekapcsolása
+(kísérleti `dart run` flag + C-toolchain a build-hookhoz) megoldaná, de
+egy ritkán futtatott dev-tool számára kísérleti feature-re, per-hívás
+flagre és toolchain-igényre épít — szemben a tools-konvenció alacsony
+súrlódású, eszköz-nélküli iterálhatóságával.
+
+### Döntés
+
+**A1 — A `snapshot_logs` beolvasás kizárólag JSON-lines-ból.** A tool a
+pozícionális utat mindig JSON-lines fájlként olvassa
+(`readSnapshotsFromJsonl`). A `readSnapshotsFromDb`, a `listRacesInDb`
+és a `RaceSummary`, valamint a `sqlite3` függőség **kivezetve**. A
+read-modell (`AnalyzerSnapshot` + `parseSnapshot`/`parseSnapshotLine`),
+az elemző-mag (`analyzeRoundings`, `wrapTo180`) és a report/CSV
+változatlan.
+
+**A2 — DB → JSONL a rendszer `sqlite3` CLI-vel (kanonikus recept).** A
+`snapshot_json` kompakt, egysoros JSON (a `RaceSnapshot.toJson` →
+`jsonEncode` nem pretty-printel), így egy DB-sor = egy JSONL-sor = egy
+snapshot. Egy race JSONL-be:
+
+```bash
+sqlite3 <foretack.sqlite> \
+  "SELECT snapshot_json FROM snapshot_logs WHERE race_id='<RACE_ID>' ORDER BY timestamp;" \
+  > <race>.jsonl
+```
+
+A race-ek listázása (a korábbi `--list-races` pótlása):
+
+```bash
+sqlite3 <foretack.sqlite> \
+  "SELECT race_id, COUNT(*), MIN(timestamp), MAX(timestamp) FROM snapshot_logs GROUP BY race_id ORDER BY 4;"
+```
+
+(A `snapshot_logs` minden engine-session adatát halmozza, ezért a
+race-szűrés kötelező marad — ADR 0025 D5 / Következmények.)
+
+**A3 — A CLI egyszerűsödik.** A `--list-races`, a `--race` és a `--jsonl`
+flag, valamint a DB-ág és a race-listázó törölve. A hangoló flagek
+(`--settle-skip`, `--settle-window`, `--lead-threshold`, `--csv`)
+változatlanok. Új használat:
+
+```bash
+dart run tools/race_analyzer/bin/race_analyzer.dart <race>.jsonl [opciok]
+```
+
+### Következmények
+
+- **+** Eltűnik a native-assets-kockázat, a kísérleti flag és a
+  C-toolchain-igény; a JSONL marad az egyetlen, tesztelt beolvasási út
+  (a fixtúra-teszt ezt fedi).
+- **+** Megszűnik a tool közvetlen `sqlite3 ^3.1.5` függése, és vele a
+  korábbi Pub-workspace verzió-csatolás (a `drift` továbbra is hozza a
+  `sqlite3`-at az appnak, de a tool már nem ír elő rá constraintet).
+- **+** A natív SQLite-ot a rendszer rock-solid `sqlite3` binárisa
+  kezeli; a DB-olvasás egy triviális `SELECT`.
+- **−** A DB → JSONL egy külön, kézi CLI-lépés. Triviális, dokumentált
+  recept; a gyakorlatban a fixtúra amúgy is JSONL.
+- **−** A `--list-races` kényelmi funkció egy CLI-query-vé válik
+  (egysoros, fent).
+
+### Kapcsolódó
+
+- ADR 0025 D2 (ezt az ágat vezeti vissza), ADR 0022 D1 (`snapshot_logs`
+  séma — a `snapshot_json` / `race_id` / `timestamp` oszlopok a recept
+  forrása).
+- ARCHITECTURE §4 (a tools-jegyzet + a kanonikus DB→JSONL recept sync-je
+  — külön `docs(architecture)` commit).
+- A `package:sqlite3` 3.0 changelog ("Use build hooks to load SQLite
+  instead of DynamicLibrary") + a dart-lang/sdk dev-tool build-hook
+  issue mint a betöltési mechanizmus háttere.
