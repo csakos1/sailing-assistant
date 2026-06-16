@@ -1,0 +1,18 @@
+name: race_analyzer
+description: >-
+  CLI — post-race analyzer over snapshot_logs: next-mark TWA prediction
+  quality (predicted-vs-actual, forecast-band hit, trust lead time). ADR 0025.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  args: ^2.6.0
+  sqlite3: ^3.1.5
+
+dev_dependencies:
+  test: ^1.25.0

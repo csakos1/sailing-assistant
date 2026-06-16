@@ -16,6 +16,7 @@ workspace:
   - apps/watch
   - tools/nmea_replay
   - tools/prediction_probe
+  - tools/race_analyzer
 
 dev_dependencies:
   melos: ^7.3.0
