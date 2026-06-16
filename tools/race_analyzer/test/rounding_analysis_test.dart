@@ -247,6 +247,107 @@ void main() {
     });
   });
 
+  group('lead-time a freeze folott (ADR 0027)', () {
+    // 'A' approach: `highTicks` high (nem-null) + opcionalis 1 genuine-low
+    // (nem-null, low) + `freezeTicks` freeze (null predikcio, low), majd a
+    // 'B' leg. A markName-valtas (= korozes) az elso 'B'-nel van.
+    List<AnalyzerSnapshot> withFreeze({
+      int highTicks = 10,
+      int freezeTicks = 5,
+      bool genuineLowBeforeFreeze = false,
+    }) {
+      final snaps = <AnalyzerSnapshot>[
+        for (var i = 0; i < highTicks; i++)
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'A',
+            predictedTwaAtMarkDeg: 120,
+            shiftConfidence: 'high',
+            forecastBandDeg: 5,
+            currentTwaDeg: 120,
+          ),
+      ];
+      var t = highTicks;
+      if (genuineLowBeforeFreeze) {
+        // Valodi (nem-null) predikcio, de low konfidencia.
+        snaps.add(
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: t)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'A',
+            predictedTwaAtMarkDeg: 120,
+            shiftConfidence: 'low',
+            currentTwaDeg: 120,
+          ),
+        );
+        t++;
+      }
+      for (var i = 0; i < freezeTicks; i++) {
+        // Freeze: a predikcio null, a konfidencia low (ADR 0021 50 m).
+        snaps.add(
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: t + i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'A',
+            shiftConfidence: 'low',
+            currentTwaDeg: 120,
+          ),
+        );
+      }
+      final legStart = t + freezeTicks;
+      for (var i = 0; i < 31; i++) {
+        snaps.add(
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: legStart + i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'B',
+            currentTwaDeg: -117,
+            bearingToMarkDeg: 90,
+            cogDeg: 90,
+          ),
+        );
+      }
+      return snaps;
+    }
+
+    test('a freeze-t athidalja: a pre-freeze high run-rol a korozesig', () {
+      // ARRANGE — 10 high tick, majd 5 freeze tick (null predikcio, low),
+      // majd a 'B' leg. A korozes a base+15s-nel. A regi logika null-t
+      // adott (roundIndex-1 = freeze, low); az uj a high run elejetol mer.
+      final snaps = withFreeze();
+
+      // ACT
+      final result = analyzeRoundings(snaps).single;
+
+      // ASSERT — 10 mp high run + 5 mp freeze a korozesig = 15 mp.
+      expect(result.leadTime, const Duration(seconds: 15));
+      // a predikalt ertek is a pre-freeze high tickbol jon (nem null).
+      expect(result.predictedTwaDeg, 120);
+      expect(result.predictedConfidence, 'high');
+    });
+
+    test(
+      'null, ha az utolso valodi predikcio nem megbizhato (genuine-low)',
+      () {
+        // ARRANGE — high run, majd EGY genuine-low (nem-null, low) tick,
+        // majd freeze, majd 'B'. Az utolso valodi predikcio nem megbizhato
+        // -> a joslat nem maradt megbizhato a rakozelitesig (D2).
+        final snaps = withFreeze(genuineLowBeforeFreeze: true);
+
+        // ACT
+        final result = analyzeRoundings(snaps).single;
+
+        // ASSERT
+        expect(result.leadTime, isNull);
+      },
+    );
+  });
+
   group('wrapTo180', () {
     test('a [-180,180) tartomanyba normalizal', () {
       expect(wrapTo180(0), 0);

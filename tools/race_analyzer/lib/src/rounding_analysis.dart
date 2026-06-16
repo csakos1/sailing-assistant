@@ -261,22 +261,39 @@ DateTime? _gateOpenTick(
   return null;
 }
 
-// A korozesnel vegzodo utolso megszakitatlan, "megbizhato" szintu szakasz
-// hossza. Visszafele megyunk a korozes elotti tickbol; ha mar az sem
-// megbizhato, null (a korozeskor nem volt teal a joslat).
+// A korozesnel vegzodo megbizhato predikcio-futam hossza a korozesig
+// (ADR 0027). A trailing freeze-tickeket (null predikcio, ADR 0021 50 m
+// freeze) atlepjuk; a horgony az utolso VALODI (nem-null) predikcio. Ha az
+// nem megbizhato -> null (a joslat nem maradt megbizhato a rakozelitesig,
+// D2). A futam visszafele addig tart, amig folyamatosan valodi+megbizhato
+// (null vagy untrusted tick megszakitja); lead-time = roundedAt - runStart,
+// a freeze-t athidalva (D4).
 Duration? _trustLeadTime(
   List<AnalyzerSnapshot> snaps,
   int roundIndex,
   AnalysisParams params,
 ) {
+  // A trailing freeze (null predikcio) atlepese a korozes elott (D1).
   var i = roundIndex - 1;
-  if (i < 0 || !_isTrusted(snaps[i], params)) return null;
+  while (i >= 0 && snaps[i].predictedTwaAtMarkDeg == null) {
+    i--;
+  }
+  // A horgony az utolso valodi predikcio; megbizhatonak kell lennie (D2).
+  if (i < 0 || !_isTrustedPrediction(snaps[i], params)) return null;
+  // A megbizhato futam vissza: null vagy untrusted tick megszakitja (D3).
   var startTick = snaps[i].tickTime;
-  while (i - 1 >= 0 && _isTrusted(snaps[i - 1], params)) {
+  while (i - 1 >= 0 && _isTrustedPrediction(snaps[i - 1], params)) {
     i--;
     startTick = snaps[i].tickTime;
   }
   return snaps[roundIndex].tickTime.difference(startTick);
+}
+
+// Valodi ES megbizhato predikcio: nem-null predikcio + a shiftConfidence a
+// megbizhato szintek kozt. A nem-null feltetel miatt a freeze-tickek a
+// --lead-threshold low eseten sem szamitanak a futamba (ADR 0027 D5).
+bool _isTrustedPrediction(AnalyzerSnapshot snap, AnalysisParams params) {
+  return snap.predictedTwaAtMarkDeg != null && _isTrusted(snap, params);
 }
 
 bool _isTrusted(AnalyzerSnapshot snap, AnalysisParams params) {
