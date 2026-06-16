@@ -443,11 +443,15 @@ sailing-assistant/                        # GitHub repo root
 
 > **v2-ben hozzákerül**: `apps/phone/lib/features/polar_import/`, `packages/domain/lib/src/repositories/polar_repository.dart`, `packages/data/lib/src/persistence/tables/polars_table.dart` és kapcsolódó komponensek.
 
-> **Post-race elemzés (ADR 0025)**: a `tools/race_analyzer` pure-Dart CLI a
-> `snapshot_logs`-ot olvassa (közvetlen `sqlite3`, nem a Flutter-kötött
-> `RaceSnapshot.fromJson`-on át), és a next-bója-TWA predikciót értékeli
-> (predikált-vs-tényleges TWA + hibasáv-találat). A részletes fa a
-> feature-rel landol.
+> **Post-race elemzés (ADR 0025 + Addendum 1)**: a `tools/race_analyzer`
+> pure-Dart CLI a `snapshot_logs`-ból exportált **JSON-lines** bemenetet
+> olvas (egy sor = egy `RaceSnapshot` JSON), és a next-bója-TWA predikciót
+> értékeli (predikált-vs-tényleges TWA + hibasáv-találat +
+> megbízhatóság-előny). A DB→JSONL a rendszer `sqlite3` CLI-vel:
+> `SELECT snapshot_json FROM snapshot_logs WHERE race_id=? ORDER BY timestamp`
+> — a `sqlite3` 3.x build-hookos betöltése csupasz `dart run` alatt nem
+> oldódik fel, ezért a tool már nem függ `package:sqlite3`-tól. A részletes
+> fa-alfa külön docs-sync.
 
 ### 4.2 Miért monorepo?
 
