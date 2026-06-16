@@ -447,7 +447,11 @@ sailing-assistant/                        # GitHub repo root
 > pure-Dart CLI a `snapshot_logs`-ból exportált **JSON-lines** bemenetet
 > olvas (egy sor = egy `RaceSnapshot` JSON), és a next-bója-TWA predikciót
 > értékeli (predikált-vs-tényleges TWA + hibasáv-találat +
-> megbízhatóság-előny). A DB→JSONL a rendszer `sqlite3` CLI-vel:
+> megbízhatóság-előny). A tényleges TWA-t a megkerülés utáni
+> **COG-kapuzott beállási ablakban** átlagolja (amikor a COG a leg
+> irányára konvergál, ADR 0026), nem fix idő-eltolással — így a mérés a
+> hajó beállási idejétől függetlenül megbízható. A DB→JSONL a rendszer
+> `sqlite3` CLI-vel:
 > `SELECT snapshot_json FROM snapshot_logs WHERE race_id=? ORDER BY timestamp`
 > — a `sqlite3` 3.x build-hookos betöltése csupasz `dart run` alatt nem
 > oldódik fel, ezért a tool már nem függ `package:sqlite3`-tól. A részletes
