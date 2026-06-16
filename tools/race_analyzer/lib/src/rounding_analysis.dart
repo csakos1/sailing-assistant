@@ -2,20 +2,32 @@ import 'dart:math' as math;
 
 import 'package:race_analyzer/src/snapshot_read_model.dart';
 
-/// Az elemzes hangolhato parameterei (ADR 0025 D4). Mindegyik CLI-flag.
+/// Az elemzes hangolhato parameterei (ADR 0025 D4, ADR 0026). Mindegyik
+/// CLI-flag.
 class AnalysisParams {
   /// Alapertelmezett hangolas.
   const AnalysisParams({
     this.settleSkip = const Duration(seconds: 10),
     this.settleWindow = const Duration(seconds: 20),
+    this.cogToleranceDeg = 20,
+    this.settleConfirm = const Duration(seconds: 3),
     this.leadTrustLevels = const {'high'},
   });
 
-  /// A korozes utan ennyit kihagyunk, mire a hajo az uj szarra beall.
+  /// A korozes utan ennyit MINDENKEPP kihagyunk, mire a COG-kapu nyilhat
+  /// (floor; ADR 0026 D5).
   final Duration settleSkip;
 
-  /// A beallas utan ezen az ablakon atlagoljuk a tenyleges TWA-t.
+  /// A kapu nyitasatol ezen az ablakon atlagoljuk a tenyleges TWA-t.
   final Duration settleWindow;
+
+  /// A COG es a leg-irany megengedett elterese fokban; ezen belul a hajo
+  /// "rajta van az uj legen" (ADR 0026 D3). 360 = a regi fix-ido mod (D6).
+  final double cogToleranceDeg;
+
+  /// A kapu ennyi ideig tarto folyamatos in-tolerance allapotra var a
+  /// nyitashoz (debounce; ADR 0026 D4).
+  final Duration settleConfirm;
 
   /// Mely `shiftConfidence`-szintek szamitanak "megbizhatonak" a lead-time-hoz.
   final Set<String> leadTrustLevels;
@@ -173,13 +185,31 @@ AnalyzerSnapshot? _lastPredictionBefore(
   return null;
 }
 
-// A korozes utani beallasi ablakban (skip, majd window) mert TWA-mintak.
+// A korozes utani COG-kapuzott beallasi ablakban mert TWA-mintak
+// (ADR 0026). A leg-irany az elso nem-null bearingToMark a korozestol (a
+// toMark messze -> boat->toMark ~ rhumb-line). A kapu az elso olyan,
+// legalabb settleConfirm hosszu folyamatos in-tolerance COG-szakasz elejen
+// nyilik, ami a settleSkip floor utan kezdodik; onnan settleWindow-nyit
+// gyujtunk. Ha a kapu sosem nyilik -> ures (a leg nem merheto: pl.
+// kereszt-leg, vagy a felvetel a beallas elott vegetert).
 List<double> _settledActualTwa(
   List<AnalyzerSnapshot> snaps,
   _Transition transition,
   AnalysisParams params,
 ) {
-  final windowStart = transition.at.add(params.settleSkip);
+  final legBearingDeg = _legBearingDeg(snaps, transition.index);
+  if (legBearingDeg == null) return const [];
+
+  final floor = transition.at.add(params.settleSkip);
+  final windowStart = _gateOpenTick(
+    snaps,
+    transition.index,
+    floor,
+    legBearingDeg,
+    params,
+  );
+  if (windowStart == null) return const [];
+
   final windowEnd = windowStart.add(params.settleWindow);
   final samples = <double>[];
   for (var i = transition.index; i < snaps.length; i++) {
@@ -190,6 +220,45 @@ List<double> _settledActualTwa(
     if (twa != null) samples.add(twa); // a null-check utan promotalt
   }
   return samples;
+}
+
+// A leg-irany: az elso nem-null bearingToMark a korozestol (ADR 0026 D2).
+// A toMark a korozeskor meg messze van, igy a boat->toMark bearing a leg
+// rhumb-line iranya; egyszer rogzitjuk (nem a pillanatnyi zaj).
+double? _legBearingDeg(List<AnalyzerSnapshot> snaps, int roundIndex) {
+  for (var i = roundIndex; i < snaps.length; i++) {
+    final bearing = snaps[i].bearingToMarkDeg;
+    if (bearing != null) return bearing;
+  }
+  return null;
+}
+
+// A COG-kapu nyitasanak tickje (ADR 0026 D3/D4): az elso, legalabb
+// settleConfirm hosszu folyamatos in-tolerance szakasz eleje a floor utan;
+// egy zajos COG-tick a futamot nullazza (debounce). null, ha nincs ilyen.
+DateTime? _gateOpenTick(
+  List<AnalyzerSnapshot> snaps,
+  int roundIndex,
+  DateTime floor,
+  double legBearingDeg,
+  AnalysisParams params,
+) {
+  DateTime? runStart;
+  for (var i = roundIndex; i < snaps.length; i++) {
+    final tick = snaps[i].tickTime;
+    if (tick.isBefore(floor)) continue;
+    final cog = snaps[i].cogDeg;
+    final isInTolerance =
+        cog != null &&
+        wrapTo180(cog - legBearingDeg).abs() <= params.cogToleranceDeg;
+    if (!isInTolerance) {
+      runStart = null;
+      continue;
+    }
+    runStart ??= tick;
+    if (tick.difference(runStart) >= params.settleConfirm) return runStart;
+  }
+  return null;
 }
 
 // A korozesnel vegzodo utolso megszakitatlan, "megbizhato" szintu szakasz

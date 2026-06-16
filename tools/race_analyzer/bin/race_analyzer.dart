@@ -23,12 +23,26 @@ void main(List<String> arguments) {
     ..addOption(
       'settle-skip',
       defaultsTo: '10',
-      help: 'A korozes utan kihagyott masodpercek (beallas).',
+      help: 'A korozes utani floor mp-ben, mire a COG-kapu nyilhat.',
     )
     ..addOption(
       'settle-window',
       defaultsTo: '20',
-      help: 'A beallas utani atlagolasi ablak masodpercben.',
+      help: 'A kapu nyitasatol mert atlagolasi ablak masodpercben.',
+    )
+    ..addOption(
+      'cog-tolerance',
+      defaultsTo: '20',
+      help:
+          'A COG es a leg-irany megengedett elterese fokban (beallas-kapu, '
+          'ADR 0026); 360 = a regi fix-ido mod.',
+    )
+    ..addOption(
+      'settle-confirm',
+      defaultsTo: '3',
+      help:
+          'A kapu ennyi mp folyamatos in-tolerance allapotra var '
+          '(debounce).',
     )
     ..addOption(
       'lead-threshold',
@@ -85,12 +99,22 @@ void main(List<String> arguments) {
 AnalysisParams? _parseParams(ArgResults results) {
   final skip = int.tryParse(results.option('settle-skip') ?? '');
   final window = int.tryParse(results.option('settle-window') ?? '');
+  final tolerance = double.tryParse(results.option('cog-tolerance') ?? '');
+  final confirm = int.tryParse(results.option('settle-confirm') ?? '');
   if (skip == null || skip < 0) {
     stderr.writeln('Ervenytelen --settle-skip.');
     return null;
   }
   if (window == null || window <= 0) {
     stderr.writeln('Ervenytelen --settle-window.');
+    return null;
+  }
+  if (tolerance == null || tolerance < 0) {
+    stderr.writeln('Ervenytelen --cog-tolerance.');
+    return null;
+  }
+  if (confirm == null || confirm < 0) {
+    stderr.writeln('Ervenytelen --settle-confirm.');
     return null;
   }
   final levels = (results.option('lead-threshold') ?? 'high')
@@ -105,6 +129,8 @@ AnalysisParams? _parseParams(ArgResults results) {
   return AnalysisParams(
     settleSkip: Duration(seconds: skip),
     settleWindow: Duration(seconds: window),
+    cogToleranceDeg: tolerance,
+    settleConfirm: Duration(seconds: confirm),
     leadTrustLevels: levels,
   );
 }

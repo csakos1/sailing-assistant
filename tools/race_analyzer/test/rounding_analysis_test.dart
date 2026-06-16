@@ -8,7 +8,10 @@ void main() {
 
   // Szintetikus korozes-folyam: `approachTicks` tick 'A'-n a megadott
   // predikcioval/konfidenciaval, majd `legTicks` tick 'B'-n a megadott
-  // tenyleges TWA-val. A korozes (A->B) az approachTicks indexnel van.
+  // tenyleges TWA-val. A 'B'-tickek a leg-iranyt (bearingToMark) es a
+  // COG-ot is hordozzak, hogy a COG-kapu (ADR 0026) nyithasson; alapbol
+  // a COG = a leg-irany (in-tolerance). A korozes (A->B) az approachTicks
+  // indexnel van.
   List<AnalyzerSnapshot> scenario({
     int approachTicks = 10,
     int legTicks = 31,
@@ -16,6 +19,8 @@ void main() {
     double? band = 5,
     String confidence = 'high',
     double actualTwa = -117,
+    double legBearingDeg = 90,
+    double legCogDeg = 90,
   }) {
     return <AnalyzerSnapshot>[
       for (var i = 0; i < approachTicks; i++)
@@ -36,6 +41,8 @@ void main() {
           twdQuality: 'live',
           markName: 'B',
           currentTwaDeg: actualTwa,
+          bearingToMarkDeg: legBearingDeg,
+          cogDeg: legCogDeg,
         ),
     ];
   }
@@ -56,7 +63,8 @@ void main() {
       expect(result.predictedTwaDeg, -120);
       expect(result.predictedConfidence, 'high');
       expect(result.forecastBandDeg, 5);
-      expect(result.actualSampleCount, 20); // [skip 10s, +20s) -> 20 tick
+      // A kapu a floor-nal (base+20s) nyilik, ablak [+20s, +40s) -> 20 tick.
+      expect(result.actualSampleCount, 20);
       expect(result.actualTwaDeg, closeTo(-117, 1e-6));
       expect(result.deltaDeg, closeTo(3, 1e-6));
       expect(result.isWithinBand, isTrue);
@@ -77,7 +85,8 @@ void main() {
     });
 
     test('predikcio nelkul a delta es a sav-itelet null', () {
-      // ARRANGE — minden tick 'A'/'B', de a predikcio vegig null.
+      // ARRANGE — minden tick 'A'/'B', de a predikcio vegig null. A 'B'
+      // tickek COG-ja a leg-iranyon (a kapu nyit, a tenyleges merheto).
       final snaps = <AnalyzerSnapshot>[
         for (var i = 0; i < 10; i++)
           AnalyzerSnapshot(
@@ -94,6 +103,8 @@ void main() {
             twdQuality: 'live',
             markName: 'B',
             currentTwaDeg: -117,
+            bearingToMarkDeg: 90,
+            cogDeg: 90,
           ),
       ];
 
@@ -116,6 +127,123 @@ void main() {
 
       // ASSERT
       expect(result.leadTime, isNull);
+    });
+  });
+
+  group('COG-kapuzott beallas (ADR 0026)', () {
+    // Egy korozes 'high' approach-csal; a 'B' legen elobb off-leg COG
+    // (atmenet), majd a megadott pillanattol in-leg COG (beallt).
+    List<AnalyzerSnapshot> lateSettle({
+      required int offTicks,
+      required int onTicks,
+      double offCog = 270,
+      double onCog = 90,
+      double legBearing = 90,
+      double transientTwa = -40,
+      double settledTwa = 118,
+      List<int> flukeOffsets = const [],
+    }) {
+      final snaps = <AnalyzerSnapshot>[
+        for (var i = 0; i < 10; i++)
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'A',
+            predictedTwaAtMarkDeg: 120,
+            shiftConfidence: 'high',
+            forecastBandDeg: 5,
+            currentTwaDeg: 120,
+          ),
+      ];
+      for (var i = 0; i < offTicks; i++) {
+        final cog = flukeOffsets.contains(i) ? onCog : offCog;
+        snaps.add(
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: 10 + i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'B',
+            currentTwaDeg: transientTwa,
+            bearingToMarkDeg: legBearing,
+            cogDeg: cog,
+          ),
+        );
+      }
+      for (var i = 0; i < onTicks; i++) {
+        snaps.add(
+          AnalyzerSnapshot(
+            tickTime: base.add(Duration(seconds: 10 + offTicks + i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'B',
+            currentTwaDeg: settledTwa,
+            bearingToMarkDeg: legBearing,
+            cogDeg: onCog,
+          ),
+        );
+      }
+      return snaps;
+    }
+
+    test('a kapu csak a COG-konvergencianal nyilik (nem az atmeneten)', () {
+      // ARRANGE — 60 tick off-leg (COG 270), majd 30 tick on-leg (COG 90).
+      final snaps = lateSettle(offTicks: 60, onTicks: 30);
+
+      // ACT
+      final result = analyzeRoundings(snaps).single;
+
+      // ASSERT — a beallt 118-at meri, nem az atmeneti -40-et.
+      expect(result.actualTwaDeg, closeTo(118, 1e-6));
+      expect(result.predictedTwaDeg, 120);
+      expect(result.deltaDeg, closeTo(-2, 1e-6));
+    });
+
+    test('sosem all be: a COG vegig off-leg -> n/a', () {
+      // ARRANGE — 60 tick off-leg, soha nincs on-leg (pl. kereszt-leg).
+      final snaps = lateSettle(offTicks: 60, onTicks: 0);
+
+      // ACT
+      final result = analyzeRoundings(snaps).single;
+
+      // ASSERT — nincs beallt ablak, a tenyleges n/a; a predikalt megvan.
+      expect(result.actualTwaDeg, isNull);
+      expect(result.actualSampleCount, 0);
+      expect(result.deltaDeg, isNull);
+      expect(result.predictedTwaDeg, 120);
+    });
+
+    test('debounce: egyetlen fluke in-tol tick nem nyitja a kaput', () {
+      // ARRANGE — az atmenet 20. tickjenel (base+30s) egyetlen fluke
+      // in-tol COG; a tartos beallas csak utana. A 3 s debounce eldobja.
+      final snaps = lateSettle(
+        offTicks: 25,
+        onTicks: 30,
+        flukeOffsets: const [20],
+      );
+
+      // ACT
+      final result = analyzeRoundings(snaps).single;
+
+      // ASSERT — a fluke (atmeneti -40) nem nyit; a beallt 118 jon.
+      expect(result.actualTwaDeg, closeTo(118, 1e-6));
+    });
+
+    test('cog-tolerance 360: a kapu a floor-nal nyilik (regi fix-ido)', () {
+      // ARRANGE — a 'B' legen a COG vegig off-leg (270).
+      final snaps = scenario(legCogDeg: 270);
+
+      // ACT — 20-as tol: a kapu sosem nyilik; 360-as tol: a floor-nal.
+      final tight = analyzeRoundings(snaps).single;
+      final loose = analyzeRoundings(
+        snaps,
+        params: const AnalysisParams(cogToleranceDeg: 360),
+      ).single;
+
+      // ASSERT
+      expect(tight.actualTwaDeg, isNull);
+      expect(loose.actualSampleCount, 20);
+      expect(loose.actualTwaDeg, closeTo(-117, 1e-6));
     });
   });
 
