@@ -97,37 +97,39 @@ class RaceDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: RaceStatusChip(status: current.status),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: RaceStatusChip(status: current.status),
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: current.marks.length,
-              itemBuilder: (context, index) {
-                final mark = current.marks[index];
-                return ListTile(
-                  leading: CircleAvatar(child: Text('${mark.sequence}')),
-                  title: Text(mark.name),
-                  subtitle: Text(_formatPosition(mark.position)),
-                  trailing: mark.roundedAt != null
-                      ? const Icon(Icons.check_circle_outline)
-                      : null,
-                );
-              },
+            Expanded(
+              child: ListView.builder(
+                itemCount: current.marks.length,
+                itemBuilder: (context, index) {
+                  final mark = current.marks[index];
+                  return ListTile(
+                    leading: CircleAvatar(child: Text('${mark.sequence}')),
+                    title: Text(mark.name),
+                    subtitle: Text(_formatPosition(mark.position)),
+                    trailing: mark.roundedAt != null
+                        ? const Icon(Icons.check_circle_outline)
+                        : null,
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildAction(context, ref, current, l10n),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildAction(context, ref, current, l10n),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -137,6 +137,29 @@ void main() {
     expect(repository.deleted, ['r1']);
     expect(find.byType(RaceDetailScreen), findsNothing);
   });
+
+  testWidgets('SafeArea: az alsó akció-gomb a nav-inset fölött marad', (
+    tester,
+  ) async {
+    // ARRANGE — 3-gombos navigációt szimulálunk alsó view-paddinggel.
+    tester.view.padding = const FakeViewPadding(bottom: 96);
+    addTearDown(tester.view.reset);
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT — az alsó (Indítás) gomb alsó pereme logikai pixelben.
+    final dpr = tester.view.devicePixelRatio;
+    final screenHeight = tester.view.physicalSize.height / dpr;
+    final bottomInset = 96 / dpr;
+    final button = find.widgetWithText(FilledButton, l10n.detailStart);
+    final buttonBottom = tester.getBottomRight(button).dy;
+
+    // ASSERT — a gomb a rendszer-inset sávja fölött van; SafeArea nélkül a
+    // bottom Padding(16) a navsáv alá vinné a gombot, ezt védi ez a teszt.
+    expect(buttonBottom, lessThanOrEqualTo(screenHeight - bottomInset));
+  });
 }
 
 class _FakeRaceRepository implements RaceRepository {
