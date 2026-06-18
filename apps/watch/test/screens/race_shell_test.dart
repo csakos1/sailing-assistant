@@ -72,17 +72,28 @@ void main() {
         .controller!;
     expect(controller.page, 1); // alapnézet: B
 
-    // Egy detent visszafelé → A nézet.
+    // A perem-irány megfordítva: negatív detent a C-lap felé lapoz.
     deltas.add(-1);
+    await tester.pumpAndSettle();
+    expect(controller.page, 2);
+
+    // A C-lapnál megáll (clamp a tetején): további negatív detent nem lép.
+    deltas.add(-1);
+    await tester.pumpAndSettle();
+    expect(controller.page, 2);
+
+    // Pozitív detent az A-lap felé lapoz (C → B → A).
+    deltas.add(1);
+    await tester.pumpAndSettle();
+    expect(controller.page, 1);
+    deltas.add(1);
     await tester.pumpAndSettle();
     expect(controller.page, 0);
 
-    // Két detent előre → B-nél megáll (clamp).
-    deltas
-      ..add(1)
-      ..add(1);
+    // Az A-lapnál megáll (clamp az alján): további pozitív detent nem lép.
+    deltas.add(1);
     await tester.pumpAndSettle();
-    expect(controller.page, 1);
+    expect(controller.page, 0);
   });
 
   testWidgets('starts the ongoing activity when the display mounts', (
@@ -150,8 +161,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Egy detent vissza → A (sebesség) nézet: ott nincs predikció-konfidencia.
-    deltas.add(-1);
+    // Megfordított irány: pozitív detent vissza → A (sebesség) nézet.
+    deltas.add(1);
     await tester.pumpAndSettle();
 
     expect(find.byType(ConfidenceArc), findsNothing);

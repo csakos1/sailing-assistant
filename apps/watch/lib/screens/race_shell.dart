@@ -65,7 +65,9 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     // lapozunk; a közvetlen stream-feliratkozás (nem ref.listen) elkerüli az
     // AsyncValue de-duplikációját, hogy két azonos lépés se vesszen el.
     final deltas = ref.read(rotaryScrollSourceProvider)();
-    _rotarySteps = rotaryPageSteps(deltas).listen(_stepBy);
+    // A perem-irány megfordítva: a CW-forgatás a túloldali lap felé
+    // lapozzon (a korábbi leképezés fordított volt az elvárthoz képest).
+    _rotarySteps = rotaryPageSteps(deltas).listen((step) => _stepBy(-step));
     // ADR 0019: a kijelző mountjakor indul a verseny Ongoing Activity (a
     // számlapra-esés / Timeout #2 ellen), a dispose-ban áll le — a telefon
     // ScreenWakeLock-mintájának óra-oldali, láthatósági párja. Az instance-t
