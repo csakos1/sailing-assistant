@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/rotary/rotary_scroll_provider.dart';
+import 'package:watch/screens/confidence_haptic_edge.dart';
 import 'package:watch/screens/next_mark_view.dart';
 import 'package:watch/screens/round_mark_view.dart';
 import 'package:watch/screens/speed_view.dart';
@@ -74,6 +76,21 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     // itt fogjuk el, mert a dispose-ban a ref már nem biztonságos.
     _ongoing = ref.read(raceOngoingActivityProvider);
     unawaited(_ongoing.start());
+  }
+
+  @override
+  void didUpdateWidget(RaceShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Konfidencia-high haptic: a shiftConfidence high-ra való felfutó élén
+    // egyetlen határozott buzz. Az él-detektálás a debounce (újrafegyverkezik,
+    // ha high alá esik); lapfüggetlen és ambientben is szól. Az induló payload
+    // sosem buzzol (nincs korábbi érték: didUpdateWidget még nem futott).
+    if (isRisingToHighConfidence(
+      oldWidget.payload.shiftConfidence,
+      widget.payload.shiftConfidence,
+    )) {
+      unawaited(HapticFeedback.heavyImpact());
+    }
   }
 
   @override

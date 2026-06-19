@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared/shared.dart';
@@ -200,6 +201,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ConfidenceArc), findsNothing);
+  });
+
+  testWidgets('high-ra való felfutó élén egyszer buzzol (debounce)', (
+    tester,
+  ) async {
+    // ARRANGE — a HapticFeedback platform-hívásait rögzítjük (a heavyImpact
+    // a SystemChannels.platform 'HapticFeedback.vibrate' metódusára fordul).
+    var buzzCount = 0;
+    final messenger = tester.binding.defaultBinaryMessenger
+      ..setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate') buzzCount++;
+        return null;
+      });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    WatchPayload withConfidence(String? c) => WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      shiftConfidence: c,
+    );
+
+    Future<void> pumpConfidence(String? c) async {
+      await tester.pumpWidget(
+        host(
+          rotary: deltas.stream,
+          ongoing: _SpyOngoingActivity(),
+          payloadOverride: withConfidence(c),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    // ACT/ASSERT — medium kezdés: nincs felfutó él, nincs buzz.
+    await pumpConfidence('medium');
+    expect(buzzCount, 0);
+
+    // medium → high: egy buzz.
+    await pumpConfidence('high');
+    expect(buzzCount, 1);
+
+    // high → high: nincs újabb buzz (a debounce maga az él-detektálás).
+    await pumpConfidence('high');
+    expect(buzzCount, 1);
+
+    // high → medium → high: a vissza-belépés újra buzzol.
+    await pumpConfidence('medium');
+    await pumpConfidence('high');
+    expect(buzzCount, 2);
   });
 }
 
