@@ -102,7 +102,10 @@ class NextMarkView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 6),
+          // A külső FittedBox unbounded szélességgel méri a Column-t, így a
+          // sor mainAxisSize.min (a default max végtelen szélességet kérne).
           Row(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               WatchMetricCell(
@@ -136,6 +139,12 @@ class NextMarkView extends StatelessWidget {
       ],
     );
 
-    return Center(child: column);
+    // A teljes nézetet FittedBox(scaleDown) skálázza, ha nem fér a lapra: a
+    // kisebb (42 mm) órán nincs alsó túlcsordulás, három számjegyű
+    // korrekciónál (>100°) vízszintes sem. Befér esetén a skála 1.0, a
+    // megjelenés változatlan; az ívet a RaceShell külön rétege adja.
+    return Center(
+      child: FittedBox(fit: BoxFit.scaleDown, child: column),
+    );
   }
 }

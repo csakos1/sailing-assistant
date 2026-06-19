@@ -21,6 +21,25 @@ void main() {
     ),
   );
 
+  // A nézetet egy fix méretű dobozba helyezi (óra-szimuláció): így a kötött
+  // kis kijelzőn ellenőrizhető, hogy nincs RenderFlex-túlcsordulás.
+  Widget hostSized(
+    WatchPayload p, {
+    required double width,
+    required double height,
+  }) => MaterialApp(
+    theme: watchDarkTheme,
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: SpeedView(payload: p, colors: colors, ambient: false),
+        ),
+      ),
+    ),
+  );
+
   testWidgets('renders SOG, VMG placeholder and TWA with an arrow', (
     tester,
   ) async {
@@ -39,5 +58,13 @@ void main() {
     expect(find.text('6.4'), findsOneWidget);
     expect(find.text('TWA'), findsNothing); // másodlagos sor rejtve
     expect(find.byType(DirectionArrow), findsNothing);
+  });
+
+  testWidgets('kis viewporton nincs túlcsordulás (42 mm-arány)', (
+    tester,
+  ) async {
+    // A merev tartalom magasabb, mint a kis kijelző; a FittedBox lekicsinyíti.
+    await tester.pumpWidget(hostSized(payload, width: 160, height: 96));
+    expect(tester.takeException(), isNull);
   });
 }

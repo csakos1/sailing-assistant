@@ -47,6 +47,25 @@ void main() {
     ),
   );
 
+  // A nézetet egy fix méretű dobozba helyezi (óra-szimuláció): így a kötött
+  // kis kijelzőn ellenőrizhető, hogy nincs RenderFlex-túlcsordulás.
+  Widget hostSized(
+    WatchPayload p, {
+    required double width,
+    required double height,
+  }) => MaterialApp(
+    theme: watchDarkTheme,
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: NextMarkView(payload: p, colors: colors, ambient: false),
+        ),
+      ),
+    ),
+  );
+
   double? heroOpacity(WidgetTester tester) {
     final f = find.ancestor(
       of: find.byType(FittedBox),
@@ -137,5 +156,27 @@ void main() {
       find.byType(DirectionArrow),
       findsOneWidget,
     ); // a hero tompított nyila
+  });
+
+  testWidgets('kis viewporton nincs túlcsordulás (42 mm-arány)', (
+    tester,
+  ) async {
+    // A merev tartalom magasabb, mint a kis kijelző; a FittedBox lekicsinyíti.
+    await tester.pumpWidget(hostSized(payload, width: 160, height: 96));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('háromjegyű korrekciónál nincs túlcsordulás', (tester) async {
+    final wide = WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      predictedTwaAtMark: -38,
+      courseCorrection: 123, // 3-jegyű → szélesebb korrekció-cella
+      etaSeconds: 452,
+      distanceMeters: 450,
+      markName: 'Tihany',
+    );
+    // Keskeny, de magas doboz: a vízszintes túlcsordulást izolálja.
+    await tester.pumpWidget(hostSized(wide, width: 120, height: 400));
+    expect(tester.takeException(), isNull);
   });
 }

@@ -28,7 +28,7 @@ class SpeedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final heroColor = ambient ? colors.textSecondary : colors.text;
-    return Column(
+    final column = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -55,7 +55,10 @@ class SpeedView extends StatelessWidget {
         ),
         if (!ambient) ...[
           const SizedBox(height: 12),
+          // A külső FittedBox unbounded szélességgel méri a Column-t, így a
+          // sor mainAxisSize.min (a default max végtelen szélességet kérne).
           Row(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               WatchMetricCell(
@@ -88,6 +91,13 @@ class SpeedView extends StatelessWidget {
           ),
         ],
       ],
+    );
+
+    // A teljes nézetet FittedBox(scaleDown) skálázza, ha nem fér a lapra: a
+    // kisebb (42 mm) órán nincs alsó túlcsordulás. Befér esetén a skála 1.0,
+    // a megjelenés változatlan.
+    return Center(
+      child: FittedBox(fit: BoxFit.scaleDown, child: column),
     );
   }
 }
