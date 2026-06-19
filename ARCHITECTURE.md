@@ -3101,6 +3101,8 @@ ambientben is szól (zsebben a telefon → az óra a primary kijelző). A direct
 seam, külön ADR nélkül). A küszöb körüli flapping v1-ben elfogadott (csak
 él-debounce).
 
+**Méretre-illesztés (FittedBox).** A SpeedView (A) és a NextMarkView (B) tartalma egy `FittedBox(scaleDown)`-ban ül: a kisebb (42 mm) órán így nincs alsó túlcsordulás, három számjegynél (>100°) pedig vízszintes sem. Ha a tartalom befér (pl. 47 mm, két számjegy), a skála 1.0 — a megjelenés pixelre változatlan. A konfidencia-ív külön `Positioned.fill` réteg, ezt nem érinti.
+
 ### 10.5 Korlátok
 
 - A Flutter Wear OS support közösségi, nem hivatalos. **v1-ben elfogadjuk**, ha kell, később natív Kotlin-Compose-ra átírjuk a watch oldalt (a phone app változatlanul hagyva).
