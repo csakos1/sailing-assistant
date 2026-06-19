@@ -2214,6 +2214,18 @@ final activeRacePersistenceProvider = Provider<void>((ref) {
 });
 ```
 
+**Bója-szerkesztés (ADR 0029).** A Fázis 4 setup create-only volt; a
+szerkesztést utólag adtuk hozzá. A név + a dinamikus bója-sorok közös
+`RaceForm` widgetbe kerültek, amit a `RaceSetupScreen` (create, új id) és
+az új `RaceEditScreen` (edit, a race saját id-jével) is használ — a forma
+egy validált `(name, marks)` párt ad `onSubmit`-en. A `RaceDetailScreen`
+„Szerkesztés” akciója csak `notStarted` versenynél látszik (az
+`activeMarkIndex` / `roundedAt` invariánsok védelmében). A bója-sorok
+`ReorderableListView`-ben ülnek, külön drag-handle-lel; a `sequence`
+pozíció-alapú, ezért a reorder a domaint és a data-t nem érinti. A mentés
+create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
+`save` delete-and-rewrite-ja felülír).
+
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
 A §8.2 hierarchia alja: az `NmeaStream.events` push-folyamát foldoljuk
