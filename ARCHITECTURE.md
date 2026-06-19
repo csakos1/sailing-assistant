@@ -3090,6 +3090,17 @@ a predikció-bizalom megmarad** (a ±° sáv + a halvány jobb-perem-ív, ~1/per
 burn-in-biztos; ADR 0023 D8); ott a szín lewasholhat, ezért a ±° viszi a
 trust-et, a „tartott" felirat pedig elmaradhat.
 
+**Konfidencia-high haptic (ADR 0023, RaceShell).** A predikció-konfidencia
+`high`-ra való felfutó élén (a `RaceShell.didUpdateWidget` a korábbi és az
+aktuális `WatchPayload.shiftConfidence`-t veti össze) egyetlen
+`HapticFeedback.heavyImpact()` szól — a „nézz az órádra” jel, amikor a jóslat
+megbízhatóvá válik. Az él-detektálás maga a debounce: amíg `high`-on marad,
+nincs újabb buzz; ha `high` alá esik, újrafegyverkezik. Lapfüggetlen és
+ambientben is szól (zsebben a telefon → az óra a primary kijelző). A direct
+`HapticFeedback`-hívás a `RoundMarkView` bevett mintáját követi (nincs új
+seam, külön ADR nélkül). A küszöb körüli flapping v1-ben elfogadott (csak
+él-debounce).
+
 ### 10.5 Korlátok
 
 - A Flutter Wear OS support közösségi, nem hivatalos. **v1-ben elfogadjuk**, ha kell, később natív Kotlin-Compose-ra átírjuk a watch oldalt (a phone app változatlanul hagyva).
