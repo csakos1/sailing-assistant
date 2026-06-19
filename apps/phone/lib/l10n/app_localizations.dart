@@ -382,6 +382,12 @@ abstract class AppLocalizations {
   /// **'Bója törlése'**
   String get setupRemoveMark;
 
+  /// Tooltip: drag-handle a boja-sor atrendezesehez.
+  ///
+  /// In hu, this message translates to:
+  /// **'Sorrend áthelyezése'**
+  String get setupReorderHandle;
+
   /// Gomb: a verseny mentése és visszatérés a listához.
   ///
   /// In hu, this message translates to:

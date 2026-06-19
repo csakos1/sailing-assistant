@@ -212,6 +212,10 @@
   "@setupRemoveMark": {
     "description": "Tooltip: az adott bója-sor eltávolítása."
   },
+  "setupReorderHandle": "Sorrend áthelyezése",
+  "@setupReorderHandle": {
+    "description": "Tooltip: drag-handle a boja-sor atrendezesehez."
+  },
   "setupSave": "Mentés",
   "@setupSave": {
     "description": "Gomb: a verseny mentése és visszatérés a listához."

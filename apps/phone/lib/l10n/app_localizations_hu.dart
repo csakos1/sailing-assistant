@@ -165,6 +165,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupRemoveMark => 'Bója törlése';
 
   @override
+  String get setupReorderHandle => 'Sorrend áthelyezése';
+
+  @override
   String get setupSave => 'Mentés';
 
   @override
