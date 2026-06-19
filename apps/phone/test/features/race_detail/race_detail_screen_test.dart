@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
+import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
@@ -94,6 +95,77 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
   });
 
+  testWidgets('notStarted: a Szerkesztés akció a RaceEditScreen-t nyitja', (
+    tester,
+  ) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT — a Szerkesztés ikon az edit-képernyőre navigál.
+    expect(find.byTooltip(l10n.detailEdit), findsOneWidget);
+    await tester.tap(find.byTooltip(l10n.detailEdit));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(find.byType(RaceEditScreen), findsOneWidget);
+  });
+
+  testWidgets('active: nincs Szerkesztés akció', (tester) async {
+    // ARRANGE — aktív versenyt nyitunk.
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark],
+    ).start(at: clock);
+    container.read(activeRaceProvider.notifier).activeRace = race;
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ASSERT — szerkesztés csak notStarted-nél (ADR 0029 D1).
+    expect(find.byTooltip(l10n.detailEdit), findsNothing);
+  });
+
+  testWidgets('a watchRaces frissülése után az új adatot mutatja (D5)', (
+    tester,
+  ) async {
+    // ARRANGE — a lista a szerkesztett (átnevezett) verziót sugározza; a
+    // detail a pillanatkép helyett ezt mutatja (ADR 0029 D5).
+    final original = Race.create(
+      id: 'r1',
+      name: 'Régi',
+      marks: const [mark],
+    );
+    final edited = Race.create(
+      id: 'r1',
+      name: 'Új',
+      marks: const [mark],
+    );
+    final repo = _FakeRaceRepository(watch: Stream.value([edited]));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          raceRepositoryProvider.overrideWithValue(repo),
+          clockProvider.overrideWithValue(() => clock),
+        ],
+        child: MaterialApp(
+          locale: const Locale('hu'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: RaceDetailScreen(race: original),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // ASSERT — a reaktív lista friss neve látszik, nem a pillanatkép.
+    expect(find.text('Új'), findsOneWidget);
+    expect(find.text('Régi'), findsNothing);
+  });
+
   testWidgets('a törlés megerősítés után töröl és visszanavigál', (
     tester,
   ) async {
@@ -163,6 +235,10 @@ void main() {
 }
 
 class _FakeRaceRepository implements RaceRepository {
+  _FakeRaceRepository({Stream<List<Race>>? watch})
+    : _watch = watch ?? const Stream<List<Race>>.empty();
+
+  final Stream<List<Race>> _watch;
   final saved = <Race>[];
   final deleted = <String>[];
 
@@ -180,5 +256,5 @@ class _FakeRaceRepository implements RaceRepository {
   Future<Race?> getRace(String id) async => null;
 
   @override
-  Stream<List<Race>> watchRaces() => const Stream<List<Race>>.empty();
+  Stream<List<Race>> watchRaces() => _watch;
 }

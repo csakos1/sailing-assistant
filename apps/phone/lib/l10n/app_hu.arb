@@ -220,6 +220,14 @@
   "@setupSave": {
     "description": "Gomb: a verseny mentése és visszatérés a listához."
   },
+  "editTitle": "Verseny szerkesztése",
+  "@editTitle": {
+    "description": "A verseny-szerkeszto kepernyo cimsora."
+  },
+  "detailEdit": "Szerkesztés",
+  "@detailEdit": {
+    "description": "Tooltip: a verseny szerkesztese (csak notStarted)."
+  },
   "raceStatusNotStarted": "Nem indult",
   "@raceStatusNotStarted": {
     "description": "Verseny-státusz: még nem indult el."

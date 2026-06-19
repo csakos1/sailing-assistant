@@ -4,26 +4,40 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
+import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/race_status_chip.dart';
 
-/// Egy verseny részletei: státusz, bóya-lista, és státuszfüggő start/finish
-/// + törlés akciók, valamint az élő képernyő megnyitása.
+/// Egy verseny részletei: státusz, bóya-lista, és státuszfüggő akciók
+/// (start/finish, törlés, valamint `notStarted` versenynél szerkesztés),
+/// továbbá az élő képernyő megnyitása.
 ///
-/// A listától kapott [race] egy pillanatkép; ha ez a verseny az aktív, az
-/// `activeRaceProvider` élő (in-memory) állapotát mutatjuk, hogy a
-/// start/finish azonnal látszódjon. A state-átmenetek az
-/// `activeRaceProvider`-en mennek (a `Race` factory-k + `repo.save`). Az
-/// `AppLocalizations.of(context)!` biztonságos: a `MaterialApp` regisztrálja
-/// a delegátorokat.
+/// A listától kapott [race] egy pillanatkép. Az aktív futó verseny esetén az
+/// `activeRaceProvider` élő (in-memory) állapotát mutatjuk; egyébként a
+/// reaktív `raceListProvider` friss verzióját, a pillanatkép csak fallback —
+/// így a szerkesztés utáni változás azonnal látszik (ADR 0029 D5). A
+/// state-átmenetek az `activeRaceProvider`-en mennek (a `Race` factory-k +
+/// `repo.save`). Az `AppLocalizations.of(context)!` biztonságos: a
+/// `MaterialApp` regisztrálja a delegátorokat.
 class RaceDetailScreen extends ConsumerWidget {
   const RaceDetailScreen({required this.race, super.key});
 
   /// A megnyitott verseny pillanatképe (a lista adta át).
   final Race race;
+
+  // A reaktív listából keresi ki az aktuális verziót id alapján (D5); null,
+  // ha a lista még nem töltött be vagy a verseny már nem szerepel benne.
+  static Race? _findById(List<Race>? races, String id) {
+    if (races == null) return null;
+    for (final candidate in races) {
+      if (candidate.id == id) return candidate;
+    }
+    return null;
+  }
 
   Future<void> _start(WidgetRef ref, Race target) async {
     ref.read(activeRaceProvider.notifier).activeRace = target;
@@ -44,6 +58,17 @@ class RaceDetailScreen extends ConsumerWidget {
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const LiveRaceScreen()),
+      ),
+    );
+  }
+
+  // A szerkesztő-képernyőre navigál (csak notStarted versenynél hívjuk).
+  void _openEdit(BuildContext context, Race target) {
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => RaceEditScreen(race: target),
+        ),
       ),
     );
   }
@@ -83,13 +108,24 @@ class RaceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final active = ref.watch(activeRaceProvider);
-    // Ha ez a verseny az aktív, az élő állapotot mutatjuk.
-    final current = (active != null && active.id == race.id) ? active : race;
+    final listValue = ref.watch(raceListProvider).valueOrNull;
+    // Aktív futó versenynél az in-memory élő állapot az igazság; egyébként a
+    // reaktív lista friss verziója, a pillanatkép csak fallback (ADR 0029 D5).
+    final current = (active != null && active.id == race.id)
+        ? active
+        : (_findById(listValue, race.id) ?? race);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(current.name),
         actions: [
+          // Szerkesztés csak el nem indított versenyen (ADR 0029 D1).
+          if (current.status == RaceStatus.notStarted)
+            IconButton(
+              onPressed: () => _openEdit(context, current),
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: l10n.detailEdit,
+            ),
           IconButton(
             onPressed: () => _delete(context, ref),
             icon: const Icon(Icons.delete_outline),

@@ -171,6 +171,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupSave => 'Mentés';
 
   @override
+  String get editTitle => 'Verseny szerkesztése';
+
+  @override
+  String get detailEdit => 'Szerkesztés';
+
+  @override
   String get raceStatusNotStarted => 'Nem indult';
 
   @override

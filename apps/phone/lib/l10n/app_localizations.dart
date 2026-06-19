@@ -394,6 +394,18 @@ abstract class AppLocalizations {
   /// **'Mentés'**
   String get setupSave;
 
+  /// A verseny-szerkeszto kepernyo cimsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny szerkesztése'**
+  String get editTitle;
+
+  /// Tooltip: a verseny szerkesztese (csak notStarted).
+  ///
+  /// In hu, this message translates to:
+  /// **'Szerkesztés'**
+  String get detailEdit;
+
   /// Verseny-státusz: még nem indult el.
   ///
   /// In hu, this message translates to:
