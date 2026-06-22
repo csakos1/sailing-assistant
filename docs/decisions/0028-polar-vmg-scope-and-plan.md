@@ -170,3 +170,102 @@ három feature ADR-jei később, magasabb számon készülnek.)
   teljesítmény-réteg), ADR 0022 (a snapshot — ide kerülnek majd a
   target/% /VMG mezők), ADR 0026/0027 (a `race_analyzer` — a polár-%
   utólag is elemezhető lesz).
+
+## Addendum 1 — Polár-gyártási módszer, `.pol` dialektus és a lookup-szerződés (2026-06-23)
+
+A 0. szelet (offline polár-gyártás) lezárult: a felhasználó YDVR `.DAT`
+archívumából (1631 fájl, ~204 nap naptári span, ~24,5 nap felvett adat)
+valós, fizikailag korrekt polárt állítottunk elő. Ez az addendum rögzíti
+a 0028 „Nyitott kérdések" szakaszára adott válaszokat és az 1. szelet
+domain-szerződését — a kód ezen alapul.
+
+### A1 — A polár-építő tool: saját `polar_builder` (a qtVlm NEM generál)
+
+Kiderült, hogy a qtVlm logged/historikus adatból **nem épít** polárt (a
+fejlesztő is megerősítette; a funkció nincs implementálva) — csak
+megjeleníti, használja és exportálja a kész polárt. A tényleges generátor
+vagy az OpenCPN Polar plugin, vagy — amit választottunk — egy saját
+`polar_builder` exploration-script a YDVRCONV CSV-jén. A qtVlm/OpenCPN a
+kész `.pol` **vizuális ellenőrzésére** marad. (Lezárja a 0028 „melyik
+tool?" kérdését.)
+
+### A2 — Forrás + bemeneti mezők
+
+Lánc: YDVR `.DAT` → **YDVRCONV** (Linux GUI, Wine alatt) → CSV (10 s
+mintavétel, knots, pont-tizedes, vessző-oszlop). A CSV kész **true
+windet** ad: `TWA(med)`, `TWS(med)`, `STW`, és tartaléknak
+`AWA/AWS/TWD/ROT/COG/SOG`. **Nincs RPM** a CSV-ben — a hajó nem teszi a
+motor-fordulatot a N2K buszra (nincs engine gateway).
+
+### A3 — Binning-algoritmus (empirikusan beállítva)
+
+Binelés `TWA(med) × TWS(med)` alapján (a med a 10 s-os ablak mediánja →
+zaj-robusztus). `|TWA|`-szimmetria-hajtás (bal/jobb halz egy vödörbe).
+TWA-vödör **5°**, TWS-vödör **2 kn** (tartomány **2–24 kn**). A vödör
+értéke az STW **p90 percentilise** (a max egy gust-/szörf-csúcsra
+overfittel, az átlag alábecsüli a célt — a p90 a „jó körülmények közt
+elérhető"). `MIN_SAMPLES ≥ 20`/vödör, alatta üres → a lookup interpolál.
+
+### A4 — Szűrő-lánc (tisztítás)
+
+- `STW > 0,3 kn` — álló/kikötői sorok ki.
+- `STW ≥ 12 kn` — szenzor-spike ki (hajó-függő küszöb).
+- **Steady-state a TWA-spreadből:** `|TWA(max) − TWA(min)|` (wrap-aware)
+  `< 12°` — a heading/ROT helyett, mert a ZG100 heading-zaja megfertőzi
+  a ROT-ot (egy álló hajón is 16–26°/perc „fordulást" mutat). Ez az
+  ADR 0020 (a COG/heading-megbízhatatlanság) közvetlen következménye:
+  ahogy a moat sem a headingre épül, a polár-szűrés sem.
+- **Motor-heurisztika** (RPM nélkül): `TWS < 3 kn ÉS STW > 2 kn` → ki
+  (szélcsendben gyors haladás = motor). Ez a leggyengébb láncszem; a
+  maradékot a vizuális normalizálás / a no-go cut fogja.
+- **No-go cut:** `|TWA| < 25°` eldobva — oda nincs vitorlázási target
+  (ott halzolsz, nem célsebességre mész). A 25°-ot a felhasználó saját,
+  igazoltan szoros menetére hangoltuk (a 25° sor lassabb a 30–35°-nál
+  azonos TWS-en → valós szoros menet, nem motor-szennyezés).
+
+### A5 — A `.pol` dialektus (a 0028 D3 lezárása)
+
+A `polar_builder` kimenete: **`;`-elválasztott**; első sor
+`twa/tws;<TWS-oszlopok>`; TWA-sorok **0–180° 5°-onként**; üres vödör =
+`0.00`. A 2. szelet parsere EHHEZ a dialektushoz igazodik. (qtVlm-be
+töltéshez a `twa/tws` fejléc-cella `0`-ra cserélhető.)
+
+### A6 — Sebesség-referencia: STW (SOG-fallback)
+
+A target-%-hoz és a szél-felé VMG-hez **STW** (a polár víz-referenciás
+hajótest-modell — STW-vel a % a vitorlázási teljesítményt méri,
+áramlat-függetlenül); **SOG-fallback**, ha a STW hiányzik vagy gyanús. A
+STW a live pipeline-ban már átfolyik (`VhwSpeedDecoder` → `SpeedEvent` →
+`BoatState.speedThroughWater`) — nem kell behozni, mint a mélységet. A
+földhöz kötött metrikák (táv, ETA) maradnak SOG-on (ADR 0003).
+
+### A7 — Domain-szerződés (1. szelet)
+
+Új **`Polar`** value object (immutable TWA×TWS rács) + **`LookupTargetSpeed`**
+use case:
+
+- **Bilineáris interpoláció** a 0–180°-os tárolt rácson, `|TWA|`-ra
+  (port/starboard szimmetrikus).
+- A no-go alatt (`|TWA| < Polar.noGoThresholdDegrees`, értéke **25**) a
+  lookup **`null`** — nincs target speed, a kijelzés „—" (NEM 0%).
+- Rács-szélen **clamp** (a tartományon kívüli TWS/TWA a szélső értékre);
+  üres vödör → interpoláció a szomszédokból; ha nincs elég adat → `null`
+  (→ a `PolarMissing` info-warning ága, ADR 0014 §11.2).
+- A **25° egyetlen named konstans** (`Polar.noGoThresholdDegrees`),
+  jelentésben közös a `polar_builder` `NOGO_CUT`-jával — két külön
+  réteg ugyanarra: offline gyártás vs futásidő-lookup.
+
+### A8 — A `polar_builder` státusza
+
+Jelenleg **explorációs Python-script** (nem repo-kód); a paraméterei és
+döntései itt rögzítve a reprodukálhatóságért. Később enshrine-olható
+`tools/polar_builder` Dart-toolként (külön addendum/ADR), de v1-hez nem
+szükséges — a kész `.pol` a fontos.
+
+### Lezárt / nyitva maradó kérdések
+
+Ez az addendum **lezárja** a 0028 „Nyitott kérdések" közül: a
+polár-építő tool (A1), az STW vs SOG (A6), és a `.pol` formátum / D3
+(A5). **Nyitva marad** a 2–4. szelet design-köreire: a polár **tárolása**
+(Drift-tábla vs bundled asset), az **óra-kijelzés layout**, és a
+**VMG-típusok** (felszél/hátszél/mark-VMG).
