@@ -1885,6 +1885,8 @@ seam-et, mert a composite a v2 belépési pontja (`PolarRepository`). Az
 
 > **v2 változás**: az osztályhoz hozzákerül egy `PolarRepository` függőség és egy `Polar?` paraméter, a `_eta` hívás polár-aware lesz, az `etaSource` pedig értelemszerűen `polar` is lehet.
 
+> **Ismert korlát (ADR 0030) — felszélen a next-mark TWA.** A predikció a köv-szár rhumb-line geometriájából számol (kivetített TWD − köv-szár bearing). Post-race validáció (`race_analyzer`, ADR 0025; 2 verseny, 4 körözés) kimutatta: felszélen ez ~dead-upwind szöget ad, ami nem vitorlázható, így a tényleges (kapus) TWA-tól strukturálisan eltér (Δ akár 24–32°, az eltérés iránya a halzát követi). A high-konfidenciás, keskeny sávú predikciók tévedtek a legnagyobbat: a sáv (ADR 0023) a szél-trend linearitását méri, nem a TWA-hibát. Tervezett javítás: polár-vezérelt no-go clamp — ha a geometriai TWA a polár beating angle alá esik, a predikciót a polár szögére clampeljük (ADR 0030). Ez a polár harmadik fogyasztója a target speed % és a VMG (ADR 0028) mellett. A térdszeles maradék-hibát a clamp NEM javítja; azt egy ADR 0025 diagnosztikai kiegészítés (leg-bearing vs settled-COG) szálazza szét.
+
 **ADR 0023 — a band és a band-alapú konfidencia a `MarkPrediction`-en.** A
 `MarkPrediction` új additív mezőt kap: `forecastBandDegrees` (`double?`, `null`
 ha nincs predikció). A composite a `_predict` (7.5) eredményéből veszi a
