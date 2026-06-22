@@ -1101,10 +1101,12 @@ backbone adatait fordítja standard 0183 mondatokká. Élő dump
 | `MWV` (T) | WI | True wind (TWA, TWS) — Vulcan számolt | ~1 Hz |
 | `MWD` | WI | True wind direction — v1-ben **NEM** TWD-forrás (§6.5), diagnosztika | ~1 Hz |
 | `VHW` | SD | Speed through water (STW) + heading | ~1 Hz |
+| `DBT` / `DPT` | SD | Mélység (jeladó alatt) — sekély-víz warning (ADR 0031) | ~1 Hz |
 
-Egyéb opcionálisan loggolt mondatok (post-race analízishez): `DBT` /
-`DPT` (mélység), `MTW` (víz-hőfok), `VLW` (distance log), `XDR` (heel,
-trim, rudder, air temp).
+Egyéb opcionálisan loggolt mondatok (post-race analízishez): `MTW`
+(víz-hőfok), `VLW` (distance log), `XDR` (heel, trim, rudder, air temp).
+A `DBT`/`DPT` mélység v1-ben már **élő** adat (a fenti tábla; sekély-víz
+warning, ADR 0031), nem csak post-race.
 
 Az `RMC` dátum+idő mezőit UTC instanttá fűzzük és a
 `BoatState.instrumentTimeUtc`-be tesszük (a hajó-óra megjelenítéshez,
@@ -1259,7 +1261,7 @@ kiterjesztése).
 A `SentenceDecoder` dispatcher a `type` alapján `switch`-csel a
 megfelelő dekóderhez route-ol, és `DecodedSentence?`-et ad: ismeretlen
 `type` → `null`. v1-ben a támogatott halmazon kívül minden mondat
-(`GLC`, `GSA`, `GSV`, `XDR`, `ZDA`, `DBT`, `DPT`, `MTW`, `VLW`, `AAM`,
+(`GLC`, `GSA`, `GSV`, `XDR`, `ZDA`, `MTW`, `VLW`, `AAM`,
 `APB`, `BOD`, `RMB`, `XTE`) némán kimarad.
 A talker-mezőt szándékosan nem nézzük: a valós dumpban a típusok
 vegyes talkerrel jönnek (`GP`/`GN`/`II`/`SD`/`WI`).
@@ -3009,6 +3011,8 @@ class WatchPayload {
   final double? distanceMeters;         // az óra m/km-re formáz
   final String? markName;               // az aktív bója neve
   final List<String> criticalWarnings; // csak critical, telefon által lokalizált
+  final double? depthAlertMeters;       // sekély-víz mélység, vagy null
+  final int depthBuzzCounter;           // monoton; óra a felfutó élén rezeg
   final DateTime timestamp;             // a payload build-ideje (app-óra)
 }
 ```
@@ -3019,7 +3023,7 @@ JSON-ben szerializálva, a Wearable Data Layer-en küldve mint `DataItem` egy fi
 
 Az óra-push az **engine-ből** indul (ADR 0016 D6): mivel kijelző-off mellett az UI-izolátum felfüggesztődik, a payload-építés a service-izolátumban, a `RaceEngineTaskHandler`-ben fut, és az engine **1 Hz-es `RaceSnapshot`-emitjére fűződik** — nincs külön 500 ms-os timer (a `WatchPayload` egyenlősége a `gpsTimeUtc`-t úgyis kihagyja, a másodperceket az óra lokálisan extrapolálja, így az 1 Hz elég). Ez leváltja a régi UI-izolátumbeli keep-alive provider modellt.
 
-A pipeline a meglévő, már tesztelt egységeket komponálja a task handlerben (ez `apps/phone`, tehát importálhatja a phone-kódot): a `buildWatchPayload` a snapshot `boatState`/`wind`/`prediction`-jéből + a service-izolátumbeli `TrueTimeReading`-ből + az `EvaluateWarnings` kimenetéből építi a `WatchPayload`-ot; a `WatchSyncController.onTick` `==`-szal change-detectel, és csak változásra küld a `WatchTransport`-on. A critical-warningokat a service-izolátum lokalizálja (`lookupAppLocalizations(Locale('hu'))` — tiszta generált Dart, widget-fa nélkül, ADR 0015 D4). A warning-gatinghez a `RaceSnapshot` egy `raceStatus` mezővel bővül.
+A pipeline a meglévő, már tesztelt egységeket komponálja a task handlerben (ez `apps/phone`, tehát importálhatja a phone-kódot): a `buildWatchPayload` a snapshot `boatState`/`wind`/`prediction`-jéből + a service-izolátumbeli `TrueTimeReading`-ből + az `EvaluateWarnings` kimenetéből építi a `WatchPayload`-ot; a `WatchSyncController.onTick` `==`-szal change-detectel, és csak változásra küld a `WatchTransport`-on. A critical-warningokat a service-izolátum lokalizálja (`lookupAppLocalizations(Locale('hu'))` — tiszta generált Dart, widget-fa nélkül, ADR 0015 D4). A warning-gatinghez a `RaceSnapshot` egy `raceStatus` mezővel bővül. A sekély-víz riasztáshoz (ADR 0031) a `RaceSnapshot` és a `WatchPayload` további két mezőt kap — `depthAlertMeters` (a live mélység, amíg az epizód aktív, különben null) és `depthBuzzCounter` (monoton; az óra a felfutó élén rezeg) —, az állapotgép (`EvaluateDepthAlert`) pedig a `RaceEngine` reducerében fut, nem a task handlerben (stateful, 1 Hz, kijelző-off mellett is — ADR 0031 D4).
 
 A GPS-idő forrása a **service-izolátumban futó** true-time (GNSS-anchor + monoton extrapoláció, ADR 0012): a `geolocator` itt fut (az FGS-típus `location`-nel bővül + `ACCESS_FINE_LOCATION`), így kijelző-off mellett is van pontos `gpsTimeUtc`. A telefon saját GPS-idő-cellája a meglévő UI-oldali `trueTimeProvider`-t használja (kijelző-on), az engine-étől függetlenül. Másodpercre szinkron: a chartplotter, a telefon és az óra ugyanazt a GPS-UTC instantot mutatja — a stale stream-időt (`instrumentTimeUtc`, 4–6 mp késés) sehol nem jelenítjük meg.
 
@@ -3285,6 +3289,13 @@ nélkül):
   kijelzések és a `MWD` gyanúsak, **de a derivált TWD (§6.5) és a
   predikció ettől függetlenül helyes**. A bemenetet a `BoatState` adja
   (heading, COG, SOG), nincs új seam. HU ARB: `warning_suspect_heading`.
+- `DepthWarning` (critical) — sekély víz: a `RaceEngine` reducerében futó
+  `EvaluateDepthAlert` állapotgép (2,5 m küszöb, 3,0 m hiszterézis, 0,1 m-es
+  ratchet, csak csökkenéskor) dönti el; nem-null `depthAlertMeters`
+  esetén ad `DepthWarning(depthMeters)`-t (az első payload-hordozó
+  warning). A bemenet a `BoatState.depth` (DPT/DBT, §6.1); race-state-
+  független (a zátonyveszély nem függ a verseny állapotától). HU ARB:
+  `warning_depth_shallow`. ADR 0031.
 
 Elnyomási szabály (ADR 0014 D5): ha `connectionStatus is! Connected`, az
 `EvaluateWarnings` CSAK a `GatewayDisconnected`-et adja vissza, elnyomva a
@@ -3316,6 +3327,12 @@ importált, de aktuális TWS/TWA-ra nincs lookup érték.
   külön részlet-képernyo nélkül v1-ben. Elhelyezés: a státuszsor alatt, a grid
   fölött.
 - **Watch**: csak a critical warningok jelennek meg, kis ikonnal (Fázis 7).
+- **Watch — mélység-kivétel (ADR 0031):** a `DepthWarning` az órán NEM kis
+  ikon, hanem teljes-képernyős piros overlay live mélység-kiírással +
+  bezárás gombbal; a `depthBuzzCounter` felfutó élén ~1–1,5 s erős
+  natív rezgés (a `HapticFeedback` nem elég → `DepthAlertVibrator`
+  MethodChannel-seam), ambient-változattal és best-effort ambient-
+  ébresztéssel.
 
 A meglévo §8.7 „elavult" chip **érintetlen** marad, és a warning-szabályok nem
 fednek át a feltételével: `GatewayDisconnected` = nem-csatlakozott;
