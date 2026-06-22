@@ -122,7 +122,7 @@ A `packages/{domain,data,shared}` neveihez a brand sosem kerül közel — ezek 
 A két YD eszköz szerepe ennek fényében:
 
 - **YDWG-02**: v1-re **nem vásároljuk meg**. Egy későbbi (v1.5+) **második `NmeaStream` adapter** (YD RAW / teljes N2K fidelitás, 10 Hz szél) hardvere lenne, ha a 0183 lossy volta valahol szűk keresztmetszet.
-- **YDVR**: versenyek után az SD-ről teljes lossless N2K logot ad; a `.DAT` a hivatalos *Yacht Devices Voyage Data Reader* tool-lal **YD RAW-ra konvertálható**. v1-ben **nem** a replay forrása (azt 0183 logok adják, lásd 12.4), de megőrzendő a jövőbeli YD RAW adapterhez és a **v2 polár learning** betanító anyagaként.
+- **YDVR**: versenyek után az SD-ről teljes lossless N2K logot ad; a `.DAT` a hivatalos *Yacht Devices Voyage Data Reader* tool-lal **YD RAW-ra konvertálható**. v1-ben **nem** a replay forrása (azt 0183 logok adják, lásd 12.4), de megőrzendő a jövőbeli YD RAW adapterhez és a **v2 polár learning** betanító anyagaként. A polár-építés módszere viszont a teljesítmény-réteghez (target speed %) már eldőlt: offline `polar_builder` a YDVRCONV CSV-jéből (p90-binning, `|TWA|`-szimmetria, no-go 25°), `;`-elválasztott `.pol` kimenettel — lásd ADR 0028 Addendum 1.
 
 > **A 0183-forrás korlátja (tudatosan vállalt):** a Vulcan a szelet ~1 Hz-re downsampleli (a WS310 nyers 10 Hz helyett). A headline feature (TWA a következő bójánál) percléptékű szélfordulás-trenden alapul, ahhoz az 1 Hz bőven elég; a 10 Hz csak a halasztott YD RAW adapterrel térne vissza.
 
@@ -442,6 +442,8 @@ sailing-assistant/                        # GitHub repo root
 ```
 
 > **v2-ben hozzákerül**: `apps/phone/lib/features/polar_import/`, `packages/domain/lib/src/repositories/polar_repository.dart`, `packages/data/lib/src/persistence/tables/polars_table.dart` és kapcsolódó komponensek.
+>
+> **Az 1. szelet (ADR 0028 Addendum 1) MOST landol a domainben**, a fenti v2 import/perzisztenciától függetlenül: `packages/domain/lib/src/entities/polar.dart` (`Polar` VO, immutable TWA×TWS rács, `noGoThresholdDegrees = 25`) + `packages/domain/lib/src/use_cases/lookup_target_speed.dart` (bilineáris interpoláció, no-go alatt `null`). A target speed % a STW / polár-cél hányados (SOG-fallback).
 
 > **Post-race elemzés (ADR 0025 + Addendum 1)**: a `tools/race_analyzer`
 > pure-Dart CLI a `snapshot_logs`-ból exportált **JSON-lines** bemenetet
