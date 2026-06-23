@@ -21,6 +21,7 @@ void main() {
       int etaSeconds = 154,
       double distanceMeters = 480,
       String markName = 'Tihany bója',
+      double targetSpeedPercent = 87.5,
       List<String> criticalWarnings = const ['Műszer-kapcsolat megszakadt'],
     }) {
       return WatchPayload(
@@ -35,6 +36,7 @@ void main() {
         etaSeconds: etaSeconds,
         distanceMeters: distanceMeters,
         markName: markName,
+        targetSpeedPercent: targetSpeedPercent,
         criticalWarnings: criticalWarnings,
       );
     }
@@ -212,6 +214,12 @@ void main() {
         final base = sample();
         final wider = sample(forecastBandDegrees: 11);
         expect(base, isNot(equals(wider)));
+      });
+
+      test('differs when targetSpeedPercent changes', () {
+        final base = sample();
+        final slower = sample(targetSpeedPercent: 72);
+        expect(base, isNot(equals(slower)));
       });
     });
   });

@@ -33,6 +33,7 @@ final class WatchPayload extends Equatable {
     this.etaSeconds,
     this.distanceMeters,
     this.markName,
+    this.targetSpeedPercent,
     this.criticalWarnings = const <String>[],
   });
 
@@ -58,6 +59,7 @@ final class WatchPayload extends Equatable {
       etaSeconds: (json['etaSeconds'] as num?)?.toInt(),
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       markName: json['markName'] as String?,
+      targetSpeedPercent: (json['targetSpeedPercent'] as num?)?.toDouble(),
       criticalWarnings:
           (json['criticalWarnings'] as List<dynamic>?)?.cast<String>() ??
           const <String>[],
@@ -116,6 +118,11 @@ final class WatchPayload extends Equatable {
   /// Az aktív bója neve, vagy `null`, ha nincs aktív bója.
   final String? markName;
 
+  /// A polár-cél-sebesség százaléka (élő STW/SOG ÷ target × 100), vagy
+  /// `null`, ha nincs polár / cél / élő sebesség (ADR 0028 Add. 3). Az óra
+  /// ezt jeleníti meg (3c).
+  final double? targetSpeedPercent;
+
   /// Csak a critical súlyosságú figyelmeztetések, a telefon által már
   /// lokalizálva (v1 magyar). Üres lista, ha nincs critical (ADR 0015 D4).
   final List<String> criticalWarnings;
@@ -139,6 +146,7 @@ final class WatchPayload extends Equatable {
       'etaSeconds': etaSeconds,
       'distanceMeters': distanceMeters,
       'markName': markName,
+      'targetSpeedPercent': targetSpeedPercent,
       'criticalWarnings': criticalWarnings,
     };
   }
@@ -157,6 +165,7 @@ final class WatchPayload extends Equatable {
     etaSeconds,
     distanceMeters,
     markName,
+    targetSpeedPercent,
     criticalWarnings,
   ];
 
