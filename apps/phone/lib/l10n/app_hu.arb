@@ -292,5 +292,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "liveTargetSpeed": "Cél-seb."
 }

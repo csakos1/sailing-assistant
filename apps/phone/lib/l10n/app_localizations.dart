@@ -495,6 +495,12 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'{count} bója'**
   String listMarkCount(int count);
+
+  /// No description provided for @liveTargetSpeed.
+  ///
+  /// In hu, this message translates to:
+  /// **'Cél-seb.'**
+  String get liveTargetSpeed;
 }
 
 class _AppLocalizationsDelegate

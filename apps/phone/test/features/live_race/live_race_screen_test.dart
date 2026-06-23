@@ -264,9 +264,9 @@ void main() {
         status: const Connected(),
       );
 
-      // TWA most a windData-ból megvan; a prediction-függő öt cella „—".
+      // TWA most a windData-ból megvan; a tobbi hat cella „—".
       expect(find.text('32°'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(5));
+      expect(find.text('—'), findsNWidgets(6));
     });
 
     testWidgets('shows the stale chip when connected data is old', (

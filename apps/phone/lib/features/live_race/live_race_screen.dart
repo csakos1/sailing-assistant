@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
+import 'package:phone/features/live_race/target_speed.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
 import 'package:phone/features/live_race/widgets/live_status_bar.dart';
 import 'package:phone/features/live_race/widgets/metric_cell.dart';
@@ -24,6 +25,7 @@ import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
+import 'package:phone/providers/race_snapshot_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/twd_quality_provider.dart';
@@ -139,6 +141,16 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final twdQuality = ref.watch(twdQualityProvider);
     final wind = ref.watch(windDataProvider);
     final boat = ref.watch(boatStateProvider);
+    final snapshot = ref.watch(raceSnapshotProvider);
+    // A cél-sebesség %: a snapshot live sebessége és a polár célja
+    // alapján (ugyanaz a tick). Cél híján gondolatjel, nem 0%.
+    final boatSnapshot = snapshot?.boatState;
+    final targetPercent = targetSpeedPercent(
+      liveSpeedMetersPerSecond:
+          (boatSnapshot?.speedThroughWater ?? boatSnapshot?.speedOverGround)
+              ?.metersPerSecond,
+      targetSpeedKnots: snapshot?.targetSpeedKnots,
+    );
     final status = ref.watch(connectionStatusProvider);
     final tick = ref.watch(tickProvider).valueOrNull;
     final gpsTime =
@@ -235,6 +247,12 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                             prediction?.eta,
                             minutesUnit: l10n.etaMinutesUnit,
                           ),
+                        ),
+                      ),
+                      MetricCell(
+                        label: l10n.liveTargetSpeed,
+                        child: MetricValueText(
+                          formatTargetSpeedPercent(targetPercent),
                         ),
                       ),
                     ],

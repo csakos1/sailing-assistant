@@ -222,4 +222,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String listMarkCount(int count) {
     return '$count bója';
   }
+
+  @override
+  String get liveTargetSpeed => 'Cél-seb.';
 }
