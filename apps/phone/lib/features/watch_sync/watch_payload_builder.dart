@@ -7,7 +7,7 @@ import 'package:shared/shared.dart';
 ///
 /// Pure függvény (Flutter nélkül tesztelhető): csak a megjelenítendő, már
 /// kiszámolt értékeket emeli ki, mértékegység-konverzióval (SOG csomóban,
-/// szögek előjeles fokban). A VMG v1-ben mindig `null` (ADR 0015 D2).
+/// szögek előjeles fokban). A VMG előjeles, csomóban (4. szelet).
 ///
 /// A critical figyelmeztetéseket a [localizeWarning] callbackkel lokalizálja
 /// (ADR 0015 D4), így a builder l10n-agnosztikus marad: a provider a valódi
@@ -22,6 +22,7 @@ WatchPayload buildWatchPayload({
   MarkPrediction? prediction,
   TwdQuality twdQuality = TwdQuality.unavailable,
   double? targetSpeedKnots,
+  double? vmgKnots,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -36,7 +37,7 @@ WatchPayload buildWatchPayload({
     gpsTimeUtc: trueTime.utc,
     isGpsTimeTrusted: _isTrusted(trueTime.source),
     sogKnots: speed == null ? null : speed.metersPerSecond * _knotsPerMps,
-    // A vmgKnots tudatosan kimarad: v1-ben mindig null, a slot v2-re rezervált.
+    vmgKnots: vmgKnots,
     currentTwa: windData?.trueAngleWater?.degrees,
     predictedTwaAtMark: prediction?.predictedTwaAtMark?.degrees,
     twdQuality: twdQuality.name,

@@ -229,6 +229,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       prediction: snapshot.prediction,
       twdQuality: snapshot.twdQuality,
       targetSpeedKnots: snapshot.targetSpeedKnots,
+      vmgKnots: snapshot.vmgKnots,
     );
   }
 
