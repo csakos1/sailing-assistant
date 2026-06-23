@@ -269,3 +269,100 @@ polár-építő tool (A1), az STW vs SOG (A6), és a `.pol` formátum / D3
 (A5). **Nyitva marad** a 2–4. szelet design-köreire: a polár **tárolása**
 (Drift-tábla vs bundled asset), az **óra-kijelzés layout**, és a
 **VMG-típusok** (felszél/hátszél/mark-VMG).
+
+## Addendum 2 — Polár-tárolás és data-réteg (2. szelet) (2026-06-23)
+
+Az 1. szelet (a `Polar` value object + `LookupTargetSpeed` use case) a
+domainben landolt. Ez az addendum a 0028 „Nyitott kérdések" közül a
+**polár tárolását** zárja le, és rögzíti a 2. szelet réteg-kiosztását — a
+kód ezen alapul.
+
+### B1 — Tárolás: bundled asset, NEM Drift-tábla és NEM file-import (v1)
+
+A `foretack.pol` **fordításidős asset** lesz
+(`apps/phone/assets/polars/foretack.pol`), `rootBundle`-ből betöltve, a
+`PolarRepository` absztrakció mögött.
+
+Miért ez, és nem a 0028-ban felvetett másik két út:
+
+- **Drift-tábla elvetve.** A polár nem relációs adat: egyetlen, néhány
+  KB-os TWA×TWS szöveg. Drift-be tenni (szöveg/BLOB egy sorban) nem ad
+  relációs előnyt — a Drift a `Race`/`Mark`/`snapshot_logs` relációihoz
+  való. Tábla + migráció egy konstans fájlhoz fölös felület.
+- **File-import (file_picker + import-képernyő + perzisztencia) elvetve
+  most.** Egyetlen fejlesztő, saját hajó, ritka polár-csere; a
+  frissítéshez amúgy is Arch-build + deploy kell (a gép-specifikus debug
+  keystore miatt). A file-import nagy felület egy ritka művelethez —
+  sérti a v1 „ne gold-plate-elj" elvét (ADR 0003 nyomvonal).
+
+**Trade-off és kompatibilitás.** A bundled asset ára: polár-csere = új
+build. Ez most elfogadható. A file-import nem kizárt, csak halasztva: a
+`PolarRepository` mögött **drop-in csere** (OCP/DIP) — egy későbbi szelet
+`ImportedPolarRepository`-t adhat (file_picker → parse → app-doc-dir
+másolás), az interfész változatlanul marad.
+
+### B2 — Réteg-kiosztás (Clean Architecture, DIP)
+
+- **domain:** `repositories/polar_repository.dart` — a `PolarRepository`
+  interfész (`Future<Result<Polar, PolarLoadError>> loadPolar()`) és a
+  `PolarLoadError` sealed típus. A domain nem tud a `.pol`-dialektusról
+  és a rootBundle-ról; csak az absztrakciót ismeri.
+- **data:** `polar/` — a `.pol`-parser (pure
+  `String → Result<Polar, PolarLoadError>`) és az `AssetPolarRepository`
+  (rootBundle-olvasás → parser → memóriában cache-elt eredmény). A data a
+  domaintől függ (befelé mutató függőség), ezért a parser a domain
+  `PolarLoadError`-ját adja vissza — nincs külön data-hibatípus + mapping.
+- **phone:** a `foretack.pol` asset + a `pubspec.yaml` asset-deklaráció.
+  A betöltő provider és minden fogyasztás a 3. szelet.
+
+A `data` package amúgy is Flutter-függő (Drift, `path_provider`), így a
+`rootBundle` ott elérhető; a parser-LOGIKA viszont platform-mentes pure
+függvény, ezért a data unit-tesztje a valós `foretack.pol`-cellákkal
+fixtúraként fedi.
+
+### B3 — `PolarLoadError`: sealed, nem enum
+
+A `PolarLoadError` **sealed class** (nem enum, szemben az NMEA
+`ParseError`-ral, ADR 6.3): itt a hibának **van fogyasztója** — a
+`PolarMissing` info-warning indoka, és (debug) a hiba lokalizálása.
+Ágak:
+
+- `assetMissing` — a rootBundle nem találja az assetet (rossz út /
+  hiányzó deklaráció).
+- `empty` — üres vagy csak whitespace tartalom.
+- `malformedHeader` — a fejléc nem a `twa/tws;<tws-ek>` alak.
+- `malformedRow(rowIndex, reason)` — egy adatsor rossz (cella-szám vagy
+  nem-szám érték); a payload a debug-lokalizációhoz.
+- `noUsableCells` — a parse lefutott, de minden cella üres-sentinel
+  (`0.00`) volt → nincs használható target.
+
+(A „melyik út / hány elem" az enum + payload helyett a sealed ágak
+payloadjában lakik — ez a `Result<T, E>` `Err`-ágának haszna.)
+
+### B4 — Parser-szerződés
+
+A `.pol`-dialektus az Addendum 1 A5-ben rögzített: `;`-elválasztó, fejléc
+`twa/tws;<TWS-oszlopok>`, sorok `<TWA>;<cellák>`, TWA 0–180 (5°),
+üres-sentinel `0.00`. A parser determinista, pure:
+
+- A `0.00`-sentinelt **`null`-ra** fordítja (üres vödör — a `Polar`
+  rácsa `null`-t vár, NEM 0.0).
+- A tengelyeket a fejlécből / az első oszlopból építi; ha nem szigorúan
+  növekvők vagy üresek, a `Polar` assertje amúgy is elkapná — de a parser
+  `Result`-tal előbb, tiszta hibával zár (nem assert-crash untrusted
+  bemeneten).
+
+### B5 — `PolarMissing` warning és a provider a 3. szeletre marad
+
+A 2. szelet a **betöltést** és a hiba-`Result`-ot adja. A `PolarMissing`
+info-warning **emissziója** (a `EvaluateWarnings` / snapshot-pipeline-ba)
+és a betöltő `polarProvider` (application) a 3. szelettel jön, amikor a
+target-%-ot ténylegesen számoljuk — különben halott warning és
+nem-fogyasztott provider. A 2/3 commit-határ a fogyasztásnál van.
+
+### Lezárt / nyitva maradó kérdések
+
+Ez az addendum **lezárja** a 0028 „Nyitott kérdések" közül a **polár
+tárolását** (bundled asset a `PolarRepository` mögött). **Nyitva marad**
+a 3–4. szeletre: az **óra-kijelzés layout** (új lap vs mező) és a
+**VMG-típusok** (felszél/hátszél/mark-VMG).
