@@ -415,3 +415,115 @@ A 2. + 3a szelet a betöltést és a `null`-target-utat adja; a hiány **láthat
 - **3a** (a mag, replay/unit-tesztelhető): `polar_codec.dart`; engine `_polar` + `start(race, polar:)` + `_onTick` lookup → snapshot; `RaceSnapshot.targetSpeedKnots`; host-átadás (`polarProvider` + init-üzenet); `WatchPayload.targetSpeedPercent` + `buildWatchPayload`. Több commit (codec → engine+snapshot → host → payload+builder).
 - **3b**: telefon-UI grid-cella a target-%-nak.
 - **3c**: óra-mező/layout + `PolarMissing` warning. Ez érinti a `race_shell` layoutot és a warning-rendszert — a párhuzamos-chat (mélység/clamp) ütközés itt a legvalószínűbb, ezért a sorban hátul.
+
+## Addendum 4 — Élő + target VMG (4. szelet) (2026-06-24)
+
+**Státusz:** elfogadva. Lezárja a 0028 D5-öt (VMG) a fel-/hátszeles
+VMG-re, és a „Nyitott kérdések" VMG-típusait erre a körre. Az
+**optimum-szög kijelzése** és a **mark-VMG** halasztva (lásd lent). A
+0030 (polár-vezérelt no-go clamp) változatlanul külön ADR.
+
+A VMG két lépésben landolt, és **az élő VMG (4. szelet) annak idején
+addendum nélkül ment kódba** — ez az addendum visszamenőleg rögzíti az
+élő VMG döntéseit, és előre a target VMG-ét (4b). A 0028 D6 a VMG-t
+egyetlen `ComputeVmg`-ként vázolta („SOG/STW + irány → VMG; a polárból
+target VMG + optimum TWA"); a tényleges bontás finomodott: az élő VMG egy
+tiszta `ComputeVmg`, a target VMG egy külön `LookupTargetVmg`, ami a
+meglévő `LookupTargetSpeed`-et komponálja. A döntés-prefix itt **E** (a
+`D`-t a fő „Döntés" szakasz használja, D1–D7).
+
+### E1 — Mit mutatunk: élő VMG + target VMG (NEM optimum-szög v1-ben)
+
+A kijelző az **élő VMG-t** (mit teszel most) és a **target VMG-t** (mit
+érhetnél el az adott szélben) mutatja — a kettő különbsége teszi
+actionable-lé. A 0028 D5 az optimum-szög („menj 42°-ra") kijelzését is
+felvetette; v1-ben **nem** mutatjuk: a `LookupTargetVmg` a sáv-pásztázás
+közben megtalálja az optimum-szöget, de csak a target VMG-t adja vissza —
+a szög kijelzése egy későbbi szelet (4c-jelölt), a vízi visszajelzés
+után. Indok: minimális felület, gyorsan vízre kerül; a target VMG-szám
+már elég a „mennyire vagyok az elérhető legjobbon" visszajelzéshez.
+
+### E2 — Élő VMG: `ComputeVmg`, előjeles, totális (4. szelet, retroaktív)
+
+`ComputeVmg` pure use case: `STW × cos(TWA)`, **előjeles** (pozitív =
+szél felé, felmenő `|TWA| < 90°`; negatív = széltől el, lemenő
+`|TWA| ≥ 90°`), **totális** — nincs no-go-kapu, szemben a
+`LookupTargetSpeed`-del: az élő VMG a no-go-ban is mérhető. A
+sebesség-forrás **STW (SOG-fallback)**, a TWA a `trueAngleWater`
+(water-referencia, konzisztens a target-%-kal, ADR 0028 Add. 3 A6/C5). A
+`cos` páros, így |TWA| és előjeles TWA ugyanazt adja; a sebesség-forrás
+és a null-kezelés a hívóé (az engine-helper).
+
+### E3 — Target VMG: `LookupTargetVmg`, a polár-sáv VMG-szélsőértéke
+
+`LookupTargetVmg` pure use case: az adott TWS mellett a fel-/hátszeles
+sávban pásztázza a polárt, és a **VMG-szélsőértéket** adja vissza
+(felmenőn a max, lemenőn a min — mindkettő a 0-tól legtávolabbi),
+**előjelesen** (mint az élő VMG, hogy közvetlenül összevethető legyen). A
+target-vízsebességet a meglévő **`LookupTargetSpeed`-ből** kéri (DRY: a
+no-go-kapu + bilineáris interpoláció ott már validált), így a target VMG
+ugyanazt a polárt és no-go-szabályt használja, mint a target-%.
+
+- **Sáv.** Felmenőn `[Polar.noGoThresholdDegrees, 90°)`, lemenőn
+  `(90°, 180°]`, **1°-os** lépéssel: a bilineáris lookup sima, így a durva
+  5°-os rács helyett finom, jitter-mentes optimum (1 Hz-en triviális). A
+  90°-os beam-szöget egyik sem tartalmazza (VMG ≈ 0).
+- **`null`**, ha nem-véges a bemenet, vagy a sávban sehol nincs
+  polár-adat (üres rács-környezet).
+
+### E4 — Eltérés a D5-től: a fel-/hátszél a |TWA|-ból, NEM a leg-geometriából
+
+A 0028 D5 a fel-/hátszél eldöntését „a leg geometriájából (a meglévő
+bója-adatból)" tervezte. A tényleges implementáció a **pillanatnyi
+`|TWA|`-t** használja (`< 90°` → felmenő, a no-go is felmenő). Indok: az
+**élő VMG előjele** a `cos(TWA)`-ból a pillanatnyi |TWA| szerint áll elő;
+ha a target VMG sávját a leg-geometria döntené el, az élő és a target VMG
+**előjele eltérhetne** (élő negatív, mert épp `|TWA| > 90°`, de a target
+pozitív, mert a leg felszeles) — összevethetetlenül. A pillanatnyi |TWA|
+így **konzisztens** előjelet ad mindkettőnek. A **mark-VMG** (a bója felé
+vetített VMG), amit D5 külön említ, **halasztva** — a 4b a szél-VMG
+(fel/le), nem a bója-VMG.
+
+### E5 — A számítás helye: a háttér-engine `_onTick` (ADR 0017-konform)
+
+Mindkét VMG a háttér-FGS-engine `_onTick`-jében számolódik, a target-%
+mintájára (ADR 0028 Add. 3 C1): külön `_vmgKnots()` és `_targetVmgKnots()`
+helper, a `_wind` (TWA → sáv + irány, TWS) és a `_boatState` (STW/SOG)
+alapján. Így a VMG a `RaceSnapshot`-ba kerül, post-race elemezhető (ADR
+0022/0025), nem fő-izolátumbeli megjelenítési derivált.
+
+### E6 — A szerződés: snapshot `vmgKnots` + `targetVmgKnots`, payload ugyanígy
+
+- **`RaceSnapshot.vmgKnots`** (`double?`, kn): az élő VMG, előjeles (a
+  4. szeletben landolt).
+- **`RaceSnapshot.targetVmgKnots`** (`double?`, kn): a target VMG,
+  előjeles (4b — additív mező).
+- **`WatchPayload.vmgKnots`**: a 4. szeletben **élesítve** — a 0015 D2
+  szerinti „v1-ben mindig null" rezerváció megszűnt.
+- **`WatchPayload.targetVmgKnots`** (`double?`): a target VMG, additív
+  payload-mező (ADR 0015 additív-bővítés). A `buildWatchPayload` a
+  snapshot `targetVmgKnots`-jából tölti (mint a `vmgKnots`-ot); **mindkét
+  payload-építő hívó** (a builder és a task-handler) bekötve.
+
+### E7 — Kijelzés: telefon közös cella, óra (VMG, target) — a TWA helyén
+
+- **Telefon (grid).** A meglévő `liveVmg` cella az **élő ÉS a target
+  VMG-t** együtt mutatja (közös formázó, `élő / cél`); **nincs új
+  grid-cella és nincs új ARB-kulcs** — a 8 cellás rács (ADR 0028 Add. 3 /
+  3b) változatlan. A placeholder-count is marad (a cella továbbra is egy
+  `—` adat híján).
+- **Óra (`SpeedView`).** A SOG-hero alatti `(VMG, TWA)` sorban a
+  **TWA-cellát a target-VMG váltja** → `(élő VMG, target VMG)`.
+  Következmény: a **pillanatnyi TWA eltűnik a `SpeedView` A-lapjáról** — a
+  felhasználó döntése; a TWA így a B-nézet predikciós kontextusában
+  marad. Az óra-formázó a shared `formatSpeedKnots` (előjeles,
+  `null → '—'`).
+
+### Lezárt / nyitva maradó kérdések
+
+Ez az addendum **lezárja** a 0028 D5-öt (élő + target VMG) és a „Nyitott
+kérdések" VMG-típusait a **fel-/hátszeles VMG**-re. **Nyitva marad /
+halasztva:** az **optimum-szög kijelzése** (a use case megtalálja, de
+v1-ben nem mutatjuk — 4c-jelölt), a **mark-VMG** (a bója felé vetített
+VMG), és a VMG-előjel óra-ergonómiája (ha a mínusz zavaró lemenőn, fel/le-
+nyíl helyette — a vízi visszajelzés dönti el).
