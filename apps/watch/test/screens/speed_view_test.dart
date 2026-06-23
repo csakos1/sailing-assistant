@@ -84,6 +84,47 @@ void main() {
     expect(find.text('—'), findsOneWidget); // csak a VMG placeholder
   });
 
+  testWidgets('live VMG: a VMG-érték megjelenik csomóban', (tester) async {
+    final p = WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      sogKnots: 6.4,
+      currentTwa: 32,
+      vmgKnots: 4.5,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: watchDarkTheme,
+        home: Scaffold(
+          body: SpeedView(payload: p, colors: colors, ambient: false),
+        ),
+      ),
+    );
+
+    expect(find.text('4.5'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget); // csak a cél-% placeholder
+  });
+
+  testWidgets('lemenő VMG: a negatív érték előjellel jelenik meg', (
+    tester,
+  ) async {
+    final p = WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      sogKnots: 5,
+      currentTwa: 150,
+      vmgKnots: -3.8,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: watchDarkTheme,
+        home: Scaffold(
+          body: SpeedView(payload: p, colors: colors, ambient: false),
+        ),
+      ),
+    );
+
+    expect(find.text('-3.8'), findsOneWidget);
+  });
+
   testWidgets('kis viewporton nincs túlcsordulás (42 mm-arány)', (
     tester,
   ) async {
