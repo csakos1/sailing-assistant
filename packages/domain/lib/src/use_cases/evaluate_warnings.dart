@@ -45,9 +45,10 @@ class EvaluateWarnings {
   /// A heading és a COG közti eltérés gyanú-küszöbe fokban (alap 35°).
   final double _headingDiscrepancyThresholdDeg;
 
-  /// A [connectionStatus] / [boatState] / [windShiftTrend] / [raceStatus]
-  /// és az idő-szinkron primitívek ([isTimeUnsynced], [timeStreamDrift])
-  /// alapján kiszámolt aktív warningok. Üres lista = nincs figyelmeztetés.
+  /// A [connectionStatus] / [boatState] / [windShiftTrend] / [raceStatus],
+  /// az idő-szinkron primitívek ([isTimeUnsynced], [timeStreamDrift]) és a
+  /// [isPolarMissing] (a polár betöltése sikertelen) alapján kiszámolt aktív
+  /// warningok. Üres lista = nincs figyelmeztetés.
   List<Warning> call({
     required ConnectionStatus connectionStatus,
     required BoatState boatState,
@@ -55,6 +56,7 @@ class EvaluateWarnings {
     required RaceStatus raceStatus,
     required bool isTimeUnsynced,
     required Duration? timeStreamDrift,
+    required bool isPolarMissing,
   }) {
     // Gateway-gating: élő feed nélkül egyetlen, egyértelmű critical jelzés
     // — a downstream GPS/szél-warningokat elnyomjuk (ADR 0014 D5).
@@ -91,6 +93,13 @@ class EvaluateWarnings {
     // Rajt előtt a trend hiánya normális; csak aktív versenyben jelzünk.
     if (windShiftTrend == null && raceStatus == RaceStatus.active) {
       warnings.add(const WindShiftTrendInsufficient());
+    }
+
+    // Nincs használható polár (hiányzó/hibás asset) → a cél-sebesség %
+    // nem számítható. Info: a no-go (van polár, de üres cella) NEM ide
+    // tartozik. Sorrend: a másik info (szél-trend) után, determinisztikusan.
+    if (isPolarMissing) {
+      warnings.add(const PolarMissing());
     }
 
     return warnings;

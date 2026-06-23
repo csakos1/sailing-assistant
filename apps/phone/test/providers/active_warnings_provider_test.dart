@@ -8,14 +8,25 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/polar_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/true_time_provider.dart';
 import 'package:phone/providers/wind_shift_trend_provider.dart';
+import 'package:shared/shared.dart';
 
 void main() {
   final tickTime = DateTime.utc(2025, 6, 1, 10, 0, 30);
   final anchorUtc = DateTime.utc(2025, 6, 1, 10);
   const position = Coordinate(latitude: 46.9, longitude: 17.9);
+  final samplePolar = Polar(
+    twaAxis: const [0, 90, 180],
+    twsAxis: const [6, 12],
+    grid: const [
+      [null, null],
+      [4, 6],
+      [3, 5],
+    ],
+  );
 
   final gnssReading = TrueTimeReading(
     utc: anchorUtc,
@@ -52,6 +63,7 @@ void main() {
     WindShiftTrend? trend,
     Race? race,
     TrueTimeReading? trueTime,
+    bool polarMissing = false,
   }) {
     ticks = StreamController<DateTime>.broadcast();
     final container = ProviderContainer(
@@ -66,6 +78,11 @@ void main() {
         windShiftTrendProvider.overrideWithValue(trend),
         activeRaceProvider.overrideWith(() => _FixedActiveRace(race)),
         trueTimeProvider.overrideWithValue(() => trueTime ?? gnssReading),
+        polarProvider.overrideWith(
+          (ref) async => polarMissing
+              ? const Err<Polar, PolarLoadError>(PolarAssetMissing())
+              : Ok<Polar, PolarLoadError>(samplePolar),
+        ),
       ],
     )..listen(activeWarningsProvider, (_, _) {});
     addTearDown(ticks.close);
@@ -95,6 +112,19 @@ void main() {
       final container = makeContainer(trend: sampleTrend, race: activeRace());
       await tick();
       expect(container.read(activeWarningsProvider), isEmpty);
+    });
+
+    test('polár-betöltés Err → PolarMissing (info)', () async {
+      final container = makeContainer(
+        trend: sampleTrend,
+        race: activeRace(),
+        polarMissing: true,
+      );
+      await tick();
+      expect(
+        container.read(activeWarningsProvider),
+        contains(const PolarMissing()),
+      );
     });
 
     test('nem csatlakozott → csak GatewayDisconnected (suppression)', () async {

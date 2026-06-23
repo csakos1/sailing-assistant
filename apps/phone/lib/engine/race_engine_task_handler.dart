@@ -66,6 +66,11 @@ class RaceEngineTaskHandler extends TaskHandler {
   WatchSyncController? _watchSync;
   RaceSnapshot? _latestSnapshot;
 
+  /// A betöltött polár hiánya (hiányzó/hibás asset → a host `polar: null`-t
+  /// küld, 3a C2). A `_buildWatchPayload` ebből adja az `isPolarMissing`
+  /// kaput az `EvaluateWarnings`-nak (ADR 0028 C6).
+  bool _isPolarMissing = false;
+
   // A critical warningokat itt lokalizáljuk (widget-fa nélkül, ADR 0015 D4);
   // v1 magyar.
   final AppLocalizations _l10n = lookupAppLocalizations(const Locale('hu'));
@@ -141,6 +146,7 @@ class RaceEngineTaskHandler extends TaskHandler {
         final race = raceFromJson(map['race'] as Map<String, dynamic>);
         final polarJson = map['polar'] as Map<String, dynamic>?;
         final polar = polarJson == null ? null : polarFromJson(polarJson);
+        _isPolarMissing = polar == null;
         final engine = _engine;
         if (engine != null) {
           unawaited(engine.start(race, polar: polar));
@@ -211,6 +217,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       raceStatus: snapshot.raceStatus,
       isTimeUnsynced: trueTime.source == TrueTimeSource.wallClockUnsynced,
       timeStreamDrift: _timeStreamDrift(trueTime, snapshot.boatState),
+      isPolarMissing: _isPolarMissing,
     );
     return buildWatchPayload(
       boatState: snapshot.boatState,

@@ -26,6 +26,7 @@ void main() {
     RaceStatus raceStatus = RaceStatus.notStarted,
     bool isTimeUnsynced = false,
     Duration? timeStreamDrift,
+    bool isPolarMissing = false,
     EvaluateWarnings useCase = const EvaluateWarnings(),
   }) {
     return useCase(
@@ -35,6 +36,7 @@ void main() {
       raceStatus: raceStatus,
       isTimeUnsynced: isTimeUnsynced,
       timeStreamDrift: timeStreamDrift,
+      isPolarMissing: isPolarMissing,
     );
   }
 
@@ -269,6 +271,53 @@ void main() {
         );
 
         expect(result, isNot(contains(const SuspectHeadingWarning())));
+      });
+    });
+
+    group('PolarMissing', () {
+      test('severity info és stabil codeId', () {
+        expect(const PolarMissing().severity, WarningSeverity.info);
+        expect(const PolarMissing().codeId, 'polar_missing');
+      });
+
+      test('isPolarMissing=true → tartalmazza', () {
+        expect(
+          evaluate(isPolarMissing: true),
+          contains(const PolarMissing()),
+        );
+      });
+
+      test('isPolarMissing=false → nem tartalmazza', () {
+        expect(
+          evaluate(),
+          isNot(contains(const PolarMissing())),
+        );
+      });
+
+      test('nem csatlakozott → elnyomva a gating miatt', () {
+        // A polár-hiány önmagában nem critical; gateway nélkül a
+        // GatewayDisconnected nyom el mindent (ADR 0014 D5).
+        expect(
+          evaluate(
+            connectionStatus: const Disconnected(),
+            isPolarMissing: true,
+          ),
+          isNot(contains(const PolarMissing())),
+        );
+      });
+
+      test('info sorrend: a szél-trend után jön', () {
+        // Mindkettő info; a determinizmus kedvéért a PolarMissing a
+        // WindShiftTrendInsufficient UTÁN sorolódik.
+        final result = evaluate(
+          isPolarMissing: true,
+          raceStatus: RaceStatus.active,
+        );
+
+        expect(result, [
+          const WindShiftTrendInsufficient(),
+          const PolarMissing(),
+        ]);
       });
     });
   });
