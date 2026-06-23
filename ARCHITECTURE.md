@@ -3043,10 +3043,13 @@ Piros téma v2-deferred). Három nézet, a forgatható peremmel váltva; az **al
 a B**. Mindkét nézet tetején a **GPS-idő** (`HH:mm:ss`, JetBrains Mono) és egy
 **állapot-pötty** (megbízható idő → teal, egyébként tompított).
 
-**Nézet A — Sebesség.** Hero: **SOG** (`kts`, középre). Alatta **egy sorban,
-azonos betűmérettel** a **VMG** (`kts`, v1-ben placeholder `—` — a `vmgKnots`
-mindig null, v2-ben kötjük be) és a **TWA most** (fok, előjeles), port/stbd
-nyíllal **befelé**.
+**Nézet A — Sebesség.** Hero: **SOG** (`kts`), mellette **jobbra** a
+**cél-sebesség %** (target speed: az élő STW/SOG a polár-célhoz viszonyítva,
+ADR 0028 C4; nincs polár vagy no-go → `—`). A SOG és a % egy sorban, a %
+kisebb betűvel; ambientben csak a SOG marad. Alatta **egy sorban, azonos
+betűmérettel** a **VMG** (`kts`, v1-ben placeholder `—` — a `vmgKnots` mindig
+null, v2-ben kötjük be) és a **TWA most** (fok, előjeles), port/stbd nyíllal
+**befelé**.
 
 **Nézet B — Köv. bója (taktika), alapnézet.** A GPS-idő sor alatt egy
 **cím-sor**: a bója neve és a **Bója táv** (`m`/`km`) összevonva (pl.
@@ -3303,6 +3306,13 @@ nélkül):
   warning). A bemenet a `BoatState.depth` (DPT/DBT, §6.1); race-state-
   független (a zátonyveszély nem függ a verseny állapotától). HU ARB:
   `warning_depth_shallow`. ADR 0031.
+- `PolarMissing` (info) — a polár betöltése sikertelen (hiányzó, üres
+  vagy hibás asset; a `polarProvider` `Err`-ága). Ilyenkor a
+  cél-sebesség % nem számítható, a watch SpeedView-cellája `—`. A no-go
+  (van polár, de a cella `null`) NEM vált ki warningot — az normál
+  állapot. Info, ezért csak a telefon `WarningBanner`-jén jelenik meg; a
+  payload (ADR 0015) csak a critical warningokat viszi az órára. HU ARB:
+  `warning_polar_missing`. ADR 0028 C6.
 
 Elnyomási szabály (ADR 0014 D5): ha `connectionStatus is! Connected`, az
 `EvaluateWarnings` CSAK a `GatewayDisconnected`-et adja vissza, elnyomva a
@@ -3320,8 +3330,9 @@ adat/seam/szabály:
   kihagyva a fókuszért.
 - `WindSensorAnomaly` — nincs definiált küszöb/szabály.
 
-v2-ben hozzákerül a `PolarMissing` (info) — ha a felhasználó polárt
-importált, de aktuális TWS/TWA-ra nincs lookup érték.
+A `PolarMissing` (info) MOST bekötve (ADR 0028 C6, a polár 3c szelete);
+lásd fentebb a v1-katalógusban — a polár-réteg megérkezésével előrehozva
+a korábban v2-re tervezett warningot.
 
 ### 11.3 Megjelenítés és az „elavult" chip viszonya (ADR 0014 D5–D6)
 
