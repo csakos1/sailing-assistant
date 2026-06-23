@@ -12,7 +12,9 @@ abstract interface class RaceEngineHost {
   /// Elindítja a foreground service-t és a háttér-izolátumot a [race]-szel
   /// (a Race a ready-kézfogásra megy át, A13). Visszaadja a
   /// `ServiceRequestFailure` üzenetét, vagy `null`-t, ha a service elindult.
-  Future<String?> start(Race race);
+  /// A [polar] (ha van) az init-üzenettel jut a háttér-engine-hez (ADR 0028
+  /// Add. 3, A1); `null` esetén a cél-sebesség mindig `null`.
+  Future<String?> start(Race race, {Polar? polar});
 
   /// Start parancs az engine-nek (`notStarted → active`) az [at] időponttal.
   void sendStartCommand(DateTime at);

@@ -139,9 +139,11 @@ class RaceEngineTaskHandler extends TaskHandler {
         }
         _started = true;
         final race = raceFromJson(map['race'] as Map<String, dynamic>);
+        final polarJson = map['polar'] as Map<String, dynamic>?;
+        final polar = polarJson == null ? null : polarFromJson(polarJson);
         final engine = _engine;
         if (engine != null) {
-          unawaited(engine.start(race));
+          unawaited(engine.start(race, polar: polar));
         }
       case 'start':
         _engine?.applyStartCommand(_atFromMillis(map['at'] as int));

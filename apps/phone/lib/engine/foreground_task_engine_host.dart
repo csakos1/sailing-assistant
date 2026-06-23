@@ -24,12 +24,17 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
   // init-ként (A13). null, amíg nem indult session.
   Race? _pendingRace;
 
+  // A legutóbbi start()-tal átadott polár (ADR 0028 Add. 3); az init-üzenet
+  // viszi a háttérbe. null → a háttér null-polárral fut (cél-sebesség null).
+  Polar? _pendingPolar;
+
   @override
   Stream<RaceSnapshot> get snapshots => _controller.stream;
 
   @override
-  Future<String?> start(Race race) async {
+  Future<String?> start(Race race, {Polar? polar}) async {
     _pendingRace = race;
+    _pendingPolar = polar;
     await _requestNotificationPermission();
     _initService();
 
@@ -120,10 +125,12 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     if (map['type'] == 'ready') {
       final race = _pendingRace;
       if (race != null) {
+        final polar = _pendingPolar;
         FlutterForegroundTask.sendDataToTask(
-          jsonEncode(<String, Object>{
+          jsonEncode(<String, Object?>{
             'type': 'init',
             'race': raceToJson(race),
+            'polar': polar == null ? null : polarToJson(polar),
           }),
         );
       }

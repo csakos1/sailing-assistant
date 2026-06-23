@@ -4,8 +4,10 @@ import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
+import 'package:phone/providers/polar_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
+import 'package:shared/shared.dart';
 
 /// A háttér-engine életciklusát a session-flaghez és a verseny státusz-
 /// átmeneteihez köti (ADR 0017 A12/A13). Mellékhatás-provider (`Provider<void>`):
@@ -26,7 +28,8 @@ final raceEngineLifecycleProvider = Provider<void>((ref) {
         final race = ref.read(activeRaceProvider);
         if (race == null) return;
         unawaited(() async {
-          final error = await host.start(race);
+          final polar = await _loadPolar(ref);
+          final error = await host.start(race, polar: polar);
           ref.read(engineServiceErrorProvider.notifier).state = error;
         }());
       } else {
@@ -53,3 +56,13 @@ final raceEngineLifecycleProvider = Provider<void>((ref) {
       }
     });
 });
+
+/// A polár betöltése a `polarProvider`-ből; hiba/hiányzó polár → `null`
+/// (a háttér-engine null-polárral fut, a cél-sebesség `null`).
+Future<Polar?> _loadPolar(Ref ref) async {
+  final result = await ref.read(polarProvider.future);
+  return switch (result) {
+    Ok(:final value) => value,
+    Err() => null,
+  };
+}

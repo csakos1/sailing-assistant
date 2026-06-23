@@ -144,7 +144,7 @@ class _RecordingHost implements RaceEngineHost {
   void sendRoundMarkCommand() {}
 
   @override
-  Future<String?> start(Race race) async {
+  Future<String?> start(Race race, {Polar? polar}) async {
     startedRaces.add(race);
     return startError;
   }

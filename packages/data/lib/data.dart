@@ -12,6 +12,7 @@
 /// domainben élnek.
 library;
 
+export 'package:data/src/engine/polar_codec.dart';
 export 'package:data/src/engine/race_codec.dart';
 export 'package:data/src/engine/race_engine.dart';
 export 'package:data/src/engine/race_snapshot.dart';
