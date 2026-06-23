@@ -29,6 +29,7 @@ class RaceSnapshot {
     this.twdQuality = TwdQuality.unavailable,
     this.targetSpeedKnots,
     this.vmgKnots,
+    this.targetVmgKnots,
   });
 
   /// Visszaépít egy pillanatképet a [json] `Map<String, dynamic>`-ból. A
@@ -59,6 +60,7 @@ class RaceSnapshot {
       twdQuality: _twdQualityFromName(json['twdQuality'] as String?),
       targetSpeedKnots: (json['targetSpeedKnots'] as num?)?.toDouble(),
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
+      targetVmgKnots: (json['targetVmgKnots'] as num?)?.toDouble(),
     );
   }
 
@@ -101,6 +103,12 @@ class RaceSnapshot {
   /// telefon-grid jeleníti meg; post-race elemezhető (ADR 0025).
   final double? vmgKnots;
 
+  /// A polár-alapú target VMG (kn) a tick pillanatában, vagy `null`, ha
+  /// nincs polár, hiányzik a water-referenciájú szél, vagy a sávban nincs
+  /// adat (ADR 0028 Addendum 4). Előjeles, az élő VMG-vel összevethető;
+  /// post-race elemezhető (ADR 0025).
+  final double? targetVmgKnots;
+
   /// A tick app-óra ideje.
   final DateTime tickTime;
 
@@ -121,6 +129,7 @@ class RaceSnapshot {
       'twdQuality': twdQuality.name,
       'targetSpeedKnots': targetSpeedKnots,
       'vmgKnots': vmgKnots,
+      'targetVmgKnots': targetVmgKnots,
     };
   }
 }

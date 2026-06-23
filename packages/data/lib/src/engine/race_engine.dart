@@ -51,6 +51,7 @@ class RaceEngine {
   static const _derive = DeriveTrueWindDirection();
   static const _lookupTarget = LookupTargetSpeed();
   static const _computeVmg = ComputeVmg();
+  static const _lookupTargetVmg = LookupTargetVmg();
 
   // m/s → csomó: a LookupTargetSpeed kn-ben várja a TWS-t, a Speed m/s-ben.
   static const _knotsPerMps = 1.943844;
@@ -243,6 +244,7 @@ class RaceEngine {
     );
     final targetSpeedKnots = _targetSpeedKnots();
     final vmgKnots = _vmgKnots();
+    final targetVmgKnots = _targetVmgKnots();
     // A snapshotot lokális változóba emeljük: az emit után a
     // snapshot-logger ugyanazt a példányt kapja (ADR 0022 D4).
     final snapshot = RaceSnapshot(
@@ -257,6 +259,7 @@ class RaceEngine {
       twdQuality: _lastTwdQuality,
       targetSpeedKnots: targetSpeedKnots,
       vmgKnots: vmgKnots,
+      targetVmgKnots: targetVmgKnots,
     );
     _snapshots.add(snapshot);
     // unawaited + a logger internál try/catch: egy DB-hiba sem
@@ -306,6 +309,30 @@ class RaceEngine {
     return _computeVmg(
       boatSpeedKnots: speed.metersPerSecond * _knotsPerMps,
       twaDegrees: twa.degrees,
+    );
+  }
+
+  /// A polár-alapú target VMG (kn) az élő szélből, vagy `null`, ha nincs
+  /// betöltött polár, hiányzik a water-referenciájú szél, vagy a sávban
+  /// nincs polár-adat (ADR 0028 Addendum 4). A fel-/hátszél a pillanatnyi
+  /// `|TWA|`-ból dől el, az élő VMG-vel konzisztens előjelért (E4). A
+  /// `LookupTargetVmg` kn-ben várja a TWS-t, a `Speed` viszont m/s —
+  /// ezért konvertálunk.
+  double? _targetVmgKnots() {
+    final polar = _polar;
+    final wind = _wind;
+    if (polar == null || wind == null) {
+      return null;
+    }
+    final twa = wind.trueAngleWater;
+    final tws = wind.trueSpeedWater;
+    if (twa == null || tws == null) {
+      return null;
+    }
+    return _lookupTargetVmg(
+      polar: polar,
+      twaDegrees: twa.degrees,
+      twsKnots: tws.metersPerSecond * _knotsPerMps,
     );
   }
 
