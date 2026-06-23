@@ -255,6 +255,12 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                           formatTargetSpeedPercent(targetPercent),
                         ),
                       ),
+                      MetricCell(
+                        label: l10n.liveVmg,
+                        child: MetricValueText(
+                          formatVmgKnots(snapshot?.vmgKnots),
+                        ),
+                      ),
                     ],
                   ),
                 ),

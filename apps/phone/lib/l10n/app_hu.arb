@@ -293,6 +293,10 @@
       }
     }
   },
+  "liveVmg": "VMG",
+  "@liveVmg": {
+    "description": "Élő VMG csomóban, előjelesen (negatív = lemenő)"
+  },
   "liveTargetSpeed": "Cél-seb.",
   "warningPolarMissing": "Nincs polár-adat",
   "@warningPolarMissing": {

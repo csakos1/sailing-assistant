@@ -496,6 +496,12 @@ abstract class AppLocalizations {
   /// **'{count} bója'**
   String listMarkCount(int count);
 
+  /// Élő VMG csomóban, előjelesen (negatív = lemenő)
+  ///
+  /// In hu, this message translates to:
+  /// **'VMG'**
+  String get liveVmg;
+
   /// No description provided for @liveTargetSpeed.
   ///
   /// In hu, this message translates to:

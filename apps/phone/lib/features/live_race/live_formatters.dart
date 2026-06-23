@@ -43,3 +43,13 @@ String formatEta(Duration? eta, {required String minutesUnit}) =>
 /// (`toLocal()`, DST-aware), hogy a chartplotterrel egyezzen.
 String formatInstrumentTime(DateTime? instrumentTimeUtc) =>
     formatLocalClock(instrumentTimeUtc);
+
+/// Az élő VMG (kn) a versenyrácson: egy tizedesre, előjelesen (negatív =
+/// lemenő). `null` esetén gondolatjel — nincs adat. Ugyanaz a formátum,
+/// mint az óra SOG/VMG-kijelzőjén.
+String formatVmgKnots(double? knots) {
+  if (knots == null) {
+    return '—';
+  }
+  return knots.toStringAsFixed(1);
+}

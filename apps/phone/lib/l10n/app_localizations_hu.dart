@@ -224,6 +224,9 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
+  String get liveVmg => 'VMG';
+
+  @override
   String get liveTargetSpeed => 'Cél-seb.';
 
   @override
