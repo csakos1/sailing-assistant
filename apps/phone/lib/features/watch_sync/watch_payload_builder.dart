@@ -23,6 +23,7 @@ WatchPayload buildWatchPayload({
   TwdQuality twdQuality = TwdQuality.unavailable,
   double? targetSpeedKnots,
   double? vmgKnots,
+  double? targetVmgKnots,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -38,6 +39,7 @@ WatchPayload buildWatchPayload({
     isGpsTimeTrusted: _isTrusted(trueTime.source),
     sogKnots: speed == null ? null : speed.metersPerSecond * _knotsPerMps,
     vmgKnots: vmgKnots,
+    targetVmgKnots: targetVmgKnots,
     currentTwa: windData?.trueAngleWater?.degrees,
     predictedTwaAtMark: prediction?.predictedTwaAtMark?.degrees,
     twdQuality: twdQuality.name,
