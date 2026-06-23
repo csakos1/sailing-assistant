@@ -47,6 +47,7 @@ void main() {
       WindData? windData,
       MarkPrediction? prediction,
       TwdQuality twdQuality = TwdQuality.unavailable,
+      double? targetSpeedKnots,
     }) {
       return buildWatchPayload(
         boatState: boatState ?? BoatState(lastUpdate: now),
@@ -59,6 +60,7 @@ void main() {
         windData: windData,
         prediction: prediction,
         twdQuality: twdQuality,
+        targetSpeedKnots: targetSpeedKnots,
       );
     }
 
@@ -155,6 +157,34 @@ void main() {
 
       // Assert
       expect(live, isNot(equals(held)));
+    });
+
+    test('a cél-sebesség %-a az STW-ből és a célból számol', () {
+      // ARRANGE — STW 3 m/s (= 5.831532 kn), cél 7 kn.
+      const stw = Speed(metersPerSecond: 3);
+      final boat = BoatState(lastUpdate: now, speedThroughWater: stw);
+
+      // ACT
+      final payload = build(boatState: boat, targetSpeedKnots: 7);
+
+      // ASSERT — 5.831532 / 7 * 100.
+      expect(payload.targetSpeedPercent, closeTo(83.3076, 1e-3));
+    });
+
+    test('cél nélkül vagy sebesség nélkül a % null', () {
+      // ARRANGE / ACT — van STW, de nincs cél.
+      const stw = Speed(metersPerSecond: 3);
+      final boat = BoatState(lastUpdate: now, speedThroughWater: stw);
+      final noTarget = build(boatState: boat);
+      // Van cél, de nincs sebesség.
+      final noSpeed = build(
+        boatState: BoatState(lastUpdate: now),
+        targetSpeedKnots: 7,
+      );
+
+      // ASSERT
+      expect(noTarget.targetSpeedPercent, isNull);
+      expect(noSpeed.targetSpeedPercent, isNull);
     });
 
     for (final (source, trusted) in const <(TrueTimeSource, bool)>[

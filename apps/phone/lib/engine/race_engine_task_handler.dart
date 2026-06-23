@@ -221,6 +221,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       windData: snapshot.wind,
       prediction: snapshot.prediction,
       twdQuality: snapshot.twdQuality,
+      targetSpeedKnots: snapshot.targetSpeedKnots,
     );
   }
 

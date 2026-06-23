@@ -20,6 +20,7 @@ WatchPayload buildWatchPayload({
   WindData? windData,
   MarkPrediction? prediction,
   TwdQuality twdQuality = TwdQuality.unavailable,
+  double? targetSpeedKnots,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -44,6 +45,7 @@ WatchPayload buildWatchPayload({
     etaSeconds: prediction?.eta?.inSeconds,
     distanceMeters: prediction?.distanceToMark.meters,
     markName: prediction?.mark.name,
+    targetSpeedPercent: _targetSpeedPercent(boatState, targetSpeedKnots),
     criticalWarnings: criticalWarnings,
   );
 }
@@ -51,6 +53,21 @@ WatchPayload buildWatchPayload({
 // 1 m/s = 3600/1852 ≈ 1.943844 csomó. A Speed value object nem ad knots-gettert
 // (csak metersPerSecond-öt), ezért a megjelenítési váltást itt végezzük.
 const double _knotsPerMps = 1.943844;
+
+// A polár-cél-sebesség százaléka: az élő sebesség (STW, SOG-fallback) osztva
+// a cél-sebességgel, ×100. null, ha nincs cél, élő sebesség, vagy a cél nem
+// pozitív (ADR 0028 Add. 3). STW-referenciájú polár, ezért STW az elsődleges.
+double? _targetSpeedPercent(BoatState boatState, double? targetSpeedKnots) {
+  if (targetSpeedKnots == null || targetSpeedKnots <= 0) {
+    return null;
+  }
+  final speed = boatState.speedThroughWater ?? boatState.speedOverGround;
+  if (speed == null) {
+    return null;
+  }
+  final liveKnots = speed.metersPerSecond * _knotsPerMps;
+  return liveKnots / targetSpeedKnots * 100;
+}
 
 // A GPS-idő akkor megbízható, ha valódi GNSS-fix vagy session-anchor a forrás
 // (ADR 0012); a szinkronizálatlan fal-óra és a "nincs" nem (ADR 0015 D3).
