@@ -441,9 +441,11 @@ sailing-assistant/                        # GitHub repo root
     └── sample_logs/                      # Példa NMEA 0183 logok (Vulcan WiFi dump); YDVR DAT→YD RAW a v1.5+ adapterhez
 ```
 
-> **v2-ben hozzákerül**: `apps/phone/lib/features/polar_import/`, `packages/domain/lib/src/repositories/polar_repository.dart`, `packages/data/lib/src/persistence/tables/polars_table.dart` és kapcsolódó komponensek.
+> **Később (file-import út, halasztva)**: `apps/phone/lib/features/polar_import/`, `packages/data/lib/src/persistence/tables/polars_table.dart` — a polár build nélküli cseréjéhez. A v1 a bundled asset utat választja (ADR 0028 Addendum 2); a `polar_repository.dart` MOST landol (lásd lent).
 >
 > **Az 1. szelet (ADR 0028 Addendum 1) MOST landol a domainben**, a fenti v2 import/perzisztenciától függetlenül: `packages/domain/lib/src/entities/polar.dart` (`Polar` VO, immutable TWA×TWS rács, `noGoThresholdDegrees = 25`) + `packages/domain/lib/src/use_cases/lookup_target_speed.dart` (bilineáris interpoláció, no-go alatt `null`). A target speed % a STW / polár-cél hányados (SOG-fallback).
+>
+> **A 2. szelet (ADR 0028 Addendum 2) a data-réteget hozza**, bundled asset módban: `packages/domain/lib/src/repositories/polar_repository.dart` (`PolarRepository` + `PolarLoadError` sealed) + `packages/data/lib/src/polar/` (a `.pol`-parser pure függvénye + `AssetPolarRepository`) + `apps/phone/assets/polars/foretack.pol` fordításidős asset. Tárolás **bundled asset** (NEM Drift-tábla); a file-import út (fent) drop-in csere a `PolarRepository` mögött.
 
 > **Post-race elemzés (ADR 0025 + Addendum 1)**: a `tools/race_analyzer`
 > pure-Dart CLI a `snapshot_logs`-ból exportált **JSON-lines** bemenetet
