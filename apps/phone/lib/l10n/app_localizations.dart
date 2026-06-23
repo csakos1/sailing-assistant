@@ -501,6 +501,12 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Cél-seb.'**
   String get liveTargetSpeed;
+
+  /// Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs polár-adat'**
+  String get warningPolarMissing;
 }
 
 class _AppLocalizationsDelegate

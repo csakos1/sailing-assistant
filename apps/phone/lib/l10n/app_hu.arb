@@ -293,5 +293,9 @@
       }
     }
   },
-  "liveTargetSpeed": "Cél-seb."
+  "liveTargetSpeed": "Cél-seb.",
+  "warningPolarMissing": "Nincs polár-adat",
+  "@warningPolarMissing": {
+    "description": "Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható."
+  }
 }

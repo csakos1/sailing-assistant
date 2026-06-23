@@ -15,4 +15,5 @@ String warningMessage(Warning warning, AppLocalizations l10n) =>
       GpsTimeUnsynced() => l10n.warningGpsTimeUnsynced,
       WindShiftTrendInsufficient() => l10n.warningWindShiftTrendInsufficient,
       SuspectHeadingWarning() => l10n.warningSuspectHeading,
+      PolarMissing() => l10n.warningPolarMissing,
     };

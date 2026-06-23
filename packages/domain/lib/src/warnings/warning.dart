@@ -108,3 +108,22 @@ final class SuspectHeadingWarning extends Warning {
   @override
   List<Object?> get props => const [];
 }
+
+/// Nincs használható polár-adat: a polár betöltése sikertelen (hiányzó, üres
+/// vagy hibás asset; a `PolarRepository` `Err`-ága). Ilyenkor a cél-sebesség %
+/// nem számítható (ADR 0028 C6). A no-go (van polár, de a cella `null`) NEM
+/// ez — az normál állapot, nem warning. Info: csak a telefon-banneren jelez,
+/// az órára a payload (ADR 0015) nem viszi (az csak a critical warningokat).
+final class PolarMissing extends Warning {
+  /// Polár-hiány jelzo.
+  const PolarMissing();
+
+  @override
+  String get codeId => 'polar_missing';
+
+  @override
+  WarningSeverity get severity => WarningSeverity.info;
+
+  @override
+  List<Object?> get props => const [];
+}

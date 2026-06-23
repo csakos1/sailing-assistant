@@ -225,4 +225,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get liveTargetSpeed => 'Cél-seb.';
+
+  @override
+  String get warningPolarMissing => 'Nincs polár-adat';
 }
