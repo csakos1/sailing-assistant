@@ -4,9 +4,11 @@ import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/widgets/direction_arrow.dart';
 import 'package:watch/widgets/watch_metrics.dart';
 
-/// „A" nézet — Sebesség (§10.4). Hero: SOG; alatta egy sorban, azonos
-/// betűmérettel a VMG (v1 placeholder) és a TWA most (port/stbd nyíllal
-/// befelé). Ambientben csak a hero marad, tompítva, accent nélkül.
+/// „A" nézet — Sebesség (§10.4). Hero: SOG; mellette jobbra a cél-sebesség %
+/// (target speed, a polár-célhoz viszonyított élő sebesség), kisebb betűvel.
+/// Alatta egy sorban, azonos betűmérettel a VMG (v1 placeholder) és a TWA most
+/// (port/stbd nyíllal befelé). Ambientben csak a SOG-hero marad, tompítva,
+/// accent nélkül (a cél-% és a másodlagos sor rejtve).
 class SpeedView extends StatelessWidget {
   /// Létrehozza a nézetet a megjelenítendő [payload]-dal.
   const SpeedView({
@@ -34,22 +36,57 @@ class SpeedView extends StatelessWidget {
       children: [
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                formatSpeedKnots(payload.sogKnots),
-                style: TextStyle(
-                  color: heroColor,
-                  fontSize: 52,
-                  height: 1,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    formatSpeedKnots(payload.sogKnots),
+                    style: TextStyle(
+                      color: heroColor,
+                      fontSize: 44,
+                      height: 1,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    'kts',
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              // A cél-sebesség % a SOG-tól jobbra, kisebb betűvel; csak aktív
+              // kijelzőn (ambientben a hero marad egyedül). Nincs polár vagy
+              // no-go → „—" (ADR 0028 C6).
+              if (!ambient) ...[
+                const SizedBox(width: 16),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatTargetPercent(payload.targetSpeedPercent),
+                      style: TextStyle(
+                        color: colors.text,
+                        fontSize: 32,
+                        height: 1,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    Text(
+                      'Cél',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                'kts',
-                style: TextStyle(color: colors.textSecondary, fontSize: 12),
-              ),
+              ],
             ],
           ),
         ),
@@ -101,3 +138,9 @@ class SpeedView extends StatelessWidget {
     );
   }
 }
+
+/// A cél-sebesség százalék óra-formázása: `null` (nincs polár vagy no-go) →
+/// „—", egyébként egész százalék. Az óra fix HU `const`-ban formáz (nem ARB),
+/// a phone `formatTargetSpeedPercent`-jének mintájára.
+String _formatTargetPercent(double? percent) =>
+    percent == null ? '—' : '${percent.round()}%';

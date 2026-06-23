@@ -47,7 +47,9 @@ void main() {
 
     expect(find.text('6.4'), findsOneWidget); // SOG hero
     expect(find.text('VMG'), findsOneWidget);
-    expect(find.text('—'), findsOneWidget); // VMG v1 placeholder
+    // Ket em-dash placeholder: a VMG (v1) es a cel-% (a payload-ban
+    // nincs targetSpeedPercent -> null -> em-dash).
+    expect(find.text('—'), findsNWidgets(2));
     expect(find.text('32°'), findsOneWidget); // TWA most
     expect(find.byType(DirectionArrow), findsOneWidget);
   });
@@ -57,7 +59,29 @@ void main() {
 
     expect(find.text('6.4'), findsOneWidget);
     expect(find.text('TWA'), findsNothing); // másodlagos sor rejtve
+    expect(find.text('Cél'), findsNothing); // cel-% is rejtve
     expect(find.byType(DirectionArrow), findsNothing);
+  });
+
+  testWidgets('target speed %: a cél-% megjelenik (round)', (tester) async {
+    final p = WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      sogKnots: 6.4,
+      currentTwa: 32,
+      targetSpeedPercent: 83.3,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: watchDarkTheme,
+        home: Scaffold(
+          body: SpeedView(payload: p, colors: colors, ambient: false),
+        ),
+      ),
+    );
+
+    expect(find.text('83%'), findsOneWidget);
+    expect(find.text('Cél'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget); // csak a VMG placeholder
   });
 
   testWidgets('kis viewporton nincs túlcsordulás (42 mm-arány)', (
