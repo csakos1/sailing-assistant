@@ -39,6 +39,7 @@ export 'src/use_cases/derive_true_wind_direction.dart';
 export 'src/use_cases/estimate_prediction_confidence.dart';
 export 'src/use_cases/evaluate_warnings.dart';
 export 'src/use_cases/lookup_target_speed.dart';
+export 'src/use_cases/lookup_target_vmg.dart';
 export 'src/use_cases/mark_rounding_detector.dart';
 export 'src/use_cases/predict_twa_at_mark.dart';
 export 'src/value_objects/angle.dart';
