@@ -1,5 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:phone/app/true_time.dart';
+import 'package:phone/features/live_race/target_speed.dart';
 import 'package:shared/shared.dart';
 
 /// A phone domain-állapotból összeállítja az órának küldendő [WatchPayload]-ot.
@@ -45,7 +46,12 @@ WatchPayload buildWatchPayload({
     etaSeconds: prediction?.eta?.inSeconds,
     distanceMeters: prediction?.distanceToMark.meters,
     markName: prediction?.mark.name,
-    targetSpeedPercent: _targetSpeedPercent(boatState, targetSpeedKnots),
+    targetSpeedPercent: targetSpeedPercent(
+      liveSpeedMetersPerSecond:
+          (boatState.speedThroughWater ?? boatState.speedOverGround)
+              ?.metersPerSecond,
+      targetSpeedKnots: targetSpeedKnots,
+    ),
     criticalWarnings: criticalWarnings,
   );
 }
@@ -57,17 +63,6 @@ const double _knotsPerMps = 1.943844;
 // A polár-cél-sebesség százaléka: az élő sebesség (STW, SOG-fallback) osztva
 // a cél-sebességgel, ×100. null, ha nincs cél, élő sebesség, vagy a cél nem
 // pozitív (ADR 0028 Add. 3). STW-referenciájú polár, ezért STW az elsődleges.
-double? _targetSpeedPercent(BoatState boatState, double? targetSpeedKnots) {
-  if (targetSpeedKnots == null || targetSpeedKnots <= 0) {
-    return null;
-  }
-  final speed = boatState.speedThroughWater ?? boatState.speedOverGround;
-  if (speed == null) {
-    return null;
-  }
-  final liveKnots = speed.metersPerSecond * _knotsPerMps;
-  return liveKnots / targetSpeedKnots * 100;
-}
 
 // A GPS-idő akkor megbízható, ha valódi GNSS-fix vagy session-anchor a forrás
 // (ADR 0012); a szinkronizálatlan fal-óra és a "nincs" nem (ADR 0015 D3).
