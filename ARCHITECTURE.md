@@ -446,6 +446,8 @@ sailing-assistant/                        # GitHub repo root
 > **Az 1. szelet (ADR 0028 Addendum 1) MOST landol a domainben**, a fenti v2 import/perzisztenciától függetlenül: `packages/domain/lib/src/entities/polar.dart` (`Polar` VO, immutable TWA×TWS rács, `noGoThresholdDegrees = 25`) + `packages/domain/lib/src/use_cases/lookup_target_speed.dart` (bilineáris interpoláció, no-go alatt `null`). A target speed % a STW / polár-cél hányados (SOG-fallback).
 >
 > **A 2. szelet (ADR 0028 Addendum 2) a data-réteget hozza**, bundled asset módban: `packages/domain/lib/src/repositories/polar_repository.dart` (`PolarRepository` + `PolarLoadError` sealed) + `packages/data/lib/src/polar/` (a `.pol`-parser pure függvénye + `AssetPolarRepository`) + `apps/phone/assets/polars/foretack.pol` fordításidős asset. Tárolás **bundled asset** (NEM Drift-tábla); a file-import út (fent) drop-in csere a `PolarRepository` mögött.
+>
+> **A 3. szelet (ADR 0028 Addendum 3) az élő target speed %-ot hozza**, engine-belül számolva (ADR 0017-konform): a `LookupTargetSpeed` a háttér-engine `_onTick`-jében fut, a `RaceSnapshot` egy `targetSpeedKnots` mezőt kap (post-race elemezhető, ADR 0025), a `WatchPayload` egy `targetSpeedPercent`-et. A `Polar` a fő-izolátumból (host, `polarProvider`) JSON-ként az `init` üzenetben jut a háttérbe (`polar_codec.dart`), mert a `rootBundle` a háttér-izolátumban nem elérhető; hiányzó/hibás polár → `polar: null`, a target `null`.
 
 > **Post-race elemzés (ADR 0025 + Addendum 1)**: a `tools/race_analyzer`
 > pure-Dart CLI a `snapshot_logs`-ból exportált **JSON-lines** bemenetet
@@ -3014,6 +3016,7 @@ class WatchPayload {
   final int? etaSeconds;                // az óra m:ss-re formáz
   final double? distanceMeters;         // az óra m/km-re formáz
   final String? markName;               // az aktív bója neve
+  final double? targetSpeedPercent;     // %; live STW vagy SOG / target * 100 (ADR 0028 Add. 3)
   final List<String> criticalWarnings; // csak critical, telefon által lokalizált
   final double? depthAlertMeters;       // sekély-víz mélység, vagy null
   final int depthBuzzCounter;           // monoton; óra a felfutó élén rezeg
