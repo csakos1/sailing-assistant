@@ -50,6 +50,7 @@ class RaceEngine {
   static const _predict = ComputeMarkPrediction();
   static const _derive = DeriveTrueWindDirection();
   static const _lookupTarget = LookupTargetSpeed();
+  static const _computeVmg = ComputeVmg();
 
   // m/s → csomó: a LookupTargetSpeed kn-ben várja a TWS-t, a Speed m/s-ben.
   static const _knotsPerMps = 1.943844;
@@ -241,6 +242,7 @@ class RaceEngine {
       now: tick,
     );
     final targetSpeedKnots = _targetSpeedKnots();
+    final vmgKnots = _vmgKnots();
     // A snapshotot lokális változóba emeljük: az emit után a
     // snapshot-logger ugyanazt a példányt kapja (ADR 0022 D4).
     final snapshot = RaceSnapshot(
@@ -254,6 +256,7 @@ class RaceEngine {
       windShiftTrend: trend,
       twdQuality: _lastTwdQuality,
       targetSpeedKnots: targetSpeedKnots,
+      vmgKnots: vmgKnots,
     );
     _snapshots.add(snapshot);
     // unawaited + a logger internál try/catch: egy DB-hiba sem
@@ -280,6 +283,29 @@ class RaceEngine {
       polar: polar,
       twaDegrees: twa.degrees,
       twsKnots: tws.metersPerSecond * _knotsPerMps,
+    );
+  }
+
+  /// Az élő VMG (kn) a vízhez mért szélből és a hajósebességből, vagy `null`,
+  /// ha hiányzik a water-referenciájú TWA vagy nincs sebesség. A sebesség STW,
+  /// SOG-fallbackkel (ADR 0028 Addendum 3); a `Speed` m/s, a `ComputeVmg`
+  /// kn-ben dolgozik, ezért konvertálunk.
+  double? _vmgKnots() {
+    final wind = _wind;
+    if (wind == null) {
+      return null;
+    }
+    final twa = wind.trueAngleWater;
+    if (twa == null) {
+      return null;
+    }
+    final speed = _boatState.speedThroughWater ?? _boatState.speedOverGround;
+    if (speed == null) {
+      return null;
+    }
+    return _computeVmg(
+      boatSpeedKnots: speed.metersPerSecond * _knotsPerMps,
+      twaDegrees: twa.degrees,
     );
   }
 
