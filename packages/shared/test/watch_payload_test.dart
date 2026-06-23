@@ -22,6 +22,7 @@ void main() {
       double distanceMeters = 480,
       String markName = 'Tihany bója',
       double targetSpeedPercent = 87.5,
+      double targetVmgKnots = -4.6,
       List<String> criticalWarnings = const ['Műszer-kapcsolat megszakadt'],
     }) {
       return WatchPayload(
@@ -37,6 +38,7 @@ void main() {
         distanceMeters: distanceMeters,
         markName: markName,
         targetSpeedPercent: targetSpeedPercent,
+        targetVmgKnots: targetVmgKnots,
         criticalWarnings: criticalWarnings,
       );
     }
@@ -52,6 +54,7 @@ void main() {
         // Assert — a props-fedett mezők egyenlősége + a v1-null vmg
         expect(restored, equals(original));
         expect(restored.vmgKnots, isNull);
+        expect(restored.targetVmgKnots, equals(-4.6));
       });
 
       test('preserves timestamp and gpsTimeUtc excluded from equality', () {
@@ -220,6 +223,11 @@ void main() {
         final base = sample();
         final slower = sample(targetSpeedPercent: 72);
         expect(base, isNot(equals(slower)));
+      });
+      test('differs when targetVmgKnots changes', () {
+        final base = sample();
+        final offTarget = sample(targetVmgKnots: -3.2);
+        expect(base, isNot(equals(offTarget)));
       });
     });
   });

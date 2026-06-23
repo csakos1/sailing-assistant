@@ -24,6 +24,7 @@ final class WatchPayload extends Equatable {
     this.isGpsTimeTrusted = false,
     this.sogKnots,
     this.vmgKnots,
+    this.targetVmgKnots,
     this.currentTwa,
     this.predictedTwaAtMark,
     this.twdQuality,
@@ -50,6 +51,7 @@ final class WatchPayload extends Equatable {
       isGpsTimeTrusted: json['isGpsTimeTrusted'] as bool? ?? false,
       sogKnots: (json['sogKnots'] as num?)?.toDouble(),
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
+      targetVmgKnots: (json['targetVmgKnots'] as num?)?.toDouble(),
       currentTwa: (json['currentTwa'] as num?)?.toDouble(),
       predictedTwaAtMark: (json['predictedTwaAtMark'] as num?)?.toDouble(),
       twdQuality: json['twdQuality'] as String?,
@@ -81,8 +83,14 @@ final class WatchPayload extends Equatable {
   /// Sebesség (SOG), csomóban. `null`, ha nincs adat.
   final double? sogKnots;
 
-  /// VMG, csomóban. v1-ben MINDIG `null` — a slot v2-re rezervált (ADR 0015 D2).
+  /// Élő VMG, csomóban, előjeles (pozitív = szél felé, negatív = széltől
+  /// el). `null`, ha nincs adat (ADR 0028 Addendum 4).
   final double? vmgKnots;
+
+  /// Target VMG (a polár-sávban elérhető legjobb VMG), csomóban,
+  /// előjeles — az élő VMG-vel összevethető. `null`, ha nincs polár/cél
+  /// (ADR 0028 Addendum 4).
+  final double? targetVmgKnots;
 
   /// Aktuális TWA, fok, előjeles. `null`, ha nincs adat.
   final double? currentTwa;
@@ -137,6 +145,7 @@ final class WatchPayload extends Equatable {
       'isGpsTimeTrusted': isGpsTimeTrusted,
       'sogKnots': sogKnots,
       'vmgKnots': vmgKnots,
+      'targetVmgKnots': targetVmgKnots,
       'currentTwa': currentTwa,
       'predictedTwaAtMark': predictedTwaAtMark,
       'twdQuality': twdQuality,
@@ -156,6 +165,7 @@ final class WatchPayload extends Equatable {
     isGpsTimeTrusted,
     sogKnots,
     vmgKnots,
+    targetVmgKnots,
     currentTwa,
     predictedTwaAtMark,
     twdQuality,
