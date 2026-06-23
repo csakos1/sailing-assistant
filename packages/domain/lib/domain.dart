@@ -24,6 +24,7 @@ export 'src/projection/wind_history_reducer.dart';
 export 'src/repositories/connection_status.dart';
 export 'src/repositories/domain_event.dart';
 export 'src/repositories/nmea_stream.dart';
+export 'src/repositories/polar_repository.dart';
 export 'src/repositories/race_repository.dart';
 export 'src/repositories/settings_repository.dart';
 export 'src/repositories/telemetry_logger.dart';
