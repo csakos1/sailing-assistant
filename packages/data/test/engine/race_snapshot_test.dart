@@ -79,6 +79,7 @@ void main() {
         meanSampleTime: calcTime,
       ),
       twdQuality: TwdQuality.held,
+      targetSpeedKnots: 6.42,
     );
 
     test('teljes snapshot round-trip — minden mező megőrződik', () {
@@ -98,6 +99,7 @@ void main() {
       expect(restored.windShiftTrend, original.windShiftTrend);
       expect(restored.twdQuality, original.twdQuality);
       expect(restored.tickTime, original.tickTime);
+      expect(restored.targetSpeedKnots, original.targetSpeedKnots);
     });
 
     test('a twdQuality default + hiányzó kulcs unavailable-re dekódol', () {

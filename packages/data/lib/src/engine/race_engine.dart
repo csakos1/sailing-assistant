@@ -49,6 +49,10 @@ class RaceEngine {
   static const _trend = CalculateWindShiftTrend();
   static const _predict = ComputeMarkPrediction();
   static const _derive = DeriveTrueWindDirection();
+  static const _lookupTarget = LookupTargetSpeed();
+
+  // m/s → csomó: a LookupTargetSpeed kn-ben várja a TWS-t, a Speed m/s-ben.
+  static const _knotsPerMps = 1.943844;
 
   final StreamController<RaceSnapshot> _snapshots =
       StreamController<RaceSnapshot>.broadcast();
@@ -65,6 +69,9 @@ class RaceEngine {
   TwdQuality _lastTwdQuality = TwdQuality.unavailable;
   int _eventCount = 0;
   Race? _race;
+  // A polár (a host tölti, az init-üzenet hozza, ADR 0028 Add. 3); null,
+  // amíg nincs polár → a cél-sebesség mindig null.
+  Polar? _polar;
 
   // A mark-rounding detektor (stateful, egy aktív bójához egy minimum-
   // profil). Megkerüléskor reseteljük; a léptetést a _maybeRoundMark
@@ -82,8 +89,9 @@ class RaceEngine {
   /// (fold) és — ha a forrás [RawNmeaLineSource] — a nyers sorokra
   /// (telemetria), elindítja a tick-et, majd csatlakozik a forráshoz. A
   /// [BoatState] az app-órából seedel.
-  Future<void> start(Race race) async {
+  Future<void> start(Race race, {Polar? polar}) async {
     _race = race;
+    _polar = polar;
     _boatState = BoatState(lastUpdate: _now());
 
     _eventSub = _nmeaStream.events.listen(_onEvent);
@@ -232,6 +240,7 @@ class RaceEngine {
       trend: trend,
       now: tick,
     );
+    final targetSpeedKnots = _targetSpeedKnots();
     // A snapshotot lokális változóba emeljük: az emit után a
     // snapshot-logger ugyanazt a példányt kapja (ADR 0022 D4).
     final snapshot = RaceSnapshot(
@@ -244,11 +253,34 @@ class RaceEngine {
       prediction: prediction,
       windShiftTrend: trend,
       twdQuality: _lastTwdQuality,
+      targetSpeedKnots: targetSpeedKnots,
     );
     _snapshots.add(snapshot);
     // unawaited + a logger internál try/catch: egy DB-hiba sem
     // szakíthatja meg a snapshot-streamet (defenzív elv).
     unawaited(_snapshotLogger.log(steppedRace.id, snapshot));
+  }
+
+  /// A polár-alapú cél-sebesség (kn) az élő szélből, vagy `null`, ha nincs
+  /// betöltött polár, hiányzik a water-referenciájú szél, vagy a TWA a no-go
+  /// alatt van (ADR 0028 Addendum 3). A `LookupTargetSpeed` kn-ben várja a
+  /// TWS-t, a `Speed` viszont m/s — ezért konvertálunk.
+  double? _targetSpeedKnots() {
+    final polar = _polar;
+    final wind = _wind;
+    if (polar == null || wind == null) {
+      return null;
+    }
+    final twa = wind.trueAngleWater;
+    final tws = wind.trueSpeedWater;
+    if (twa == null || tws == null) {
+      return null;
+    }
+    return _lookupTarget(
+      polar: polar,
+      twaDegrees: twa.degrees,
+      twsKnots: tws.metersPerSecond * _knotsPerMps,
+    );
   }
 
   // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active

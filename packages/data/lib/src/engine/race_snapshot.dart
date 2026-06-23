@@ -27,6 +27,7 @@ class RaceSnapshot {
     this.prediction,
     this.windShiftTrend,
     this.twdQuality = TwdQuality.unavailable,
+    this.targetSpeedKnots,
   });
 
   /// Visszaépít egy pillanatképet a [json] `Map<String, dynamic>`-ból. A
@@ -55,6 +56,7 @@ class RaceSnapshot {
         _windShiftTrendFromJson,
       ),
       twdQuality: _twdQualityFromName(json['twdQuality'] as String?),
+      targetSpeedKnots: (json['targetSpeedKnots'] as num?)?.toDouble(),
     );
   }
 
@@ -85,6 +87,12 @@ class RaceSnapshot {
   /// nincs használható TWD. A UI ennek alapján jelzi a TWA megbízhatóságát.
   final TwdQuality twdQuality;
 
+  /// A polár-alapú cél-sebesség (kn) a tick pillanatában, vagy `null`, ha
+  /// nincs betöltött polár, hiányzik a water-referenciájú szél, vagy a TWA a
+  /// no-go alatt van (ADR 0028 Addendum 3). Domain-nyers; a watch-% ebből
+  /// számol, és post-race elemezhető (ADR 0025).
+  final double? targetSpeedKnots;
+
   /// A tick app-óra ideje.
   final DateTime tickTime;
 
@@ -103,6 +111,7 @@ class RaceSnapshot {
       'prediction': _mapOrNull(prediction, _markPredictionToJson),
       'windShiftTrend': _mapOrNull(windShiftTrend, _windShiftTrendToJson),
       'twdQuality': twdQuality.name,
+      'targetSpeedKnots': targetSpeedKnots,
     };
   }
 }

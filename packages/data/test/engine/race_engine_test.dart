@@ -47,6 +47,70 @@ void main() {
     await tick.close();
   });
 
+  group('polár cél-sebesség (ADR 0028 Add. 3)', () {
+    // Egyszerű polár: a TWA=30° sor minden TWS-oszlopban 5.0 kn, így a
+    // konverzió pontossága nem számít; a TWA=0° sor no-go (üres).
+    final polar = Polar(
+      twaAxis: const [0, 30, 60],
+      twsAxis: const [4, 6],
+      grid: const [
+        [null, null],
+        [5.0, 5.0],
+        [4.5, 5.6],
+      ],
+    );
+
+    WindData windAt(double twaDegrees) => WindData(
+      apparentAngle: Angle(degrees: twaDegrees),
+      apparentSpeed: const Speed(metersPerSecond: 6),
+      timestamp: eventTime,
+      trueAngleWater: Angle(degrees: twaDegrees),
+      trueSpeedWater: const Speed(metersPerSecond: 3),
+    );
+
+    test('polár + szél → a snapshot a polár-cellát adja', () async {
+      // ARRANGE — TWA 30° (axis-pont), TWS 3 m/s (≈ 5.83 kn, [4,6]).
+      await engine.start(race, polar: polar);
+      source.emitEvent(WindEvent(windAt(30)));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT — a TWA=30 sor minden oszlopa 5.0.
+      expect(snapshots.single.targetSpeedKnots, closeTo(5, 1e-9));
+    });
+
+    test('polár nélkül a cél-sebesség null', () async {
+      // ARRANGE — start polár nélkül, de van szél.
+      await engine.start(race);
+      source.emitEvent(WindEvent(windAt(30)));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.targetSpeedKnots, isNull);
+    });
+
+    test('no-go (TWA < 25°) alatt a cél-sebesség null', () async {
+      // ARRANGE — TWA 10°, a no-go küszöb (25°) alatt.
+      await engine.start(race, polar: polar);
+      source.emitEvent(WindEvent(windAt(10)));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.targetSpeedKnots, isNull);
+    });
+  });
+
   test(
     'minden tick a snapshot-loggernek adja a snapshotot a raceId-vel',
     () async {
