@@ -366,3 +366,52 @@ Ez az addendum **lezárja** a 0028 „Nyitott kérdések" közül a **polár
 tárolását** (bundled asset a `PolarRepository` mögött). **Nyitva marad**
 a 3–4. szeletre: az **óra-kijelzés layout** (új lap vs mező) és a
 **VMG-típusok** (felszél/hátszél/mark-VMG).
+
+## Addendum 3 — Live target speed: engine-integráció és a polár háttérbe jutása (3. szelet)
+
+**Státusz:** elfogadva. Lezárja a 0028 „hol fut a target-%" nyitott kérdését; a 4. szelet (VMG) és az óra-layout továbbra is nyitott.
+
+A 3. szelet a `LookupTargetSpeed`-et élesíti: a verseny alatt megjelenik a **target speed %** (mennyire vitorlázunk az adott TWA/TWS-en elérhető cél-vízsebességhez képest). Az alábbi döntések rögzítik, hol fut a számítás és hogyan jut a polár a háttér-izolátumba.
+
+### C1 — A számítás helye: a háttér-engine (ADR 0017-konform, NEM fő-izolátumbeli derivált)
+
+A `LookupTargetSpeed` a háttér-FGS-engine `_onTick`-jében fut, a többi domain-számítással egy helyen (`ComputeMarkPrediction`, `CalculateWindShiftTrend`). A target a `RaceSnapshot`-ba kerül (`targetSpeedKnots`), nem a fő-izolátumban derivált megjelenítési érték.
+
+**Indok.** Az ADR 0017 D1 elve: minden domain-számítás az egy-tulajdonos engine-izolátumban van, a `RaceSnapshot` + `WatchPayload` onnan jön. A fő-izolátumbeli derivált rövidebb úton célhoz érne (a `rootBundle` ott natívan megy), de kivételt nyitna az ADR 0017 alól, és a target **nem kerülne a snapshot-telemetriába** (ADR 0022) — így post-race nem lenne elemezhető a `race_analyzer`-rel (ADR 0025). A target a snapshotban marad, hogy a moat-validációhoz hasonlóan a teljesítmény-réteg is fixtúrán mérhető legyen.
+
+### C2 — A polár betöltési útja: A1 — a host tölt, az init-üzenet viszi, a háttér kapja
+
+A `rootBundle` a háttér-izolátumban csak `BackgroundIsolateBinaryMessenger.ensureInitialized(token)` után működik, a `RootIsolateToken` viszont **nem JSON-szerializálható**, a `flutter_foreground_task` `sendDataToTask`-ja pedig csak JSON-stringet visz — nincs token-átadó API. A háttér-izolátumbeli `rootBundle`-bootstrap (A2) ezért hacky lenne a vízen bizonyított engine-be.
+
+Ehelyett **A1**, a projekt saját, már dokumentált mintáját követve (ADR 0017 A13, ahogy a `Race` is átjut):
+
+1. A **fő-izolátum (a host)** tölti a polárt a `polarProvider`-rel (`AssetPolarRepository.loadPolar()` → `Result<Polar, PolarLoadError>`), ahol a `rootBundle` natívan elérhető.
+2. A host a `Polar`-t JSON-ként az `'init'` üzenetbe ágyazza a `Race` mellé: `{type:'init', race:<raceToJson>, polar:<polarToJson|null>}`.
+3. A **háttér** az `onReceiveData('init')`-ben `polarFromJson`-nal visszaépíti, és a `start(race, polar:)`-nak adja.
+
+**Hiba-/hiányzó-polár út.** Ha a `loadPolar()` `Err`-t ad (hiányzó asset, malformed fájl), a host `polar: null`-t küld; az engine null-polárral fut, a `targetSpeedKnots` mindig `null`. A `PolarMissing` warning (C6) a 3c-ben jelzi a hiányt. Trade-off: a `Polar` átmegy a JSON-hídon, de a rács kicsi (par száz cella), a költség elhanyagolható, és csak indításkor egyszer megy át.
+
+### C3 — Réteg-kiosztás: a `Polar` JSON a `data`-ban
+
+A `polar_codec.dart` (`packages/data/lib/src/engine/`) a `race_codec.dart` mintáját követi: `Map<String, dynamic> polarToJson(Polar)` + `Polar polarFromJson(Map<String, dynamic>)`. A rács `List<List<double?>>` triviálisan JSON-array null-okkal. A domain `Polar` VO **tiszta marad** — nincs JSON-felelőssége, ahogy a `BoatState`/`Mark` sem hordoz `toJson`-t (a DTO-szerializáció a `data` dolga).
+
+### C4 — A szerződés: snapshot `targetSpeedKnots`, payload `targetSpeedPercent`
+
+- **`RaceSnapshot.targetSpeedKnots`** (`double?`, kn): a polárból kiolvasott **cél-vízsebesség** az aktuális TWA/TWS-en, domain-nyers. `null`, ha nincs polár, no-go alatt vagyunk, vagy hiányzik a true-wind. Ez kerül a snapshot-telemetriába (post-race).
+- **`WatchPayload.targetSpeedPercent`** (`double?`): a **megjelenített** százalék = élő sebesség / target × 100. `null`, ha a `targetSpeedKnots` `null`, vagy nincs élő sebesség.
+
+A %-ot a `buildWatchPayload` számolja (a meglévő `_knotsPerMps` konverzióval), a snapshot `targetSpeedKnots`-jából és az élő sebességből. A telefon-grid (3b) ugyanezt a képletet használja egy közös helperből — a számítás egy helyen van.
+
+### C5 — A `LookupTargetSpeed` bemenete az engine-ben
+
+TWA = `wind.trueAngleWater`, TWS = `wind.trueSpeedWater` (mindkettő water-referenciájú). A polár a build során is STW-/TWA-water-alapú (ADR 0028 Addendum 1 A6), ezért a water-referencia a konzisztens bemenet. Ha bármelyik `null` (stream warm-up vagy DST inaktív), a target `null`. A no-go és a perem-clamp döntése a `LookupTargetSpeed`-ben marad (1. szelet).
+
+### C6 — A `PolarMissing` warning a 3c-re marad
+
+A 2. + 3a szelet a betöltést és a `null`-target-utat adja; a hiány **láthatósága** (a `PolarMissing` info-warning + a telefon/óra kijelzés) a 3b/3c szelet. A warning a `polar: null` (vagy a tartósan `null` target) jelből származik majd, az ADR 0014 §11.2 info-szintű mintáját követve.
+
+### Szelet-bontás (a 3. szelet NAGY → al-szeletek)
+
+- **3a** (a mag, replay/unit-tesztelhető): `polar_codec.dart`; engine `_polar` + `start(race, polar:)` + `_onTick` lookup → snapshot; `RaceSnapshot.targetSpeedKnots`; host-átadás (`polarProvider` + init-üzenet); `WatchPayload.targetSpeedPercent` + `buildWatchPayload`. Több commit (codec → engine+snapshot → host → payload+builder).
+- **3b**: telefon-UI grid-cella a target-%-nak.
+- **3c**: óra-mező/layout + `PolarMissing` warning. Ez érinti a `race_shell` layoutot és a warning-rendszert — a párhuzamos-chat (mélység/clamp) ütközés itt a legvalószínűbb, ezért a sorban hátul.
