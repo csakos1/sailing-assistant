@@ -20,6 +20,7 @@ export 'package:data/src/engine/snapshot_logger.dart';
 export 'package:data/src/nmea/client/nmea0183_tcp_client.dart';
 export 'package:data/src/nmea/client/raw_nmea_line_source.dart';
 export 'package:data/src/persistence/app_database.dart';
+export 'package:data/src/persistence/repositories/mark_library_repository_impl.dart';
 export 'package:data/src/persistence/repositories/race_repository_impl.dart';
 export 'package:data/src/persistence/repositories/settings_repository_impl.dart';
 export 'package:data/src/persistence/repositories/snapshot_logger_impl.dart';

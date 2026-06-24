@@ -1771,6 +1771,384 @@ class SnapshotLogsCompanion extends UpdateCompanion<SnapshotLogRow> {
   }
 }
 
+class $SavedMarksTable extends SavedMarks
+    with TableInfo<$SavedMarksTable, SavedMarkRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedMarksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latitudeE7Meta = const VerificationMeta(
+    'latitudeE7',
+  );
+  @override
+  late final GeneratedColumn<int> latitudeE7 = GeneratedColumn<int>(
+    'latitude_e7',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeE7Meta = const VerificationMeta(
+    'longitudeE7',
+  );
+  @override
+  late final GeneratedColumn<int> longitudeE7 = GeneratedColumn<int>(
+    'longitude_e7',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceRaceNameMeta = const VerificationMeta(
+    'sourceRaceName',
+  );
+  @override
+  late final GeneratedColumn<String> sourceRaceName = GeneratedColumn<String>(
+    'source_race_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _savedAtMeta = const VerificationMeta(
+    'savedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> savedAt = GeneratedColumn<DateTime>(
+    'saved_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    name,
+    latitudeE7,
+    longitudeE7,
+    sourceRaceName,
+    savedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_marks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedMarkRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('latitude_e7')) {
+      context.handle(
+        _latitudeE7Meta,
+        latitudeE7.isAcceptableOrUnknown(data['latitude_e7']!, _latitudeE7Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeE7Meta);
+    }
+    if (data.containsKey('longitude_e7')) {
+      context.handle(
+        _longitudeE7Meta,
+        longitudeE7.isAcceptableOrUnknown(
+          data['longitude_e7']!,
+          _longitudeE7Meta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeE7Meta);
+    }
+    if (data.containsKey('source_race_name')) {
+      context.handle(
+        _sourceRaceNameMeta,
+        sourceRaceName.isAcceptableOrUnknown(
+          data['source_race_name']!,
+          _sourceRaceNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRaceNameMeta);
+    }
+    if (data.containsKey('saved_at')) {
+      context.handle(
+        _savedAtMeta,
+        savedAt.isAcceptableOrUnknown(data['saved_at']!, _savedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_savedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  SavedMarkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedMarkRow(
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      latitudeE7: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}latitude_e7'],
+      )!,
+      longitudeE7: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}longitude_e7'],
+      )!,
+      sourceRaceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_race_name'],
+      )!,
+      savedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}saved_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedMarksTable createAlias(String alias) {
+    return $SavedMarksTable(attachedDatabase, alias);
+  }
+}
+
+class SavedMarkRow extends DataClass implements Insertable<SavedMarkRow> {
+  final String name;
+  final int latitudeE7;
+  final int longitudeE7;
+  final String sourceRaceName;
+  final DateTime savedAt;
+  const SavedMarkRow({
+    required this.name,
+    required this.latitudeE7,
+    required this.longitudeE7,
+    required this.sourceRaceName,
+    required this.savedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['name'] = Variable<String>(name);
+    map['latitude_e7'] = Variable<int>(latitudeE7);
+    map['longitude_e7'] = Variable<int>(longitudeE7);
+    map['source_race_name'] = Variable<String>(sourceRaceName);
+    map['saved_at'] = Variable<DateTime>(savedAt);
+    return map;
+  }
+
+  SavedMarksCompanion toCompanion(bool nullToAbsent) {
+    return SavedMarksCompanion(
+      name: Value(name),
+      latitudeE7: Value(latitudeE7),
+      longitudeE7: Value(longitudeE7),
+      sourceRaceName: Value(sourceRaceName),
+      savedAt: Value(savedAt),
+    );
+  }
+
+  factory SavedMarkRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedMarkRow(
+      name: serializer.fromJson<String>(json['name']),
+      latitudeE7: serializer.fromJson<int>(json['latitudeE7']),
+      longitudeE7: serializer.fromJson<int>(json['longitudeE7']),
+      sourceRaceName: serializer.fromJson<String>(json['sourceRaceName']),
+      savedAt: serializer.fromJson<DateTime>(json['savedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'name': serializer.toJson<String>(name),
+      'latitudeE7': serializer.toJson<int>(latitudeE7),
+      'longitudeE7': serializer.toJson<int>(longitudeE7),
+      'sourceRaceName': serializer.toJson<String>(sourceRaceName),
+      'savedAt': serializer.toJson<DateTime>(savedAt),
+    };
+  }
+
+  SavedMarkRow copyWith({
+    String? name,
+    int? latitudeE7,
+    int? longitudeE7,
+    String? sourceRaceName,
+    DateTime? savedAt,
+  }) => SavedMarkRow(
+    name: name ?? this.name,
+    latitudeE7: latitudeE7 ?? this.latitudeE7,
+    longitudeE7: longitudeE7 ?? this.longitudeE7,
+    sourceRaceName: sourceRaceName ?? this.sourceRaceName,
+    savedAt: savedAt ?? this.savedAt,
+  );
+  SavedMarkRow copyWithCompanion(SavedMarksCompanion data) {
+    return SavedMarkRow(
+      name: data.name.present ? data.name.value : this.name,
+      latitudeE7: data.latitudeE7.present
+          ? data.latitudeE7.value
+          : this.latitudeE7,
+      longitudeE7: data.longitudeE7.present
+          ? data.longitudeE7.value
+          : this.longitudeE7,
+      sourceRaceName: data.sourceRaceName.present
+          ? data.sourceRaceName.value
+          : this.sourceRaceName,
+      savedAt: data.savedAt.present ? data.savedAt.value : this.savedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedMarkRow(')
+          ..write('name: $name, ')
+          ..write('latitudeE7: $latitudeE7, ')
+          ..write('longitudeE7: $longitudeE7, ')
+          ..write('sourceRaceName: $sourceRaceName, ')
+          ..write('savedAt: $savedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(name, latitudeE7, longitudeE7, sourceRaceName, savedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedMarkRow &&
+          other.name == this.name &&
+          other.latitudeE7 == this.latitudeE7 &&
+          other.longitudeE7 == this.longitudeE7 &&
+          other.sourceRaceName == this.sourceRaceName &&
+          other.savedAt == this.savedAt);
+}
+
+class SavedMarksCompanion extends UpdateCompanion<SavedMarkRow> {
+  final Value<String> name;
+  final Value<int> latitudeE7;
+  final Value<int> longitudeE7;
+  final Value<String> sourceRaceName;
+  final Value<DateTime> savedAt;
+  final Value<int> rowid;
+  const SavedMarksCompanion({
+    this.name = const Value.absent(),
+    this.latitudeE7 = const Value.absent(),
+    this.longitudeE7 = const Value.absent(),
+    this.sourceRaceName = const Value.absent(),
+    this.savedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedMarksCompanion.insert({
+    required String name,
+    required int latitudeE7,
+    required int longitudeE7,
+    required String sourceRaceName,
+    required DateTime savedAt,
+    this.rowid = const Value.absent(),
+  }) : name = Value(name),
+       latitudeE7 = Value(latitudeE7),
+       longitudeE7 = Value(longitudeE7),
+       sourceRaceName = Value(sourceRaceName),
+       savedAt = Value(savedAt);
+  static Insertable<SavedMarkRow> custom({
+    Expression<String>? name,
+    Expression<int>? latitudeE7,
+    Expression<int>? longitudeE7,
+    Expression<String>? sourceRaceName,
+    Expression<DateTime>? savedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (name != null) 'name': name,
+      if (latitudeE7 != null) 'latitude_e7': latitudeE7,
+      if (longitudeE7 != null) 'longitude_e7': longitudeE7,
+      if (sourceRaceName != null) 'source_race_name': sourceRaceName,
+      if (savedAt != null) 'saved_at': savedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedMarksCompanion copyWith({
+    Value<String>? name,
+    Value<int>? latitudeE7,
+    Value<int>? longitudeE7,
+    Value<String>? sourceRaceName,
+    Value<DateTime>? savedAt,
+    Value<int>? rowid,
+  }) {
+    return SavedMarksCompanion(
+      name: name ?? this.name,
+      latitudeE7: latitudeE7 ?? this.latitudeE7,
+      longitudeE7: longitudeE7 ?? this.longitudeE7,
+      sourceRaceName: sourceRaceName ?? this.sourceRaceName,
+      savedAt: savedAt ?? this.savedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (latitudeE7.present) {
+      map['latitude_e7'] = Variable<int>(latitudeE7.value);
+    }
+    if (longitudeE7.present) {
+      map['longitude_e7'] = Variable<int>(longitudeE7.value);
+    }
+    if (sourceRaceName.present) {
+      map['source_race_name'] = Variable<String>(sourceRaceName.value);
+    }
+    if (savedAt.present) {
+      map['saved_at'] = Variable<DateTime>(savedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedMarksCompanion(')
+          ..write('name: $name, ')
+          ..write('latitudeE7: $latitudeE7, ')
+          ..write('longitudeE7: $longitudeE7, ')
+          ..write('sourceRaceName: $sourceRaceName, ')
+          ..write('savedAt: $savedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1781,6 +2159,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SettingsTable settings = $SettingsTable(this);
   late final $SnapshotLogsTable snapshotLogs = $SnapshotLogsTable(this);
+  late final $SavedMarksTable savedMarks = $SavedMarksTable(this);
   late final Index telemetryRaceTime = Index(
     'telemetry_race_time',
     'CREATE INDEX telemetry_race_time ON telemetry_records (race_id, timestamp)',
@@ -1788,6 +2167,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Index snapshotLogRaceTime = Index(
     'snapshot_log_race_time',
     'CREATE INDEX snapshot_log_race_time ON snapshot_logs (race_id, timestamp)',
+  );
+  late final Index savedMarkIdentity = Index(
+    'saved_mark_identity',
+    'CREATE UNIQUE INDEX saved_mark_identity ON saved_marks (name, latitude_e7, longitude_e7, source_race_name)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -1799,8 +2182,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     telemetryRecords,
     settings,
     snapshotLogs,
+    savedMarks,
     telemetryRaceTime,
     snapshotLogRaceTime,
+    savedMarkIdentity,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3457,6 +3842,212 @@ typedef $$SnapshotLogsTableProcessedTableManager =
       SnapshotLogRow,
       PrefetchHooks Function({bool raceId})
     >;
+typedef $$SavedMarksTableCreateCompanionBuilder =
+    SavedMarksCompanion Function({
+      required String name,
+      required int latitudeE7,
+      required int longitudeE7,
+      required String sourceRaceName,
+      required DateTime savedAt,
+      Value<int> rowid,
+    });
+typedef $$SavedMarksTableUpdateCompanionBuilder =
+    SavedMarksCompanion Function({
+      Value<String> name,
+      Value<int> latitudeE7,
+      Value<int> longitudeE7,
+      Value<String> sourceRaceName,
+      Value<DateTime> savedAt,
+      Value<int> rowid,
+    });
+
+class $$SavedMarksTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedMarksTable> {
+  $$SavedMarksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get latitudeE7 => $composableBuilder(
+    column: $table.latitudeE7,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get longitudeE7 => $composableBuilder(
+    column: $table.longitudeE7,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceRaceName => $composableBuilder(
+    column: $table.sourceRaceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedMarksTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedMarksTable> {
+  $$SavedMarksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get latitudeE7 => $composableBuilder(
+    column: $table.latitudeE7,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get longitudeE7 => $composableBuilder(
+    column: $table.longitudeE7,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceRaceName => $composableBuilder(
+    column: $table.sourceRaceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedMarksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedMarksTable> {
+  $$SavedMarksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get latitudeE7 => $composableBuilder(
+    column: $table.latitudeE7,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get longitudeE7 => $composableBuilder(
+    column: $table.longitudeE7,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceRaceName => $composableBuilder(
+    column: $table.sourceRaceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get savedAt =>
+      $composableBuilder(column: $table.savedAt, builder: (column) => column);
+}
+
+class $$SavedMarksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedMarksTable,
+          SavedMarkRow,
+          $$SavedMarksTableFilterComposer,
+          $$SavedMarksTableOrderingComposer,
+          $$SavedMarksTableAnnotationComposer,
+          $$SavedMarksTableCreateCompanionBuilder,
+          $$SavedMarksTableUpdateCompanionBuilder,
+          (
+            SavedMarkRow,
+            BaseReferences<_$AppDatabase, $SavedMarksTable, SavedMarkRow>,
+          ),
+          SavedMarkRow,
+          PrefetchHooks Function()
+        > {
+  $$SavedMarksTableTableManager(_$AppDatabase db, $SavedMarksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedMarksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedMarksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedMarksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> name = const Value.absent(),
+                Value<int> latitudeE7 = const Value.absent(),
+                Value<int> longitudeE7 = const Value.absent(),
+                Value<String> sourceRaceName = const Value.absent(),
+                Value<DateTime> savedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedMarksCompanion(
+                name: name,
+                latitudeE7: latitudeE7,
+                longitudeE7: longitudeE7,
+                sourceRaceName: sourceRaceName,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String name,
+                required int latitudeE7,
+                required int longitudeE7,
+                required String sourceRaceName,
+                required DateTime savedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedMarksCompanion.insert(
+                name: name,
+                latitudeE7: latitudeE7,
+                longitudeE7: longitudeE7,
+                sourceRaceName: sourceRaceName,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedMarksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedMarksTable,
+      SavedMarkRow,
+      $$SavedMarksTableFilterComposer,
+      $$SavedMarksTableOrderingComposer,
+      $$SavedMarksTableAnnotationComposer,
+      $$SavedMarksTableCreateCompanionBuilder,
+      $$SavedMarksTableUpdateCompanionBuilder,
+      (
+        SavedMarkRow,
+        BaseReferences<_$AppDatabase, $SavedMarksTable, SavedMarkRow>,
+      ),
+      SavedMarkRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3471,4 +4062,6 @@ class $AppDatabaseManager {
       $$SettingsTableTableManager(_db, _db.settings);
   $$SnapshotLogsTableTableManager get snapshotLogs =>
       $$SnapshotLogsTableTableManager(_db, _db.snapshotLogs);
+  $$SavedMarksTableTableManager get savedMarks =>
+      $$SavedMarksTableTableManager(_db, _db.savedMarks);
 }
