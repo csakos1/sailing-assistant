@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/theme/watch_colors.dart';
-import 'package:watch/widgets/direction_arrow.dart';
 import 'package:watch/widgets/watch_metrics.dart';
 
 /// „A" nézet — Sebesség (§10.4). Hero: SOG; mellette jobbra a cél-sebesség %
 /// (target speed, a polár-célhoz viszonyított élő sebesség), kisebb betűvel.
-/// Alatta egy sorban, azonos betűmérettel a VMG (v1 placeholder) és a TWA most
-/// (port/stbd nyíllal befelé). Ambientben csak a SOG-hero marad, tompítva,
+/// Alatta egy sorban, azonos betűmérettel az élő VMG és a target VMG
+/// (csomóban, előjelesen; ADR 0028 Addendum 4). Ambientben csak a SOG-hero
+/// marad, tompítva,
 /// accent nélkül (a cél-% és a másodlagos sor rejtve).
 class SpeedView extends StatelessWidget {
   /// Létrehozza a nézetet a megjelenítendő [payload]-dal.
@@ -112,16 +112,15 @@ class SpeedView extends StatelessWidget {
               ),
               const SizedBox(width: 20),
               WatchMetricCell(
-                label: 'TWA',
+                label: 'Cél VMG',
                 colors: colors,
-                value: ArrowedValue(
-                  value: formatDegreesMagnitude(payload.currentTwa),
-                  side: arrowSideFromSign(payload.currentTwa),
-                  kind: ArrowKind.twa,
-                  colors: colors,
-                  valueColor: colors.text,
-                  fontSize: 22,
-                  arrowSize: 16,
+                value: Text(
+                  formatSpeedKnots(payload.targetVmgKnots),
+                  style: TextStyle(
+                    color: colors.text,
+                    fontSize: 22,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ],
