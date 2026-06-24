@@ -313,5 +313,17 @@
   "warningPolarMissing": "Nincs polár-adat",
   "@warningPolarMissing": {
     "description": "Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható."
+  },
+  "setupPickFromLibrary": "Korábbi bóják",
+  "@setupPickFromLibrary": {
+    "description": "Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból."
+  },
+  "setupPickFromLibraryTitle": "Korábbi bóják",
+  "@setupPickFromLibraryTitle": {
+    "description": "A bója-választó (modal sheet) címe."
+  },
+  "setupPickFromLibraryEmpty": "Még nincs mentett bója.",
+  "@setupPickFromLibraryEmpty": {
+    "description": "A bója-választó üres állapota: a könyvtár üres."
   }
 }

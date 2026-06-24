@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:shared/shared.dart';
 
@@ -62,6 +65,21 @@ class _RaceFormState extends State<RaceForm> {
 
   void _addMarkRow() {
     setState(() => _markRows.add(_MarkRowControllers()));
+  }
+
+  Future<void> _pickFromLibrary() async {
+    final picked = await showModalBottomSheet<SavedMark>(
+      context: context,
+      builder: (_) => const SavedMarkPicker(),
+    );
+    if (!mounted || picked == null) return;
+    _addPickedMarkRow(picked);
+  }
+
+  void _addPickedMarkRow(SavedMark mark) {
+    setState(
+      () => _markRows.add(_MarkRowControllers.fromSavedMark(mark)),
+    );
   }
 
   void _removeMarkRow(int index) {
@@ -151,6 +169,12 @@ class _RaceFormState extends State<RaceForm> {
             icon: const Icon(Icons.add),
             label: Text(l10n.setupAddMark),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => unawaited(_pickFromLibrary()),
+            icon: const Icon(Icons.history),
+            label: Text(l10n.setupPickFromLibrary),
+          ),
           const SizedBox(height: 24),
           FilledButton(onPressed: _submit, child: Text(l10n.setupSave)),
         ],
@@ -175,6 +199,15 @@ class _MarkRowControllers {
     latitude: mark.position.latitude.toString(),
     longitude: mark.position.longitude.toString(),
   );
+
+  /// Egy könyvtárbeli bójából tölti fel a sort (picker-választás).
+  factory _MarkRowControllers.fromSavedMark(SavedMark mark) {
+    return _MarkRowControllers(
+      name: mark.name,
+      latitude: mark.position.latitude.toString(),
+      longitude: mark.position.longitude.toString(),
+    );
+  }
 
   final TextEditingController nameController;
   final TextEditingController latitudeController;

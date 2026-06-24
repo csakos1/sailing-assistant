@@ -242,4 +242,13 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get warningPolarMissing => 'Nincs polár-adat';
+
+  @override
+  String get setupPickFromLibrary => 'Korábbi bóják';
+
+  @override
+  String get setupPickFromLibraryTitle => 'Korábbi bóják';
+
+  @override
+  String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
 }

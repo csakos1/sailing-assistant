@@ -30,6 +30,13 @@ void main() {
   // Az edit-screent egy home-route fölé pusholjuk, hogy a mentés utáni pop
   // tiszta visszatérést adjon, és a navigáció assertelhető legyen.
   Future<void> openEdit(WidgetTester tester, Race race) async {
+    // Nagyobb teszt-viewport: a (picker-gombbal magasabb) űrlap teljesen
+    // épüljön fel — különben a lusta ListView az AppBar alatt lapozott
+    // Mentés gombot nem építené meg, és a find.byType(FilledButton) 0-t adna.
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

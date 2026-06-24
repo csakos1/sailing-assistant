@@ -531,6 +531,24 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Nincs polár-adat'**
   String get warningPolarMissing;
+
+  /// Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból.
+  ///
+  /// In hu, this message translates to:
+  /// **'Korábbi bóják'**
+  String get setupPickFromLibrary;
+
+  /// A bója-választó (modal sheet) címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Korábbi bóják'**
+  String get setupPickFromLibraryTitle;
+
+  /// A bója-választó üres állapota: a könyvtár üres.
+  ///
+  /// In hu, this message translates to:
+  /// **'Még nincs mentett bója.'**
+  String get setupPickFromLibraryEmpty;
 }
 
 class _AppLocalizationsDelegate
