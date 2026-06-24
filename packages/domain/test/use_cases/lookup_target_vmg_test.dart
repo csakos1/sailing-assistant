@@ -43,10 +43,12 @@ void main() {
           twsKnots: tws,
         );
 
-        // Then: az optimum a sáv maximuma, így >= a 45°-os VMG, és pozitív.
+        // Then: az optimum a sáv maximuma, így >= a 45°-os VMG, és pozitív;
+        // az optimum-szög a felmenő sávban (pozitív magnitúdó).
         expect(result, isNotNull);
-        expect(result, greaterThan(0));
-        expect(result, greaterThanOrEqualTo(vmgAtFortyFive));
+        expect(result?.vmgKnots, greaterThan(0));
+        expect(result?.vmgKnots, greaterThanOrEqualTo(vmgAtFortyFive));
+        expect(result?.optimumTwaDegrees, inInclusiveRange(25, 89));
       },
     );
 
@@ -69,15 +71,18 @@ void main() {
           twsKnots: tws,
         );
 
-        // Then: a legnegatívabb VMG a cél, így <= a 150°-os (mély) VMG.
+        // Then: a legnegatívabb VMG a cél, így <= a 150°-os (mély) VMG; az
+        // optimum-szög a lemenő sávban (pozitív magnitúdó, > 90).
         expect(result, isNotNull);
-        expect(result, lessThan(0));
-        expect(result, lessThanOrEqualTo(vmgAtOneFifty));
+        expect(result?.vmgKnots, lessThan(0));
+        expect(result?.vmgKnots, lessThanOrEqualTo(vmgAtOneFifty));
+        expect(result?.optimumTwaDegrees, inInclusiveRange(91, 180));
       },
     );
 
     test('a halz-előjel nem számít: a |TWA| dönti el a sávot', () {
-      // Given/When: ±45° ugyanazt a felmenő sávot pásztázza.
+      // Given/When: ±45° ugyanazt a felmenő sávot pásztázza, így a teljes
+      // result-rekord (VMG + optimum-szög) is azonos.
       final port = lookupTargetVmg(
         polar: polar,
         twaDegrees: -45,
@@ -89,7 +94,7 @@ void main() {
         twsKnots: 12,
       );
 
-      // Then.
+      // Then: a rekordok strukturálisan egyenlők.
       expect(port, starboard);
     });
 

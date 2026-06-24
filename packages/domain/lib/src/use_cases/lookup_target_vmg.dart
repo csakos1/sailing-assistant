@@ -3,8 +3,15 @@ import 'dart:math';
 import 'package:domain/src/entities/polar.dart';
 import 'package:domain/src/use_cases/lookup_target_speed.dart';
 
+/// A target-VMG lookup eredménye: az elérhető legjobb (előjeles) VMG
+/// (`vmgKnots`, csomóban) és az azt adó polár-szög (`optimumTwaDegrees`,
+/// pozitív magnitúdó, fok). A steer-korrekció (ADR 0028 Addendum 5) az
+/// `optimumTwaDegrees`-ből számol, ezért adjuk vissza a VMG mellett.
+typedef TargetVmg = ({double vmgKnots, double optimumTwaDegrees});
+
 /// A pillanatnyi szélsebesség (TWS) mellett elérhető legjobb VMG-t
-/// (target-VMG, csomóban, előjeles) adja vissza a [Polar] rácsból: a hajó
+/// (target-VMG, csomóban, előjeles) keresi a [Polar] rácsból, és a VMG
+/// mellett az azt adó polár-szöget is visszaadja ([TargetVmg]): a hajó
 /// pillanatnyi TWA-ja dönti el a halz-irányt (fel- vagy lemenő), és a
 /// használt sávban a target-vízsebesség × cos(TWA) szélsőértékét keressük.
 ///
@@ -15,10 +22,12 @@ import 'package:domain/src/use_cases/lookup_target_speed.dart';
 /// bilineáris interpoláció ott már validált); itt csak a sávot pásztázzuk
 /// és a VMG-szélsőértéket választjuk ki.
 ///
-/// **Előjel.** A visszaadott VMG előjeles, megegyezően a `ComputeVmg` élő
+/// **Előjel.** A `vmgKnots` előjeles, megegyezően a `ComputeVmg` élő
 /// VMG-jével: pozitív = szél felé (felmenő, `|TWA| < 90`), negatív =
 /// széltől el (lemenő, `|TWA| >= 90`). Így az élő és a target-VMG
 /// közvetlenül összevethető (élő 4.5 vs. cél 6.1; lemenőn -3.8 vs. -4.6).
+/// Az `optimumTwaDegrees` mindig pozitív magnitúdó — a halz-előjelet a
+/// fogyasztó teszi rá, a pillanatnyi TWA alapján.
 ///
 /// **Sáv.** Felmenőn a no-go küszöb ([Polar.noGoThresholdDegrees]) és 90°
 /// között, lemenőn 90° fölött 180°-ig pásztázunk, 1°-os lépéssel: a polár
@@ -37,9 +46,9 @@ final class LookupTargetVmg {
   static const _lookupTargetSpeed = LookupTargetSpeed();
 
   /// A [polar] rácsból a [twsKnots] melletti elérhető legjobb (előjeles)
-  /// VMG, a [twaDegrees] által meghatározott halz-irányban, vagy `null`,
-  /// ha nincs target.
-  double? call({
+  /// VMG és az azt adó polár-szög [TargetVmg]-ként, a [twaDegrees] által
+  /// meghatározott halz-irányban, vagy `null`, ha nincs target.
+  TargetVmg? call({
     required Polar polar,
     required double twaDegrees,
     required double twsKnots,
@@ -57,6 +66,7 @@ final class LookupTargetVmg {
     final endAngle = isUpwind ? 89 : 180;
 
     double? bestVmg;
+    int? bestAngle;
     for (var angle = startAngle; angle <= endAngle; angle++) {
       final targetSpeed = _lookupTargetSpeed(
         polar: polar,
@@ -71,8 +81,12 @@ final class LookupTargetVmg {
       // (legnegatívabb) VMG a cél — mindkettő a 0-tól legtávolabbi.
       if (bestVmg == null || (isUpwind ? vmg > bestVmg : vmg < bestVmg)) {
         bestVmg = vmg;
+        bestAngle = angle;
       }
     }
-    return bestVmg;
+    // Üres rács-környezet: sehol nem volt polár-adat a sávban.
+    if (bestVmg == null || bestAngle == null) return null;
+
+    return (vmgKnots: bestVmg, optimumTwaDegrees: bestAngle.toDouble());
   }
 }

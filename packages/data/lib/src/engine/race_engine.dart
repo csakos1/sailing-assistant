@@ -333,7 +333,7 @@ class RaceEngine {
       polar: polar,
       twaDegrees: twa.degrees,
       twsKnots: tws.metersPerSecond * _knotsPerMps,
-    );
+    )?.vmgKnots;
   }
 
   // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active
