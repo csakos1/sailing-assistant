@@ -57,7 +57,7 @@ Háttérfunkciók:
 
 - **Auto mark rounding detekció** (50m küszöb + távolodás-detektálás)
 - **Wind shift trend tracking** (sliding window lineáris regresszió, default 10 perc, runtime konfigurálható)
-- **Race definíció** (lat/lon koordináták + sorrend, kézi beírás)
+- **Race definíció** (lat/lon koordináták DD/DDM/DMS-ben + sorrend, kézi beírás vagy paste)
 - **Mágneses elhajlás dinamikus számítása** (WMM modellel)
 - **Telemetria logging** (post-race analízishez minden NMEA üzenet és számolt érték elmentve)
 - **Warning rendszer** (lásd 11. szakasz)
@@ -2234,6 +2234,14 @@ egy validált `(name, marks)` párt ad `onSubmit`-en. A `RaceDetailScreen`
 pozíció-alapú, ezért a reorder a domaint és a data-t nem érinti. A mentés
 create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
 `save` delete-and-rewrite-ja felülír).
+
+**Koordináta-bevitel (ADR 0029 Addendum 1).** A bója lat/lon mezői a
+tizedes-fok mellett DDM (`46° 56.793' N`) és DMS (`46° 56' 47.6" N`)
+formátumot is fogadnak, égtáj-betűvel vagy előjellel, paste-barát toleráns
+szintaxissal. A parse tengelyenként a `ParseGeoAngle` pure domain use
+case-en át fut (`Result<double, GeoAngleParseError>`); a két mező külön
+hívás, a teljes „lat, lon” egy mezőbe szigorúan hiba. A `Coordinate.checked`
+marad a kombinált lat/lon range végső kapuja.
 
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
