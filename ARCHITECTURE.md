@@ -2243,6 +2243,19 @@ case-en át fut (`Result<double, GeoAngleParseError>`); a két mező külön
 hívás, a teljes „lat, lon” egy mezőbe szigorúan hiba. A `Coordinate.checked`
 marad a kombinált lat/lon range végső kapuja.
 
+**Bója-könyvtár (ADR 0032).** A verseny-mentés mellékhatásaként a bóják egy
+verseny-független `saved_marks` táblába is bekerülnek, hogy egy későbbi
+verseny létrehozásakor egy korábbi bója egy koppintással előtölthető legyen.
+A modell **előfordulás-napló** (L2): minden `(bója, verseny)` pár külön sor,
+azonosság-kulcs `(név, lat, lon, forrás-verseny-név)`; ugyanaz a bója más
+versenyben új sort kap. Az írás **best-effort hook** a verseny-mentésnél (a
+setup és az edit submit-ágán is, ADR 0029 D4); a hiba nem blokkolja a verseny
+mentését — a verseny a forrás-igazság (L5). A domain oldalon a `SavedMark`
+entity + a `MarkLibraryRepository` interfész áll (ISP-külön a
+`RaceRepository`-tól, L6); a `saved_marks` az órára/payloadba NEM kerül. A
+picker v1-ben read-only, additív `RaceForm`-elem (név + forrás-verseny-név,
+koordináta nélkül), tap → előtöltött bója-sor (L8).
+
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
 A §8.2 hierarchia alja: az `NmeaStream.events` push-folyamát foldoljuk
@@ -2855,6 +2868,24 @@ class Settings extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+// Verseny-független bója-könyvtár: minden (bója, verseny) előfordulás egy
+// külön sor (ADR 0032 L2, előfordulás-napló). FK NÉLKÜL — túléli a verseny
+// törlését ÉS átnevezését (L1). Row-class: SavedMarkRow.
+@DataClassName('SavedMarkRow')
+@TableIndex(
+  name: 'saved_mark_identity',
+  unique: true,
+  columns: {#name, #latitudeE7, #longitudeE7, #sourceRaceName},
+)
+class SavedMarks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  IntColumn get latitudeE7 => integer()();          // fok × 1e7 (L4)
+  IntColumn get longitudeE7 => integer()();
+  TextColumn get sourceRaceName => text()();        // denormalizált címke
+  DateTimeColumn get savedAt => dateTime()();
+}
 ```
 
 > **v1 → v2 migráció (Fázis 5f, ADR 0011)**: a `Settings` KV-tábla hozzáadása.
@@ -2867,6 +2898,13 @@ class Settings extends Table {
 > `onUpgrade`-ben `if (from < 3) m.createTable(snapshotLogs)` (CSAK az új
 > tábla). Migráció-tulajdonos a UI-izolátum; a másodlagos engine-kapcsolat
 > kész sémát feltételez (ADR 0017 D6).
+
+> **v3 → v4 migráció (ADR 0032)**: a `SavedMarks` tábla a verseny-független
+> bója-könyvtárhoz. `schemaVersion` 3 → 4, `onUpgrade`-ben
+> `if (from < 4) m.createTable(savedMarks)` (CSAK az új tábla) + a
+> `(name, latitudeE7, longitudeE7, sourceRaceName)` unique index. FK NÉLKÜL —
+> a könyvtár túléli a verseny törlését/átnevezését (L1); a pontosan azonos
+> négyes újra-mentése `DoNothing` (L3).
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
