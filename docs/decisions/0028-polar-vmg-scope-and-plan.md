@@ -527,3 +527,144 @@ halasztva:** az **optimum-szög kijelzése** (a use case megtalálja, de
 v1-ben nem mutatjuk — 4c-jelölt), a **mark-VMG** (a bója felé vetített
 VMG), és a VMG-előjel óra-ergonómiája (ha a mínusz zavaró lemenőn, fel/le-
 nyíl helyette — a vízi visszajelzés dönti el).
+
+## Addendum 5 — Bója-független VMG-optimum szög (4c) (2026-06-24)
+
+**Státusz:** elfogadva. Lezárja a 0028 D5 „optimum-szög" részét, amit a
+4. kör E1-e v1-re halasztott: egy **bója-független** steer-korrekcióként
+kerül kijelzésre, ugyanazzal a vizuális nyelvvel, mint a kurzus-korrekció.
+A **mark-VMG (VMC)** és a **layline** továbbra is külön, későbbi feature
+(lásd „Halasztva"). A döntés-prefix itt **F**.
+
+### F1 — Mit mutatunk: a VMG-optimum-szögre vezető steer-korrekció
+
+Az élő + target VMG (4b) megmondja, *mennyit hagyunk az asztalon*; a 4c
+megmondja, *mit csinálj a szöggel*: hány fokot kell élesedni vagy leesni
+ahhoz, hogy a pillanatnyi TWA a VMG-optimum szögre álljon. A
+megjelenítés kifejezetten **azonos** a kurzus-korrekcióval: egy fokszám
+(`|korrekció|`) + egy nyíl a fordulás irányába (jobbra zöld, balra piros).
+
+Fontos, hogy a 4c **csak a szöget** zárja be: a target VMG-szám eléréséhez
+a polár-sebességet is ki kell hozni — azt a meglévő **target-%** méri. Ha
+a 4c ~0°, de még target VMG alatt vagyunk, az **trim/sebesség-probléma**,
+nem szög.
+
+### F2 — Bója-független: a szél-optimum, NEM a mark-VMG (VMC)
+
+A 4c a **szélhez vetített** VMG-optimumot adja (a polár + TWS függvénye), a
+bója helyétől **függetlenül**. Szándékosan NEM a mark-VMG-t (a bója-irányra
+vetített sebesség, VMC) maximalizáljuk: felszélben a pillanatnyi VMC mohó,
+a bójára-mutatásra / túl-élesedésre vinne, ami kruzlinban lassabb a
+VMG-optimum + layline stratégiánál. A „rá tudok-e menni a bójára" esetet a
+meglévő bearing + kurzus-korrekció már kezeli; a 4c a „milyen szögben
+tartsam a hajót, amíg cirkálok/hátszelezek" kérdésre felel, és ez a szög a
+bója helyétől nem függ.
+
+### F3 — A korrekció = pillanatnyi TWA − optimum TWA (előjeles Angle)
+
+A `Bearing + Angle = Bearing` (`TWD = heading + TWA`) miatt `TWA = TWD −
+heading`: ha jobbra fordulunk δ-t, a heading nő → a TWA δ-val csökken. A
+kurzus-korrekció konvenciójával (`+` = jobbra/starboard) tehát:
+
+```
+steerCorrection = currentTwa − optimumTwaSigned   (Angle − Angle)
+```
+
+ahol az `optimumTwaSigned` az optimum **magnitúdóját** a pillanatnyi TWA
+halzára előjelezi (port halz → negatív). Mind a négy eset helyes:
+
+| halz       | TWA  | opt  | korrekció | nyíl        | jelentés |
+|------------|------|------|-----------|-------------|----------|
+| starboard  | +40  | 42   | −2        | balra/piros | ess le   |
+| starboard  | +50  | 42   | +8        | jobbra/zöld | állj fel |
+| port       | −40  | 42   | +2        | jobbra/zöld | ess le   |
+| port       | −50  | 42   | −8        | balra/piros | állj fel |
+
+A nyíl mindig a tényleges **fordulás-irányba** mutat (nem az „élesedj/ess
+le" szóból), ezért tackeléskor a `trueAngleWater` előjel-váltása magától
+átfordítja az oldalt és a színt — kézi halz-kapcsoló nélkül.
+
+### F4 — Az optimum a LookupTargetVmg ugyanazon pásztázásából (O1)
+
+A `LookupTargetVmg` ma csak a VMG-szélsőértéket adja vissza, de a sáv
+1°-os pásztázása közben **ismeri az optimum szöget is** — a kettő ugyanaz a
+szélsőérték. A use case bővül egy kis result-rekordra (`vmgKnots` +
+`optimumTwaDegrees`, az utóbbi pozitív magnitúdó), SSOT-ként: egy
+pásztázás adja mindkettőt, nem két külön use case keresné ugyanazt. A
+meglévő target-VMG fogyasztó a `.vmgKnots`-ra köt át (signature-kaszkád →
+egy commit). Elvetve: külön `LookupOptimumTwa` (OCP-tisztább, de a
+pásztázás duplikálódna).
+
+### F5 — Pure use case: ComputeVmgSteerCorrection (O2)
+
+`ComputeVmgSteerCorrection.call({Angle currentTwa, double
+optimumTwaMagnitude}) → Angle?` — az F3 képlet `Angle − Angle`
+aritmetikával; az optimum előjelét a `currentTwa`-ból veszi. Pure, const,
+teljes edge-case teszttel (mind a négy halz/oldal-eset + a null-ágak).
+
+### F6 — No-go / vasban: null (O3)
+
+Ha `|currentTwa| < Polar.noGoThresholdDegrees` (25°), a halz kétértelmű
+(még nincs választott tack) → a steer-korrekció **`null`** (nem találunk ki
+tacket). Szintén `null`, ha nincs szél / TWS / polár, vagy a target VMG /
+optimum `null`. Ez összeér a párhuzamos **ADR 0030 no-go-clamp**-pel: a
+no-go-tartomány definíciója közös, a 4c és a clamp ugyanazt a küszöböt
+használja — a clamp-szelet előtt egyeztetni kell.
+
+### F7 — Minőség-kapu: forduló-elnyomás a twdQuality-vel (O4)
+
+A forduló alatt a TWA átsöpör a no-go-n, a sebesség beesik → a steer-
+korrekció tranziens. A snapshotban már jelen lévő **`twdQuality`** gyenge /
+„held" állapotában a steer-korrekciót **elnyomjuk (`null`)**, ugyanúgy,
+ahogy a target-% null-kezelése. Így a forduló közben nem ugrál a mező,
+hanem az új tackon, beállás után jelenik meg újra.
+
+### F8 — Kijelzés: a korrekció-cella újrahasznosítva + óra-layout (O5/O6)
+
+A `DirectionArrow` + zöld-jobb / piros-bal + `|steerCorrection|` fokszám
+ugyanaz, mint a kurzus-korrekciónál; a telefonon a `correction_value`
+mintát tükrözzük (a pontos widget-bekötést a watch-szelet előtt egy kis
+dump rögzíti).
+
+**Óra-layout (felülírja a 4b A-lap második sorát):** az élő és a target
+VMG **egy `/`-elválasztott cellába** kerül (mint a telefon-griden), pl.
+`3.1/6.5`, és **mellette jobbra ugyanabban a sorban** a steer-korrekció
+(nyíl + fok). A 4b kétcellás `(élő VMG, Cél VMG)` elrendezés megszűnik. A
+pillanatnyi TWA korábban (4b) eltűnt az A-lapról; ez nem változik.
+
+A `null` steer-korrekció (no-go / gyenge minőség / hiányzó polár) esetén a
+korrekció-rész üres/elnyomott; a VMG-cella változatlanul mutatja, amije van
+(akár csak az élő VMG-t).
+
+### F9 — Architektúra / szelet-bontás
+
+1. **feat(domain):** `LookupTargetVmg` → result-rekord (`vmgKnots` +
+   `optimumTwaDegrees`) + a fogyasztó frissítése; `ComputeVmgSteerCorrection`
+   use case; tesztek. (`test:dart`)
+2. **feat(data):** engine-helper számolja a steer-korrekciót (a
+   `LookupTargetVmg` optimumából + a `ComputeVmgSteerCorrection`-nel),
+   `twdQuality`-kapuval → `RaceSnapshot.vmgSteerCorrection` (`Angle?`) +
+   JSON round-trip. (`test:flutter`)
+3. **feat(shared/phone):** `WatchPayload.vmgSteerCorrection` +
+   `buildWatchPayload` (MINDKÉT hívó!) + telefon-grid cella. (`test:flutter`)
+4. **feat(watch):** a `/`-elválasztott VMG-cella + a steer-korrekció a
+   `DirectionArrow`-val az A-lapon (F8); tesztek; on-device sanity
+   (felszél + hátszél + tackelés, a 42 mm-es órán). (`test:flutter`)
+
+Docs-first: ez az addendum + az ARCHITECTURE §10 sync (külön commitok)
+előzi meg a kódot.
+
+### Halasztva (változatlan)
+
+- **Mark-VMG (VMC):** a bója-irányra vetített sebesség — csak akkor
+  helyes, ha a bóját egy halzon befutod; pillanatnyi VMC-ként
+  félrevezető. Külön, későbbi feature.
+- **Layline:** „mikor fordulj, hogy egy halzzal befusd a bóját" + melyik
+  halz kedvezőbb most. Állandó szélben a fordulók száma/időzítése a két
+  layline közt közömbös (létra-fok tulajdonság); a fordulók időzítése csak
+  **szélfordulásban** számít, ami előrejelzés, nem geometria. A
+  megvalósítható „okos" verzió a layline + a meglévő `CalculateWindShiftTrend`
+  (header/lift jelzés) kombója — nagyobb, külön ADR.
+- **Downwind-ergonómia:** a hátszeles steer-irány matematikailag
+  konzisztens a felszelivel (azonos képlet), de az óra-leolvasás
+  intuitivitása on-water validációt kap (mint a 4b VMG-előjel).
