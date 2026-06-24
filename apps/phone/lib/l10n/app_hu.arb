@@ -204,6 +204,18 @@
   "@setupLongitudeOutOfRange": {
     "description": "Validációs hiba: a hosszúság tartományon kívül."
   },
+  "setupCoordinateUnrecognized": "Ismeretlen koordináta-formátum.",
+  "@setupCoordinateUnrecognized": {
+    "description": "Validációs hiba: a koordináta egyik formátumra sem illik."
+  },
+  "setupCoordinateComponentRange": "A perc és a másodperc 0 és 60 között lehet.",
+  "@setupCoordinateComponentRange": {
+    "description": "Validációs hiba: a perc/másodperc a [0,60) tartományon kívül."
+  },
+  "setupCoordinateCardinalMismatch": "Az égtáj-betű nem illik ehhez a mezőhöz.",
+  "@setupCoordinateCardinalMismatch": {
+    "description": "Validációs hiba: az égtáj-betű nem illik a tengelyhez."
+  },
   "setupAddMark": "Bója hozzáadása",
   "@setupAddMark": {
     "description": "Gomb: új bója-sor hozzáadása."

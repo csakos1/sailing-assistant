@@ -94,8 +94,14 @@ class _RaceFormState extends State<RaceForm> {
           name: _markRows[i].nameController.text.trim(),
           // A validáció után a lat/lon garantáltan érvényes tartomány.
           position: Coordinate.checked(
-            latitude: double.parse(_markRows[i].latitudeController.text),
-            longitude: double.parse(_markRows[i].longitudeController.text),
+            latitude: _degrees(
+              _markRows[i].latitudeController.text,
+              GeoAxis.latitude,
+            ),
+            longitude: _degrees(
+              _markRows[i].longitudeController.text,
+              GeoAxis.longitude,
+            ),
           ),
         ),
     ];
@@ -204,21 +210,26 @@ class _MarkRowFields extends StatelessWidget {
       ? l10n.setupMarkNameRequired
       : null;
 
-  String? _validateLatitude(String? value) {
-    final parsed = double.tryParse(value ?? '');
-    if (parsed == null) return l10n.setupInvalidNumber;
-    return switch (Coordinate.tryFromDegrees(latitude: parsed, longitude: 0)) {
-      Ok() => null,
-      Err() => l10n.setupLatitudeOutOfRange,
-    };
-  }
+  String? _validateLatitude(String? value) =>
+      _coordinateError(value, GeoAxis.latitude);
 
-  String? _validateLongitude(String? value) {
-    final parsed = double.tryParse(value ?? '');
-    if (parsed == null) return l10n.setupInvalidNumber;
-    return switch (Coordinate.tryFromDegrees(latitude: 0, longitude: parsed)) {
+  String? _validateLongitude(String? value) =>
+      _coordinateError(value, GeoAxis.longitude);
+
+  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
+  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
+  String? _coordinateError(String? value, GeoAxis axis) {
+    final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
+    return switch (result) {
       Ok() => null,
-      Err() => l10n.setupLongitudeOutOfRange,
+      Err(error: EmptyInput()) => l10n.setupInvalidNumber,
+      Err(error: Unrecognized()) => l10n.setupCoordinateUnrecognized,
+      Err(error: ComponentOutOfRange()) => l10n.setupCoordinateComponentRange,
+      Err(error: CardinalMismatch()) => l10n.setupCoordinateCardinalMismatch,
+      Err(error: OutOfRange()) =>
+        axis == GeoAxis.latitude
+            ? l10n.setupLatitudeOutOfRange
+            : l10n.setupLongitudeOutOfRange,
     };
   }
 
@@ -298,4 +309,15 @@ class _MarkRowFields extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A validáció utáni biztos koordináta-parse: a `ParseGeoAngle` itt már
+/// garantáltan Ok-ot ad (a form validált), így az Err-ág programozói hiba.
+double _degrees(String text, GeoAxis axis) {
+  return switch (const ParseGeoAngle().call(input: text, axis: axis)) {
+    Ok(value: final value) => value,
+    Err(error: final error) => throw StateError(
+      'Coordinate parse failed after validation: $error',
+    ),
+  };
 }

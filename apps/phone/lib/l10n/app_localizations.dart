@@ -370,6 +370,24 @@ abstract class AppLocalizations {
   /// **'A hosszúság -180 és 180 fok között lehet.'**
   String get setupLongitudeOutOfRange;
 
+  /// Validációs hiba: a koordináta egyik formátumra sem illik.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ismeretlen koordináta-formátum.'**
+  String get setupCoordinateUnrecognized;
+
+  /// Validációs hiba: a perc/másodperc a [0,60) tartományon kívül.
+  ///
+  /// In hu, this message translates to:
+  /// **'A perc és a másodperc 0 és 60 között lehet.'**
+  String get setupCoordinateComponentRange;
+
+  /// Validációs hiba: az égtáj-betű nem illik a tengelyhez.
+  ///
+  /// In hu, this message translates to:
+  /// **'Az égtáj-betű nem illik ehhez a mezőhöz.'**
+  String get setupCoordinateCardinalMismatch;
+
   /// Gomb: új bója-sor hozzáadása.
   ///
   /// In hu, this message translates to:

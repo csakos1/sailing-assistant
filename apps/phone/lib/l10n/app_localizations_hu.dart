@@ -159,6 +159,17 @@ class AppLocalizationsHu extends AppLocalizations {
       'A hosszúság -180 és 180 fok között lehet.';
 
   @override
+  String get setupCoordinateUnrecognized => 'Ismeretlen koordináta-formátum.';
+
+  @override
+  String get setupCoordinateComponentRange =>
+      'A perc és a másodperc 0 és 60 között lehet.';
+
+  @override
+  String get setupCoordinateCardinalMismatch =>
+      'Az égtáj-betű nem illik ehhez a mezőhöz.';
+
+  @override
   String get setupAddMark => 'Bója hozzáadása';
 
   @override

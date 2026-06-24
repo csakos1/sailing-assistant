@@ -164,4 +164,66 @@ void main() {
     // ASSERT — a tartományon kívüli szélesség megállította a mentést.
     expect(submitted, isFalse);
   });
+
+  testWidgets('DDM formátumú koordinátát elfogad és fokra alakít', (
+    tester,
+  ) async {
+    // ARRANGE
+    List<Mark>? emitted;
+    await pumpForm(tester, onSubmit: (_, marks) => emitted = marks);
+
+    // ACT — mezők tree-sorrendben: verseny-név, bója-név, lat, lon.
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'V');
+    await tester.enterText(fields.at(1), 'VK');
+    await tester.enterText(fields.at(2), "46° 56.793' N");
+    await tester.enterText(fields.at(3), "018° 00.727' E");
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a DDM-bemenet tizedes-fokra konvertálva került ki.
+    expect(emitted, isNotNull);
+    expect(emitted!.single.position.latitude, closeTo(46.946554, 1e-4));
+    expect(emitted!.single.position.longitude, closeTo(18.012115, 1e-4));
+  });
+
+  testWidgets('DMS formátumú koordinátát elfogad', (tester) async {
+    // ARRANGE
+    List<Mark>? emitted;
+    await pumpForm(tester, onSubmit: (_, marks) => emitted = marks);
+
+    // ACT
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'V');
+    await tester.enterText(fields.at(1), 'VK');
+    await tester.enterText(fields.at(2), '46° 56\' 47.6" N');
+    await tester.enterText(fields.at(3), '18° 0\' 43.6" E');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a DMS-bemenet ugyanarra a fok-értékre konvertál.
+    expect(emitted, isNotNull);
+    expect(emitted!.single.position.latitude, closeTo(46.94656, 1e-4));
+    expect(emitted!.single.position.longitude, closeTo(18.01211, 1e-4));
+  });
+
+  testWidgets('értelmezhetetlen koordináta blokkolja a submitot', (
+    tester,
+  ) async {
+    // ARRANGE
+    var submitted = false;
+    await pumpForm(tester, onSubmit: (_, _) => submitted = true);
+
+    // ACT — a lat egyik formátumként sem értelmezhető.
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'V');
+    await tester.enterText(fields.at(1), 'Z1');
+    await tester.enterText(fields.at(2), 'abc');
+    await tester.enterText(fields.at(3), '18.05');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // ASSERT — az érvénytelen formátum megállította a mentést.
+    expect(submitted, isFalse);
+  });
 }
