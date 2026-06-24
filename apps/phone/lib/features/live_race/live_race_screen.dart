@@ -258,7 +258,10 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
                       MetricCell(
                         label: l10n.liveVmg,
                         child: MetricValueText(
-                          formatVmgKnots(snapshot?.vmgKnots),
+                          formatVmgWithTarget(
+                            snapshot?.vmgKnots,
+                            snapshot?.targetVmgKnots,
+                          ),
                         ),
                       ),
                     ],
