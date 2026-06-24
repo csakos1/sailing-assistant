@@ -37,6 +37,7 @@ export 'src/use_cases/calculate_eta_to_mark.dart';
 export 'src/use_cases/calculate_wind_shift_trend.dart';
 export 'src/use_cases/compute_mark_prediction.dart';
 export 'src/use_cases/compute_vmg.dart';
+export 'src/use_cases/compute_vmg_steer_correction.dart';
 export 'src/use_cases/derive_true_wind_direction.dart';
 export 'src/use_cases/estimate_prediction_confidence.dart';
 export 'src/use_cases/evaluate_warnings.dart';
