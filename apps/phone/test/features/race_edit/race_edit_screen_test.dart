@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 
 void main() {
@@ -19,9 +20,11 @@ void main() {
   );
 
   late _FakeRaceRepository repository;
+  late _FakeMarkLibraryRepository library;
 
   setUp(() {
     repository = _FakeRaceRepository();
+    library = _FakeMarkLibraryRepository();
   });
 
   // Az edit-screent egy home-route fölé pusholjuk, hogy a mentés utáni pop
@@ -31,6 +34,7 @@ void main() {
       ProviderScope(
         overrides: [
           raceRepositoryProvider.overrideWithValue(repository),
+          markLibraryRepositoryProvider.overrideWithValue(library),
         ],
         child: MaterialApp(
           locale: const Locale('hu'),
@@ -100,6 +104,34 @@ void main() {
     expect(saved.marks.map((m) => m.sequence).toList(), [1, 2]);
     expect(find.byType(RaceEditScreen), findsNothing);
   });
+
+  testWidgets('mentéskor a bóyák a könyvtárba kerülnek az új névvel', (
+    tester,
+  ) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'Régi',
+      marks: const [markA, markB],
+    );
+    await openEdit(tester, race);
+
+    // ACT — átnevezés + mentés.
+    await tester.enterText(find.byType(TextFormField).first, 'Új név');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // ASSERT — mindkét bója a frissített verseny-névvel kerül a könyvtárba.
+    expect(library.saved, hasLength(2));
+    expect(
+      library.saved.map((m) => m.name).toList(),
+      ['A', 'B'],
+    );
+    expect(
+      library.saved.every((m) => m.sourceRaceName == 'Új név'),
+      isTrue,
+    );
+  });
 }
 
 class _FakeRaceRepository implements RaceRepository {
@@ -118,4 +150,16 @@ class _FakeRaceRepository implements RaceRepository {
 
   @override
   Stream<List<Race>> watchRaces() => const Stream<List<Race>>.empty();
+}
+
+class _FakeMarkLibraryRepository implements MarkLibraryRepository {
+  final saved = <SavedMark>[];
+
+  @override
+  Future<void> saveAll(Iterable<SavedMark> marks) async {
+    saved.addAll(marks);
+  }
+
+  @override
+  Stream<List<SavedMark>> watchAll() => const Stream<List<SavedMark>>.empty();
 }

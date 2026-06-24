@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/library/persist_race_marks_to_library.dart';
+import 'package:phone/providers/clock_provider.dart';
+import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 
 /// Egy még el nem indított verseny szerkesztése.
@@ -38,6 +41,12 @@ class RaceEditScreen extends ConsumerWidget {
     // alapján dönt insert vs update között, és felülírja a régi bóyákat.
     final updated = Race.create(id: race.id, name: name, marks: marks);
     await ref.read(raceRepositoryProvider).save(updated);
+    // Best-effort: a verseny bóyáit a könyvtárba is (ADR 0032 L5).
+    await persistRaceMarksToLibrary(
+      repository: ref.read(markLibraryRepositoryProvider),
+      race: updated,
+      savedAt: ref.read(clockProvider)(),
+    );
 
     if (!context.mounted) return;
     Navigator.of(context).pop();

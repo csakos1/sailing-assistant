@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/library/persist_race_marks_to_library.dart';
+import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/id_provider.dart';
+import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 
 /// Új verseny felvitele.
@@ -29,6 +32,13 @@ class RaceSetupScreen extends ConsumerWidget {
       marks: marks,
     );
     await ref.read(raceRepositoryProvider).save(race);
+
+    // Best-effort: a verseny bóyáit a könyvtárba is (ADR 0032 L5).
+    await persistRaceMarksToLibrary(
+      repository: ref.read(markLibraryRepositoryProvider),
+      race: race,
+      savedAt: ref.read(clockProvider)(),
+    );
 
     if (!context.mounted) return;
     Navigator.of(context).pop();
