@@ -52,6 +52,7 @@ class RaceEngine {
   static const _lookupTarget = LookupTargetSpeed();
   static const _computeVmg = ComputeVmg();
   static const _lookupTargetVmg = LookupTargetVmg();
+  static const _computeVmgSteer = ComputeVmgSteerCorrection();
 
   // m/s → csomó: a LookupTargetSpeed kn-ben várja a TWS-t, a Speed m/s-ben.
   static const _knotsPerMps = 1.943844;
@@ -244,7 +245,9 @@ class RaceEngine {
     );
     final targetSpeedKnots = _targetSpeedKnots();
     final vmgKnots = _vmgKnots();
-    final targetVmgKnots = _targetVmgKnots();
+    final targetVmg = _targetVmg();
+    final targetVmgKnots = targetVmg?.vmgKnots;
+    final vmgSteerCorrection = _vmgSteerCorrection(targetVmg);
     // A snapshotot lokális változóba emeljük: az emit után a
     // snapshot-logger ugyanazt a példányt kapja (ADR 0022 D4).
     final snapshot = RaceSnapshot(
@@ -260,6 +263,7 @@ class RaceEngine {
       targetSpeedKnots: targetSpeedKnots,
       vmgKnots: vmgKnots,
       targetVmgKnots: targetVmgKnots,
+      vmgSteerCorrection: vmgSteerCorrection,
     );
     _snapshots.add(snapshot);
     // unawaited + a logger internál try/catch: egy DB-hiba sem
@@ -312,13 +316,14 @@ class RaceEngine {
     );
   }
 
-  /// A polár-alapú target VMG (kn) az élő szélből, vagy `null`, ha nincs
-  /// betöltött polár, hiányzik a water-referenciájú szél, vagy a sávban
-  /// nincs polár-adat (ADR 0028 Addendum 4). A fel-/hátszél a pillanatnyi
-  /// `|TWA|`-ból dől el, az élő VMG-vel konzisztens előjelért (E4). A
-  /// `LookupTargetVmg` kn-ben várja a TWS-t, a `Speed` viszont m/s —
-  /// ezért konvertálunk.
-  double? _targetVmgKnots() {
+  /// A polár-alapú target VMG és a hozzá tartozó optimum-szög az élő
+  /// szélből ([TargetVmg]), vagy `null`, ha nincs betöltött polár,
+  /// hiányzik a water-referenciájú szél, vagy a sávban nincs polár-adat
+  /// (ADR 0028 Addendum 4). A fel-/hátszél a pillanatnyi `|TWA|`-ból
+  /// dől el, az élő VMG-vel konzisztens előjelért (E4). Egy pásztázás
+  /// adja a target VMG-t ÉS a steer-optimumot (SSOT, F4). A
+  /// `LookupTargetVmg` kn-ben várja a TWS-t, a `Speed` viszont m/s.
+  TargetVmg? _targetVmg() {
     final polar = _polar;
     final wind = _wind;
     if (polar == null || wind == null) {
@@ -333,7 +338,26 @@ class RaceEngine {
       polar: polar,
       twaDegrees: twa.degrees,
       twsKnots: tws.metersPerSecond * _knotsPerMps,
-    )?.vmgKnots;
+    );
+  }
+
+  /// A VMG-optimum szögre vezető steer-korrekció (Angle) az élő szélből,
+  /// vagy `null`, ha nincs target-VMG ([targetVmg] null), vagy a TWD
+  /// minősége nem `live`. Held/weak TWD-n a korrekciót elnyomjuk
+  /// (forduló-elnyomás, F7): elavult szélszögre vezetne. A no-go-kaput
+  /// a `ComputeVmgSteerCorrection` maga kezeli (F6).
+  Angle? _vmgSteerCorrection(TargetVmg? targetVmg) {
+    if (targetVmg == null || _lastTwdQuality != TwdQuality.live) {
+      return null;
+    }
+    final twa = _wind?.trueAngleWater;
+    if (twa == null) {
+      return null;
+    }
+    return _computeVmgSteer(
+      currentTwa: twa,
+      optimumTwaMagnitude: targetVmg.optimumTwaDegrees,
+    );
   }
 
   // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active

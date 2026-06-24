@@ -82,6 +82,7 @@ void main() {
       targetSpeedKnots: 6.42,
       vmgKnots: 4.5,
       targetVmgKnots: 5.1,
+      vmgSteerCorrection: const Angle(degrees: -2),
     );
 
     test('teljes snapshot round-trip — minden mező megőrződik', () {
@@ -104,6 +105,7 @@ void main() {
       expect(restored.targetSpeedKnots, original.targetSpeedKnots);
       expect(restored.vmgKnots, original.vmgKnots);
       expect(restored.targetVmgKnots, original.targetVmgKnots);
+      expect(restored.vmgSteerCorrection, original.vmgSteerCorrection);
     });
 
     test('a twdQuality default + hiányzó kulcs unavailable-re dekódol', () {

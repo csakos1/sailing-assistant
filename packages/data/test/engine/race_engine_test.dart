@@ -68,6 +68,23 @@ void main() {
       trueSpeedWater: const Speed(metersPerSecond: 3),
     );
 
+    test('polár + szél, de nem-live TWD → vmgSteerCorrection null', () async {
+      // ARRANGE — van polár + water-szél (a target VMG kiszámolható),
+      // de a hajó nem mozog (nincs COG/SOG) → a TWD-minőség nem `live`.
+      await engine.start(race, polar: polar);
+      source.emitEvent(WindEvent(windAt(30)));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT — a target VMG megvan, de a forduló-elnyomás (F7)
+      // null-ozza a steer-korrekciót.
+      expect(snapshots.single.targetVmgKnots, isNotNull);
+      expect(snapshots.single.vmgSteerCorrection, isNull);
+    });
+
     test('polár + szél → a snapshot a polár-cellát adja', () async {
       // ARRANGE — TWA 30° (axis-pont), TWS 3 m/s (≈ 5.83 kn, [4,6]).
       await engine.start(race, polar: polar);
@@ -465,6 +482,43 @@ void main() {
       expect(snapshots.single.twdQuality, TwdQuality.live);
     });
 
+    test('live TWD + polár → a steer-korrekció előáll (F7 happy)', () async {
+      // ARRANGE — live TWD (mozgó hajó) + betöltött polár + water-szél
+      // (TWA 40°, TWS 3 m/s) → a kapu nyit, a target VMG kiszámolható.
+      final polar = Polar(
+        twaAxis: const [0, 30, 60, 90],
+        twsAxis: const [4, 6],
+        grid: const [
+          [null, null],
+          [5.0, 5.0],
+          [4.5, 5.6],
+          [4.0, 5.0],
+        ],
+      );
+      const cog = Bearing.true_(95);
+      final wind = WindData(
+        apparentAngle: const Angle(degrees: 35),
+        apparentSpeed: const Speed(metersPerSecond: 6),
+        timestamp: eventTime,
+        trueAngleWater: const Angle(degrees: 40),
+        trueSpeedWater: const Speed(metersPerSecond: 3),
+      );
+      await engine.start(race, polar: polar);
+      source
+        ..emitEvent(
+          CogSogEvent(cog, const Speed(metersPerSecond: 3), eventTime),
+        )
+        ..emitEvent(WindEvent(wind));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT — live TWD + kiszámolható optimum → a steer Angle.
+      expect(snapshots.single.twdQuality, TwdQuality.live);
+      expect(snapshots.single.vmgSteerCorrection, isA<Angle>());
+    });
     test('unavailable: csak pozíció, nincs szél → default marad', () async {
       // ARRANGE — WindEvent nélkül a derive sosem fut → marad a default.
       await engine.start(race);

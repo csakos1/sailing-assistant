@@ -30,6 +30,7 @@ class RaceSnapshot {
     this.targetSpeedKnots,
     this.vmgKnots,
     this.targetVmgKnots,
+    this.vmgSteerCorrection,
   });
 
   /// Visszaépít egy pillanatképet a [json] `Map<String, dynamic>`-ból. A
@@ -61,6 +62,10 @@ class RaceSnapshot {
       targetSpeedKnots: (json['targetSpeedKnots'] as num?)?.toDouble(),
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
       targetVmgKnots: (json['targetVmgKnots'] as num?)?.toDouble(),
+      vmgSteerCorrection: _mapOrNull(
+        json['vmgSteerCorrection'] as num?,
+        _angleFromJson,
+      ),
     );
   }
 
@@ -109,6 +114,13 @@ class RaceSnapshot {
   /// post-race elemezhető (ADR 0025).
   final double? targetVmgKnots;
 
+  /// A VMG-optimum szögre vezető steer-korrekció (Angle) a tick
+  /// pillanatában, vagy `null`, ha nincs target-VMG, no-go a TWA,
+  /// vagy a TWD minősége nem `live` (forduló-elnyomás, ADR 0028
+  /// Addendum 5). Előjeles: pozitív = jobbra (starboard), negatív =
+  /// balra (port); a watch és a telefon-grid jeleníti meg.
+  final Angle? vmgSteerCorrection;
+
   /// A tick app-óra ideje.
   final DateTime tickTime;
 
@@ -130,6 +142,7 @@ class RaceSnapshot {
       'targetSpeedKnots': targetSpeedKnots,
       'vmgKnots': vmgKnots,
       'targetVmgKnots': targetVmgKnots,
+      'vmgSteerCorrection': _mapOrNull(vmgSteerCorrection, _angleToJson),
     };
   }
 }
