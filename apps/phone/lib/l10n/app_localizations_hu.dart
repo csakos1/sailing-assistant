@@ -55,22 +55,22 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveStopConfirm => 'Leállítás';
 
   @override
-  String get liveRoundMark => 'Boja megvan';
+  String get liveRoundMark => 'Bója megvan';
 
   @override
-  String get liveRoundMarkTitle => 'Boja megkerelve?';
+  String get liveRoundMarkTitle => 'Bója megkerülve?';
 
   @override
   String liveRoundMarkMessage(String mark) {
-    return 'Megjelolod a(z) $mark bojat megkerultnek?';
+    return 'Megjelölöd a(z) $mark át megkerültnek?';
   }
 
   @override
   String get liveRoundMarkMessageGeneric =>
-      'Megjelelod a jelenlegi bojat megkerultnek?';
+      'Megjelölöd a jelenlegi bóját megkerültnek?';
 
   @override
-  String get liveRoundMarkCancel => 'Megse';
+  String get liveRoundMarkCancel => 'Mégse';
 
   @override
   String get liveRoundMarkConfirm => 'Megvan';

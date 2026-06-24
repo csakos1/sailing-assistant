@@ -60,34 +60,34 @@
   "@liveStopConfirm": {
     "description": "A leállítás-dialógus megerősítő gombja."
   },
-  "liveRoundMark": "Boja megvan",
+  "liveRoundMark": "Bója megvan",
   "@liveRoundMark": {
-    "description": "Gomb az elo kepernyon: a jelenlegi boja kezi megjelolese megkerultnek."
+    "description": "Gomb az élő képernyőn: a jelenlegi boja kézi megjelolése megkerultnek."
   },
-  "liveRoundMarkTitle": "Boja megkerelve?",
+  "liveRoundMarkTitle": "Bója megkerülve?",
   "@liveRoundMarkTitle": {
-    "description": "A kezi boja-megkerules megerosito dialogus cime."
+    "description": "A kézi boja-megkerulés megerosito dialogus cime."
   },
-  "liveRoundMarkMessage": "Megjelolod a(z) {mark} bojat megkerultnek?",
+  "liveRoundMarkMessage": "Megjelölöd a(z) {mark} át megkerültnek?",
   "@liveRoundMarkMessage": {
-    "description": "A kezi boja-megkerules dialogus szovege a celboja nevevel.",
+    "description": "A kézi boja-megkerulés dialogus szovege a célboja nevevel.",
     "placeholders": {
       "mark": {
         "type": "String"
       }
     }
   },
-  "liveRoundMarkMessageGeneric": "Megjelelod a jelenlegi bojat megkerultnek?",
+  "liveRoundMarkMessageGeneric": "Megjelölöd a jelenlegi bóját megkerültnek?",
   "@liveRoundMarkMessageGeneric": {
-    "description": "A dialogus szovege, ha a celboja neve nem ismert (pl. nincs GPS-pozicio)."
+    "description": "A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio)."
   },
-  "liveRoundMarkCancel": "Megse",
+  "liveRoundMarkCancel": "Mégse",
   "@liveRoundMarkCancel": {
-    "description": "A kezi boja-megkerules dialogus megszakito gombja."
+    "description": "A kézi boja-megkerulés dialogus megszakito gombja."
   },
   "liveRoundMarkConfirm": "Megvan",
   "@liveRoundMarkConfirm": {
-    "description": "A kezi boja-megkerules dialogus megerosito gombja."
+    "description": "A kézi boja-megkerulés dialogus megerosito gombja."
   },
   "liveServiceError": "Háttér-engine hiba: {message}",
   "@liveServiceError": {
