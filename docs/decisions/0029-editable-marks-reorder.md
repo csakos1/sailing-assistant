@@ -123,3 +123,123 @@ definíció szerint nem az aktív futó verseny.
   `raceListProvider`, `RaceSetupScreen`, `RaceDetailScreen`.
 - ARCHITECTURE: a phone race-setup szakasz frissül (külön `docs(architecture)`
   commit a kód előtt).
+
+---
+
+## Addendum 1 — Koordináta-formátum parser a bója-bevitelnél
+
+### Státusz (Addendum 1)
+
+Elfogadva — 2026-06-24. Még nem implementálva: docs-first (ADR →
+ARCHITECTURE-sync → kód, külön commitokban). A fő ADR 0029 a „Döntés"
+szakaszban D1–D5-öt használ; ez az addendum ütközés-mentes **P** (parser)
+prefixet használ.
+
+### Kontextus (Addendum 1)
+
+A `RaceForm` ma a bója lat/lon mezőit kizárólag **tizedes-fokban** fogadja: a
+`_submit` `double.parse(...)` → `Coordinate.checked(...)`, a per-mező
+validátorok `double.tryParse(...)` → `Coordinate.tryFromDegrees(...)`. Egy
+tour-race pálya koordinátái viszont sokféle forrásból érkeznek (B&G/charts
+kijelző, weboldal, papír), jellemzően **nem** tizedes-fokban, hanem fok-perc
+(DDM) vagy fok-perc-másodperc (DMS) alakban, égtáj-betűvel. A USER paste-barát
+bevitelt kér: bármelyik forma kézzel beírva vagy beillesztve elfogadott
+legyen, **mezőnként** (a lat és a lon külön input marad).
+
+### Döntés (Addendum 1)
+
+#### P1 — Három elfogadott formátum, tengelyenként, toleráns szintaxissal
+
+Mindkét mező (lat és lon) önállóan elfogad háromféle alakot, a szimbólumok és
+a szóközök körül rugalmasan. A `°`, `'`, `"` jelek és az égtáj-betű körüli
+szóköz opcionális; az előjel ÉS az égtáj-betű is megengedett (lásd P7).
+
+| forma | példa |
+|---|---|
+| tizedes-fok (DD) | `46.946554` · `-46.946554` · `46.946554 N` |
+| fok-perc (DDM) | `46° 56.793' N` · `46 56.793 N` |
+| fok-perc-mp (DMS) | `46° 56' 47.6" N` · `46 56 47.6 N` |
+
+#### P2 — Pure domain use case: `ParseGeoAngle`
+
+A parse egy pure, mellékhatás-mentes domain use case, nem a presentation-ben
+él. Szignatúra:
+
+```dart
+Result<double, GeoAngleParseError> call({
+  required String input,
+  required GeoAxis axis,
+});
+```
+
+Az `axis` (`enum GeoAxis { latitude, longitude }`) határozza meg az
+elfogadott égtáj-betűket (lat: `N`/`S`, lon: `E`/`W`) és a végső tartományt
+(lat: −90..90, lon: −180..180). Egy hívás = egy tengely; a két mező két külön
+hívás. A kimenet **mindig előjeles tizedes-fok** (`double`), normalizálva — ez
+a meglévő belső reprezentáció, így a use case után a kód-út változatlan.
+
+#### P3 — Sealed `GeoAngleParseError` (külön a `CoordinateError`-tól)
+
+A hibamodell saját sealed típus, ISP-tisztán elválasztva a `Coordinate` VO
+`CoordinateError`-jától (az a kész VO konstrukciójáé; ez a string-parse-é):
+
+- `EmptyInput` — üres/whitespace bemenet.
+- `Unrecognized` — egyik formátumra sem illeszkedik (ide esik a P5: teljes
+  „lat, lon" egy mezőbe).
+- `ComponentOutOfRange` — a perc vagy a másodperc nincs a `[0, 60)`-ban.
+- `CardinalMismatch` — rossz-tengelyű égtáj-betű (pl. `E` a lat-mezőben).
+- `OutOfRange` — a kész előjeles érték a tengely-tartományon kívül.
+
+A phone-oldalon minden leaf-hez magyar ARB-hibaszöveg tartozik (a mező
+`validator`-a a `Result` `Err`-ágát képezi le).
+
+#### P4 — A `Coordinate.checked` marad a végső, kombinált range-kapu
+
+A `ParseGeoAngle` a komponens-struktúrát validálja és tengelyenként
+range-ellenőriz (a precíz per-mező hibaüzenetért, P3 `OutOfRange`). A
+`Coordinate.checked` (a `_submit`-ben) **változatlanul** a kombinált lat/lon
+végső, mérvadó kapu marad — belt-and-suspenders, nem dupla-igazság. A use case
+nem hív `Coordinate`-et; csak `double`-t ad.
+
+#### P5 — Szigorú per-tengely: egy mezőbe teljes koordináta = hiba
+
+A `46° 56.793' N 018° 00.727' E` (teljes lat+lon) **egyetlen** mezőbe
+illesztve `Unrecognized` hibát ad — nincs auto-split v1-ben. A két külön mező
+marad; az okos „egy mezős teljes-koordináta paste + szétdobás" külön szelet, ha
+később kell.
+
+#### P6 — Nincs élő átformázás, csak submit-kori normalizálás
+
+Beírás közben a mező a felhasználó nyers szövegét tartja (nem alakítjuk át
+élőben DD-re). A `ParseGeoAngle` a `validator`-ban fut (azonnali hiba-jelzés),
+a normalizált tizedes-fok pedig a `_submit`-kor kerül a `Coordinate.checked`-be.
+
+#### P7 — Előjel-konvenció: előjeles tizedes-fok, hiányzó jel → pozitív (N/E)
+
+`S` vagy `W` égtáj-betű, illetve vezető `-` → negatív belső érték; `N`/`E`
+vagy hiányzó betű/jel → pozitív. Egy csupasz szám (pl. `46.946554`) tehát
+N/E-ként pozitív — a Balatonra ez a természetes alapeset. Égtáj-betű ÉS
+ellentmondó előjel együtt (pl. `-46 N`) `Unrecognized`.
+
+### Scope-korlátok (Addendum 1, v1)
+
+- Csak a **két külön mező**, tengelyenként (P5) — kombinált egy-mezős paste
+  nincs.
+- **Nincs reverse-formázás**: a `RaceDetailScreen` `_formatPosition`-je
+  tizedes-fokban jelenít meg, változatlanul; a DDM/DMS csak bemenet.
+- Nincs térkép-tap / GPX-import — külön szelet, ha kell.
+
+### Implementációs vázlat (Addendum 1)
+
+- `feat(domain): add ParseGeoAngle use case` — `ParseGeoAngle` + `GeoAxis` +
+  sealed `GeoAngleParseError` + barrel + edge-case tesztek (mindhárom formátum,
+  toleráns szintaxis, range/komponens/égtáj hibák, halz-előjel).
+- `feat(phone): accept multiple coordinate formats in race form` — a `RaceForm`
+  per-mező validátorai és a `_submit` átkötése `ParseGeoAngle`-re, ARB
+  hibaszövegek (`flutter gen-l10n`), `race_form` widget-teszt.
+
+### Kapcsolódó (Addendum 1)
+
+- ADR 0029 fő rész — a `RaceForm` (D2) és a két submit-ág (D4), amit ez bővít.
+- `Coordinate` VO (`packages/domain/lib/src/value_objects/coordinate.dart`) —
+  a `checked`/`tryFromDegrees` és a `CoordinateError`, amelyek érintetlenek.

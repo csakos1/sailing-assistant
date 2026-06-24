@@ -184,37 +184,37 @@ abstract class AppLocalizations {
   /// **'Leállítás'**
   String get liveStopConfirm;
 
-  /// Gomb az elo kepernyon: a jelenlegi boja kezi megjelolese megkerultnek.
+  /// Gomb az élő képernyőn: a jelenlegi boja kézi megjelolése megkerultnek.
   ///
   /// In hu, this message translates to:
-  /// **'Boja megvan'**
+  /// **'Bója megvan'**
   String get liveRoundMark;
 
-  /// A kezi boja-megkerules megerosito dialogus cime.
+  /// A kézi boja-megkerulés megerosito dialogus cime.
   ///
   /// In hu, this message translates to:
-  /// **'Boja megkerelve?'**
+  /// **'Bója megkerülve?'**
   String get liveRoundMarkTitle;
 
-  /// A kezi boja-megkerules dialogus szovege a celboja nevevel.
+  /// A kézi boja-megkerulés dialogus szovege a célboja nevevel.
   ///
   /// In hu, this message translates to:
-  /// **'Megjelolod a(z) {mark} bojat megkerultnek?'**
+  /// **'Megjelölöd a(z) {mark} át megkerültnek?'**
   String liveRoundMarkMessage(String mark);
 
-  /// A dialogus szovege, ha a celboja neve nem ismert (pl. nincs GPS-pozicio).
+  /// A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio).
   ///
   /// In hu, this message translates to:
-  /// **'Megjelelod a jelenlegi bojat megkerultnek?'**
+  /// **'Megjelölöd a jelenlegi bóját megkerültnek?'**
   String get liveRoundMarkMessageGeneric;
 
-  /// A kezi boja-megkerules dialogus megszakito gombja.
+  /// A kézi boja-megkerulés dialogus megszakito gombja.
   ///
   /// In hu, this message translates to:
-  /// **'Megse'**
+  /// **'Mégse'**
   String get liveRoundMarkCancel;
 
-  /// A kezi boja-megkerules dialogus megerosito gombja.
+  /// A kézi boja-megkerulés dialogus megerosito gombja.
   ///
   /// In hu, this message translates to:
   /// **'Megvan'**
