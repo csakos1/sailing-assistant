@@ -555,6 +555,66 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Még nincs mentett bója.'**
   String get setupPickFromLibraryEmpty;
+
+  /// A debug-only post-race elemzés szekció címe a detailen.
+  ///
+  /// In hu, this message translates to:
+  /// **'Post-race elemzés'**
+  String get detailAnalysisTitle;
+
+  /// Üres-állapot: a befejezett versenyhez nincs snapshot-log.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs elemzési adat ehhez a versenyhez.'**
+  String get detailAnalysisEmpty;
+
+  /// Hiba-állapot: a post-race elemzés betöltése sikertelen.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült betölteni az elemzést.'**
+  String get detailAnalysisError;
+
+  /// Összegző cella: a jóslat átlagos abszolút tévedése fokban.
+  ///
+  /// In hu, this message translates to:
+  /// **'átlag |Δ|'**
+  String get detailAnalysisAvgDelta;
+
+  /// Összegző cella: a hibasávba esett megkerülések aránya.
+  ///
+  /// In hu, this message translates to:
+  /// **'sávon belül'**
+  String get detailAnalysisBandRatio;
+
+  /// Összegző cella: az átlagos lead-time (m:ss).
+  ///
+  /// In hu, this message translates to:
+  /// **'átlag lead'**
+  String get detailAnalysisAvgLead;
+
+  /// Megkerülés-kártya nyers szám: a jósolt TWA címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'jósolt'**
+  String get detailAnalysisPredicted;
+
+  /// Megkerülés-kártya nyers szám: a ténylegesen befutott TWA.
+  ///
+  /// In hu, this message translates to:
+  /// **'tényl.'**
+  String get detailAnalysisActual;
+
+  /// Kártya: a megbízhatósági ablak (mettől → meddig) címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'megbízható'**
+  String get detailAnalysisReliable;
+
+  /// A megbízhatósági ablak utótagja: az időértékek a bója előtt.
+  ///
+  /// In hu, this message translates to:
+  /// **'a bója előtt'**
+  String get detailAnalysisBeforeMark;
 }
 
 class _AppLocalizationsDelegate

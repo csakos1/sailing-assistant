@@ -254,4 +254,34 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
+
+  @override
+  String get detailAnalysisTitle => 'Post-race elemzés';
+
+  @override
+  String get detailAnalysisEmpty => 'Nincs elemzési adat ehhez a versenyhez.';
+
+  @override
+  String get detailAnalysisError => 'Nem sikerült betölteni az elemzést.';
+
+  @override
+  String get detailAnalysisAvgDelta => 'átlag |Δ|';
+
+  @override
+  String get detailAnalysisBandRatio => 'sávon belül';
+
+  @override
+  String get detailAnalysisAvgLead => 'átlag lead';
+
+  @override
+  String get detailAnalysisPredicted => 'jósolt';
+
+  @override
+  String get detailAnalysisActual => 'tényl.';
+
+  @override
+  String get detailAnalysisReliable => 'megbízható';
+
+  @override
+  String get detailAnalysisBeforeMark => 'a bója előtt';
 }

@@ -8,6 +8,7 @@ import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/rounding_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -26,6 +27,11 @@ void main() {
       overrides: [
         raceRepositoryProvider.overrideWithValue(repository),
         clockProvider.overrideWithValue(() => clock),
+        // A befejezett verseny mostantól a debug-only post-race szekciót is
+        // rendereli (ADR 0034); üres readerrel a valódi AppDatabase helyett.
+        roundingSampleReaderProvider.overrideWithValue(
+          (_) async => const <RoundingSample>[],
+        ),
       ],
     );
     addTearDown(container.dispose);

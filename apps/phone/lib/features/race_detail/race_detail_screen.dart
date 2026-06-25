@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:domain/domain.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
@@ -145,19 +147,22 @@ class RaceDetailScreen extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                itemCount: current.marks.length,
-                itemBuilder: (context, index) {
-                  final mark = current.marks[index];
-                  return ListTile(
-                    leading: CircleAvatar(child: Text('${mark.sequence}')),
-                    title: Text(mark.name),
-                    subtitle: Text(_formatPosition(mark.position)),
-                    trailing: mark.roundedAt != null
-                        ? const Icon(Icons.check_circle_outline)
-                        : null,
-                  );
-                },
+              child: ListView(
+                children: [
+                  for (final mark in current.marks)
+                    ListTile(
+                      leading: CircleAvatar(child: Text('${mark.sequence}')),
+                      title: Text(mark.name),
+                      subtitle: Text(_formatPosition(mark.position)),
+                      trailing: mark.roundedAt != null
+                          ? const Icon(Icons.check_circle_outline)
+                          : null,
+                    ),
+                  // Debug-only post-race elemzés a befejezett verseny alatt
+                  // (ADR 0034 D2/D5); release-ben a kDebugMode tree-shake-eli.
+                  if (kDebugMode && current.status == RaceStatus.finished)
+                    PostRaceAnalysisSection(raceId: current.id),
+                ],
               ),
             ),
             Padding(

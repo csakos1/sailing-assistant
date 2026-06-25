@@ -329,5 +329,45 @@
   "setupPickFromLibraryEmpty": "Még nincs mentett bója.",
   "@setupPickFromLibraryEmpty": {
     "description": "A bója-választó üres állapota: a könyvtár üres."
+  },
+  "detailAnalysisTitle": "Post-race elemzés",
+  "@detailAnalysisTitle": {
+    "description": "A debug-only post-race elemzés szekció címe a detailen."
+  },
+  "detailAnalysisEmpty": "Nincs elemzési adat ehhez a versenyhez.",
+  "@detailAnalysisEmpty": {
+    "description": "Üres-állapot: a befejezett versenyhez nincs snapshot-log."
+  },
+  "detailAnalysisError": "Nem sikerült betölteni az elemzést.",
+  "@detailAnalysisError": {
+    "description": "Hiba-állapot: a post-race elemzés betöltése sikertelen."
+  },
+  "detailAnalysisAvgDelta": "átlag |Δ|",
+  "@detailAnalysisAvgDelta": {
+    "description": "Összegző cella: a jóslat átlagos abszolút tévedése fokban."
+  },
+  "detailAnalysisBandRatio": "sávon belül",
+  "@detailAnalysisBandRatio": {
+    "description": "Összegző cella: a hibasávba esett megkerülések aránya."
+  },
+  "detailAnalysisAvgLead": "átlag lead",
+  "@detailAnalysisAvgLead": {
+    "description": "Összegző cella: az átlagos lead-time (m:ss)."
+  },
+  "detailAnalysisPredicted": "jósolt",
+  "@detailAnalysisPredicted": {
+    "description": "Megkerülés-kártya nyers szám: a jósolt TWA címkéje."
+  },
+  "detailAnalysisActual": "tényl.",
+  "@detailAnalysisActual": {
+    "description": "Megkerülés-kártya nyers szám: a ténylegesen befutott TWA."
+  },
+  "detailAnalysisReliable": "megbízható",
+  "@detailAnalysisReliable": {
+    "description": "Kártya: a megbízhatósági ablak (mettől → meddig) címkéje."
+  },
+  "detailAnalysisBeforeMark": "a bója előtt",
+  "@detailAnalysisBeforeMark": {
+    "description": "A megbízhatósági ablak utótagja: az időértékek a bója előtt."
   }
 }
