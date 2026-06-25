@@ -14,6 +14,7 @@ class RoundingResult {
     this.forecastBandDeg,
     this.predictedConfidence,
     this.leadTime,
+    this.lastReliableLeadTime,
     this.actualSampleCount = 0,
   });
 
@@ -42,6 +43,12 @@ class RoundingResult {
   /// Mennyivel a korozes elott lett es maradt megbizhato a joslat, vagy `null`,
   /// ha a korozeskor mar nem volt megbizhato.
   final Duration? leadTime;
+
+  /// Az utolso valodi (nem-null) megbizhato joslat lead-time-ja: a korozes es
+  /// a freeze-onset (anchor) kozti ido, vagy `null` a [leadTime]-mal azonos
+  /// feltetellel. A [leadTime]-mal egyutt a megbizhatosagi ablakot adja
+  /// (mettol -> meddig a boja elott; ADR 0034 Addendum 1).
+  final Duration? lastReliableLeadTime;
 
   /// Hany snapshotbol atlagoltuk a tenyleges TWA-t (0 = nem volt eleg adat).
   final int actualSampleCount;

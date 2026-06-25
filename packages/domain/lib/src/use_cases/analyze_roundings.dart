@@ -67,6 +67,7 @@ RoundingResult _analyzeTransition(
 ) {
   final predicted = _lastPredictionBefore(snaps, transition.index);
   final samples = _settledActualTwa(snaps, transition, params);
+  final window = _leadTimeWindow(snaps, transition.index, params);
 
   return RoundingResult(
     fromMark: transition.fromMark,
@@ -77,7 +78,8 @@ RoundingResult _analyzeTransition(
     predictedConfidence: predicted?.shiftConfidence,
     actualTwaDeg: samples.isEmpty ? null : _circularMeanDeg(samples),
     actualSampleCount: samples.length,
-    leadTime: _trustLeadTime(snaps, transition.index, params),
+    leadTime: window?.leadTime,
+    lastReliableLeadTime: window?.lastReliableLeadTime,
   );
 }
 
@@ -168,14 +170,15 @@ DateTime? _gateOpenTick(
   return null;
 }
 
-// A korozesnel vegzodo megbizhato predikcio-futam hossza a korozesig
-// (ADR 0027). A trailing freeze-tickeket (null predikcio, ADR 0021 50 m
-// freeze) atlepjuk; a horgony az utolso VALODI (nem-null) predikcio. Ha az
-// nem megbizhato -> null (a joslat nem maradt megbizhato a rakozelitesig,
-// D2). A futam visszafele addig tart, amig folyamatosan valodi+megbizhato
-// (null vagy untrusted tick megszakitja); lead-time = roundedAt - runStart,
-// a freeze-t athidalva (D4).
-Duration? _trustLeadTime(
+// A korozesnel vegzodo megbizhato predikcio-futam ablaka a korozesig
+// (ADR 0027, ADR 0034 Addendum 1). A trailing freeze-tickeket (null
+// predikcio, ADR 0021 50 m freeze) atlepjuk; a horgony az utolso VALODI
+// (nem-null) predikcio. Ha az nem megbizhato -> null (a joslat nem maradt
+// megbizhato a rakozelitesig, D2). A futam visszafele addig tart, amig
+// folyamatosan valodi+megbizhato (null vagy untrusted tick megszakitja).
+// leadTime = roundedAt - runStart (mettol); lastReliableLeadTime =
+// roundedAt - anchor (meddig, a freeze-onset).
+({Duration leadTime, Duration lastReliableLeadTime})? _leadTimeWindow(
   List<RoundingSample> snaps,
   int roundIndex,
   AnalysisParams params,
@@ -187,13 +190,19 @@ Duration? _trustLeadTime(
   }
   // A horgony az utolso valodi predikcio; megbizhatonak kell lennie (D2).
   if (i < 0 || !_isTrustedPrediction(snaps[i], params)) return null;
+  final roundedAt = snaps[roundIndex].tickTime;
+  // A "meddig": a horgony (freeze-onset) lead-time-ja (Addendum 1).
+  final lastReliable = roundedAt.difference(snaps[i].tickTime);
   // A megbizhato futam vissza: null vagy untrusted tick megszakitja (D3).
   var startTick = snaps[i].tickTime;
   while (i - 1 >= 0 && _isTrustedPrediction(snaps[i - 1], params)) {
     i--;
     startTick = snaps[i].tickTime;
   }
-  return snaps[roundIndex].tickTime.difference(startTick);
+  return (
+    leadTime: roundedAt.difference(startTick),
+    lastReliableLeadTime: lastReliable,
+  );
 }
 
 // Valodi ES megbizhato predikcio: nem-null predikcio + a shiftConfidence a

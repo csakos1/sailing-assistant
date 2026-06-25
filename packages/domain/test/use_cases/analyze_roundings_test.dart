@@ -70,6 +70,8 @@ void main() {
       expect(result.isWithinBand, isTrue);
       // 10 megszakitatlan 'high' tick a korozesig.
       expect(result.leadTime, const Duration(seconds: 10));
+      // Freeze nelkul a horgony az utolso pre-round tick: 1 mp az ablak vege.
+      expect(result.lastReliableLeadTime, const Duration(seconds: 1));
     });
 
     test('a savon kivuli delta isWithinBand=false', () {
@@ -127,6 +129,7 @@ void main() {
 
       // ASSERT
       expect(result.leadTime, isNull);
+      expect(result.lastReliableLeadTime, isNull);
     });
   });
 
@@ -326,6 +329,8 @@ void main() {
 
       // ASSERT — 10 mp high run + 5 mp freeze a korozesig = 15 mp.
       expect(result.leadTime, const Duration(seconds: 15));
+      // a "meddig": az utolso valodi predikcio (a freeze elott) 6 mp-re van.
+      expect(result.lastReliableLeadTime, const Duration(seconds: 6));
       // a predikalt ertek is a pre-freeze high tickbol jon (nem null).
       expect(result.predictedTwaDeg, 120);
       expect(result.predictedConfidence, 'high');
@@ -344,6 +349,7 @@ void main() {
 
         // ASSERT
         expect(result.leadTime, isNull);
+        expect(result.lastReliableLeadTime, isNull);
       },
     );
   });
