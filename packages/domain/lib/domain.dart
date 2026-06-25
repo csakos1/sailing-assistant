@@ -28,6 +28,7 @@ export 'src/repositories/mark_library_repository.dart';
 export 'src/repositories/nmea_stream.dart';
 export 'src/repositories/polar_repository.dart';
 export 'src/repositories/race_repository.dart';
+export 'src/repositories/rounding_sample_reader.dart';
 export 'src/repositories/settings_repository.dart';
 export 'src/repositories/telemetry_logger.dart';
 export 'src/use_cases/analyze_roundings.dart';
