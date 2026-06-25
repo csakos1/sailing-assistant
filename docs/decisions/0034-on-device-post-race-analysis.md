@@ -185,3 +185,57 @@ kettő egy kártyán.
 - A tesztfelület nő: a `domain` use case áthelyezett (és változatlanul zöld)
   tesztjei, a `data`-olvasó, a provider-projekció, és a UI widget-tesztje (a
   kártyák + összegző + üres-állapot).
+
+
+## Addendum 1 — Lead-time ablak (mettől–meddig)
+
+- **Státusz:** elfogadva
+- **Dátum:** 2026-06
+- **Kontextus:** ADR 0027 (lead-time a freeze felett), e dokumentum D6.
+
+### Kontextus
+
+A D6 a lead-time-ot egyetlen számként mutatja: „mennyivel a megkerülés előtt
+lett és maradt megbízható a jóslat". Ez a `RoundingResult.leadTime` — a
+megbízható futam **kezdetének** távolsága a megkerüléstől (a „mettől").
+
+A felhasználói igény: a kártya a megbízhatóság **ablakát** mutassa, ne csak a
+kezdetét — vagyis azt is, ameddig a jóslat **valóban** (nem freeze-elt) jó
+maradt. A bója közeli 50 m-es freeze (ADR 0021) a jóslatot befagyasztja: az
+utolsó *valódi* (nem-null) megbízható jóslat a freeze **kezdetén** van. Ez a
+„meddig": a jóslat eddig a pontig tükrözte a friss szelet, innen a freeze-elt
+értéket tartotta a bójáig.
+
+### Döntés
+
+A `RoundingResult` egy **additív** mezőt kap:
+
+- **`lastReliableLeadTime`** (`Duration?`) — az **utolsó valódi** (nem-null)
+  megbízható jóslat lead-time-ja, azaz a `roundedAt` és az **anchor**-tick
+  (a freeze-onset) különbsége. A jelenlegi `leadTime` és ez együtt adja a
+  megbízhatósági ablakot: `[leadTime, lastReliableLeadTime]` a megkerülés
+  előtt (pl. „5:34 → 0:24 a bója előtt"). Freeze nélkül a két érték közel
+  esik (a jóslat a bójáig valódi maradt).
+
+A két mező feltétele azonos: mindkettő `null`, ha a megkerüléskor a jóslat
+nem volt megbízható (a meglévő `leadTime`-mal megegyező kapu).
+
+Az `AnalyzeRoundings` use case a `_trustLeadTime` scant egyetlen menetes
+`_leadTimeWindow`-ra refaktorálja, ami mindkét értéket adja: az anchor
+megtalálásakor rögzíti a „meddig"-et (`roundedAt − anchorTick`), majd a
+folyamatos megbízható futam visszafelé bejárásával a „mettől"-t
+(`roundedAt − futam-kezdet`). A `leadTime` viselkedése **változatlan** (a
+meglévő tesztek zölden maradnak); az új mező tisztán additív.
+
+A CLI-report (`tools/race_analyzer`) **érintetlen**: továbbra is csak a
+`leadTime`-ot írja ki — az ablak a telefon-kártya megjelenítése, a CLI-nak
+nem kell (a `RoundingResult` új mezőjét egyszerűen nem olvassa).
+
+A séma változatlan (nincs adat-réteg-érintés); a mező a tiszta domain-számítás
+mellékterméke.
+
+### Megjelenítés (a D6 lead-time bővítése)
+
+A megkerülés-kártya a lead-time-ot ablakként mutatja: `mettől → meddig a bója
+előtt` (m:ss alak), pl. „5:34 → 0:24 a bója előtt". Ha a jóslat a
+megkerüléskor nem volt megbízható, a hiányt a szokásos `—` jelzi.
