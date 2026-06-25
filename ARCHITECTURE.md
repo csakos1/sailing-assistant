@@ -3853,14 +3853,24 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 
 **Eredmény**: az óra mutatja a kulcs adatokat, telefon zsebben.
 
-### Fázis 8 — Post-race analízis alap (~3 nap)
+### Fázis 8 — Post-race analízis (CLI kész; on-device debug: ADR 0034)
 
-- Race history képernyő
-- Egy konkrét race részletes nézete: track térképen
-- Wind shift grafikon
-- Boat speed grafikon
+A moat-elemzés: a következő-bója-TWA predikció minőségének kiértékelése a
+rögzített `snapshot_logs`-ból (predikált-vs-tényleges TWA, hibasáv-találat,
+megbízhatóság-előny).
 
-**Eredmény**: utólag át tudod nézni a race-t és tanulni belőle.
+- Offline, pure-Dart CLI (`tools/race_analyzer`, ADR 0025/0026/0027) — **kész
+  és tesztelt**: ez a Fázis 8 v1.
+- On-device, vízparti hangoláshoz ugyanez a szűk elemzés egy debug-only nézet
+  a `RaceDetailScreen`-en (befejezett verseny detailje, a bója-lista alatt;
+  `kDebugMode`-gate-elt, release-ben tree-shake-elt; a metrika-logika a
+  `domain`-ba kiemelve, közös a CLI-vel — ADR 0034).
+- Track térképen, szélfordulás-grafikon, sebesség-grafikon, race-history nézet
+  → **v2** (szándékosan kívül a v1 core-on).
+
+**Eredmény**: a vízi teszt után a moat-jóslat minősége fotelből (CLI) és a
+vízparton (telefon, debug) is kiértékelhető; a tanuló track/grafikon-nézetek
+v2.
 
 ### Fázis 9 — Vízi tesztelés és iteráció (folyamatos)
 
