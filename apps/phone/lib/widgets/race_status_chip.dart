@@ -1,13 +1,13 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:phone/app/marine_colors.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// Egy verseny státuszát mutató címke. A lista és a detail közös eleme,
 /// hogy a státusz -> felirat leképezés egy helyen éljen.
 ///
-/// A háttér-szín a státuszt is jelzi (ADR 0033): `active` teal, `finished`
-/// tompított (téma-surface), `notStarted` változatlan (default `Chip`).
+/// A háttér a státuszt is jelzi (ADR 0033): `active` a téma
+/// primary-container (az app-accenttel, a FAB-bal egyező), `finished`
+/// tompított surface, `notStarted` változatlan (default `Chip`).
 ///
 /// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
@@ -26,8 +26,8 @@ class RaceStatusChip extends StatelessWidget {
       RaceStatus.notStarted => (l10n.raceStatusNotStarted, null, null),
       RaceStatus.active => (
         l10n.raceStatusActive,
-        inProgressColor,
-        Colors.white,
+        scheme.primaryContainer,
+        scheme.onPrimaryContainer,
       ),
       RaceStatus.finished => (
         l10n.raceStatusFinished,

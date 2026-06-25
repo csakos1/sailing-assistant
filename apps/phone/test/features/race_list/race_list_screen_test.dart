@@ -115,7 +115,7 @@ void main() {
     expect(activeY, lessThan(notStartedY));
   });
 
-  testWidgets('a befejezett-sor megjelenik, ha van befejezett', (
+  testWidgets('a befejezett-gomb megjelenik, ha van befejezett', (
     tester,
   ) async {
     // ARRANGE — csak befejezett -> a fő lista üres.
@@ -123,28 +123,32 @@ void main() {
     await tester.pumpAndSettle();
     final l10n = l10nOf(tester);
 
-    // ASSERT — a befejezett-sor (N=1) + az üres fő lista együtt látszik.
-    expect(find.text(l10n.listFinishedRaces(1)), findsOneWidget);
+    // ASSERT — a befejezett-gomb + az üres fő lista együtt látszik.
+    expect(find.text(l10n.listFinishedRacesTitle), findsOneWidget);
     expect(find.text(l10n.listEmpty), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
   });
 
-  testWidgets('a befejezett-sor rejtett befejezett nélkül', (tester) async {
+  testWidgets('a befejezett-gomb rejtett befejezett nélkül', (
+    tester,
+  ) async {
     // ARRANGE — csak notStarted.
     final race = Race.create(id: 'r1', name: 'Alfa', marks: const [mark]);
     await pumpList(tester, [race]);
     await tester.pumpAndSettle();
 
-    // ASSERT — nincs befejezett-sor.
+    // ASSERT — nincs befejezett-gomb.
     expect(find.byIcon(Icons.history), findsNothing);
   });
 
-  testWidgets('a befejezett-sorra koppintva a modal nyílik', (tester) async {
+  testWidgets('a befejezett-gombra koppintva a modal nyílik', (
+    tester,
+  ) async {
     // ARRANGE
     await pumpList(tester, [finishedRace('r1', 'Charlie')]);
     await tester.pumpAndSettle();
 
-    // ACT — a befejezett-sorra koppintunk.
+    // ACT — a befejezett-gombra koppintunk.
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
 

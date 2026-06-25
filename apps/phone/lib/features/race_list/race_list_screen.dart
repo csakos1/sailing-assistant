@@ -17,9 +17,9 @@ import 'package:phone/widgets/race_status_chip.dart';
 ///
 /// A `raceListProvider` reaktív projekcióját mutatja (loading/error/data).
 /// A fő lista státusz szerint particionál (ADR 0033): csak a folyamatban
-/// lévő (elöl) és a nem indult versenyek látszanak; a befejezettek egy alsó
-/// sor mögötti modalba kerülnek. Sorra koppintva a detail nyílik, a FAB a
-/// setup, az AppBar-action a Fázis 3 debug raw-viewer. Az
+/// lévő (elöl) és a nem indult versenyek látszanak; a befejezettek egy bal
+/// alsó FAB-gomb mögötti modalba kerülnek (csak ha van befejezett). A jobb
+/// FAB a setup, az AppBar-action a Fázis 3 debug raw-viewer. Az
 /// `AppLocalizations.of(context)!` biztonságos: a `MaterialApp` regisztrálja
 /// a delegátorokat.
 class RaceListScreen extends ConsumerWidget {
@@ -46,6 +46,7 @@ class RaceListScreen extends ConsumerWidget {
   Future<void> _openFinished(BuildContext context) async {
     final picked = await showModalBottomSheet<Race>(
       context: context,
+      showDragHandle: true,
       builder: (_) => const FinishedRacesSheet(),
     );
     if (picked != null && context.mounted) {
@@ -72,7 +73,11 @@ class RaceListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final races = ref.watch(raceListProvider);
+    final hasFinished = (races.valueOrNull ?? const <Race>[]).any(
+      (race) => race.status == RaceStatus.finished,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -92,56 +97,62 @@ class RaceListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openSetup(context),
-        tooltip: l10n.listAddRace,
-        child: const Icon(Icons.add),
+      // A bal (befejezett) + jobb (új verseny) FAB egy sorban, a Scaffold
+      // a rendszer-navigációs sáv FÖLÉ teszi. A befejezett-gomb csak akkor
+      // jelenik meg, ha van befejezett verseny; helyét különben egy üres
+      // doboz tartja, hogy a + FAB jobbra maradjon.
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (hasFinished)
+              FloatingActionButton.extended(
+                heroTag: 'finishedRacesFab',
+                onPressed: () => _openFinished(context),
+                backgroundColor: scheme.surfaceContainerHigh,
+                foregroundColor: scheme.onSurface,
+                icon: const Icon(Icons.history),
+                label: Text(l10n.listFinishedRacesTitle),
+              )
+            else
+              const SizedBox.shrink(),
+            FloatingActionButton(
+              heroTag: 'addRaceFab',
+              onPressed: () => _openSetup(context),
+              tooltip: l10n.listAddRace,
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
       ),
       body: races.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(child: Text(l10n.listError)),
         data: (items) {
           // Particionálás (ADR 0033): a fő lista a folyamatban lévő (elöl)
-          // és a nem indult versenyeket mutatja; a befejezettek a modalba
-          // kerülnek. Mindkét csoport a watchRaces() sorrendjét tartja.
+          // és a nem indult versenyeket mutatja, active-first; a befejezettek
+          // a bal alsó FAB-gomb mögötti modalba kerülnek.
           final pending = [
             ...items.where((race) => race.status == RaceStatus.active),
             ...items.where((race) => race.status == RaceStatus.notStarted),
           ];
-          final finished = [
-            ...items.where((race) => race.status == RaceStatus.finished),
-          ];
-
-          return Column(
-            children: [
-              Expanded(
-                child: pending.isEmpty
-                    ? Center(child: Text(l10n.listEmpty))
-                    : ListView.builder(
-                        itemCount: pending.length,
-                        itemBuilder: (context, index) {
-                          final race = pending[index];
-                          return ListTile(
-                            title: Text(race.name),
-                            subtitle: Text(
-                              l10n.listMarkCount(race.marks.length),
-                            ),
-                            trailing: RaceStatusChip(status: race.status),
-                            onTap: () => _openDetail(context, race),
-                          );
-                        },
-                      ),
-              ),
-              if (finished.isNotEmpty) ...[
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.history),
-                  title: Text(l10n.listFinishedRaces(finished.length)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openFinished(context),
-                ),
-              ],
-            ],
+          if (pending.isEmpty) {
+            return Center(child: Text(l10n.listEmpty));
+          }
+          return ListView.builder(
+            // Alsó térköz, hogy az utolsó sor ne csússzon a FAB-ok mögé.
+            padding: const EdgeInsets.only(bottom: 88),
+            itemCount: pending.length,
+            itemBuilder: (context, index) {
+              final race = pending[index];
+              return ListTile(
+                title: Text(race.name),
+                trailing: RaceStatusChip(status: race.status),
+                onTap: () => _openDetail(context, race),
+              );
+            },
           );
         },
       ),

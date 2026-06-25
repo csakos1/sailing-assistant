@@ -296,15 +296,6 @@
   "@listAddRace": {
     "description": "Tooltip: a FAB, ami a setup képernyőt nyitja."
   },
-  "listFinishedRaces": "Befejezett versenyek ({count})",
-  "@listFinishedRaces": {
-    "description": "A befejezett versenyek sorának felirata.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "listFinishedRacesTitle": "Befejezett versenyek",
   "@listFinishedRacesTitle": {
     "description": "A befejezett versenyek modal címsora."

@@ -1,13 +1,10 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/marine_colors.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/widgets/race_status_chip.dart';
 
 void main() {
-  // A chipet HU locale-lal pumpoljuk, hogy a feliratok determinisztikusak
-  // legyenek (a teszt a magyar ARB-stringekre matchel).
   Future<void> pumpChip(WidgetTester tester, RaceStatus status) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -24,31 +21,37 @@ void main() {
   Color? labelColourOf(WidgetTester tester, String text) =>
       tester.widget<Text>(find.text(text)).style?.color;
 
+  ColorScheme schemeOf(WidgetTester tester) =>
+      Theme.of(tester.element(find.byType(RaceStatusChip))).colorScheme;
+
   group('RaceStatusChip', () {
     testWidgets('notStarted has no custom colours', (tester) async {
       await pumpChip(tester, RaceStatus.notStarted);
-
       expect(find.text('Nem indult'), findsOneWidget);
       expect(chipOf(tester).backgroundColor, isNull);
       expect(labelColourOf(tester, 'Nem indult'), isNull);
     });
 
-    testWidgets('active uses the teal background', (tester) async {
+    testWidgets('active uses the primary-container background', (
+      tester,
+    ) async {
       await pumpChip(tester, RaceStatus.active);
-
+      final scheme = schemeOf(tester);
       expect(find.text('Folyamatban'), findsOneWidget);
-      expect(chipOf(tester).backgroundColor, inProgressColor);
-      expect(labelColourOf(tester, 'Folyamatban'), Colors.white);
+      expect(chipOf(tester).backgroundColor, scheme.primaryContainer);
+      expect(
+        labelColourOf(tester, 'Folyamatban'),
+        scheme.onPrimaryContainer,
+      );
     });
 
     testWidgets('finished uses a muted background', (tester) async {
       await pumpChip(tester, RaceStatus.finished);
-
+      final scheme = schemeOf(tester);
       expect(find.text('Befejezve'), findsOneWidget);
       final background = chipOf(tester).backgroundColor;
-      // finished: téma-surface (nem null és nem a teal token).
       expect(background, isNotNull);
-      expect(background, isNot(inProgressColor));
+      expect(background, isNot(scheme.primaryContainer));
       expect(labelColourOf(tester, 'Befejezve'), isNotNull);
     });
   });

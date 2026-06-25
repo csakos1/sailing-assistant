@@ -508,12 +508,6 @@ abstract class AppLocalizations {
   /// **'Új verseny'**
   String get listAddRace;
 
-  /// A befejezett versenyek sorának felirata.
-  ///
-  /// In hu, this message translates to:
-  /// **'Befejezett versenyek ({count})'**
-  String listFinishedRaces(int count);
-
   /// A befejezett versenyek modal címsora.
   ///
   /// In hu, this message translates to:
