@@ -15,9 +15,9 @@ const double _kMargin = 20;
 /// `showDragHandle` nélkül nyitjuk, hogy a csík méretét/színét és a
 /// térközöket itt szabályozzuk). A `raceListProvider` ugyanazon
 /// projekciójából szűri a `finished` versenyeket (nincs új lekérdezés).
-/// Read-only lista; tap → a kiválasztott [Race]-szel popol, a
-/// `RaceListScreen` nyitja a detailt. Ha a provider még nem `data`, üres
-/// lista (a particionálás best-effort kiegészítő nézet).
+/// Read-only lista vékony elválasztó vonalakkal; tap → a kiválasztott
+/// [Race]-szel popol, a `RaceListScreen` nyitja a detailt. Ha a provider
+/// még nem `data`, üres lista (a particionálás best-effort kiegészítő nézet).
 class FinishedRacesSheet extends ConsumerWidget {
   /// Modal bottom sheetben jelenik meg; tap → `pop(Race)`.
   const FinishedRacesSheet({super.key});
@@ -50,10 +50,11 @@ class FinishedRacesSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Flexible(
-            child: ListView.builder(
+            child: ListView.separated(
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: _kMargin),
               itemCount: finished.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) {
                 final race = finished[i];
                 return ListTile(

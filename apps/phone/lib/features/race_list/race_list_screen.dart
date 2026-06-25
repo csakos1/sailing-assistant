@@ -17,11 +17,11 @@ import 'package:phone/widgets/race_status_chip.dart';
 ///
 /// A `raceListProvider` reaktív projekcióját mutatja (loading/error/data).
 /// A fő lista státusz szerint particionál (ADR 0033): csak a folyamatban
-/// lévő (elöl) és a nem indult versenyek látszanak; a befejezettek egy bal
-/// alsó FAB-gomb mögötti modalba kerülnek (csak ha van befejezett). A jobb
-/// FAB a setup, az AppBar-action a Fázis 3 debug raw-viewer. Az
-/// `AppLocalizations.of(context)!` biztonságos: a `MaterialApp` regisztrálja
-/// a delegátorokat.
+/// lévő (elöl) és a nem indult versenyek látszanak, vékony elválasztó
+/// vonalakkal; a befejezettek egy jobb alsó FAB-gomb mögötti modalba
+/// kerülnek (csak ha van befejezett), a `+` FAB alatt. Az AppBar-action a
+/// Fázis 3 debug raw-viewer. Az `AppLocalizations.of(context)!` biztonságos:
+/// a `MaterialApp` regisztrálja a delegátorokat.
 class RaceListScreen extends ConsumerWidget {
   const RaceListScreen({super.key});
 
@@ -83,7 +83,8 @@ class RaceListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.listTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          // Hangsúlyos, kissé nagyobb home-cím (a default ~22 helyett).
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
         ),
         actions: [
           // Csak debug-buildben: a 7-bg-b háttér-engine verifikáló képernyője.
@@ -100,35 +101,31 @@ class RaceListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      // A bal (befejezett) + jobb (új verseny) FAB egy sorban, a Scaffold
-      // a rendszer-navigációs sáv FÖLÉ teszi. A befejezett-gomb csak akkor
-      // jelenik meg, ha van befejezett verseny; helyét különben egy üres
-      // doboz tartja, hogy a + FAB jobbra maradjon.
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if (hasFinished)
-              FloatingActionButton.extended(
-                heroTag: 'finishedRacesFab',
-                onPressed: () => _openFinished(context),
-                backgroundColor: scheme.surfaceContainerHigh,
-                foregroundColor: scheme.onSurface,
-                icon: const Icon(Icons.history),
-                label: Text(l10n.listFinishedRacesTitle),
-              )
-            else
-              const SizedBox.shrink(),
-            FloatingActionButton(
-              heroTag: 'addRaceFab',
-              onPressed: () => _openSetup(context),
-              tooltip: l10n.listAddRace,
-              child: const Icon(Icons.add),
+      // A jobb alsó sarokban két FAB egymás alatt: felül a `+` (új verseny),
+      // alatta — csak ha van befejezett — a befejezett-modal gombja. A
+      // Scaffold a rendszer-navigációs sáv FÖLÉ teszi (endFloat a default).
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'addRaceFab',
+            onPressed: () => _openSetup(context),
+            tooltip: l10n.listAddRace,
+            child: const Icon(Icons.add),
+          ),
+          if (hasFinished) ...[
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'finishedRacesFab',
+              onPressed: () => _openFinished(context),
+              backgroundColor: scheme.surfaceContainerHigh,
+              foregroundColor: scheme.onSurface,
+              icon: const Icon(Icons.history),
+              label: Text(l10n.listFinishedRacesTitle),
             ),
           ],
-        ),
+        ],
       ),
       body: races.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -136,7 +133,7 @@ class RaceListScreen extends ConsumerWidget {
         data: (items) {
           // Particionálás (ADR 0033): a fő lista a folyamatban lévő (elöl)
           // és a nem indult versenyeket mutatja, active-first; a befejezettek
-          // a bal alsó FAB-gomb mögötti modalba kerülnek.
+          // a FAB-gomb mögötti modalba kerülnek.
           final pending = [
             ...items.where((race) => race.status == RaceStatus.active),
             ...items.where((race) => race.status == RaceStatus.notStarted),
@@ -144,10 +141,12 @@ class RaceListScreen extends ConsumerWidget {
           if (pending.isEmpty) {
             return Center(child: Text(l10n.listEmpty));
           }
-          return ListView.builder(
-            // Alsó térköz, hogy az utolsó sor ne csússzon a FAB-ok mögé.
-            padding: const EdgeInsets.only(bottom: 88),
+          return ListView.separated(
+            // Alsó térköz, hogy az utolsó sor ne csússzon a FAB-stack mögé.
+            padding: const EdgeInsets.only(bottom: 96),
             itemCount: pending.length,
+            separatorBuilder: (_, _) =>
+                const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final race = pending[index];
               return ListTile(
