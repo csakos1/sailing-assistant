@@ -24,6 +24,7 @@ WatchPayload buildWatchPayload({
   double? targetSpeedKnots,
   double? vmgKnots,
   double? targetVmgKnots,
+  double? vmgSteerCorrection,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -40,6 +41,7 @@ WatchPayload buildWatchPayload({
     sogKnots: speed == null ? null : speed.metersPerSecond * _knotsPerMps,
     vmgKnots: vmgKnots,
     targetVmgKnots: targetVmgKnots,
+    vmgSteerCorrection: vmgSteerCorrection,
     currentTwa: windData?.trueAngleWater?.degrees,
     predictedTwaAtMark: prediction?.predictedTwaAtMark?.degrees,
     twdQuality: twdQuality.name,

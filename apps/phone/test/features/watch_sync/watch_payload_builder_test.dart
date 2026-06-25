@@ -48,6 +48,7 @@ void main() {
       MarkPrediction? prediction,
       TwdQuality twdQuality = TwdQuality.unavailable,
       double? targetSpeedKnots,
+      double? vmgSteerCorrection,
     }) {
       return buildWatchPayload(
         boatState: boatState ?? BoatState(lastUpdate: now),
@@ -61,6 +62,7 @@ void main() {
         prediction: prediction,
         twdQuality: twdQuality,
         targetSpeedKnots: targetSpeedKnots,
+        vmgSteerCorrection: vmgSteerCorrection,
       );
     }
 
@@ -111,6 +113,16 @@ void main() {
 
       // Assert
       expect(payload.sogKnots, isNull);
+    });
+
+    test('passes the VMG steer correction through to the payload', () {
+      // Act
+      final withSteer = build(vmgSteerCorrection: -8.5);
+      final withoutSteer = build();
+
+      // Assert
+      expect(withSteer.vmgSteerCorrection, -8.5);
+      expect(withoutSteer.vmgSteerCorrection, isNull);
     });
 
     test('keeps only critical warnings, localized and ordered', () {
