@@ -2256,6 +2256,24 @@ entity + a `MarkLibraryRepository` interfész áll (ISP-külön a
 picker v1-ben read-only, additív `RaceForm`-elem (név + forrás-verseny-név,
 koordináta nélkül), tap → előtöltött bója-sor (L8).
 
+**Verseny-lista státusz-particionálás (ADR 0033).** A főképernyő
+(`RaceListScreen`) listája státusz szerint particionál: a fő `ListView`
+csak a `notStarted` és `active` versenyeket mutatja, **active elöl** (a futó
+verseny a legrelevánsabb), a `finished` versenyek pedig egy alsó, listába
+illő sor mögé kerülnek (`history` ikon + „Befejezett versenyek (N)” +
+chevron, csak ha N>0). A sor `showModalBottomSheet`-et nyit (a
+`SavedMarkPicker`-minta, ADR 0032), benne a befejezett versenyek csempéi;
+tap → a meglévő `RaceDetailScreen` (a befejezett detail már
+read-only-szerűen degradál — nincs start/finish/élő/szerkesztés akció).
+A particionálás kliens-oldali, a `raceListProvider` (`watchRaces()`)
+ugyanazon projekciójából — nincs új repository-metódus vagy séma-változás.
+A státuszt a közös `RaceStatusChip` színnel is jelzi: `active` teal (új
+`inProgressColor` token a `marine_colors.dart`-ban, a téma-seed
+teal-családból — nem a `ConfidenceColors.high`, hogy a predikció-
+konfidencia szemantikájával ne keveredjen), `finished` tompított,
+`notStarted` változatlan. A befejezett-listában a **keresés/törlés
+v2-deferred** (ADR 0033).
+
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
 A §8.2 hierarchia alja: az `NmeaStream.events` push-folyamát foldoljuk
