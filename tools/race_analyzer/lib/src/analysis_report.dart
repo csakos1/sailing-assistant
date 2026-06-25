@@ -1,4 +1,4 @@
-import 'package:race_analyzer/src/rounding_analysis.dart';
+import 'package:domain/domain.dart';
 
 /// A korozesi eredmenyekbol ember-olvashato szoveges reportot epit (stdout).
 String formatReport(List<RoundingResult> results) {

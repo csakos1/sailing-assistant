@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:domain/domain.dart';
 import 'package:race_analyzer/race_analyzer.dart';
 
 // ---------------------------------------------------------------------------
@@ -9,8 +10,8 @@ import 'package:race_analyzer/race_analyzer.dart';
 // A kov-boja-TWA predikcio minoseget meri a rogzitett (eles) outputbol
 // (ADR 0025): predikalt-vs-tenyleges TWA, sav-talalat, megbizhatosag-elony.
 // Bemenet: a snapshot_logs-bol exportalt JSON-lines (ADR 0025 Addendum 1);
-// a DB->JSONL receptet a --help mutatja. Az elemzo-logika a lib/-ben; ez
-// csak az arg-parse + az I/O-hej. A tool kizarolag OLVAS.
+// a DB->JSONL receptet a --help mutatja. Az elemzo-logika a domain-ban
+// (ADR 0034 D3); ez csak az arg-parse + az I/O-hej. A tool kizarolag OLVAS.
 // ---------------------------------------------------------------------------
 
 void main(List<String> arguments) {
@@ -89,7 +90,7 @@ void main(List<String> arguments) {
     return;
   }
 
-  final analysis = analyzeRoundings(snapshots, params: params);
+  final analysis = const AnalyzeRoundings()(snapshots, params: params);
   stdout.write(
     results.flag('csv') ? formatCsv(analysis) : formatReport(analysis),
   );
