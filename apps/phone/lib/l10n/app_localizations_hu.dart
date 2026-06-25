@@ -230,6 +230,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get listAddRace => 'Új verseny';
 
   @override
+  String listFinishedRaces(int count) {
+    return 'Befejezett versenyek ($count)';
+  }
+
+  @override
+  String get listFinishedRacesTitle => 'Befejezett versenyek';
+
+  @override
   String listMarkCount(int count) {
     return '$count bója';
   }

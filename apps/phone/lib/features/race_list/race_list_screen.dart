@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/engine/engine_debug_screen.dart';
 import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
+import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_list_provider.dart';
@@ -15,9 +16,12 @@ import 'package:phone/widgets/race_status_chip.dart';
 /// A versenyek listája — az app `home` képernyője.
 ///
 /// A `raceListProvider` reaktív projekcióját mutatja (loading/error/data).
-/// Sorra koppintva a detail nyílik, a FAB a setup, az AppBar-action a Fázis 3
-/// debug raw-viewer. Az `AppLocalizations.of(context)!` biztonságos: a
-/// `MaterialApp` regisztrálja a delegátorokat.
+/// A fő lista státusz szerint particionál (ADR 0033): csak a folyamatban
+/// lévő (elöl) és a nem indult versenyek látszanak; a befejezettek egy alsó
+/// sor mögötti modalba kerülnek. Sorra koppintva a detail nyílik, a FAB a
+/// setup, az AppBar-action a Fázis 3 debug raw-viewer. Az
+/// `AppLocalizations.of(context)!` biztonságos: a `MaterialApp` regisztrálja
+/// a delegátorokat.
 class RaceListScreen extends ConsumerWidget {
   const RaceListScreen({super.key});
 
@@ -35,6 +39,18 @@ class RaceListScreen extends ConsumerWidget {
         MaterialPageRoute<void>(builder: (_) => RaceDetailScreen(race: race)),
       ),
     );
+  }
+
+  /// A befejezett versenyek modalját nyitja; a kiválasztott versenyt a
+  /// meglévő detail-útvonalon nyitja meg (a sheet a `Race`-szel popol).
+  Future<void> _openFinished(BuildContext context) async {
+    final picked = await showModalBottomSheet<Race>(
+      context: context,
+      builder: (_) => const FinishedRacesSheet(),
+    );
+    if (picked != null && context.mounted) {
+      _openDetail(context, picked);
+    }
   }
 
   void _openDebug(BuildContext context) {
@@ -84,20 +100,50 @@ class RaceListScreen extends ConsumerWidget {
       body: races.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(child: Text(l10n.listError)),
-        data: (items) => items.isEmpty
-            ? Center(child: Text(l10n.listEmpty))
-            : ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final race = items[index];
-                  return ListTile(
-                    title: Text(race.name),
-                    subtitle: Text(l10n.listMarkCount(race.marks.length)),
-                    trailing: RaceStatusChip(status: race.status),
-                    onTap: () => _openDetail(context, race),
-                  );
-                },
+        data: (items) {
+          // Particionálás (ADR 0033): a fő lista a folyamatban lévő (elöl)
+          // és a nem indult versenyeket mutatja; a befejezettek a modalba
+          // kerülnek. Mindkét csoport a watchRaces() sorrendjét tartja.
+          final pending = [
+            ...items.where((race) => race.status == RaceStatus.active),
+            ...items.where((race) => race.status == RaceStatus.notStarted),
+          ];
+          final finished = [
+            ...items.where((race) => race.status == RaceStatus.finished),
+          ];
+
+          return Column(
+            children: [
+              Expanded(
+                child: pending.isEmpty
+                    ? Center(child: Text(l10n.listEmpty))
+                    : ListView.builder(
+                        itemCount: pending.length,
+                        itemBuilder: (context, index) {
+                          final race = pending[index];
+                          return ListTile(
+                            title: Text(race.name),
+                            subtitle: Text(
+                              l10n.listMarkCount(race.marks.length),
+                            ),
+                            trailing: RaceStatusChip(status: race.status),
+                            onTap: () => _openDetail(context, race),
+                          );
+                        },
+                      ),
               ),
+              if (finished.isNotEmpty) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: Text(l10n.listFinishedRaces(finished.length)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openFinished(context),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
