@@ -23,6 +23,7 @@ void main() {
       String markName = 'Tihany bója',
       double targetSpeedPercent = 87.5,
       double targetVmgKnots = -4.6,
+      double vmgSteerCorrection = -8.5,
       List<String> criticalWarnings = const ['Műszer-kapcsolat megszakadt'],
     }) {
       return WatchPayload(
@@ -39,6 +40,7 @@ void main() {
         markName: markName,
         targetSpeedPercent: targetSpeedPercent,
         targetVmgKnots: targetVmgKnots,
+        vmgSteerCorrection: vmgSteerCorrection,
         criticalWarnings: criticalWarnings,
       );
     }
@@ -55,6 +57,7 @@ void main() {
         expect(restored, equals(original));
         expect(restored.vmgKnots, isNull);
         expect(restored.targetVmgKnots, equals(-4.6));
+        expect(restored.vmgSteerCorrection, equals(-8.5));
       });
 
       test('preserves timestamp and gpsTimeUtc excluded from equality', () {
@@ -228,6 +231,12 @@ void main() {
         final base = sample();
         final offTarget = sample(targetVmgKnots: -3.2);
         expect(base, isNot(equals(offTarget)));
+      });
+
+      test('differs when vmgSteerCorrection changes', () {
+        final base = sample();
+        final offCourse = sample(vmgSteerCorrection: 3.5);
+        expect(base, isNot(equals(offCourse)));
       });
     });
   });

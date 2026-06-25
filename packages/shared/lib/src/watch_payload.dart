@@ -25,6 +25,7 @@ final class WatchPayload extends Equatable {
     this.sogKnots,
     this.vmgKnots,
     this.targetVmgKnots,
+    this.vmgSteerCorrection,
     this.currentTwa,
     this.predictedTwaAtMark,
     this.twdQuality,
@@ -52,6 +53,7 @@ final class WatchPayload extends Equatable {
       sogKnots: (json['sogKnots'] as num?)?.toDouble(),
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
       targetVmgKnots: (json['targetVmgKnots'] as num?)?.toDouble(),
+      vmgSteerCorrection: (json['vmgSteerCorrection'] as num?)?.toDouble(),
       currentTwa: (json['currentTwa'] as num?)?.toDouble(),
       predictedTwaAtMark: (json['predictedTwaAtMark'] as num?)?.toDouble(),
       twdQuality: json['twdQuality'] as String?,
@@ -91,6 +93,13 @@ final class WatchPayload extends Equatable {
   /// előjeles — az élő VMG-vel összevethető. `null`, ha nincs polár/cél
   /// (ADR 0028 Addendum 4).
   final double? targetVmgKnots;
+
+  /// A VMG-optimum szögre vezető steer-korrekció, fok, előjeles
+  /// (pozitív = jobbra/élesedés, negatív = balra/leesés). `null`, ha
+  /// no-go zónában vagyunk, nincs polár/cél, vagy a TWD nem `live`
+  /// (ADR 0028 Addendum 5). Az óra a SIGN-ból rekonstruálja a nyíl
+  /// oldalát/színét.
+  final double? vmgSteerCorrection;
 
   /// Aktuális TWA, fok, előjeles. `null`, ha nincs adat.
   final double? currentTwa;
@@ -146,6 +155,7 @@ final class WatchPayload extends Equatable {
       'sogKnots': sogKnots,
       'vmgKnots': vmgKnots,
       'targetVmgKnots': targetVmgKnots,
+      'vmgSteerCorrection': vmgSteerCorrection,
       'currentTwa': currentTwa,
       'predictedTwaAtMark': predictedTwaAtMark,
       'twdQuality': twdQuality,
@@ -166,6 +176,7 @@ final class WatchPayload extends Equatable {
     sogKnots,
     vmgKnots,
     targetVmgKnots,
+    vmgSteerCorrection,
     currentTwa,
     predictedTwaAtMark,
     twdQuality,
