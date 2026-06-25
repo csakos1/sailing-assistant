@@ -42,11 +42,11 @@ class RaceListScreen extends ConsumerWidget {
   }
 
   /// A befejezett versenyek modalját nyitja; a kiválasztott versenyt a
-  /// meglévő detail-útvonalon nyitja meg (a sheet a `Race`-szel popol).
+  /// meglévő detail-útvonalon nyitja meg (a sheet a `Race`-szel popol). A
+  /// fogantyú-csíkot a sheet maga rajzolja (nincs `showDragHandle`).
   Future<void> _openFinished(BuildContext context) async {
     final picked = await showModalBottomSheet<Race>(
       context: context,
-      showDragHandle: true,
       builder: (_) => const FinishedRacesSheet(),
     );
     if (picked != null && context.mounted) {
@@ -81,7 +81,10 @@ class RaceListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.listTitle),
+        title: Text(
+          l10n.listTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           // Csak debug-buildben: a 7-bg-b háttér-engine verifikáló képernyője.
           if (kDebugMode)

@@ -7,7 +7,9 @@ import 'package:phone/l10n/app_localizations.dart';
 ///
 /// A háttér a státuszt is jelzi (ADR 0033): `active` a téma
 /// primary-container (az app-accenttel, a FAB-bal egyező), `finished`
-/// tompított surface, `notStarted` változatlan (default `Chip`).
+/// tompított surface, `notStarted` változatlan (default `Chip`). A custom
+/// hátterű chipek keret nélküliek; a `notStarted` megtartja a default
+/// kontúrt.
 ///
 /// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
@@ -42,6 +44,9 @@ class RaceStatusChip extends StatelessWidget {
         style: labelColor == null ? null : TextStyle(color: labelColor),
       ),
       backgroundColor: backgroundColor,
+      // A custom hátterű chipek keret nélküliek; a default (notStarted)
+      // megtartja a téma kontúrját.
+      side: backgroundColor == null ? null : BorderSide.none,
     );
   }
 }
