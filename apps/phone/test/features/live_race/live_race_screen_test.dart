@@ -266,7 +266,7 @@ void main() {
 
       // TWA most a windData-ból megvan; a tobbi hat cella „—".
       expect(find.text('32°'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(7));
+      expect(find.text('—'), findsNWidgets(8));
     });
 
     testWidgets('shows the stale chip when connected data is old', (
