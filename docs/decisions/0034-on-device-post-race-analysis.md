@@ -347,3 +347,102 @@ kizárólag a counterfactual vetítéséhez kell (A2-D1).
 - A counterfactual vs. tényleges-vitorlázott TWA egymás melletti megjelenítése
   (taktikai utóelemzés: „a jóslat jó volt, de nem mentem rá").
 - Leg végi szél-elfordulás korrekciója track-rekonstrukcióból.
+
+
+## Addendum 3 — Track-térkép, sebesség-statisztika és megtett út
+
+### Kontextus
+
+Az ADR 0034 eddig a megkerülés-elemzésre szorítkozott (predikció-validáció).
+A v2 első darabja a befejezett verseny **GPS-track-jét** jeleníti meg
+térképen, három összesített statisztikával: maximális és átlagos sebesség,
+valamint a megtett út. A track a `snapshot_logs` pozícióiból épül (ugyanaz a
+forrás, mint a counterfactual-elemzés); a térkép-réteg az ADR 0035
+(`flutter_map`) szerint renderel.
+
+### Döntés
+
+#### (A3-D1) A track-pont a `RoundingSample` additív bővítésével
+
+A `RoundingSample` read-modell két új opcionális mezőt kap: `latDeg` és
+`lonDeg` (a `RaceSnapshot.boatState.position` `Coordinate`-jából). Additív,
+nincs séma-változás; a data-olvasó (`RoundingSampleReaderImpl`) tölti. Nem
+vezetünk be külön `TrackPoint` read-modellt: a `RoundingSample` már „a
+post-race elemzés egy snapshotja", egy olvasó-pipeline elég (DRY). A pozíció
+opcionális marad (a régi logok pozíció nélkül is parse-olhatók).
+
+#### (A3-D2) A statisztika tiszta domain use case
+
+A sebesség-statok és az úthossz tiszta domain-logika: `SummarizeTrack` use
+case (`const`, `TrackStats call(List<RoundingSample>)`). A `TrackStats` value
+object: `maxSpeedMps double?`, `avgSpeedMps double?`, `distanceMeters double?`
+(mind `null`, ha nincs elég adat). A `flutter_map` NEM jelenik meg a
+domainben — a use case csak `Coordinate`/primitíveken dolgozik.
+
+- **Sebesség:** a `sogMps` (Speed Over Ground, GPS) mezőből. Max = a nem-null
+  minták maximuma; átlag = a nem-null minták számtani átlaga (1 Hz fix
+  mintavétel → a számtani átlag = idő-átlag).
+- **Megtett út:** a szomszédos nem-null pozíciók közti haversine-távolságok
+  összege (a `calculate_bearing_to_mark` haversine-mintája szerint). Az első
+  körben NYERS összeg — a GPS-jitter (álló hajó zaja) felfújhatja, de a
+  szűrés v2. Ha nincs legalább két pozíció → `null`.
+
+#### (A3-D3) A track-rajz presentation (phone)
+
+A track `flutter_map` `Polyline`-ként (egyszínű, az első körben — a
+sebesség-szerinti gradient-színezés v2). A verseny bóái `Marker`-ként. A nézet
+a track bounding-boxára illeszt (`CameraFit.bounds`, paddinggel). A térkép
+fix-magasságú widget a post-race szekció TETEJÉN; alatta a három stat egy
+sorban (max / átlag sebesség / megtett út).
+
+#### (A3-D4) Build-gate: a D2 módosítása — a track release-be kerül
+
+Az eredeti **ADR 0034 D2** az EGÉSZ post-race nézetet `kDebugMode` mögé tette
+(release tree-shake). Ezt MÓDOSÍTJUK: a **track-térkép + statisztika a
+release-buildben is látszik** (ez a felhasználónak szánt funkció, nem
+fejlesztői diagnosztika). A megkerülés-elemzés (next-mark TWA delta,
+hibasáv-kártyák) MARAD `kDebugMode` mögött (fejlesztői validáció).
+
+Az elrendezés a `PostRaceAnalysisSection`-ön belül:
+- **release:** csak a track + statok.
+- **debug:** a track + statok FELÜL, a megkerülés-elemzés (next-TWA) ALUL.
+
+A `race_detail_screen` gate-je `if (kDebugMode && finished)` → `if (finished)`
+lesz; a `kDebugMode` a szekción BELÜLRE csúszik, kizárólag a megkerülés-kártya
+al-blokk köré.
+
+- **Release-olvasás:** a track-olvasó az app SAJÁT `snapshot_logs`-át olvassa
+  (a `RoundingSampleReaderImpl`, NEM `adb run-as`) — működik release-ben is.
+- **Teljesítmény:** a teljes snapshot-folyamot beolvassuk és dekódoljuk
+  (mint a counterfactual-elemzésnél). Egy hosszú verseny több ezer snapshotja
+  a detail megnyitásakor egy pillanatra terhelheti a UI-izolátumot. NEM
+  optimalizálunk előre (nincs down-sampling/oszlop-olvasás); ha a profilozás
+  lassúnak mutatja, később optimalizálunk (A3 halasztott).
+
+#### (A3-D5) Üres állapot
+
+Ha nincs pozíció-adat (régi log, vagy GPS hiányzott) → a térkép helyén
+„nincs track-adat ehhez a versenyhez". A statok `null` → `—`.
+
+### Elvetett alternatívák
+
+- **Külön `TrackPoint` read-modell + külön reader:** duplikált olvasó-pipeline;
+  a `RoundingSample` additív bővítése elég (DRY).
+- **STW (Speed Through Water) a SOG helyett:** a SOG mindig megvan a
+  snapshotban; az STW a triducer-sebesség, nem garantáltan tárolt. A SOG a
+  „part feletti" sebesség, ami a track-stathoz a természetes.
+- **Idő-súlyozott átlag:** az 1 Hz fix mintavétel mellett a számtani átlag már
+  idő-átlag.
+- **GPS-jitter szűrése az úthosszhoz (most):** a nyers haversine-összeg az
+  első körben elég; a szűrés (sebesség-/elmozdulás-küszöb) v2.
+- **A track release-ben is `kDebugMode` mögött (eredeti D2):** a felhasználó
+  kifejezetten release-funkciónak szánja; a D2 ezért módosul.
+
+### Halasztva (v2)
+
+- **Sebesség-szerinti gradient-track** (a polyline szakaszonkénti színezése a
+  SOG-ból): vizuálisan informatív, de szakaszokra bontást igényel.
+- **Szélfordulás-/sebesség-grafikon, leg-statok, ETA-bearing-pontosság** (az
+  ADR 0034 v2 további darabjai).
+- **GPS-jitter szűrés** a megtett úthoz (küszöbös szűrés).
+- **Offline tile-cache** (ADR 0035 halasztott) a vízi visszanézéshez.
