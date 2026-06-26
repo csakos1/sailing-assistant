@@ -44,6 +44,7 @@ void main() {
     double? trueTwaDeg,
     double? cogDeg,
     double? sogMps,
+    Coordinate? position,
     double bearingDeg = 90,
     RaceStatus raceStatus = RaceStatus.active,
     TwdQuality twdQuality = TwdQuality.live,
@@ -52,6 +53,7 @@ void main() {
       eventCount: 1,
       boatState: BoatState(
         lastUpdate: tick,
+        position: position,
         courseOverGround: cogDeg == null
             ? null
             : Bearing(degrees: cogDeg, reference: BearingReference.trueNorth),
@@ -111,6 +113,7 @@ void main() {
           trueTwaDeg: -117,
           cogDeg: 90,
           sogMps: 3.2,
+          position: const Coordinate(latitude: 46.9, longitude: 18),
         ),
       );
       await logger.log(
@@ -141,6 +144,8 @@ void main() {
       expect(last.currentTwaDeg, -117);
       expect(last.sogMps, 3.2);
       expect(last.cogDeg, 90);
+      expect(last.latDeg, 46.9);
+      expect(last.lonDeg, 18);
     });
 
     test('csak az adott race sorait adja (raceId-szures)', () async {
@@ -173,6 +178,8 @@ void main() {
       expect(sample.forecastBandDeg, isNull);
       expect(sample.bearingToMarkDeg, isNull);
       expect(sample.currentTwaDeg, -100);
+      expect(sample.latDeg, isNull);
+      expect(sample.lonDeg, isNull);
     });
 
     test('ismeretlen race-re ures lista', () async {

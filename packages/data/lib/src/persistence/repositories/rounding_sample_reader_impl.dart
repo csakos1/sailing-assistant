@@ -55,5 +55,7 @@ RoundingSample _toRoundingSample(String snapshotJson) {
     currentTwaDeg: snapshot.wind?.trueAngleWater?.degrees,
     sogMps: boat.speedOverGround?.metersPerSecond,
     cogDeg: boat.courseOverGround?.degrees,
+    latDeg: boat.position?.latitude,
+    lonDeg: boat.position?.longitude,
   );
 }
