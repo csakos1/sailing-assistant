@@ -6,7 +6,6 @@ import 'package:phone/providers/rounding_sample_reader_provider.dart';
 
 void main() {
   final base = DateTime.utc(2026, 6, 6, 11);
-
   // Egy A->B megkerulest ado minta-folyam: 10 tick 'A'-n high predikcioval,
   // majd 31 tick 'B'-n a tenyleges TWA-val (a COG = leg-irany, a kapu nyit).
   List<RoundingSample> scenario() {
@@ -49,12 +48,10 @@ void main() {
     test('a reader mintait elemzi es osszegzi', () async {
       // ARRANGE
       final container = makeContainer((_) async => scenario());
-
       // ACT
       final analysis = await container.read(
         postRaceAnalysisProvider('race-1').future,
       );
-
       // ASSERT — egy A->B megkerules, savon belul (delta 3, sav 5), lead 10 s.
       expect(analysis.isEmpty, isFalse);
       expect(analysis.roundings, hasLength(1));
@@ -68,12 +65,10 @@ void main() {
     test('ures reader -> ures elemzes', () async {
       // ARRANGE
       final container = makeContainer((_) async => const <RoundingSample>[]);
-
       // ACT
       final analysis = await container.read(
         postRaceAnalysisProvider('race-1').future,
       );
-
       // ASSERT
       expect(analysis.isEmpty, isTrue);
       expect(analysis.roundings, isEmpty);
@@ -103,14 +98,19 @@ void main() {
         ),
       ];
       final container = makeContainer((_) async => samples);
-
       // ACT
       final analysis = await container.read(
         postRaceAnalysisProvider('race-1').future,
       );
-
-      // ASSERT — ket track-pont, max/atlag SOG, ~3028 m uthossz.
+      // ASSERT — ket track-pont, a sebesseg + pozicio atorokol; max/atlag SOG,
+      // ~3028 m uthossz.
       expect(analysis.trackPoints, hasLength(2));
+      expect(analysis.trackPoints.first.sogMps, 2);
+      expect(analysis.trackPoints.last.sogMps, 4);
+      expect(
+        analysis.trackPoints.first.position.latitude,
+        closeTo(46.946554, 1e-6),
+      );
       expect(analysis.trackStats.maxSpeedMps, 4);
       expect(analysis.trackStats.avgSpeedMps, 3);
       expect(analysis.trackStats.distanceMeters, closeTo(3028.29, 1));
