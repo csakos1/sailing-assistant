@@ -239,3 +239,111 @@ mellékterméke.
 A megkerülés-kártya a lead-time-ot ablakként mutatja: `mettől → meddig a bója
 előtt` (m:ss alak), pl. „5:34 → 0:24 a bója előtt". Ha a jóslat a
 megkerüléskor nem volt megbízható, a hiányt a szokásos `—` jelzi.
+
+
+## Addendum 2 — Counterfactual referencia + steady-COG beállási kapu
+
+### Kontextus
+
+Az `AnalyzeRoundings` eddig a megkerülés utáni *ténylegesen vitorlázott* TWA-t
+(`actualTwaDeg`, a beállási ablak körközepe) hasonlította a megkerülés előtt
+jósolt next-mark TWA-hoz. Ez a referencia **két különböző hibaforrást kever**:
+
+1. a szélirány-jóslat hibáját (amit az analyzer mérni hivatott), és
+2. a navigációs döntést — ténylegesen a következő bója irányába mentem-e.
+
+A baj akkor jelentkezik, amikor a következő bója iránya nem vitorlázható
+(a leg-irány a no-go zónába esik, pl. ~0° TWA): ilyenkor nem a bója felé megyek,
+hanem felélezek, így a tényleges TWA nem a bója-irányt, hanem a kényszer-
+vitorlázást tükrözi. Az analyzer ekkor rossz deltát mutat — **bünteti a
+predikciót a saját taktikai kényszerem miatt**, holott a jóslat akár pontos volt.
+
+### Döntés
+
+#### (A2-D1) Counterfactual referencia a tényleges TWA helyett
+
+A referencia ne az legyen, *amerre ténylegesen mentem*, hanem: **„ha rámentem
+volna a bójára, jó lett volna-e a jóslat?"** A predikció eleve a leg-irányra
+vonatkozó TWA-t jósol; ezért a természetes párja a tényleges szélből és a
+leg-irányból számolt counterfactual TWA:
+
+```
+TWD_i            = cogDeg_i + currentTwaDeg_i          (ADR 0020: TWD = COG + TWA)
+counterfactual_i = wrapTo180(TWD_i − legBearingDeg)
+                 = wrapTo180(cogDeg_i + currentTwaDeg_i − legBearingDeg)
+```
+
+ahol `legBearingDeg` a megkerülés utáni első nem-null `bearingToMarkDeg` (a
+következő leg rhumb-line iránya; ADR 0026 D2, változatlan). A beállási ablak
+mintáira ezt számoljuk, majd a meglévő körközéppel átlagoljuk.
+
+**A counterfactual a tényleges szelet vetíti a leg-irányra**, tehát csak a
+szél-jóslat hibáját méri: a deltában a `legBearing` algebrailag kiesik
+(`counterfactual − predikció = TWD_actual − TWD_predicted`). Mindkét bemenet
+(`cogDeg`, `currentTwaDeg`) megléte kötelező egy mintához; ha bármelyik null,
+a minta kimarad.
+
+**A régi viselkedés ennek speciális esete:** ha rámentem a bójára
+(`COG ≈ legBearing`), akkor `counterfactual = TWD − legBearing ≈ currentTwa` =
+a korábbi `actualTwaDeg`. A lay-the-mark legek eredménye tehát változatlan; a
+no-go legek eredménye a korábbi üres/szennyezett helyett helyessé válik. A
+változtatás **monoton javítás** — nincs regresszió a korábban helyes eseteken.
+
+#### (A2-D2) `actualTwaDeg` → `markTwaDeg` átnevezés
+
+A `RoundingResult.actualTwaDeg` szemantikája érdemben változik (a tényleges
+befutott TWA helyett a leg-irányra vetített counterfactual), ezért a mező
+neve `markTwaDeg`-re változik: „a tényleges szélből a leg-irányra vetített
+TWA — amit a bóján kaptam volna, ha rámentem volna". Az „actual" név a no-go
+esetben félrevezető lenne. A `deltaDeg`/`isWithinBand` getterek logikája
+változatlan (a `markTwaDeg − predictedTwaDeg`). Ez signature-kaszkád: a
+domain mező + a CLI-report + a phone post-race UI-szekció + a tesztek egy
+vertikális commitba kerülnek.
+
+#### (A2-D3) A beállási kapu: leg-relatívról steady-COG-ra (ADR 0026 módosítás)
+
+A counterfactual referencia önmagában nem elég. Az ADR 0026 beállási kapuja
+(`_gateOpenTick`) ma a COG-ot a **leg-irányhoz** méri toleranciával — vagyis
+csak akkor nyit, ha a következő bója felé megyek. No-go legen épp NEM a leg
+felé megyek, így a kapu sosem nyílik, és a minta üres marad — pont azokat a
+legeket szűrve ki, amelyeket javítani akarunk.
+
+Ezért a kapu **ön-relatívvá** válik: nem a leg-irányhoz, hanem a beálló COG-
+futam saját horgony-COG-jához mér toleranciát. A kapu akkor nyit, ha a COG
+*önmagához* képest legalább `settleConfirm` hosszan, `cogToleranceDeg`
+toleranciával stabil — bármilyen irányban. Ez továbbra is kiszűri a megkerülés
+utáni fordulás tranziensét (az ADR 0026 eredeti célja), de **nem követeli meg,
+hogy a leget ténylegesen vitorlázzam**. A debounce-struktúra (egy zajos tick
+nullázza a futamot) változatlan.
+
+A `legBearingDeg`-et továbbra is olvassuk — de már nem a kapuhoz, hanem
+kizárólag a counterfactual vetítéséhez kell (A2-D1).
+
+### Következmények
+
+- A `'cog-tolerance 360'` teszt (`scenario(legCogDeg: 270)`) a régi leg-relatív
+  kaput kódolta („szűk tol → sosem nyílik"). A steady-COG kapunál a végig 270°-os
+  COG önmagához stabil → a szűk toleranciával is nyílik. A teszt **szándékosan**
+  átíródik (a viselkedés a döntés szerint változik, nem törik).
+- Nincs séma-változás; a `RoundingSample` read-modell bemenetei elegendők
+  (`cogDeg` + `currentTwaDeg` + `bearingToMarkDeg` mind megvan).
+- A CLI-report oszlop-fejléce a `markTwaDeg`-et tükrözi (a „tényleges" felirat
+  pontatlan lenne).
+
+### Elvetett alternatívák
+
+- **A tényleges TWA megtartása külön mezőként** (counterfactual + actual is):
+  v2 nicety; most a két szám együtt félreérthető lenne, és gold-plating.
+- **A leg végi tényleges szél rekonstrukciója** (mi lett volna a bójánál a leg
+  végén, ha a szél elfordult): track-rekonstrukciót igényel → ADR 0034 v2.
+  A megkerülés körüli settle-window ugyanahhoz az időablakhoz mér, mint amire
+  a predikció épült, ezért a counterfactual a jelenlegi inputokkal a helyes
+  közelítés.
+- **A leg-relatív kapu megtartása lazább toleranciával:** nem oldja meg a
+  no-go esetet (felélezésnél a COG akár 40°-kal is eltérhet a legtől, tartósan).
+
+### Halasztva (v2)
+
+- A counterfactual vs. tényleges-vitorlázott TWA egymás melletti megjelenítése
+  (taktikai utóelemzés: „a jóslat jó volt, de nem mentem rá").
+- Leg végi szél-elfordulás korrekciója track-rekonstrukcióból.
