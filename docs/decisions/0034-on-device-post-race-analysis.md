@@ -446,3 +446,68 @@ Ha nincs pozíció-adat (régi log, vagy GPS hiányzott) → a térkép helyén
   ADR 0034 v2 további darabjai).
 - **GPS-jitter szűrés** a megtett úthoz (küszöbös szűrés).
 - **Offline tile-cache** (ADR 0035 halasztott) a vízi visszanézéshez.
+
+
+## Addendum 4 — Sebesség szerint színezett track (gradient-track)
+
+**Státusz:** elfogadva (kód: következő szelet).
+**Kapcsolódik:** ADR 0034 Addendum 3 (track-térkép + statok), ADR 0035
+(`flutter_map` track-renderelés).
+
+### Kontextus
+
+Az Addendum 3 (A3-D3) a track-`Polyline`-t egyetlen, `colorScheme.primary`
+(világoskék) színnel rajzolja. On-device kiderült, hogy ez a világoskék az
+OSM-térkép vizének (Balaton) kékjébe olvad, így a track nehezen kivehető. A
+sebesség szerinti színezést az A3-D3 v2-be halasztotta; on-device visszajelzés
+alapján most előrehozzuk.
+
+### Döntés
+
+- **(A4-D1) Színezés:** a track a SOG (sebesség) szerint színezett, fordított
+  forgalmi-lámpa palettával: **lassú = zöld → (sárga) → gyors = piros.** Indok:
+  a gyors szakaszok pirosban kiugranak, és a paletta a víz kékjével erősen
+  kontrasztos. (A piros gyors-szín a piros bója-markerekkel közös színcsaládú,
+  de a markerek fehér-keretes, számozott korongok — eltérő alak, elkülönülnek.)
+- **(A4-D2) Normalizálás:** **fix 0–8 csomó** — a SOG csomóra váltva, [0, 8]-ra
+  clampelve. Indok: a szín abszolút sebességet jelent, így két verseny track-je
+  közvetlenül összevethető. Elvetve: adaptív (track saját min–max), mert
+  versenyenként más abszolút sebességhez kötné ugyanazt a színt.
+- **(A4-D3) Diszkrét sávok:** **8 sáv, 1 csomós lépcsőkkel** (0–1, 1–2, …,
+  7–8+ kn), mindegyik a zöld→sárga→piros rámpa egy fix színével. Indok: a
+  per-szakasz színezés (A4-D4) így a szomszédos azonos-sávú szakaszokat
+  összevonhatja. Elvetve most: folytonos gradient (downsamplinggel — v2).
+- **(A4-D4) Technika — szakaszonkénti `Polyline`-ok, NEM
+  `Polyline.gradientColors`.** A `flutter_map` `gradientColors` egyetlen, a
+  vonal mentén (start→vég) vetített lineáris gradienst ad; egy tackekkel és
+  bója-megkerülésekkel teli versenytrack ettől geometriailag hibásan
+  színeződne (ismert `flutter_map` korlát). Ezért a track-et szomszédos
+  pontpárokra bontjuk, minden szakasz a saját sebesség-sávja tömör színével,
+  és a szomszédos azonos-sávú szakaszokat egyetlen `Polyline`-ba fűzzük
+  (run-merge) — így a `Polyline`-ok száma a sáv-váltások száma, nem a pontoké.
+  Ez az ADR 0035 `Polyline`-használatának finomítása; a `^7.0.0` constraint
+  változatlan (nincs verzió-bump).
+- **(A4-D5) Data-flow:** a per-szakasz színhez per-pont sebesség kell. A
+  provider a `RoundingSample.sogMps`-ből egy sebességgel-annotált pont-listát
+  állít elő (a `Coordinate` mellé a sebesség). **A domain nem változik** — a
+  `RoundingSample` már hordozza a pozíciót és a `sogMps`-t; a sebesség→szín
+  leképezés, a sávozás és a run-merge tisztán presentation (`track_map.dart`).
+  Az aggregált `TrackStats` (max/átlag/úthossz) változatlan. A sebesség-paletta
+  ÚJ színkonstansok (nem a `port`/`starboard` újrahasznosítása — eltérő
+  szemantika).
+- **(A4-D6) Build-gate:** változatlan (A3-D4) — a track (most színezve) a
+  release-ben is látszik; csak a next-TWA elemzés marad `kDebugMode` mögött.
+
+### Elvetett alternatívák
+
+- `Polyline.gradientColors` / `colorsStop` — a kanyargós vonalra vetített
+  egyetlen lineáris gradient geometriai torzítása miatt.
+- Adaptív normalizálás — versenyek közt nem összevethető.
+- Folytonos gradient (downsamplinggel) — szebb, de több objektum és
+  bonyolultabb; v2.
+- STW a SOG helyett; a szín-skála a domainben — presentation-only marad.
+
+### Halasztva (v2)
+
+Folytonos gradient, színskála-jelmagyarázat (legenda), STW-alapú színezés,
+szél-/sebesség-grafikon a track mellé.
