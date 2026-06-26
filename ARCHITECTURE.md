@@ -377,6 +377,8 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   ├── connection/                         # Gateway kapcsolat státusz/setup
 │   │   │   │   ├── settings/                           # Wind shift ablak, küszöb, stb.
 │   │   │   │   ├── post_race/                          # Befejezett race-ek listája + analízis
+│   │   │   │   │       # (track-térkép: track_map.dart, ADR 0035;
+│   │   │   │   │       #  domain SummarizeTrack + TrackStats, Add. 3)
 │   │   │   │   └── debug/                              # Replay log, raw NMEA viewer
 │   │   │   ├── providers/                              # Globális Riverpod providers
 │   │   │   │   ├── nmea_stream_provider.dart
@@ -3696,6 +3698,8 @@ name: data
 ```yaml
 dependencies:
   cupertino_icons: ^1.0.8
+  flutter_map: ^7.0.0        # post-race track-terkep (ADR 0035)
+  latlong2: ^0.9.0           # flutter_map LatLng tipus
   data:
     path: ../../packages/data
   domain:
@@ -3853,7 +3857,7 @@ A **fokozatosság a legfontosabb**. Minden fázis után demózható, használhat
 
 **Eredmény**: az óra mutatja a kulcs adatokat, telefon zsebben.
 
-### Fázis 8 — Post-race analízis (CLI kész; on-device debug: ADR 0034)
+### Fázis 8 — Post-race analízis (CLI kész; on-device: ADR 0034 + track ADR 0035)
 
 A moat-elemzés: a következő-bója-TWA predikció minőségének kiértékelése a
 rögzített `snapshot_logs`-ból (predikált-vs-tényleges TWA, hibasáv-találat,
@@ -3865,8 +3869,17 @@ megbízhatóság-előny).
   a `RaceDetailScreen`-en (befejezett verseny detailje, a bója-lista alatt;
   `kDebugMode`-gate-elt, release-ben tree-shake-elt; a metrika-logika a
   `domain`-ba kiemelve, közös a CLI-vel — ADR 0034).
-- Track térképen, szélfordulás-grafikon, sebesség-grafikon, race-history nézet
-  → **v2** (szándékosan kívül a v1 core-on).
+- A track-térkép + sebesség-statok (max/átlag SOG, megtett út) a befejezett
+  verseny detailjén — `flutter_map` + online OSM tile (ADR 0035), a track
+  `Polyline`, a bóják `Marker`, a nézet a bounding-boxra illeszt. Ez a
+  v2 első darabja (ADR 0034 Addendum 3).
+- **Build-gate (a D2 módosítása, A3-D4):** a track + statok a release-ben is
+  látszik (felhasználói funkció); a megkerülés-elemzés (next-mark TWA delta,
+  hibasáv-kártyák) marad `kDebugMode` mögött (fejlesztői validáció). Debug-ban
+  a track FELÜL, a next-TWA elemzés ALUL.
+- Szélfordulás-/sebesség-grafikon, leg-statok, race-history nézet, a megtett
+  út GPS-jitter-szűrése, offline tile-cache → **v2 további darabjai**
+  (szándékosan kívül a v1 core-on).
 
 **Eredmény**: a vízi teszt után a moat-jóslat minősége fotelből (CLI) és a
 vízparton (telefon, debug) is kiértékelhető; a tanuló track/grafikon-nézetek
