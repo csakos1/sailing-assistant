@@ -15,9 +15,17 @@ final postRaceAnalysisProvider =
         final reader = ref.watch(roundingSampleReaderProvider);
         final samples = await reader(raceId);
         final roundings = const AnalyzeRoundings()(samples);
+        final trackPoints = <Coordinate>[
+          for (final s in samples)
+            if (s.latDeg case final lat?)
+              if (s.lonDeg case final lon?)
+                Coordinate(latitude: lat, longitude: lon),
+        ];
         return PostRaceAnalysis(
           roundings: roundings,
           summary: const SummarizeRoundings()(roundings),
+          trackPoints: trackPoints,
+          trackStats: const SummarizeTrack()(samples),
         );
       },
     );

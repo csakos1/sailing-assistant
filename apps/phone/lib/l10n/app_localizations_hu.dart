@@ -284,4 +284,16 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get detailAnalysisBeforeMark => 'a bója előtt';
+
+  @override
+  String get detailTrackEmpty => 'Nincs track-adat ehhez a versenyhez.';
+
+  @override
+  String get detailTrackMaxSpeed => 'max sebesség';
+
+  @override
+  String get detailTrackAvgSpeed => 'átlag sebesség';
+
+  @override
+  String get detailTrackDistance => 'megtett út';
 }

@@ -615,6 +615,30 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'a bója előtt'**
   String get detailAnalysisBeforeMark;
+
+  /// Track-térkép üres állapota: nincs rögzített pozíció (ADR 0034 D5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs track-adat ehhez a versenyhez.'**
+  String get detailTrackEmpty;
+
+  /// Track-stat cella: a maximális SOG (csomó) címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'max sebesség'**
+  String get detailTrackMaxSpeed;
+
+  /// Track-stat cella: az átlagos SOG (csomó) címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'átlag sebesség'**
+  String get detailTrackAvgSpeed;
+
+  /// Track-stat cella: a megtett út (haversine-összeg) címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'megtett út'**
+  String get detailTrackDistance;
 }
 
 class _AppLocalizationsDelegate

@@ -369,5 +369,21 @@
   "detailAnalysisBeforeMark": "a bója előtt",
   "@detailAnalysisBeforeMark": {
     "description": "A megbízhatósági ablak utótagja: az időértékek a bója előtt."
+  },
+  "detailTrackEmpty": "Nincs track-adat ehhez a versenyhez.",
+  "@detailTrackEmpty": {
+    "description": "Track-térkép üres állapota: nincs rögzített pozíció (ADR 0034 D5)."
+  },
+  "detailTrackMaxSpeed": "max sebesség",
+  "@detailTrackMaxSpeed": {
+    "description": "Track-stat cella: a maximális SOG (csomó) címkéje."
+  },
+  "detailTrackAvgSpeed": "átlag sebesség",
+  "@detailTrackAvgSpeed": {
+    "description": "Track-stat cella: az átlagos SOG (csomó) címkéje."
+  },
+  "detailTrackDistance": "megtett út",
+  "@detailTrackDistance": {
+    "description": "Track-stat cella: a megtett út (haversine-összeg) címkéje."
   }
 }

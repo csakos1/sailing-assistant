@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:domain/domain.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
@@ -158,10 +157,14 @@ class RaceDetailScreen extends ConsumerWidget {
                           ? const Icon(Icons.check_circle_outline)
                           : null,
                     ),
-                  // Debug-only post-race elemzés a befejezett verseny alatt
-                  // (ADR 0034 D2/D5); release-ben a kDebugMode tree-shake-eli.
-                  if (kDebugMode && current.status == RaceStatus.finished)
-                    PostRaceAnalysisSection(raceId: current.id),
+                  // Post-race elemzés a befejezett verseny alatt: a track +
+                  // statok release-ben is, a next-TWA a szekción belül debug
+                  // mögött (ADR 0034 Addendum 3 A3-D4).
+                  if (current.status == RaceStatus.finished)
+                    PostRaceAnalysisSection(
+                      raceId: current.id,
+                      marks: current.marks,
+                    ),
                 ],
               ),
             ),
