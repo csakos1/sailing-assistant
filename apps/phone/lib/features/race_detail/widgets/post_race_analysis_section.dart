@@ -253,7 +253,7 @@ class _RawNumbers extends StatelessWidget {
     );
 
     final predictedDeg = _formatDegMag(result.predictedTwaDeg);
-    final actualDeg = _formatDegMag(result.actualTwaDeg);
+    final markDeg = _formatDegMag(result.markTwaDeg);
 
     final lead = result.leadTime;
     final window = lead == null
@@ -267,7 +267,7 @@ class _RawNumbers extends StatelessWidget {
       children: [
         Text(
           '${l10n.detailAnalysisPredicted} $predictedDeg'
-          '  ·  ${l10n.detailAnalysisActual} $actualDeg',
+          '  ·  ${l10n.detailAnalysisActual} $markDeg',
           style: muted,
         ),
         const SizedBox(height: 2),

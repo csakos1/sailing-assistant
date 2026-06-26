@@ -598,10 +598,10 @@ abstract class AppLocalizations {
   /// **'jósolt'**
   String get detailAnalysisPredicted;
 
-  /// Megkerülés-kártya nyers szám: a ténylegesen befutott TWA.
+  /// Megkerülés-kártya nyers szám: a leg-irányra vetített (counterfactual) TWA.
   ///
   /// In hu, this message translates to:
-  /// **'tényl.'**
+  /// **'bója'**
   String get detailAnalysisActual;
 
   /// Kártya: a megbízhatósági ablak (mettől → meddig) címkéje.

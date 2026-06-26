@@ -277,7 +277,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailAnalysisPredicted => 'jósolt';
 
   @override
-  String get detailAnalysisActual => 'tényl.';
+  String get detailAnalysisActual => 'bója';
 
   @override
   String get detailAnalysisReliable => 'megbízható';

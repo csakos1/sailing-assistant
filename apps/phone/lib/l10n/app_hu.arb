@@ -358,9 +358,9 @@
   "@detailAnalysisPredicted": {
     "description": "Megkerülés-kártya nyers szám: a jósolt TWA címkéje."
   },
-  "detailAnalysisActual": "tényl.",
+  "detailAnalysisActual": "bója",
   "@detailAnalysisActual": {
-    "description": "Megkerülés-kártya nyers szám: a ténylegesen befutott TWA."
+    "description": "Megkerülés-kártya nyers szám: a leg-irányra vetített (counterfactual) TWA."
   },
   "detailAnalysisReliable": "megbízható",
   "@detailAnalysisReliable": {

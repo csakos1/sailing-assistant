@@ -10,7 +10,7 @@ class RoundingResult {
     required this.toMark,
     required this.roundedAt,
     this.predictedTwaDeg,
-    this.actualTwaDeg,
+    this.markTwaDeg,
     this.forecastBandDeg,
     this.predictedConfidence,
     this.leadTime,
@@ -30,9 +30,11 @@ class RoundingResult {
   /// A leg-re josolt TWA fokban (a korozes elotti nem-null), vagy `null`.
   final double? predictedTwaDeg;
 
-  /// A ténylegesen befutott TWA fokban (a beallasi ablak korkozepe),
-  /// vagy `null`.
-  final double? actualTwaDeg;
+  /// A leg-iranyra vetitett TWA fokban: a tenyleges (mert) szelbol a
+  /// kovetkezo boja iranyaba szamolt counterfactual TWA — amit a bojan kaptam
+  /// volna, ha ramentem volna (ADR 0034 Addendum 2). A beallasi ablak
+  /// counterfactual mintainak korkozepe, vagy `null`, ha nem volt eleg adat.
+  final double? markTwaDeg;
 
   /// A predikciot ado snapshot hibasavja fokban, vagy `null`.
   final double? forecastBandDeg;
@@ -50,20 +52,22 @@ class RoundingResult {
   /// (mettol -> meddig a boja elott; ADR 0034 Addendum 1).
   final Duration? lastReliableLeadTime;
 
-  /// Hany snapshotbol atlagoltuk a tenyleges TWA-t (0 = nem volt eleg adat).
+  /// Hany snapshotbol atlagoltuk a leg-iranyra vetitett TWA-t (0 = nem volt
+  /// eleg adat).
   final int actualSampleCount;
 
-  /// A delta: tenyleges − predikalt, [-180, 180)-ra normalizalva; `null`, ha
-  /// barmelyik oldal hianyzik.
+  /// A delta: leg-iranyra vetitett − predikalt, [-180, 180)-ra normalizalva;
+  /// `null`, ha barmelyik oldal hianyzik. A `markTwaDeg` counterfactual volta
+  /// miatt ez tisztan a szelirany-joslat hibajat meri (a leg-irany kiesik).
   double? get deltaDeg {
     final predicted = predictedTwaDeg;
-    final actual = actualTwaDeg;
-    if (predicted == null || actual == null) return null;
-    return wrapTo180(actual - predicted);
+    final mark = markTwaDeg;
+    if (predicted == null || mark == null) return null;
+    return wrapTo180(mark - predicted);
   }
 
-  /// A tenyleges a sávon belul van-e (`|delta| <= band`); `null`, ha valami
-  /// hianyzik.
+  /// A leg-iranyra vetitett TWA a sávon belul van-e (`|delta| <= band`);
+  /// `null`, ha valami hianyzik.
   bool? get isWithinBand {
     final delta = deltaDeg;
     final band = forecastBandDeg;

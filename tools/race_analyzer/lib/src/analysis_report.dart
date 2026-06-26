@@ -20,7 +20,7 @@ String formatReport(List<RoundingResult> results) {
         'sav: ${_band(result.forecastBandDeg)})',
       )
       ..writeln(
-        '    tenyleges TWA : ${_deg(result.actualTwaDeg)}'
+        '    boja-TWA      : ${_deg(result.markTwaDeg)}'
         '  (${result.actualSampleCount} minta)',
       )
       ..writeln(
@@ -38,7 +38,7 @@ String formatCsv(List<RoundingResult> results) {
   final buffer = StringBuffer()
     ..writeln(
       'from_mark,to_mark,rounded_at_utc,predicted_twa_deg,'
-      'actual_twa_deg,delta_deg,forecast_band_deg,within_band,'
+      'mark_twa_deg,delta_deg,forecast_band_deg,within_band,'
       'predicted_confidence,lead_time_s,actual_samples',
     );
   for (final result in results) {
@@ -48,7 +48,7 @@ String formatCsv(List<RoundingResult> results) {
         result.toMark,
         result.roundedAt.toUtc().toIso8601String(),
         _csv(result.predictedTwaDeg),
-        _csv(result.actualTwaDeg),
+        _csv(result.markTwaDeg),
         _csv(result.deltaDeg),
         _csv(result.forecastBandDeg),
         _csvBool(result.isWithinBand),

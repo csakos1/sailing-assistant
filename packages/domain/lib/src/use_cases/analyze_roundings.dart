@@ -66,7 +66,7 @@ RoundingResult _analyzeTransition(
   AnalysisParams params,
 ) {
   final predicted = _lastPredictionBefore(snaps, transition.index);
-  final samples = _settledActualTwa(snaps, transition, params);
+  final samples = _settledMarkTwa(snaps, transition, params);
   final window = _leadTimeWindow(snaps, transition.index, params);
 
   return RoundingResult(
@@ -76,7 +76,7 @@ RoundingResult _analyzeTransition(
     predictedTwaDeg: predicted?.predictedTwaAtMarkDeg,
     forecastBandDeg: predicted?.forecastBandDeg,
     predictedConfidence: predicted?.shiftConfidence,
-    actualTwaDeg: samples.isEmpty ? null : _circularMeanDeg(samples),
+    markTwaDeg: samples.isEmpty ? null : _circularMeanDeg(samples),
     actualSampleCount: samples.length,
     leadTime: window?.leadTime,
     lastReliableLeadTime: window?.lastReliableLeadTime,
@@ -94,14 +94,19 @@ RoundingSample? _lastPredictionBefore(
   return null;
 }
 
-// A korozes utani COG-kapuzott beallasi ablakban mert TWA-mintak
-// (ADR 0026). A leg-irany az elso nem-null bearingToMark a korozestol (a
-// toMark messze -> boat->toMark ~ rhumb-line). A kapu az elso olyan,
-// legalabb settleConfirm hosszu folyamatos in-tolerance COG-szakasz elejen
-// nyilik, ami a settleSkip floor utan kezdodik; onnan settleWindow-nyit
-// gyujtunk. Ha a kapu sosem nyilik -> ures (a leg nem merheto: pl.
-// kereszt-leg, vagy a felvetel a beallas elott vegetert).
-List<double> _settledActualTwa(
+// A korozes utani beallasi ablakban a leg-iranyra VETITETT TWA-mintak
+// (ADR 0034 Addendum 2). NEM a tenylegesen vitorlazott TWA-t merjuk, hanem a
+// tenyleges (mert) szelbol a kovetkezo boja iranyaba szamolt counterfactualt:
+// "amit a bojan kaptam volna, ha ramentem volna". Igy a delta tisztan a
+// szelirany-joslat hibajat meri, fuggetlenul a navigaciotol (no-go legen sem
+// szennyezi a kenyszer-vitorlazas).
+//
+// A kapu STEADY-COG (Addendum 2 A2-D3): a beallo COG-futam SAJAT
+// horgony-COG-jahoz mer toleranciat — barmilyen iranyban, nem a leg-iranyhoz.
+// Igy no-go legen (felelezesnel) is nyit, ahol a regi leg-relativ kapu sosem.
+// A leg-irany (az elso nem-null bearingToMark) mar csak a vetiteshez kell; ha
+// nincs -> nem tudunk vetiteni, ures.
+List<double> _settledMarkTwa(
   List<RoundingSample> snaps,
   _Transition transition,
   AnalysisParams params,
@@ -110,13 +115,7 @@ List<double> _settledActualTwa(
   if (legBearingDeg == null) return const [];
 
   final floor = transition.at.add(params.settleSkip);
-  final windowStart = _gateOpenTick(
-    snaps,
-    transition.index,
-    floor,
-    legBearingDeg,
-    params,
-  );
+  final windowStart = _gateOpenTick(snaps, transition.index, floor, params);
   if (windowStart == null) return const [];
 
   final windowEnd = windowStart.add(params.settleWindow);
@@ -126,14 +125,19 @@ List<double> _settledActualTwa(
     if (tick.isBefore(windowStart)) continue;
     if (!tick.isBefore(windowEnd)) break; // idorend -> nincs feljebb
     final twa = snaps[i].currentTwaDeg;
-    if (twa != null) samples.add(twa); // a null-check utan promotalt
+    final cog = snaps[i].cogDeg;
+    // Mindket bemenet kell a vetiteshez (TWD = COG + TWA, ADR 0020).
+    if (twa != null && cog != null) {
+      samples.add(wrapTo180(cog + twa - legBearingDeg));
+    }
   }
   return samples;
 }
 
 // A leg-irany: az elso nem-null bearingToMark a korozestol (ADR 0026 D2).
 // A toMark a korozeskor meg messze van, igy a boat->toMark bearing a leg
-// rhumb-line iranya; egyszer rogzitjuk (nem a pillanatnyi zaj).
+// rhumb-line iranya; egyszer rogzitjuk (nem a pillanatnyi zaj). A
+// counterfactual vetites referenciaja (Addendum 2 A2-D1).
 double? _legBearingDeg(List<RoundingSample> snaps, int roundIndex) {
   for (var i = roundIndex; i < snaps.length; i++) {
     final bearing = snaps[i].bearingToMarkDeg;
@@ -142,29 +146,45 @@ double? _legBearingDeg(List<RoundingSample> snaps, int roundIndex) {
   return null;
 }
 
-// A COG-kapu nyitasanak tickje (ADR 0026 D3/D4): az elso, legalabb
-// settleConfirm hosszu folyamatos in-tolerance szakasz eleje a floor utan;
-// egy zajos COG-tick a futamot nullazza (debounce). null, ha nincs ilyen.
+// A STEADY-COG kapu nyitasanak tickje (ADR 0034 Addendum 2 A2-D3, az ADR 0026
+// D3/D4 modositasa): az elso, legalabb settleConfirm hosszu folyamatos
+// in-tolerance szakasz eleje a floor utan, ahol a COG a SAJAT futam-horgonyahoz
+// (a run elso COG-jahoz) kepest stabil — nem a leg-iranyhoz. Egy, a horgonytol
+// tul tavoli COG-tick a futamot nullazza (debounce). Igy a megkerules utani
+// fordulas-tranzienst kiszuri, de nem koveteli, hogy a leget vitorlazzam.
+// null, ha nincs ilyen stabil szakasz.
 DateTime? _gateOpenTick(
   List<RoundingSample> snaps,
   int roundIndex,
   DateTime floor,
-  double legBearingDeg,
   AnalysisParams params,
 ) {
   DateTime? runStart;
+  double? anchorCogDeg;
   for (var i = roundIndex; i < snaps.length; i++) {
     final tick = snaps[i].tickTime;
     if (tick.isBefore(floor)) continue;
     final cog = snaps[i].cogDeg;
-    final isInTolerance =
-        cog != null &&
-        wrapTo180(cog - legBearingDeg).abs() <= params.cogToleranceDeg;
-    if (!isInTolerance) {
+    // Nincs COG -> nem tudjuk a stabilitast itelni; a futam megszakad.
+    if (cog == null) {
       runStart = null;
+      anchorCogDeg = null;
       continue;
     }
-    runStart ??= tick;
+    final anchor = anchorCogDeg;
+    final isStable =
+        anchor == null ||
+        wrapTo180(cog - anchor).abs() <= params.cogToleranceDeg;
+    if (!isStable) {
+      // Kifutott a toleranciabol: uj futam ettol a ticktol (uj horgony).
+      runStart = tick;
+      anchorCogDeg = cog;
+      continue;
+    }
+    if (runStart == null) {
+      runStart = tick;
+      anchorCogDeg = cog;
+    }
     if (tick.difference(runStart) >= params.settleConfirm) return runStart;
   }
   return null;

@@ -8,10 +8,10 @@ void main() {
 
   // Szintetikus korozes-folyam: `approachTicks` tick 'A'-n a megadott
   // predikcioval/konfidenciaval, majd `legTicks` tick 'B'-n a megadott
-  // tenyleges TWA-val. A 'B'-tickek a leg-iranyt (bearingToMark) es a
-  // COG-ot is hordozzak, hogy a COG-kapu (ADR 0026) nyithasson; alapbol
-  // a COG = a leg-irany (in-tolerance). A korozes (A->B) az approachTicks
-  // indexnel van.
+  // tenyleges TWA-val es COG-gal. A 'B'-tickek a leg-iranyt (bearingToMark)
+  // is hordozzak, amire a counterfactual TWA vetul (ADR 0034 Addendum 2).
+  // Alapbol a COG = a leg-irany (= ramentem a bojara), igy a counterfactual
+  // megegyezik a tenyleges TWA-val (a regi viselkedes specialis esete).
   List<RoundingSample> scenario({
     int approachTicks = 10,
     int legTicks = 31,
@@ -48,8 +48,9 @@ void main() {
   }
 
   group('analyzeRoundings — egy korozes', () {
-    test('predikalt vs tenyleges, savon belul, lead-time', () {
-      // ARRANGE
+    test('predikalt vs leg-vetitett, savon belul, lead-time', () {
+      // ARRANGE — ramentem a bojara (COG = legBearing = 90), igy a
+      // counterfactual = a tenyleges TWA: wrapTo180(90 + -117 - 90) = -117.
       final snaps = scenario();
 
       // ACT
@@ -65,7 +66,7 @@ void main() {
       expect(result.forecastBandDeg, 5);
       // A kapu a floor-nal (base+20s) nyilik, ablak [+20s, +40s) -> 20 tick.
       expect(result.actualSampleCount, 20);
-      expect(result.actualTwaDeg, closeTo(-117, 1e-6));
+      expect(result.markTwaDeg, closeTo(-117, 1e-6));
       expect(result.deltaDeg, closeTo(3, 1e-6));
       expect(result.isWithinBand, isTrue);
       // 10 megszakitatlan 'high' tick a korozesig.
@@ -88,7 +89,7 @@ void main() {
 
     test('predikcio nelkul a delta es a sav-itelet null', () {
       // ARRANGE — minden tick 'A'/'B', de a predikcio vegig null. A 'B'
-      // tickek COG-ja a leg-iranyon (a kapu nyit, a tenyleges merheto).
+      // tickek COG-ja stabil (a kapu nyit, a leg-vetitett TWA merheto).
       final snaps = <RoundingSample>[
         for (var i = 0; i < 10; i++)
           RoundingSample(
@@ -117,7 +118,7 @@ void main() {
       expect(result.predictedTwaDeg, isNull);
       expect(result.deltaDeg, isNull);
       expect(result.isWithinBand, isNull);
-      expect(result.actualTwaDeg, closeTo(-117, 1e-6)); // a tenyleges megvan
+      expect(result.markTwaDeg, closeTo(-117, 1e-6)); // a vetitett megvan
     });
 
     test('lead-time null, ha a korozeskor nem volt megbizhato', () {
@@ -133,9 +134,52 @@ void main() {
     });
   });
 
-  group('COG-kapuzott beallas (ADR 0026)', () {
-    // Egy korozes 'high' approach-csal; a 'B' legen elobb off-leg COG
-    // (atmenet), majd a megadott pillanattol in-leg COG (beallt).
+  group('counterfactual leg-vetites (ADR 0034 Addendum 2)', () {
+    test('no-go leg: nem mentem ra, de a vetites a leg-iranyra helyes', () {
+      // ARRANGE — a leg-irany 0 fok (eszak), amit nem lehet vitorlazni
+      // (szelbe). Felelezek: tartosan COG 40 fok-on megyek (off-leg), a
+      // tenyleges TWA igy -40. A tenyleges szel (TWD = COG + TWA = 0) viszont
+      // a leg-iranybol nezve 0 fok TWA-t adna -> a regi "tenyleges" -40-et
+      // mert volna (szennyezve a navigaciotol), a counterfactual a helyes 0-t.
+      final snaps = <RoundingSample>[
+        for (var i = 0; i < 10; i++)
+          RoundingSample(
+            tickTime: base.add(Duration(seconds: i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'A',
+            predictedTwaAtMarkDeg: 2,
+            shiftConfidence: 'high',
+            forecastBandDeg: 5,
+            currentTwaDeg: 2,
+          ),
+        for (var i = 0; i < 31; i++)
+          RoundingSample(
+            tickTime: base.add(Duration(seconds: 10 + i)),
+            raceStatus: 'active',
+            twdQuality: 'live',
+            markName: 'B',
+            currentTwaDeg: -40, // felelezve, off-leg vitorlazott szog
+            bearingToMarkDeg: 0, // a leg eszakra tart (nem vitorlazhato)
+            cogDeg: 40, // tartosan 40 fok-on megyek, NEM a leg fele
+          ),
+      ];
+
+      // ACT
+      final result = analyze(snaps).single;
+
+      // ASSERT — a counterfactual: wrapTo180(40 + -40 - 0) = 0; a delta a
+      // predikalt 2-hoz kepest -2 (savon belul), NEM a -40-bol szamolt zaj.
+      expect(result.markTwaDeg, closeTo(0, 1e-6));
+      expect(result.deltaDeg, closeTo(-2, 1e-6));
+      expect(result.isWithinBand, isTrue);
+      expect(result.actualSampleCount, 20);
+    });
+  });
+
+  group('steady-COG beallasi kapu (ADR 0026 / Addendum 2 A2-D3)', () {
+    // Egy korozes 'high' approach-csal; a 'B' legen elobb forgo COG
+    // (atmenet), majd a megadott pillanattol stabil COG (beallt).
     List<RoundingSample> lateSettle({
       required int offTicks,
       required int onTicks,
@@ -159,8 +203,12 @@ void main() {
             currentTwaDeg: 120,
           ),
       ];
+      // Az "atmenet" tickjein a COG vForog: paratlanul 0, parosan 180 — igy
+      // egyik szomszedos tick sem stabil a masikhoz (a steady-COG kapu nem
+      // nyit). A fluke-offseteken a stabil onCog (de magaban keves).
       for (var i = 0; i < offTicks; i++) {
-        final cog = flukeOffsets.contains(i) ? onCog : offCog;
+        final spinning = i.isEven ? 0.0 : 180.0;
+        final cog = flukeOffsets.contains(i) ? onCog : spinning;
         snaps.add(
           RoundingSample(
             tickTime: base.add(Duration(seconds: 10 + i)),
@@ -189,36 +237,38 @@ void main() {
       return snaps;
     }
 
-    test('a kapu csak a COG-konvergencianal nyilik (nem az atmeneten)', () {
-      // ARRANGE — 60 tick off-leg (COG 270), majd 30 tick on-leg (COG 90).
+    test('a kapu csak a COG beallasanal nyilik (nem a forgo atmeneten)', () {
+      // ARRANGE — 60 tick forgo COG, majd 30 tick stabil (COG 90).
       final snaps = lateSettle(offTicks: 60, onTicks: 30);
 
       // ACT
       final result = analyze(snaps).single;
 
-      // ASSERT — a beallt 118-at meri, nem az atmeneti -40-et.
-      expect(result.actualTwaDeg, closeTo(118, 1e-6));
+      // ASSERT — a beallt szakaszrol mer: counterfactual
+      // wrapTo180(90 + 118 - 90) = 118, nem az atmeneti zaj.
+      expect(result.markTwaDeg, closeTo(118, 1e-6));
       expect(result.predictedTwaDeg, 120);
       expect(result.deltaDeg, closeTo(-2, 1e-6));
     });
 
-    test('sosem all be: a COG vegig off-leg -> n/a', () {
-      // ARRANGE — 60 tick off-leg, soha nincs on-leg (pl. kereszt-leg).
+    test('sosem all be: a COG vegig forog -> n/a', () {
+      // ARRANGE — 60 tick forgo COG, soha nincs stabil szakasz.
       final snaps = lateSettle(offTicks: 60, onTicks: 0);
 
       // ACT
       final result = analyze(snaps).single;
 
-      // ASSERT — nincs beallt ablak, a tenyleges n/a; a predikalt megvan.
-      expect(result.actualTwaDeg, isNull);
+      // ASSERT — nincs beallt ablak, a vetitett n/a; a predikalt megvan.
+      expect(result.markTwaDeg, isNull);
       expect(result.actualSampleCount, 0);
       expect(result.deltaDeg, isNull);
       expect(result.predictedTwaDeg, 120);
     });
 
-    test('debounce: egyetlen fluke in-tol tick nem nyitja a kaput', () {
-      // ARRANGE — az atmenet 20. tickjenel (base+30s) egyetlen fluke
-      // in-tol COG; a tartos beallas csak utana. A 3 s debounce eldobja.
+    test('debounce: egyetlen fluke stabil tick nem nyitja a kaput', () {
+      // ARRANGE — a forgo atmenet 20. tickjenel (base+30s) egyetlen
+      // stabil-iranyu COG; a tartos beallas csak utana. A 3 s debounce eldobja
+      // (a kovetkezo forgo tick ujra kifut a toleranciabol).
       final snaps = lateSettle(
         offTicks: 25,
         onTicks: 30,
@@ -228,25 +278,24 @@ void main() {
       // ACT
       final result = analyze(snaps).single;
 
-      // ASSERT — a fluke (atmeneti -40) nem nyit; a beallt 118 jon.
-      expect(result.actualTwaDeg, closeTo(118, 1e-6));
+      // ASSERT — a fluke nem nyit; a beallt 118 jon.
+      expect(result.markTwaDeg, closeTo(118, 1e-6));
     });
 
-    test('cog-tolerance 360: a kapu a floor-nal nyilik (regi fix-ido)', () {
-      // ARRANGE — a 'B' legen a COG vegig off-leg (270).
+    test('off-leg de stabil COG: a kapu nyit (steady-COG)', () {
+      // ARRANGE — a 'B' legen a COG vegig 270 (NEM a leg fele, ami 90), de
+      // onmagahoz stabil. A regi leg-relativ kapu sosem nyitott volna (a 20-as
+      // tol mellett); a steady-COG kapu nyit. A counterfactual a tenyleges
+      // szelet a leg-iranyra vetiti: wrapTo180(270 + -117 - 90) = 63.
       final snaps = scenario(legCogDeg: 270);
 
-      // ACT — 20-as tol: a kapu sosem nyilik; 360-as tol: a floor-nal.
-      final tight = analyze(snaps).single;
-      final loose = analyze(
-        snaps,
-        params: const AnalysisParams(cogToleranceDeg: 360),
-      ).single;
+      // ACT
+      final result = analyze(snaps).single;
 
-      // ASSERT
-      expect(tight.actualTwaDeg, isNull);
-      expect(loose.actualSampleCount, 20);
-      expect(loose.actualTwaDeg, closeTo(-117, 1e-6));
+      // ASSERT — a kapu a floor-nal nyit (a 270 onmagahoz stabil), 20 minta;
+      // a vetitett TWA 63 (NEM a -117 tenyleges, mert nem a leg fele megyek).
+      expect(result.actualSampleCount, 20);
+      expect(result.markTwaDeg, closeTo(63, 1e-6));
     });
   });
 

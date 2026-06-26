@@ -4,12 +4,11 @@ import 'package:test/test.dart';
 void main() {
   const summarize = SummarizeRoundings();
   final at = DateTime.utc(2026, 6, 6, 11);
-
   RoundingResult result({
     required String from,
     required String to,
     double? predicted,
-    double? actual,
+    double? mark,
     double? band,
     Duration? leadTime,
   }) {
@@ -18,7 +17,7 @@ void main() {
       toMark: to,
       roundedAt: at,
       predictedTwaDeg: predicted,
-      actualTwaDeg: actual,
+      markTwaDeg: mark,
       forecastBandDeg: band,
       leadTime: leadTime,
     );
@@ -33,7 +32,7 @@ void main() {
           from: 'A',
           to: 'B',
           predicted: -120,
-          actual: -117,
+          mark: -117,
           band: 5,
           leadTime: const Duration(seconds: 10),
         ),
@@ -41,11 +40,11 @@ void main() {
           from: 'B',
           to: 'C',
           predicted: -100,
-          actual: -117,
+          mark: -117,
           band: 5,
           leadTime: const Duration(seconds: 20),
         ),
-        result(from: 'C', to: 'D', actual: -117),
+        result(from: 'C', to: 'D', mark: -117),
       ];
 
       // ACT
