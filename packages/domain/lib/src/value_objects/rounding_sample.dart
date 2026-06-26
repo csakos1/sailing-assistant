@@ -19,6 +19,8 @@ class RoundingSample {
     this.currentTwaDeg,
     this.sogMps,
     this.cogDeg,
+    this.latDeg,
+    this.lonDeg,
   });
 
   /// A pillanatkep ideje (a JSON `tickTime`, epoch-millis UTC-instant).
@@ -53,4 +55,13 @@ class RoundingSample {
 
   /// COG fokban, vagy `null`.
   final double? cogDeg;
+
+  /// A hajo szelessegi foka fokban (a `boatState.position`-bol), vagy
+  /// `null`, ha nincs pozicio. A track-rajzhoz es az uthosszhoz
+  /// (ADR 0034 Addendum 3).
+  final double? latDeg;
+
+  /// A hajo hosszusagi foka fokban (a `boatState.position`-bol), vagy
+  /// `null`, ha nincs pozicio. Lasd `latDeg`.
+  final double? lonDeg;
 }
