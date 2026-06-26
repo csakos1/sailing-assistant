@@ -3870,9 +3870,11 @@ megbízhatóság-előny).
   `kDebugMode`-gate-elt, release-ben tree-shake-elt; a metrika-logika a
   `domain`-ba kiemelve, közös a CLI-vel — ADR 0034).
 - A track-térkép + sebesség-statok (max/átlag SOG, megtett út) a befejezett
-  verseny detailjén — `flutter_map` + online OSM tile (ADR 0035), a track
-  `Polyline`, a bóják `Marker`, a nézet a bounding-boxra illeszt. Ez a
-  v2 első darabja (ADR 0034 Addendum 3).
+  verseny detailjén — `flutter_map` + online OSM tile (ADR 0035). A track
+  sebesség szerint színezett, szakaszonkénti `Polyline`-okkal (lassú zöld →
+  gyors piros, fix 0–8 kn, 8 sávban; ADR 0034 Addendum 4), a bóják `Marker`,
+  a nézet a bounding-boxra illeszt. Ez a v2 első darabja (ADR 0034
+  Addendum 3 + 4).
 - **Build-gate (a D2 módosítása, A3-D4):** a track + statok a release-ben is
   látszik (felhasználói funkció); a megkerülés-elemzés (next-mark TWA delta,
   hibasáv-kártyák) marad `kDebugMode` mögött (fejlesztői validáció). Debug-ban
