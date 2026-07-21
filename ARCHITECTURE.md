@@ -3430,10 +3430,21 @@ a korábban v2-re tervezett warningot.
 - **Watch**: csak a critical warningok jelennek meg, kis ikonnal (Fázis 7).
 - **Watch — mélység-kivétel (ADR 0031):** a `DepthWarning` az órán NEM kis
   ikon, hanem teljes-képernyős piros overlay live mélység-kiírással +
-  bezárás gombbal; a `depthBuzzCounter` felfutó élén ~1–1,5 s erős
-  natív rezgés (a `HapticFeedback` nem elég → `DepthAlertVibrator`
-  MethodChannel-seam), ambient-változattal és best-effort ambient-
-  ébresztéssel.
+  bezárás gombbal, ami a lapozást is elnyeli; a `depthBuzzCounter`
+  **változó** élén 1,5 s erős natív rezgés. A `HapticFeedback` nem tud
+  hosszt/amplitúdót, ezért `DepthAlertVibrator` seam kell — de NEM
+  MethodChannel: interface + adapter + provider a `RaceOngoingActivity`
+  mintájára, v1-ben a `vibration` csomaggal mögötte, cserélhetően. A
+  csomag-út azért nyer, mert a natív Kotlin az egyetlen kódfelület nulla
+  teszt-lefedettséggel, amit csak vízen lehet verifikálni; a seam mögött a
+  MethodChannel bármikor visszahozható.
+  Az él-detektálás szándékosan `!=` és nem `>`: a telefon-engine
+  újraindulása visszaejtheti a számlálót, és egy zátonyveszélyt nem
+  nyelhetünk el egy szerencsétlen sorrend miatt.
+  Az **ambient-ébresztés külön szelet**, az első on-device mérés után: ha az
+  1,5 s-os rezgés önmagában felébreszti a kijelzőt, tárgytalan; ha nem, egy
+  `DepthAlertScreenWaker` seam hozza (additív, az overlayhez nem kell
+  hozzányúlni).
 
 A meglévo §8.7 „elavult" chip **érintetlen** marad, és a warning-szabályok nem
 fednek át a feltételével: `GatewayDisconnected` = nem-csatlakozott;
