@@ -1,5 +1,6 @@
 import 'package:domain/src/value_objects/bearing.dart';
 import 'package:domain/src/value_objects/coordinate.dart';
+import 'package:domain/src/value_objects/depth.dart';
 import 'package:domain/src/value_objects/speed.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
@@ -32,6 +33,7 @@ class BoatState extends Equatable {
     this.courseOverGround,
     this.speedOverGround,
     this.speedThroughWater,
+    this.depth,
     this.instrumentTimeUtc,
   }) : assert(
          headingMagnetic == null ||
@@ -70,6 +72,10 @@ class BoatState extends Equatable {
 
   /// Speed Through Water (DST triducer).
   final Speed? speedThroughWater;
+
+  /// A víz mélysége a jeladó alatt, offset nélkül (ADR 0031 D2). `null`,
+  /// amíg nem jött használható `DPT`/`DBT` mondat.
+  final Depth? depth;
 
   /// A snapshot időbélyege (utolsó stream-frissítés).
   final DateTime lastUpdate;
@@ -125,6 +131,7 @@ class BoatState extends Equatable {
     Bearing? courseOverGround,
     Speed? speedOverGround,
     Speed? speedThroughWater,
+    Depth? depth,
     DateTime? lastUpdate,
     DateTime? instrumentTimeUtc,
   }) {
@@ -135,6 +142,7 @@ class BoatState extends Equatable {
       courseOverGround: courseOverGround ?? this.courseOverGround,
       speedOverGround: speedOverGround ?? this.speedOverGround,
       speedThroughWater: speedThroughWater ?? this.speedThroughWater,
+      depth: depth ?? this.depth,
       lastUpdate: lastUpdate ?? this.lastUpdate,
       instrumentTimeUtc: instrumentTimeUtc ?? this.instrumentTimeUtc,
     );
@@ -148,6 +156,7 @@ class BoatState extends Equatable {
     courseOverGround,
     speedOverGround,
     speedThroughWater,
+    depth,
     lastUpdate,
     instrumentTimeUtc,
   ];

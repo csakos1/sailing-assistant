@@ -41,6 +41,10 @@ class BoatStateReducer {
         speedThroughWater: speedThroughWater,
         lastUpdate: now,
       ),
+      DepthEvent(:final depth) => current.copyWith(
+        depth: depth,
+        lastUpdate: now,
+      ),
       InstrumentTimeEvent() => current.copyWith(
         instrumentTimeUtc: event.timestamp,
         lastUpdate: now,

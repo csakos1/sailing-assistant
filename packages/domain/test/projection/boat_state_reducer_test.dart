@@ -17,6 +17,7 @@ void main() {
   const cog = Bearing(degrees: 110, reference: BearingReference.trueNorth);
   const sog = Speed(metersPerSecond: 3);
   const stw = Speed(metersPerSecond: 2.5);
+  const depth = Depth(meters: 2.4);
 
   // A recept-idő (now) tudatosan eltér az esemény saját időbélyegétől, hogy a
   // lastUpdate=now vs. instrumentTimeUtc=event.timestamp szétválás
@@ -72,6 +73,16 @@ void main() {
     test('SpeedEvent beállítja a vízsebességet', () {
       final result = reducer(initial, SpeedEvent(stw, eventTime), receiptTime);
       expect(result.speedThroughWater, stw);
+      expect(result.lastUpdate, receiptTime);
+    });
+
+    test('DepthEvent beállítja a mélységet', () {
+      final result = reducer(
+        initial,
+        DepthEvent(depth, eventTime),
+        receiptTime,
+      );
+      expect(result.depth, depth);
       expect(result.lastUpdate, receiptTime);
     });
 

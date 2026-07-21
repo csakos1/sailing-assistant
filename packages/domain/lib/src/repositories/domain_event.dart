@@ -1,6 +1,7 @@
 import 'package:domain/src/entities/wind_data.dart';
 import 'package:domain/src/value_objects/bearing.dart';
 import 'package:domain/src/value_objects/coordinate.dart';
+import 'package:domain/src/value_objects/depth.dart';
 import 'package:domain/src/value_objects/speed.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
@@ -9,10 +10,10 @@ import 'package:meta/meta.dart';
 /// domain-típusra fordított adatot ad át.
 ///
 /// Az `NmeaStream.events` ezt a sealed hierarchiát streameli; a 6.4
-/// szerint öt leaf-re bomlik (szél / pozíció / heading / COG+SOG /
-/// vízsebesség), amit az application réteg providerei route-olnak a
-/// megfelelő állapotba. Minden leaf [Equatable] (tesztelhető equality
-/// és stringify).
+/// szerint szél / pozíció / heading / COG+SOG / vízsebesség /
+/// műszeridő / mélység leafekre bomlik, amit az application réteg
+/// providerei route-olnak a megfelelő állapotba. Minden leaf [Equatable]
+/// (tesztelhető equality és stringify).
 @immutable
 sealed class DomainEvent extends Equatable {
   /// Az eseményt a [timestamp] időbélyeggel hozza létre.
@@ -112,4 +113,19 @@ class InstrumentTimeEvent extends DomainEvent {
 
   @override
   List<Object?> get props => [timestamp];
+}
+
+/// Mélység-esemény (DPT elsőbbséggel, DBT fallbackkel — ADR 0031 D2).
+///
+/// A [depth] a jeladó-alatti NYERS mélység, offset nélkül: a sekélyvíz-
+/// riasztás küszöbe ehhez van hangolva.
+class DepthEvent extends DomainEvent {
+  /// A [depth] mélységgel, [timestamp] időbélyeggel.
+  const DepthEvent(this.depth, super.timestamp);
+
+  /// A mért mélység a jeladó alatt.
+  final Depth depth;
+
+  @override
+  List<Object?> get props => [depth, timestamp];
 }

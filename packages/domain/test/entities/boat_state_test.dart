@@ -196,6 +196,14 @@ void main() {
       final state = BoatState(lastUpdate: sampleTimestamp);
       expect(state.copyWith(), equals(state));
     });
+
+    test('a mélység másolható és megőrződik', () {
+      final state = BoatState(lastUpdate: sampleTimestamp);
+      final updated = state.copyWith(depth: const Depth(meters: 2.4));
+
+      expect(updated.depth, const Depth(meters: 2.4));
+      expect(updated.lastUpdate, sampleTimestamp);
+    });
   });
 
   group('effectiveDirection', () {
