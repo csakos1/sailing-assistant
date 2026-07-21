@@ -5,6 +5,7 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/polar_provider.dart';
+import 'package:phone/providers/race_snapshot_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/true_time_provider.dart';
 import 'package:phone/providers/wind_shift_trend_provider.dart';
@@ -17,11 +18,14 @@ import 'package:shared/shared.dart';
 /// a warning-szabályok nem `now`-függők (ADR 0014 D2), de a tick adja a
 /// screennel közös 1 Hz kadenciát és az első emit előtti `const []` kaput.
 /// Az autoDispose inputokat (`connectionStatusProvider`, `boatStateProvider`,
-/// `windShiftTrendProvider`) a `ref.listen` tartja életben; a keep-alive
-/// `activeRaceProvider` és `trueTimeProvider` sima `ref.read`. A
+/// `windShiftTrendProvider`, `raceSnapshotProvider`) a `ref.listen` tartja
+/// életben; a keep-alive `activeRaceProvider` és `trueTimeProvider` sima
+/// `ref.read`. A
 /// `polarProvider` (keep-alive `Future`) `ref.watch`-csal: az `Err`-ága
 /// (hiányzó/hibás polár-asset) adja az `isPolarMissing` kaput; amíg tölt
-/// (`valueOrNull == null`), NEM jelez.
+/// (`valueOrNull == null`), NEM jelez. A `depthAlertMeters` az engine-
+/// snapshotból jön (ADR 0031 D4): a sekély-víz epizód-állapotgép a
+/// háttér-izolátumban fut, ez a provider csak tükrözi.
 ///
 /// A domain nem ismeri az apps/phone true-time típusait (ADR 0012 DD2), ezért
 /// az `isTimeUnsynced` / `timeStreamDrift` primitíveket itt, a provider-
@@ -32,7 +36,8 @@ final activeWarningsProvider = AutoDisposeProvider<List<Warning>>((ref) {
   ref
     ..listen(connectionStatusProvider, (_, _) {})
     ..listen(boatStateProvider, (_, _) {})
-    ..listen(windShiftTrendProvider, (_, _) {});
+    ..listen(windShiftTrendProvider, (_, _) {})
+    ..listen(raceSnapshotProvider, (_, _) {});
   if (tick == null) {
     return const <Warning>[];
   }
@@ -58,5 +63,6 @@ final activeWarningsProvider = AutoDisposeProvider<List<Warning>>((ref) {
     isTimeUnsynced: trueTime.source == TrueTimeSource.wallClockUnsynced,
     timeStreamDrift: timeStreamDrift,
     isPolarMissing: polarResult is Err<Polar, PolarLoadError>,
+    depthAlertMeters: ref.read(raceSnapshotProvider)?.depthAlertMeters,
   );
 });

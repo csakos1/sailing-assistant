@@ -16,4 +16,7 @@ String warningMessage(Warning warning, AppLocalizations l10n) =>
       WindShiftTrendInsufficient() => l10n.warningWindShiftTrendInsufficient,
       SuspectHeadingWarning() => l10n.warningSuspectHeading,
       PolarMissing() => l10n.warningPolarMissing,
+      DepthWarning(:final depthMeters) => l10n.warningDepthShallow(
+        depthMeters.toStringAsFixed(1),
+      ),
     };

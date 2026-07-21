@@ -318,6 +318,15 @@
   "@warningPolarMissing": {
     "description": "Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható."
   },
+  "warningDepthShallow": "Sekély víz: {depth} m",
+  "@warningDepthShallow": {
+    "description": "Warning (critical): a mért mélység a riasztási küszöb alatt van; a mélység egy tizedesjeggyel formázva érkezik (ADR 0031).",
+    "placeholders": {
+      "depth": {
+        "type": "String"
+      }
+    }
+  },
   "setupPickFromLibrary": "Korábbi bóják",
   "@setupPickFromLibrary": {
     "description": "Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból."

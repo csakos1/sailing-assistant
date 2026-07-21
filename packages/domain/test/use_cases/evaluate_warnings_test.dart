@@ -27,6 +27,7 @@ void main() {
     bool isTimeUnsynced = false,
     Duration? timeStreamDrift,
     bool isPolarMissing = false,
+    double? depthAlertMeters,
     EvaluateWarnings useCase = const EvaluateWarnings(),
   }) {
     return useCase(
@@ -37,6 +38,7 @@ void main() {
       isTimeUnsynced: isTimeUnsynced,
       timeStreamDrift: timeStreamDrift,
       isPolarMissing: isPolarMissing,
+      depthAlertMeters: depthAlertMeters,
     );
   }
 
@@ -318,6 +320,58 @@ void main() {
           const WindShiftTrendInsufficient(),
           const PolarMissing(),
         ]);
+      });
+    });
+
+    group('DepthWarning', () {
+      test('severity critical és stabil codeId', () {
+        expect(const DepthWarning(2.4).severity, WarningSeverity.critical);
+        expect(const DepthWarning(2.4).codeId, 'depth_shallow');
+      });
+
+      test('a mélység az egyenlőség része', () {
+        // Az első payloadot hordozó leaf: két különböző mélységű riasztás
+        // NEM egyenlő, különben a change-detect elnyelné a frissülést.
+        expect(const DepthWarning(2.4), const DepthWarning(2.4));
+        expect(const DepthWarning(2.4), isNot(const DepthWarning(2.3)));
+      });
+
+      test('van aktív epizód → a mért mélységgel jelez', () {
+        expect(
+          evaluate(depthAlertMeters: 2.4),
+          contains(const DepthWarning(2.4)),
+        );
+      });
+
+      test('nincs epizód → nem jelez', () {
+        expect(
+          evaluate(),
+          isNot(contains(isA<DepthWarning>())),
+        );
+      });
+
+      test('a lista elején jön, a GPS-jel előtt', () {
+        final result = evaluate(
+          boatState: boatNoFix,
+          depthAlertMeters: 2.4,
+        );
+
+        expect(result, [
+          const DepthWarning(2.4),
+          const GpsSignalLost(),
+        ]);
+      });
+
+      test('nem csatlakozott → elnyomva a gating miatt', () {
+        // Védőteszt: az engine amúgy is null-ra reseteli az epizódot
+        // disconnectkor, de a gating (ADR 0014 D5) függetlenül is áll.
+        expect(
+          evaluate(
+            connectionStatus: const Disconnected(),
+            depthAlertMeters: 2.4,
+          ),
+          [const GatewayDisconnected()],
+        );
       });
     });
   });

@@ -218,6 +218,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       isTimeUnsynced: trueTime.source == TrueTimeSource.wallClockUnsynced,
       timeStreamDrift: _timeStreamDrift(trueTime, snapshot.boatState),
       isPolarMissing: _isPolarMissing,
+      depthAlertMeters: snapshot.depthAlertMeters,
     );
     return buildWatchPayload(
       boatState: snapshot.boatState,

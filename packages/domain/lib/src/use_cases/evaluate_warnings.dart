@@ -19,9 +19,10 @@ import 'package:meta/meta.dart';
 /// **Gating és sorrend.** Ha a gateway nem csatlakozott
 /// (`connectionStatus is! Connected`), CSAK a [GatewayDisconnected] tér
 /// vissza — élő feed nélkül a GPS/szél-szabályok zaj, ezért elnyomjuk őket
-/// (ADR 0014 D5). Csatlakozott állapotban a három downstream szabály
-/// függetlenül értékelődik, fix prioritási (egyben severity-csökkenő)
-/// sorrendben: GPS-jel → GPS-idő → szél-trend.
+/// (ADR 0014 D5). Csatlakozott állapotban a downstream szabályok
+/// függetlenül értékelődnek, fix prioritási (egyben severity-csökkenő)
+/// sorrendben: sekély víz → GPS-jel → GPS-idő → iránytű → szél-trend →
+/// polár.
 @immutable
 class EvaluateWarnings {
   /// Létrehozás opcionális [timeDriftThreshold]-override-tal (default
@@ -47,8 +48,10 @@ class EvaluateWarnings {
 
   /// A [connectionStatus] / [boatState] / [windShiftTrend] / [raceStatus],
   /// az idő-szinkron primitívek ([isTimeUnsynced], [timeStreamDrift]) és a
-  /// [isPolarMissing] (a polár betöltése sikertelen) alapján kiszámolt aktív
-  /// warningok. Üres lista = nincs figyelmeztetés.
+  /// [isPolarMissing] (a polár betöltése sikertelen), valamint a
+  /// [depthAlertMeters] (az engine sekély-víz epizódja; `null` = nincs
+  /// aktív epizód) alapján kiszámolt aktív warningok. Üres lista = nincs
+  /// figyelmeztetés.
   List<Warning> call({
     required ConnectionStatus connectionStatus,
     required BoatState boatState,
@@ -57,6 +60,7 @@ class EvaluateWarnings {
     required bool isTimeUnsynced,
     required Duration? timeStreamDrift,
     required bool isPolarMissing,
+    required double? depthAlertMeters,
   }) {
     // Gateway-gating: élő feed nélkül egyetlen, egyértelmű critical jelzés
     // — a downstream GPS/szél-warningokat elnyomjuk (ADR 0014 D5).
@@ -65,6 +69,14 @@ class EvaluateWarnings {
     }
 
     final warnings = <Warning>[];
+
+    // A lista ELEJÉN: a zátonyveszély az egyetlen olyan critical jelzés,
+    // ami azonnali kormánymozdulatot kíván (ADR 0031 D4). Külön gate nem
+    // kell — az engine az epizód-állapotgépet disconnectkor reseteli,
+    // ezért a null önmagában jelenti, hogy nincs aktív riasztás.
+    if (depthAlertMeters != null) {
+      warnings.add(DepthWarning(depthAlertMeters));
+    }
 
     if (boatState.position == null) {
       warnings.add(const GpsSignalLost());

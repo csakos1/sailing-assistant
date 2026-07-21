@@ -31,5 +31,19 @@ void main() {
         'Kevés széladat a trendhez',
       );
     });
+
+    test('DepthWarning → a mélység egy tizedesjeggyel', () {
+      expect(
+        warningMessage(const DepthWarning(2.4), l10n),
+        'Sekély víz: 2.4 m',
+      );
+    });
+
+    test('DepthWarning → a placeholder a payloadból jön', () {
+      expect(
+        warningMessage(const DepthWarning(1.7), l10n),
+        'Sekély víz: 1.7 m',
+      );
+    });
   });
 }

@@ -127,3 +127,27 @@ final class PolarMissing extends Warning {
   @override
   List<Object?> get props => const [];
 }
+
+/// Sekély víz: az engine sekély-víz epizódja aktív, a mért mélység a
+/// riasztási küszöb alatt van (ADR 0031 D4). A `depthMeters` az epizód
+/// pillanatnyi mélysége.
+///
+/// Ez az első payloadot hordozó leaf, ezért a `props` itt nem üres: két
+/// különböző mélységű riasztás NEM egyenlő. Szándékos — az óra-payload
+/// change-detectje különben elnyelné a mélyülő epizód frissülését.
+final class DepthWarning extends Warning {
+  /// Sekély-víz jelző a pillanatnyi mélységgel.
+  const DepthWarning(this.depthMeters);
+
+  /// A riasztást kiváltó pillanatnyi mélység méterben.
+  final double depthMeters;
+
+  @override
+  String get codeId => 'depth_shallow';
+
+  @override
+  WarningSeverity get severity => WarningSeverity.critical;
+
+  @override
+  List<Object?> get props => [depthMeters];
+}
