@@ -36,6 +36,8 @@ final class WatchPayload extends Equatable {
     this.distanceMeters,
     this.markName,
     this.targetSpeedPercent,
+    this.depthAlertMeters,
+    this.depthBuzzCounter = 0,
     this.criticalWarnings = const <String>[],
   });
 
@@ -64,6 +66,8 @@ final class WatchPayload extends Equatable {
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       markName: json['markName'] as String?,
       targetSpeedPercent: (json['targetSpeedPercent'] as num?)?.toDouble(),
+      depthAlertMeters: (json['depthAlertMeters'] as num?)?.toDouble(),
+      depthBuzzCounter: (json['depthBuzzCounter'] as num?)?.toInt() ?? 0,
       criticalWarnings:
           (json['criticalWarnings'] as List<dynamic>?)?.cast<String>() ??
           const <String>[],
@@ -140,6 +144,20 @@ final class WatchPayload extends Equatable {
   /// ezt jeleníti meg (3c).
   final double? targetSpeedPercent;
 
+  /// Az aktív sekély-víz riasztás pillanatnyi mélysége méterben, vagy
+  /// `null`, ha nincs aktív epizód (ADR 0031 D4). Az óra ebből rajzolja a
+  /// teljes-képernyős overlay élő mélység-értékét.
+  final double? depthAlertMeters;
+
+  /// A sekély-víz rezgések monoton növekvő számlálója (ADR 0031 D4):
+  /// belépéskor és minden új mélypontnál nő, az epizód végén NEM nullázódik.
+  ///
+  /// Szándékosan része a [props]-nak, noha önmagában nem megjelenített
+  /// érték: az óra a FELFUTÓ ÉLÉBŐL indítja a natív rezgést, tehát a
+  /// payloadnak egyenlőtlenné kell válnia tőle — különben a change-detect
+  /// elnyelné magát a riasztást.
+  final int depthBuzzCounter;
+
   /// Csak a critical súlyosságú figyelmeztetések, a telefon által már
   /// lokalizálva (v1 magyar). Üres lista, ha nincs critical (ADR 0015 D4).
   final List<String> criticalWarnings;
@@ -166,6 +184,8 @@ final class WatchPayload extends Equatable {
       'distanceMeters': distanceMeters,
       'markName': markName,
       'targetSpeedPercent': targetSpeedPercent,
+      'depthAlertMeters': depthAlertMeters,
+      'depthBuzzCounter': depthBuzzCounter,
       'criticalWarnings': criticalWarnings,
     };
   }
@@ -187,6 +207,8 @@ final class WatchPayload extends Equatable {
     distanceMeters,
     markName,
     targetSpeedPercent,
+    depthAlertMeters,
+    depthBuzzCounter,
     criticalWarnings,
   ];
 

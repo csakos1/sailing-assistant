@@ -232,6 +232,8 @@ class RaceEngineTaskHandler extends TaskHandler {
       targetSpeedKnots: snapshot.targetSpeedKnots,
       vmgKnots: snapshot.vmgKnots,
       targetVmgKnots: snapshot.targetVmgKnots,
+      depthAlertMeters: snapshot.depthAlertMeters,
+      depthBuzzCounter: snapshot.depthBuzzCounter,
       vmgSteerCorrection: snapshot.vmgSteerCorrection?.degrees,
     );
   }

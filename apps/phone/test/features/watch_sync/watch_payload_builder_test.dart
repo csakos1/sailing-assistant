@@ -49,6 +49,8 @@ void main() {
       TwdQuality twdQuality = TwdQuality.unavailable,
       double? targetSpeedKnots,
       double? vmgSteerCorrection,
+      double? depthAlertMeters,
+      int depthBuzzCounter = 0,
     }) {
       return buildWatchPayload(
         boatState: boatState ?? BoatState(lastUpdate: now),
@@ -63,6 +65,8 @@ void main() {
         twdQuality: twdQuality,
         targetSpeedKnots: targetSpeedKnots,
         vmgSteerCorrection: vmgSteerCorrection,
+        depthAlertMeters: depthAlertMeters,
+        depthBuzzCounter: depthBuzzCounter,
       );
     }
 
@@ -123,6 +127,22 @@ void main() {
       // Assert
       expect(withSteer.vmgSteerCorrection, -8.5);
       expect(withoutSteer.vmgSteerCorrection, isNull);
+    });
+
+    test('passes the depth alert fields through to the payload', () {
+      // A mélység-riasztást a builder NEM származtatja: ha a hívó (a
+      // task handler) elfelejti átadni, a default csendben 0/null marad,
+      // és az óra sosem rezegne (ADR 0031 D4). Ezért a defaultot is
+      // rögzítjük, nem csak az átvitelt.
+      // Act
+      final alerting = build(depthAlertMeters: 2.4, depthBuzzCounter: 3);
+      final quiet = build();
+
+      // Assert
+      expect(alerting.depthAlertMeters, 2.4);
+      expect(alerting.depthBuzzCounter, 3);
+      expect(quiet.depthAlertMeters, isNull);
+      expect(quiet.depthBuzzCounter, 0);
     });
 
     test('keeps only critical warnings, localized and ordered', () {

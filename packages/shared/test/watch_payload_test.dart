@@ -24,6 +24,8 @@ void main() {
       double targetSpeedPercent = 87.5,
       double targetVmgKnots = -4.6,
       double vmgSteerCorrection = -8.5,
+      double depthAlertMeters = 2.4,
+      int depthBuzzCounter = 2,
       List<String> criticalWarnings = const ['Műszer-kapcsolat megszakadt'],
     }) {
       return WatchPayload(
@@ -41,6 +43,8 @@ void main() {
         targetSpeedPercent: targetSpeedPercent,
         targetVmgKnots: targetVmgKnots,
         vmgSteerCorrection: vmgSteerCorrection,
+        depthAlertMeters: depthAlertMeters,
+        depthBuzzCounter: depthBuzzCounter,
         criticalWarnings: criticalWarnings,
       );
     }
@@ -58,6 +62,8 @@ void main() {
         expect(restored.vmgKnots, isNull);
         expect(restored.targetVmgKnots, equals(-4.6));
         expect(restored.vmgSteerCorrection, equals(-8.5));
+        expect(restored.depthAlertMeters, equals(2.4));
+        expect(restored.depthBuzzCounter, equals(2));
       });
 
       test('preserves timestamp and gpsTimeUtc excluded from equality', () {
@@ -150,6 +156,22 @@ void main() {
         expect(restored.distanceMeters, equals(480.0));
       });
 
+      test('reads a legacy payload without the depth keys', () {
+        // Additív payload-szerződés (ADR 0015): egy régebbi telefon-verzió
+        // payloadja nem hordozza a mélység-kulcsokat, és ettől nem dobhat.
+        // Arrange
+        final json = <String, dynamic>{
+          'timestamp': buildTime.millisecondsSinceEpoch,
+        };
+
+        // Act
+        final restored = WatchPayload.fromJson(json);
+
+        // Assert
+        expect(restored.depthAlertMeters, isNull);
+        expect(restored.depthBuzzCounter, equals(0));
+      });
+
       test('defaults missing isGpsTimeTrusted and criticalWarnings', () {
         // Arrange
         final json = <String, dynamic>{
@@ -237,6 +259,21 @@ void main() {
         final base = sample();
         final offCourse = sample(vmgSteerCorrection: 3.5);
         expect(base, isNot(equals(offCourse)));
+      });
+
+      test('differs when depthAlertMeters changes', () {
+        final base = sample();
+        final shallower = sample(depthAlertMeters: 2.1);
+        expect(base, isNot(equals(shallower)));
+      });
+
+      test('differs when depthBuzzCounter changes', () {
+        // Ez a rezgés EGYETLEN triggere: ha a számláló nem tenné
+        // egyenlőtlenné a payloadot, a change-detect elnyelné a riasztást,
+        // és az óra sosem rezegne (ADR 0031 D4).
+        final base = sample();
+        final buzzed = sample(depthBuzzCounter: 3);
+        expect(base, isNot(equals(buzzed)));
       });
     });
   });

@@ -25,6 +25,8 @@ WatchPayload buildWatchPayload({
   double? vmgKnots,
   double? targetVmgKnots,
   double? vmgSteerCorrection,
+  double? depthAlertMeters,
+  int depthBuzzCounter = 0,
 }) {
   final criticalWarnings = <String>[
     for (final warning in activeWarnings)
@@ -57,6 +59,8 @@ WatchPayload buildWatchPayload({
               ?.metersPerSecond,
       targetSpeedKnots: targetSpeedKnots,
     ),
+    depthAlertMeters: depthAlertMeters,
+    depthBuzzCounter: depthBuzzCounter,
     criticalWarnings: criticalWarnings,
   );
 }
