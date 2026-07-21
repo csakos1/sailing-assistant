@@ -1118,6 +1118,13 @@ fallback a `DPT` (ADR 0031 Addendum 1): a rögzített Vulcan-dumpon a
 `DPT` 19 326 mintából 100-ban hamis 2,0 m-t ír, max. 26 mp-es
 sorozatokban, míg a `DBT` ugyanezeken a pillanatokon folytonos marad.
 
+A két mondat azonban **egyszerre** érkezik (mindkettő ~1 Hz, a
+`DPT` a `DBT` után), ezért a prioritás nem mondat-, hanem
+stream-szinten dől el: a `NmeaToDomainMapper` elnyomja a `DPT`-ből
+képzett `DepthEvent`-et, amíg 5 másodpercen belül érkezett érvényes
+`DBT` (ADR 0031 Addendum 2). Ha a `DBT` elnémul, az ablak lejárta
+után a `DPT` magától átveszi.
+
 Az `RMC` dátum+idő mezőit UTC instanttá fűzzük és a
 `BoatState.instrumentTimeUtc`-be tesszük (a hajó-óra megjelenítéshez,
 §10.4). Forrás-agnoszticizmus: ha a Vulcan később `ZDA`-t is ad (dátum +
