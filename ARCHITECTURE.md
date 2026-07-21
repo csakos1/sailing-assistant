@@ -1113,7 +1113,10 @@ backbone adatait fordítja standard 0183 mondatokká. Élő dump
 Egyéb opcionálisan loggolt mondatok (post-race analízishez): `MTW`
 (víz-hőfok), `VLW` (distance log), `XDR` (heel, trim, rudder, air temp).
 A `DBT`/`DPT` mélység v1-ben már **élő** adat (a fenti tábla; sekély-víz
-warning, ADR 0031), nem csak post-race.
+warning, ADR 0031), nem csak post-race. Elsődleges forrás a `DBT`,
+fallback a `DPT` (ADR 0031 Addendum 1): a rögzített Vulcan-dumpon a
+`DPT` 19 326 mintából 100-ban hamis 2,0 m-t ír, max. 26 mp-es
+sorozatokban, míg a `DBT` ugyanezeken a pillanatokon folytonos marad.
 
 Az `RMC` dátum+idő mezőit UTC instanttá fűzzük és a
 `BoatState.instrumentTimeUtc`-be tesszük (a hajó-óra megjelenítéshez,
@@ -3376,7 +3379,7 @@ nélkül):
   `EvaluateDepthAlert` állapotgép (2,5 m küszöb, 3,0 m hiszterézis, 0,1 m-es
   ratchet, csak csökkenéskor) dönti el; nem-null `depthAlertMeters`
   esetén ad `DepthWarning(depthMeters)`-t (az első payload-hordozó
-  warning). A bemenet a `BoatState.depth` (DPT/DBT, §6.1); race-state-
+  warning). A bemenet a `BoatState.depth` (DBT/DPT, §6.1); race-state-
   független (a zátonyveszély nem függ a verseny állapotától). HU ARB:
   `warning_depth_shallow`. ADR 0031.
 - `PolarMissing` (info) — a polár betöltése sikertelen (hiányzó, üres
