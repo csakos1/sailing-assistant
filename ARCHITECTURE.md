@@ -3381,21 +3381,21 @@ nélkül):
   A ZG100 iránytű heading-függő hibáját jelzi: ilyenkor a heading-alapú
   kijelzések és a `MWD` gyanúsak, **de a derivált TWD (§6.5) és a
   predikció ettől függetlenül helyes**. A bemenetet a `BoatState` adja
-  (heading, COG, SOG), nincs új seam. HU ARB: `warning_suspect_heading`.
+  (heading, COG, SOG), nincs új seam. HU ARB: `warningSuspectHeading`.
 - `DepthWarning` (critical) — sekély víz: a `RaceEngine` reducerében futó
   `EvaluateDepthAlert` állapotgép (2,5 m küszöb, 3,0 m hiszterézis, 0,1 m-es
   ratchet, csak csökkenéskor) dönti el; nem-null `depthAlertMeters`
   esetén ad `DepthWarning(depthMeters)`-t (az első payload-hordozó
   warning). A bemenet a `BoatState.depth` (DBT/DPT, §6.1); race-state-
   független (a zátonyveszély nem függ a verseny állapotától). HU ARB:
-  `warning_depth_shallow`. ADR 0031.
+  `warningDepthShallow`. ADR 0031.
 - `PolarMissing` (info) — a polár betöltése sikertelen (hiányzó, üres
   vagy hibás asset; a `polarProvider` `Err`-ága). Ilyenkor a
   cél-sebesség % nem számítható, a watch SpeedView-cellája `—`. A no-go
   (van polár, de a cella `null`) NEM vált ki warningot — az normál
   állapot. Info, ezért csak a telefon `WarningBanner`-jén jelenik meg; a
   payload (ADR 0015) csak a critical warningokat viszi az órára. HU ARB:
-  `warning_polar_missing`. ADR 0028 C6.
+  `warningPolarMissing`. ADR 0028 C6.
 
 Elnyomási szabály (ADR 0014 D5): ha `connectionStatus is! Connected`, az
 `EvaluateWarnings` CSAK a `GatewayDisconnected`-et adja vissza, elnyomva a
