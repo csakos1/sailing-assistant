@@ -53,6 +53,7 @@ class RaceEngine {
   static const _computeVmg = ComputeVmg();
   static const _lookupTargetVmg = LookupTargetVmg();
   static const _computeVmgSteer = ComputeVmgSteerCorrection();
+  static const _evaluateDepthAlert = EvaluateDepthAlert();
 
   // m/s → csomó: a LookupTargetSpeed kn-ben várja a TWS-t, a Speed m/s-ben.
   static const _knotsPerMps = 1.943844;
@@ -70,6 +71,9 @@ class RaceEngine {
   // A legutóbbi TWD-derivációs minőség (ADR 0020 D7): a snapshotba kerül, hogy
   // a UI jelezhesse, mennyire friss a köv-bója-TWA-t tápláló szélirány.
   TwdQuality _lastTwdQuality = TwdQuality.unavailable;
+  // A sekély-víz epizód állapota (ADR 0031 D4). Az engine tartja, nem a
+  // task handler: stateful, és kijelző-off mellett is 1 Hz-en kell lépnie.
+  DepthAlertState _depthAlert = const DepthAlertState();
   int _eventCount = 0;
   Race? _race;
   // A polár (a host tölti, az init-üzenet hozza, ADR 0028 Add. 3); null,
@@ -243,6 +247,17 @@ class RaceEngine {
       trend: trend,
       now: tick,
     );
+    // A kapcsolat-állapotot egyszer olvassuk ki: a tick-en belül a
+    // riasztás-elnyomás és a snapshot ugyanazt az értéket lássa.
+    final connectionStatus = _nmeaStream.currentStatus;
+    // A sekély-víz állapotgép (ADR 0031 D4). A mélységet lokálisba emeljük,
+    // hogy a snapshotba írt érték pontosan az legyen, amit a gép látott.
+    final depth = _boatState.depth;
+    _depthAlert = _evaluateDepthAlert(
+      previous: _depthAlert,
+      depth: depth,
+      isConnected: connectionStatus is Connected,
+    );
     final targetSpeedKnots = _targetSpeedKnots();
     final vmgKnots = _vmgKnots();
     final targetVmg = _targetVmg();
@@ -253,7 +268,7 @@ class RaceEngine {
     final snapshot = RaceSnapshot(
       eventCount: _eventCount,
       boatState: _boatState,
-      connectionStatus: _nmeaStream.currentStatus,
+      connectionStatus: connectionStatus,
       raceStatus: steppedRace.status,
       tickTime: tick,
       wind: _wind,
@@ -264,6 +279,8 @@ class RaceEngine {
       vmgKnots: vmgKnots,
       targetVmgKnots: targetVmgKnots,
       vmgSteerCorrection: vmgSteerCorrection,
+      depthAlertMeters: _depthAlert.isActive ? depth?.meters : null,
+      depthBuzzCounter: _depthAlert.buzzCounter,
     );
     _snapshots.add(snapshot);
     // unawaited + a logger internál try/catch: egy DB-hiba sem

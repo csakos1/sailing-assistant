@@ -47,6 +47,89 @@ void main() {
     await tick.close();
   });
 
+  group('sekély-víz riasztás (ADR 0031 D4)', () {
+    setUp(() {
+      // Az állapotgép isConnected-je ebből jön; disconnecten resetel.
+      source.status = const Connected();
+    });
+
+    DateTime tickAt(int seconds) => tickTime.add(Duration(seconds: seconds));
+
+    // A mélység előbb a BoatState-be foldolódik, az állapotgép csak a
+    // rákövetkező tickben lép, ezért esemény és tick párban megy.
+    Future<void> feedDepth(double meters, DateTime at) async {
+      source.emitEvent(DepthEvent(Depth(meters: meters), eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('mélység nélkül nincs riasztás', () async {
+      // ARRANGE
+      await engine.start(race);
+
+      // ACT
+      tick.add(tickAt(0));
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.depthAlertMeters, isNull);
+      expect(snapshots.single.depthBuzzCounter, 0);
+    });
+
+    test('a küszöb felett nincs riasztás', () async {
+      await engine.start(race);
+
+      await feedDepth(2.6, tickAt(0));
+
+      expect(snapshots.last.depthAlertMeters, isNull);
+      expect(snapshots.last.depthBuzzCounter, 0);
+    });
+
+    test('belépés, új mélypont, ratchet, majd feloldás', () async {
+      // ARRANGE
+      await engine.start(race);
+
+      // ACT & ASSERT: belépés a 2,5 m-es küszöb alatt.
+      await feedDepth(2.4, tickAt(0));
+      expect(snapshots.last.depthAlertMeters, closeTo(2.4, 1e-9));
+      expect(snapshots.last.depthBuzzCounter, 1);
+
+      // Új mélypont (sekélyebb vödör): új rezgés.
+      await feedDepth(2.2, tickAt(1));
+      expect(snapshots.last.depthAlertMeters, closeTo(2.2, 1e-9));
+      expect(snapshots.last.depthBuzzCounter, 2);
+
+      // Kicsit mélyebb, de még a küszöb alatt: NINCS új rezgés
+      // (ratchet). A riasztás aktív marad, a számláló nem lép.
+      await feedDepth(2.3, tickAt(2));
+      expect(snapshots.last.depthAlertMeters, closeTo(2.3, 1e-9));
+      expect(snapshots.last.depthBuzzCounter, 2);
+
+      // 3,0 m felett: az epizód lezárul, a számláló megmarad.
+      await feedDepth(3.1, tickAt(3));
+      expect(snapshots.last.depthAlertMeters, isNull);
+      expect(snapshots.last.depthBuzzCounter, 2);
+    });
+
+    test('disconnect alatt reset, de a számláló megmarad', () async {
+      // ARRANGE: aktív epizód.
+      await engine.start(race);
+      await feedDepth(2.4, tickAt(0));
+      expect(snapshots.last.depthBuzzCounter, 1);
+
+      // ACT: megszakad a kapcsolat (élő feed nélkül a mélység stale).
+      source.status = const Disconnected();
+      tick.add(tickAt(1));
+      await pumpEventQueue();
+
+      // ASSERT: nincs aktív riasztás, de a számláló nem esik vissza
+      // (különben az óra újra rezegne visszacsatlakozáskor).
+      expect(snapshots.last.depthAlertMeters, isNull);
+      expect(snapshots.last.depthBuzzCounter, 1);
+    });
+  });
+
   group('polár cél-sebesség (ADR 0028 Add. 3)', () {
     // Egyszerű polár: a TWA=30° sor minden TWS-oszlopban 5.0 kn, így a
     // konverzió pontossága nem számít; a TWA=0° sor no-go (üres).
@@ -545,6 +628,9 @@ class _FakeNmeaSource implements NmeaStream, RawNmeaLineSource {
 
   bool connectCalled = false;
   bool disconnectCalled = false;
+  // A tesztek állíthatják: az engine ebből vezeti le az isConnected-et
+  // (pl. a sekély-víz állapotgéphez, ADR 0031 D4).
+  ConnectionStatus status = const Disconnected();
 
   void emitEvent(DomainEvent event) => _events.add(event);
   void emitRaw(String line) => _raw.add(line);
@@ -565,7 +651,7 @@ class _FakeNmeaSource implements NmeaStream, RawNmeaLineSource {
   Stream<ConnectionStatus> get statusChanges => _status.stream;
 
   @override
-  ConnectionStatus get currentStatus => const Disconnected();
+  ConnectionStatus get currentStatus => status;
 
   @override
   Future<void> connect() async => connectCalled = true;

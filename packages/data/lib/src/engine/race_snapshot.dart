@@ -31,6 +31,8 @@ class RaceSnapshot {
     this.vmgKnots,
     this.targetVmgKnots,
     this.vmgSteerCorrection,
+    this.depthAlertMeters,
+    this.depthBuzzCounter = 0,
   });
 
   /// Visszaépít egy pillanatképet a [json] `Map<String, dynamic>`-ból. A
@@ -66,6 +68,8 @@ class RaceSnapshot {
         json['vmgSteerCorrection'] as num?,
         _angleFromJson,
       ),
+      depthAlertMeters: (json['depthAlertMeters'] as num?)?.toDouble(),
+      depthBuzzCounter: (json['depthBuzzCounter'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -121,6 +125,18 @@ class RaceSnapshot {
   /// balra (port); a watch és a telefon-grid jeleníti meg.
   final Angle? vmgSteerCorrection;
 
+  /// A sekély-víz riasztás élő mélysége (m), amíg az epizód aktív;
+  /// egyébként `null` (ADR 0031 D4). Ugyanabból a mérésből származik,
+  /// amit az állapotgép is látott, tehát a jelzett mélység és az
+  /// epizód-állapot mindig egy tick-ből való.
+  final double? depthAlertMeters;
+
+  /// Monoton növekvő számláló: hányszor kellett riasztani (belépés +
+  /// minden új mélypont, ADR 0031 D3). Az óra a **felfutó élén** rezeg,
+  /// nem az `isActive`-ra — így egy elnyúló epizódon belül is jelezni tud
+  /// az újabb sekelyedést, ismétlő rezgés nélkül (ADR 0023 mintája).
+  final int depthBuzzCounter;
+
   /// A tick app-óra ideje.
   final DateTime tickTime;
 
@@ -143,6 +159,8 @@ class RaceSnapshot {
       'vmgKnots': vmgKnots,
       'targetVmgKnots': targetVmgKnots,
       'vmgSteerCorrection': _mapOrNull(vmgSteerCorrection, _angleToJson),
+      'depthAlertMeters': depthAlertMeters,
+      'depthBuzzCounter': depthBuzzCounter,
     };
   }
 }
@@ -196,6 +214,10 @@ double _speedToJson(Speed s) => s.metersPerSecond;
 
 Speed _speedFromJson(num n) => Speed(metersPerSecond: n.toDouble());
 
+double _depthToJson(Depth d) => d.meters;
+
+Depth _depthFromJson(num n) => Depth(meters: n.toDouble());
+
 double _distanceToJson(Distance d) => d.meters;
 
 Distance _distanceFromJson(num n) => Distance(meters: n.toDouble());
@@ -222,6 +244,7 @@ Map<String, dynamic> _boatStateToJson(BoatState b) => <String, dynamic>{
   'courseOverGround': _mapOrNull(b.courseOverGround, _bearingToJson),
   'speedOverGround': _mapOrNull(b.speedOverGround, _speedToJson),
   'speedThroughWater': _mapOrNull(b.speedThroughWater, _speedToJson),
+  'depth': _mapOrNull(b.depth, _depthToJson),
   'instrumentTimeUtc': b.instrumentTimeUtc?.millisecondsSinceEpoch,
 };
 
@@ -242,6 +265,7 @@ BoatState _boatStateFromJson(Map<String, dynamic> m) => BoatState(
   ),
   speedOverGround: _mapOrNull(m['speedOverGround'] as num?, _speedFromJson),
   speedThroughWater: _mapOrNull(m['speedThroughWater'] as num?, _speedFromJson),
+  depth: _mapOrNull(m['depth'] as num?, _depthFromJson),
   instrumentTimeUtc: _dateTimeOrNull(m['instrumentTimeUtc'] as num?),
 );
 

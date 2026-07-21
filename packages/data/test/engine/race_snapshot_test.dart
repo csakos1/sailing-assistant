@@ -37,6 +37,7 @@ void main() {
         ),
         speedOverGround: const Speed(metersPerSecond: 3.2),
         speedThroughWater: const Speed(metersPerSecond: 3),
+        depth: const Depth(meters: 2.3),
         instrumentTimeUtc: instrumentTime,
       ),
       connectionStatus: const Connected(),
@@ -83,6 +84,8 @@ void main() {
       vmgKnots: 4.5,
       targetVmgKnots: 5.1,
       vmgSteerCorrection: const Angle(degrees: -2),
+      depthAlertMeters: 2.3,
+      depthBuzzCounter: 3,
     );
 
     test('teljes snapshot round-trip — minden mező megőrződik', () {
@@ -106,6 +109,8 @@ void main() {
       expect(restored.vmgKnots, original.vmgKnots);
       expect(restored.targetVmgKnots, original.targetVmgKnots);
       expect(restored.vmgSteerCorrection, original.vmgSteerCorrection);
+      expect(restored.depthAlertMeters, original.depthAlertMeters);
+      expect(restored.depthBuzzCounter, original.depthBuzzCounter);
     });
 
     test('a twdQuality default + hiányzó kulcs unavailable-re dekódol', () {
@@ -125,6 +130,24 @@ void main() {
       // ASSERT — a default és a defenzív dekóder is unavailable.
       expect(minimal.twdQuality, TwdQuality.unavailable);
       expect(restored.twdQuality, TwdQuality.unavailable);
+    });
+
+    test('a mélység-kulcsok nélküli régi payload nem hasal el', () {
+      // ARRANGE: a snapshot_logs korábbi sorai pontosan így néznek ki,
+      // a három mélység-kulcs hiányzik. Ezért nem kellett Drift
+      // schemaVersion-bump: a JSON a snapshot_json SZÖVEGBE megy.
+      final json = fullSnapshot().toJson()
+        ..remove('depthAlertMeters')
+        ..remove('depthBuzzCounter');
+      (json['boatState'] as Map<String, dynamic>).remove('depth');
+
+      // ACT
+      final restored = RaceSnapshot.fromJson(json);
+
+      // ASSERT: null / 0 defaultra esnek, nem dobnak.
+      expect(restored.depthAlertMeters, isNull);
+      expect(restored.depthBuzzCounter, 0);
+      expect(restored.boatState.depth, isNull);
     });
 
     test('valódi jsonEncode/jsonDecode körön át is megőrződik (natív híd)', () {
