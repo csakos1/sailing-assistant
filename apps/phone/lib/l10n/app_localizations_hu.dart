@@ -247,6 +247,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String get warningPolarMissing => 'Nincs polár-adat';
 
   @override
+  String warningDepthShallow(String depth) {
+    return 'Sekély víz: $depth m';
+  }
+
+  @override
   String get setupPickFromLibrary => 'Korábbi bóják';
 
   @override

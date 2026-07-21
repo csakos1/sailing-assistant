@@ -538,6 +538,12 @@ abstract class AppLocalizations {
   /// **'Nincs polár-adat'**
   String get warningPolarMissing;
 
+  /// Warning (critical): a mért mélység a riasztási küszöb alatt van; a mélység egy tizedesjeggyel formázva érkezik (ADR 0031).
+  ///
+  /// In hu, this message translates to:
+  /// **'Sekély víz: {depth} m'**
+  String warningDepthShallow(String depth);
+
   /// Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból.
   ///
   /// In hu, this message translates to:
