@@ -3433,8 +3433,10 @@ a korábban v2-re tervezett warningot.
   bezárás gombbal, ami a lapozást is elnyeli; a `depthBuzzCounter`
   **változó** élén 1,5 s erős natív rezgés. A `HapticFeedback` nem tud
   hosszt/amplitúdót, ezért `DepthAlertVibrator` seam kell — de NEM
-  MethodChannel: interface + adapter + provider a `RaceOngoingActivity`
-  mintájára, v1-ben a `vibration` csomaggal mögötte, cserélhetően. A
+  MethodChannel: `typedef` függvény-varrat + provider (a
+  `rotaryScrollSource` / `roundMarkSender` mintájára; egytagú varratnál az
+  abstract class csak ceremónia), v1-ben a `vibration` csomaggal mögötte,
+  cserélhetően. A
   csomag-út azért nyer, mert a natív Kotlin az egyetlen kódfelület nulla
   teszt-lefedettséggel, amit csak vízen lehet verifikálni; a seam mögött a
   MethodChannel bármikor visszahozható.
