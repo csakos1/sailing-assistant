@@ -191,3 +191,106 @@ ADR 0014 (warning-rendszer + elnyomás), 0015 (`WatchPayload` primitív transpor
 additív bővítés), 0016/0017 (engine + `RaceSnapshot` domain-hű + A14
 warning-pipeline), 0019 (Ongoing Activity / ambient), 0020 (carry-forward),
 0023 (felfutó-él haptic precedens).
+
+## Addendum 1 — Mélység-forrás: DBT-elsőbbség (a D2 prioritásának felülírása)
+
+**Státusz:** elfogadva, 2026-07-21.
+
+**Kapcsolódik:** ADR 0031 D2 (az eredeti prioritási sorrend — ezt írja felül),
+D3 (küszöbök és ratchet — **VÁLTOZATLAN**), D9 (replay).
+
+### Kontextus
+
+A D2 a `DPT`-t tette elsődlegessé és a `DBT`-t fallbackké, azzal az
+indoklással, hogy a `DPT` a gazdagabb mondat (offset-mezővel). Ezt a
+prioritást a kód írása ELŐTT a valós Vulcan-dumpon ellenőriztük, és a
+mérés megcáfolta.
+
+Mérés: `race-data/pulls/tramontana-kupa-2026-06-20.nmea.log`, 653 434 sor,
+~5,4 óra folyamatos verseny-adat, ~1 Hz mélység-frekvencia. A két mondat
+ugyanabból a DST P617V jeladóból, ugyanazon N2K PGN Vulcan-fordításából
+származik, tehát elvben azonos értéket kellene adniuk.
+
+| | minta | ugrás > 0,5 m szomszédos minták közt |
+|---|---|---|
+| `DBT` (méter-mező, field 2) | 19 327 | **0** |
+| `DPT` (mélység-mező, field 0) | 19 326 | **58** |
+
+A `DBT` az egész verseny alatt egyetlen ugrás nélkül, folytonosan mozog a
+2,7–3,9 m tartományban. A `DPT` ugyanezen pillanatokban 100 mintában
+`2,0 m`-t ír, miközben a `DBT` 2,8–2,9 m-t; a `DPT` értékkészletéből
+ugyanakkor a 2,1–2,6 m tartomány teljesen HIÁNYZIK. Hajóval nem lehet
+2,9 m-ről 2,0 m-re jutni 2,5 m érintése nélkül — ez tehát nem mérés,
+hanem diszkrét hiba (hamis visszhang vagy sentinel-érték a
+N2K→0183 fordításban).
+
+A 100 hibás minta 17 összefüggő sorozatban áll össze; a leghosszabb
+**26 minta**, azaz 26 másodperc egyfolytában.
+
+A `DPT` offset-mezője mind a 19 326 sorban `0.0`, tehát a `DPT`
+információtöbblete a gyakorlatban nulla — az az egyetlen érv, ami a D2-ben
+az elsőbbségét indokolta, nem áll fenn ezen a hajón.
+
+### A1-D1 — `DBT` elsődleges, `DPT` fallback
+
+A D2 prioritási sorrendje megfordul. A `DBT` méter-mezője (field 2, `M`
+egységjelölővel) a preferált forrás; ha hiányzik, csonka, nem-numerikus,
+vagy a `Depth` validáció elbukik, akkor a `DPT` mélység-mezője (field 0).
+
+Ez az ADR eredeti SZÁNDÉKÁVAL egyező, nem ellene megy: a D2 a „nyers,
+**jeladó-alatti** mélység, offset nélkül" elvet mondta ki, és a `DBT`
+definíció szerint pontosan ez — Depth Below Transducer, offset-mező nélkül.
+A `DPT`-nél az offset kihagyása egy tudatos egyszerűsítés volt; a `DBT`-nél
+nincs is mit kihagyni.
+
+Mindkét dekóder megmarad (`DbtDepthDecoder`, `DptDepthDecoder`), csak a
+`SentenceDecoder` routing utáni prioritás fordul.
+
+### A1-D2 — A `DPT` fallbackként megmarad
+
+Kézenfekvő lenne a bizonyítottan zajos forrást teljesen kidobni, de nem
+tesszük. A `DPT` tüskéi **lefelé** mutatnak (a valósnál sekélyebbet ír),
+tehát a hibája fail-safe irányú: hamis riasztást okoz, nem elmaradt
+riasztást. Ha a `DBT` valaha elnémul (műszer-csere, konfiguráció-változás,
+más hajó), a zajos mélység még mindig lényegesen jobb, mint a semmilyen.
+
+A 19 326 mintából 100 hibás = 99,5% helyes; fallbackként ez elfogadható.
+
+### A1-D3 — Debounce / plauzibilitás-kapu: ELVETVE
+
+Felmerült egy „N egymást követő minta kell a küszöb alatt" tüske-elnyomás.
+**Elvetve:** a leghosszabb hibás sorozat 26 minta, tehát csak N ≥ 27
+nyomná el — 27 másodperc késleltetés egy zátony-riasztásnál használhatatlan
+(6 csomón ~83 m út). A hibás forrás lecserélése a helyes megoldás, nem a
+tüskéinek utólagos vadászata.
+
+Következmény: a **D3 érintetlen** — `triggerDepth = 2.5`, `clearDepth = 3.0`,
+`stepMeters = 0.1`, a ratchet-állapotgép változatlan. Az `EvaluateDepthAlert`
+use case (a szelet-bontás 2. pontjában már leszállítva) egyetlen sorát sem
+kell módosítani.
+
+### A1-D4 — Az offset továbbra sem számít bele
+
+A D2 vonatkozó része érvényben marad. A `DBT`-nél fogalmilag nincs offset;
+a `DPT` fallback-ágon az offset-mezőt (field 1) továbbra sem olvassuk. A
+mérés szerint ennek a v1-ben tétje sincs (mind `0.0`).
+
+### A1-D5 — A replay-teszt szintetikus trigger-sorokat használ
+
+A D9 szerint a teljes lánc replay-en determinisztikusan tesztelhető. A
+mért log azonban **soha nem megy 2,7 m alá**, tehát valós sorokból nem
+állítható elő riasztás-esemény. A replay-teszt ezért a valós `DBT`/`DPT`
+sorok mellé kézzel írt, checksum-helyes fixture-sorokat tesz, amik a
+belépést, az új mélypontot és a feloldást is kifeszítik.
+
+### Következmények
+
+- A prioritás-csere a `data` réteg dekóder-varratára korlátozódik; a domain
+  (`Depth`, `DepthAlertState`, `EvaluateDepthAlert`) és a küszöbök
+  változatlanok.
+- A telemetria (`.nmea` nyers log) mindkét mondatot rögzíti, tehát a
+  döntés post-race újraértékelhető, ha a jeladó-csere után a `DBT`
+  viselkedése változna.
+- Ha egy jövőbeli hajón/műszeren a `DBT` mutat tüskéket, a kérdést valós
+  adattal újra kell nyitni — ez az addendum egy KONKRÉT mérésre épül, nem
+  a mondattípusok általános megbízhatóságára.
