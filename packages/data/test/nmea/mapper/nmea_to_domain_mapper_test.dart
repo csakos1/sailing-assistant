@@ -215,4 +215,65 @@ void main() {
       expect(events, equals([WindEvent(expected)]));
     });
   });
+
+  group('NmeaToDomainMapper mélység forrás-gate', () {
+    const dbtDepth = Depth(meters: 3);
+    // A DPT bizonyítottan hibás diszkrét értéke a mért dumpból: a 2,5 m-es
+    // riasztási küszöb ALATT van, ezért nem szabad nyernie.
+    const dptDepth = Depth(meters: 2);
+
+    const dbtSentence = DecodedDepth(depth: dbtDepth, source: DepthSource.dbt);
+    const dptSentence = DecodedDepth(depth: dptDepth, source: DepthSource.dpt);
+
+    test('DecodedDepth (DBT) → DepthEvent', () {
+      // ARRANGE
+      final mapper = NmeaToDomainMapper();
+
+      // ACT
+      final events = mapper.map(dbtSentence, now);
+
+      // ASSERT
+      expect(events, equals([DepthEvent(dbtDepth, now)]));
+    });
+
+    test('a DBT után érkező DPT elnyomva (interleaving)', () {
+      // ARRANGE: a valós stream sorrendje — a DPT közvetlenül a DBT után,
+      // ugyanabban a másodpercben.
+      final mapper = NmeaToDomainMapper()..map(dbtSentence, now);
+
+      // ACT
+      final events = mapper.map(dptSentence, now);
+
+      // ASSERT: gate nélkül ez írná felül a BoatState.depth-et (last-wins).
+      expect(events, isEmpty);
+    });
+
+    test('DPT egyedüli forrásként azonnal emittál', () {
+      final mapper = NmeaToDomainMapper();
+
+      final events = mapper.map(dptSentence, now);
+
+      expect(events, equals([DepthEvent(dptDepth, now)]));
+    });
+
+    test('a DBT elnémulása után a DPT átveszi', () {
+      final mapper = NmeaToDomainMapper()..map(dbtSentence, now);
+      final afterWindow = now.add(const Duration(seconds: 5));
+
+      final events = mapper.map(dptSentence, afterWindow);
+
+      expect(events, equals([DepthEvent(dptDepth, afterWindow)]));
+    });
+
+    test('a DBT visszatérése újra elnyomja a DPT-t', () {
+      final afterWindow = now.add(const Duration(seconds: 5));
+      final mapper = NmeaToDomainMapper()
+        ..map(dbtSentence, now)
+        ..map(dbtSentence, afterWindow);
+
+      final events = mapper.map(dptSentence, afterWindow);
+
+      expect(events, isEmpty);
+    });
+  });
 }

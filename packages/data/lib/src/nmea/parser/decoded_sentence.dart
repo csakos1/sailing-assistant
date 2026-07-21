@@ -7,6 +7,14 @@ import 'package:meta/meta.dart';
 /// `true_` = a Vulcan által számolt valódi szél (MWV `T`).
 enum WindReference { apparent, true_ }
 
+/// A mélység-mondat forrása (`DBT` vagy `DPT`).
+///
+/// A Vulcan ugyanannak a PGN 128267-nek **két** 0183-kiírását szórja, ~1 Hz-en
+/// mindkettőt. A `dbt` a mért elsődleges forrás, a `dpt` a fallback (ADR 0031
+/// Addendum 1); a mapper (6.4) ez alapján nyomja el a fölösleges duplikátumot
+/// (Addendum 2).
+enum DepthSource { dbt, dpt }
+
 /// Egy tipizált, dekódolt NMEA 0183 mondat.
 ///
 /// A `SentenceDecoder` (ARCHITECTURE.md 6.3) állítja elő a nyers
@@ -137,4 +145,22 @@ final class DecodedSpeed extends DecodedSentence {
 
   /// A hajó sebessége a vízhez képest (STW), m/s.
   final Speed speedThroughWater;
+}
+
+/// A jeladó alatti mélység (`DBT` / `DPT`) — sekély-víz warning (ADR 0031).
+///
+/// Mindkét mondattípus ugyanazt a PGN 128267-et írja ki, ezért a leaf a
+/// [source]-szal jelzi, melyikből származik: a mapper (6.4) ez alapján
+/// érvényesíti a `DBT`-elsőbbséget a stream szintjén (ADR 0031 Addendum 2).
+/// A [depth] már méterben van — mindkét mondat ad méter-mezőt, egység-váltás
+/// nem kell.
+final class DecodedDepth extends DecodedSentence {
+  /// Dekódolt mélység-mondatot csomagol.
+  const DecodedDepth({required this.depth, required this.source});
+
+  /// A jeladó alatti mélység méterben.
+  final Depth depth;
+
+  /// A mondattípus, amelyikből a [depth] származik.
+  final DepthSource source;
 }

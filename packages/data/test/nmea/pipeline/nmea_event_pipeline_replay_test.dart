@@ -23,6 +23,8 @@ const _streamLines = <String>[
   r'$GPGLL,4655.5324,N,01802.3321,E,083645,A,A*41', // Position
   r'$IIHDG,82.8,,,5.7,E*12', // Heading
   r'$SDVHW,88.5,T,82.8,M,4.6,N,8.6,K*49', // Speed
+  r'$SDDBT,9.8,f,3.0,M,1.6,F*03', // DBT -> DepthEvent (elsődleges)
+  r'$SDDPT,3.0,0.0,*78', // DPT közvetlenül utána -> forrás-gate -> []
   r'$GPRMC,083645,A,4655.5323,N,01802.3322,E,4.5,150.2,240526,5.7,E,A*00', // rossz csum
   r'$GPRMC,083645,A', // csonka (nincs *) → Err-skip
   '', // üres sor → skip
@@ -42,7 +44,7 @@ void main() {
     test('maps the stream to the expected ordered event sequence', () async {
       final events = await replay();
 
-      // A típus-szekvencia egyben bizonyítja: a 8 típus route-olását, az RMC
+      // A típus-szekvencia egyben bizonyítja: a 10 típus route-olását, az RMC
       // fan-out sorrendjét, az apparent-gate-et (3. és 4. sor nem emittál), és
       // hogy a skip-ek (nem támogatott / rossz csum / csonka / üres) nem törik
       // meg a streamet.
@@ -61,6 +63,7 @@ void main() {
           HeadingEvent,
           HeadingEvent,
           SpeedEvent,
+          DepthEvent,
         ]),
       );
     });
@@ -92,6 +95,18 @@ void main() {
       expect(firstWind.hasTrueWind, isTrue);
       expect(firstWind.trueAngleWater, isNotNull);
       expect(firstWind.trueDirectionGround, isNotNull);
+    });
+
+    test('emits one depth event per DBT and DPT pair', () async {
+      final events = await replay();
+
+      // A DBT és a DPT ugyanazt a PGN 128267-et szórja; a mapper
+      // forrás-gate-je (ADR 0031 Addendum 2) elnyomja a DPT-t, amíg friss
+      // DBT van — különben a last-wins reducer a rosszabb forrást tartaná.
+      final depthEvents = events.whereType<DepthEvent>().toList();
+
+      expect(depthEvents, hasLength(1));
+      expect(depthEvents.single.depth.meters, closeTo(3, 0.001));
     });
   });
 }
