@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/rotary/rotary_scroll_provider.dart';
 import 'package:watch/screens/confidence_haptic_edge.dart';
+import 'package:watch/screens/depth_alert_edge.dart';
+import 'package:watch/screens/depth_alert_overlay.dart';
 import 'package:watch/screens/next_mark_view.dart';
 import 'package:watch/screens/round_mark_view.dart';
 import 'package:watch/screens/speed_view.dart';
 import 'package:watch/theme/watch_colors.dart';
+import 'package:watch/watch_sync/depth_alert_vibrator.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
 import 'package:watch/watch_sync/race_ongoing_activity.dart';
 import 'package:watch/watch_sync/round_mark_sender.dart';
@@ -27,6 +30,11 @@ import 'package:watch/widgets/watch_trust.dart';
 /// rajzolja: a fizikai kerek lap JOBB peremére, a teljes képernyőt kitöltő
 /// háttér-rétegben — így független a fejléc/lap-pötty insetektől, és minden
 /// óra-méreten a peremen ül. Csak a B (köv. bója) lapon látszik.
+///
+/// A sekély-víz riasztás (ADR 0031) mindezek fölé kerül: teljes-képernyős
+/// overlay, ami a lapozást is elnyeli, plusz 1,5 s natív rezgés a
+/// `depthBuzzCounter` változó élén. A rezgés a `DepthAlertVibrator`
+/// varraton megy, mert a `HapticFeedback` nem tud hosszt/amplitúdót.
 class RaceShell extends ConsumerStatefulWidget {
   /// Létrehozza a házat a megjelenítendő [payload]-dal.
   const RaceShell({
@@ -57,7 +65,12 @@ class _RaceShellState extends ConsumerState<RaceShell> {
   late final PageController _controller;
   late final StreamSubscription<int> _rotarySteps;
   late final RaceOngoingActivity _ongoing;
+  late final DepthAlertVibrator _vibrator;
   int _page = _markPage;
+
+  // A sekély-víz overlay bezárásakor rögzített számláló-érték; null, ha még
+  // egyetlen riasztást sem zártak be (lásd `depth_alert_edge.dart`).
+  int? _dismissedAtCounter;
 
   @override
   void initState() {
@@ -76,6 +89,9 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     // itt fogjuk el, mert a dispose-ban a ref már nem biztonságos.
     _ongoing = ref.read(raceOngoingActivityProvider);
     unawaited(_ongoing.start());
+    // A rezgés-varratot is itt fogjuk el: a didUpdateWidget forró úton fut,
+    // ott ne kelljen provider-t olvasni.
+    _vibrator = ref.read(depthAlertVibratorProvider);
   }
 
   @override
@@ -91,6 +107,15 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     )) {
       unawaited(HapticFeedback.heavyImpact());
     }
+    // Sekély-víz riasztás (ADR 0031 D4): a depthBuzzCounter VÁLTOZÓ élén
+    // 1,5 s erős natív rezgés. Lapfüggetlen és ambientben is szól.
+    if (isRisingDepthBuzz(
+      previousCounter: oldWidget.payload.depthBuzzCounter,
+      currentCounter: widget.payload.depthBuzzCounter,
+      currentDepthMeters: widget.payload.depthAlertMeters,
+    )) {
+      unawaited(_vibrator());
+    }
   }
 
   @override
@@ -101,7 +126,24 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     super.dispose();
   }
 
+  // A sekély-víz overlay láthatósága: a payload és a bezárt számláló-érték
+  // együtt dönt (ADR 0031, `depth_alert_edge.dart`).
+  bool get _isDepthAlertVisible => isDepthAlertVisible(
+    depthAlertMeters: widget.payload.depthAlertMeters,
+    depthBuzzCounter: widget.payload.depthBuzzCounter,
+    dismissedAtCounter: _dismissedAtCounter,
+  );
+
+  void _dismissDepthAlert() {
+    setState(() => _dismissedAtCounter = widget.payload.depthBuzzCounter);
+  }
+
   void _stepBy(int step) {
+    // A riasztás a perem-lapozást is elnyeli: alatta ne mozduljon el
+    // észrevétlenül a nézet, amíg a kormányos a mélységet olvassa.
+    if (_isDepthAlertVisible) {
+      return;
+    }
     final target = (_page + step).clamp(0, _roundPage);
     if (target != _page) {
       _controller.animateToPage(
@@ -125,6 +167,11 @@ class _RaceShellState extends ConsumerState<RaceShell> {
     // konfidencia (a SpeedView-nak nincs).
     final arc = _page == _markPage
         ? confidenceArc(widget.payload.shiftConfidence, widget.colors)
+        : null;
+
+    // Sekély-víz overlay (ADR 0031): a lap-pöttyök fölé is, teljes lapon.
+    final depthAlertMeters = _isDepthAlertVisible
+        ? widget.payload.depthAlertMeters
         : null;
 
     return Stack(
@@ -176,6 +223,15 @@ class _RaceShellState extends ConsumerState<RaceShell> {
               ),
           ],
         ),
+        if (depthAlertMeters != null)
+          Positioned.fill(
+            child: DepthAlertOverlay(
+              depthMeters: depthAlertMeters,
+              colors: widget.colors,
+              ambient: widget.ambient,
+              onDismiss: _dismissDepthAlert,
+            ),
+          ),
       ],
     );
   }

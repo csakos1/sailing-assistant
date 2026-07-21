@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared/shared.dart';
 import 'package:watch/rotary/rotary_scroll_provider.dart';
+import 'package:watch/screens/depth_alert_overlay.dart';
 import 'package:watch/screens/race_shell.dart';
 import 'package:watch/theme/watch_colors.dart';
 import 'package:watch/theme/watch_theme.dart';
+import 'package:watch/watch_sync/depth_alert_vibrator.dart';
 import 'package:watch/watch_sync/gps_clock_reading.dart';
 import 'package:watch/watch_sync/race_ongoing_activity.dart';
 import 'package:watch/watch_sync/watch_clock_provider.dart';
@@ -34,8 +36,10 @@ void main() {
     required RaceOngoingActivity ongoing,
     WatchPayload? payloadOverride,
     bool ambient = false,
+    DepthAlertVibrator? vibrator,
   }) => ProviderScope(
     overrides: [
+      depthAlertVibratorProvider.overrideWithValue(vibrator ?? _noopBuzz),
       rotaryScrollSourceProvider.overrideWithValue(() => rotary),
       watchClockProvider.overrideWith(
         (ref) =>
@@ -253,7 +257,166 @@ void main() {
     await pumpConfidence('high');
     expect(buzzCount, 2);
   });
+
+  testWidgets('sekély víz → teljes-képernyős overlay a mélységgel', (
+    tester,
+  ) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.3, counter: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DepthAlertOverlay), findsOneWidget);
+    expect(find.text('2.3 m'), findsOneWidget);
+    expect(find.text('Bezár'), findsOneWidget);
+  });
+
+  testWidgets('riasztás nélkül nincs overlay', (tester) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(rotary: deltas.stream, ongoing: _SpyOngoingActivity()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DepthAlertOverlay), findsNothing);
+  });
+
+  testWidgets('ambientben nincs bezárás gomb', (tester) async {
+    // OLED burn-in + energia: ambientben nincs nagy piros mező, és az
+    // érintés sem megbízható, ezért gomb sincs.
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.3, counter: 1),
+        ambient: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DepthAlertOverlay), findsOneWidget);
+    expect(find.text('Bezár'), findsNothing);
+  });
+
+  testWidgets('a bezárás elrejti, az új mélypont visszahozza', (tester) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.3, counter: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bezár'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DepthAlertOverlay), findsNothing);
+
+    // Ugyanaz a számláló, sekélyebb víz: a bezárás áll (nem nyaggat).
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.2, counter: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(DepthAlertOverlay), findsNothing);
+
+    // Új mélypont → nő a számláló → a ratchet visszahozza a riasztást.
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.1, counter: 2),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(DepthAlertOverlay), findsOneWidget);
+  });
+
+  testWidgets('a számláló változó élén rezeg, egyszer', (tester) async {
+    final spy = _SpyDepthAlertVibrator();
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    Future<void> pumpDepth({required double? meters, required int counter}) {
+      return tester
+          .pumpWidget(
+            host(
+              rotary: deltas.stream,
+              ongoing: _SpyOngoingActivity(),
+              payloadOverride: _depthPayload(meters: meters, counter: counter),
+              vibrator: spy.buzz,
+            ),
+          )
+          .then((_) => tester.pumpAndSettle());
+    }
+
+    // Az induló payload nem rezeg: a didUpdateWidget még nem futott.
+    await pumpDepth(meters: 2.4, counter: 1);
+    expect(spy.buzzCount, 0);
+
+    // Új mélypont → változik a számláló → egy rezgés.
+    await pumpDepth(meters: 2.3, counter: 2);
+    expect(spy.buzzCount, 1);
+
+    // Csak a mélység frissül, a számláló nem → nincs újabb rezgés.
+    await pumpDepth(meters: 2.2, counter: 2);
+    expect(spy.buzzCount, 1);
+
+    // Az epizód vége: a számláló-változás önmagában nem rezeg.
+    await pumpDepth(meters: null, counter: 3);
+    expect(spy.buzzCount, 1);
+  });
+
+  testWidgets('a riasztás alatt a perem nem lapoz', (tester) async {
+    final deltas = StreamController<double>.broadcast();
+    addTearDown(deltas.close);
+
+    await tester.pumpWidget(
+      host(
+        rotary: deltas.stream,
+        ongoing: _SpyOngoingActivity(),
+        payloadOverride: _depthPayload(meters: 2.3, counter: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final controller = tester
+        .widget<PageView>(find.byType(PageView))
+        .controller!;
+    expect(controller.page, 1);
+
+    deltas.add(-1);
+    await tester.pumpAndSettle();
+
+    expect(controller.page, 1);
+  });
 }
+
+// Sekély-víz riasztást hordozó payload a mélység-tesztekhez.
+WatchPayload _depthPayload({required double? meters, required int counter}) =>
+    WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      depthAlertMeters: meters,
+      depthBuzzCounter: counter,
+    );
 
 /// Natív hívás nélküli kém: csak a start/stop hívások számát jegyzi.
 final class _SpyOngoingActivity implements RaceOngoingActivity {
@@ -270,3 +433,16 @@ final class _SpyOngoingActivity implements RaceOngoingActivity {
     stopCount++;
   }
 }
+
+/// Natív hívás nélküli kém: csak a rezgések számát jegyzi. A `buzz`
+/// tear-offja adja a `DepthAlertVibrator` függvény-varratot.
+final class _SpyDepthAlertVibrator {
+  int buzzCount = 0;
+
+  Future<void> buzz() async {
+    buzzCount++;
+  }
+}
+
+// Néma alapértelmezés a mélységet nem vizsgáló tesztekhez.
+Future<void> _noopBuzz() => Future<void>.value();

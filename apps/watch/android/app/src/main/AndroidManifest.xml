@@ -7,6 +7,10 @@
     <!-- Ambient (always-on) módhoz: a wear_plus ambient-figyelője ezzel
          tartja a kijelzőn az appot tompított módban, számlap helyett. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- ADR 0031: a sekely-viz riasztas 1,5 s-os nativ rezgese (vibration
+         csomag, DepthAlertVibrator seam). Nem futasideju engedely, eleg a
+         manifest-deklaracio. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- ADR 0019 (+ A1 javítás): a verseny-display Ongoing Activity-t egy
          foreground service (a wear_ongoing_activity plugin OngoingActivityService-e)
          hordozza, hogy a kijelző a számlapra-esés (Timeout #2) ellen látható
