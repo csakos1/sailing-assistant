@@ -294,3 +294,128 @@ belépést, az új mélypontot és a feloldást is kifeszítik.
 - Ha egy jövőbeli hajón/műszeren a `DBT` mutat tüskéket, a kérdést valós
   adattal újra kell nyitni — ez az addendum egy KONKRÉT mérésre épül, nem
   a mondattípusok általános megbízhatóságára.
+
+## Addendum 2 — A DBT-elsőbbség stream-szintű érvényesítése (2026-07)
+
+Az Addendum 1 (A1-D1) kimondta, hogy a `DBT` az elsődleges mélység-forrás és
+a `DPT` a fallback. A megfogalmazása azonban — a D2-höz hasonlóan —
+**mondat-szintű**: „ha a `DBT` hiányzik / csonka / nem-numerikus /
+validáció-bukás, akkor a `DPT`". A rögzített Vulcan-dumpból viszont az derül
+ki, hogy a valóságban **mindkét mondat megérkezik**, egymás mellett, ~1 Hz-en,
+és a `DPT` a `DBT` **után**:
+
+```
+$SDDBT,9.8,f,3.0,M,1.6,F*03
+$SDDPT,3.0,0.0,*78
+$SDDBT,9.8,f,3.0,M,1.6,F*03
+$SDDPT,3.0,0.0,*78
+```
+
+Mivel a `BoatStateReducer` szemantikája **last-wins**, két emittáló dekóder
+mellett a `BoatState.depth` **mindig** a `DPT`-ből származna — pontosan abból a
+forrásból, amit az A1-D1 leváltott. Az Addendum 1 papíron létezne, a
+gyakorlatban soha nem érvényesülne.
+
+A tét nem elméleti. A mért 100 hibás `DPT` minta diszkrét **2,0 m**-et ír, ami
+a D3 szerinti 2,5 m-es trigger-küszöb **alatt** van. Gate nélkül a rendszer
+3,8 m víz fölött adna teljes-képernyős kritikus riasztást és erős rezgést az
+órán. Ez a legrosszabb hibafajta egy biztonsági funkciónál: nem elmaradt
+riasztás, hanem olyan hamis riasztás, ami leszoktatja a felhasználót a
+riasztás komolyan vételéről.
+
+### A2-D1 — Állapotos gate a `NmeaToDomainMapper`-ben
+
+A forrás-választás a **`NmeaToDomainMapper`-ben** történik, egyetlen `DateTime?`
+mezővel (az utolsó érvényes `DBT` időbélyege):
+
+- `DBT`-ből dekódolt mélység → az időbélyeg frissül, az esemény **megy**.
+- `DPT`-ből dekódolt mélység → az esemény **elnyomva** (üres eseménylista), ha
+  az utolsó érvényes `DBT` az ablakon belül van; egyébként **megy**.
+
+Indoklás:
+
+- A `DBT` és a `DPT` a Vulcanban **ugyanannak a PGN 128267-nek** két 0183-as
+  kiírása. A köztük való választás tehát protokoll-szintű deduplikáció, nem
+  üzleti szabály — definíció szerint a `data` réteg dolga.
+- A mapper **már állapotos** (`WindAggregator`), tehát van precedens és van
+  hely; nem vezetünk be új mintát.
+- A `map()` a `now`-t **paraméterként** kapja, így a gate-nek nincs
+  clock-függősége: determinisztikusan unit-tesztelhető, óra-mockolás nélkül.
+- **Sorrend-független.** Ha a két mondat sorrendje valaha megfordulna, a
+  szabály változatlanul működik, mert a `DPT` mindig a *múltbeli* `DBT`-re néz.
+
+Elvetett alternatívák:
+
+- **A `BoatState` tárolja a forrást + időt, a reducer dönt.** Egy
+  0183-specifikus protokoll-részlet (`DBT` vs. `DPT`) szivárogna a domainbe,
+  ami nem tudhat az NMEA létezéséről. Ráadásul újra kellene nyitni a már
+  leszállított `Depth` / `DepthEvent` / `BoatState` / `BoatStateReducer`
+  felületet.
+- **Feltételes route-olás a `SentenceDecoder`-ben.** A dekóder állapotmentes és
+  talker-agnosztikus, kizárólag a `type`-ra route-ol; állapot betétele
+  elrontaná a jelenlegi tiszta szerepét.
+- **A `DPT` teljes elhagyása.** Az A1-D2 kifejezetten megtartja fallbacknek: a
+  `DBT` elnémulása esetén a zajos mélység lényegesen jobb a semmilyennél.
+
+### A2-D2 — Az elnyomási ablak: 5 másodperc
+
+Az ablak **hard-coded konstans** a mapperben (a D3 „hard-coded konstansok"
+mintáját követve; v1-ben nincs rá beállítás).
+
+- ~1 Hz-es `DBT` mellett az 5 s **négy kihagyott minta** tolerálását jelenti —
+  bőven elég a hálózati jitterre és a mondat-szintű validáció-bukásokra.
+- Ugyanakkor elég rövid ahhoz, hogy a `DBT` végleges elnémulása után a fallback
+  gyorsan beugorjon: 6 csomón ~15 m út.
+- A **teljes** stream-vesztést nem ez kezeli — arra az ADR 0014 D5
+  disconnect-ága való. A gate kizárólag a „csak a `DBT` tűnt el" esetre szolgál,
+  ami exotikus (műszer-csere, a Vulcan kimeneti konfigurációjának változása).
+
+### A2-D3 — A forrás-megkülönböztetés a `data` rétegben áll meg
+
+- A `DecodedDepth` hordoz egy `DepthSource` enumot (`dbt` / `dpt`), a
+  `decoded_sentence.dart`-ban. Precedens: a `WindReference` enum is ott lakik.
+- A domain **változatlan**: a `Depth`, a `DepthEvent`, a `BoatState`, a
+  `BoatStateReducer` és az `EvaluateDepthAlert` egyetlen sora sem módosul. Az
+  S1 szelet (`948b22c`) érintetlen marad.
+
+### A2-D4 — A fallback ~5 s granularitású, nem mondatonkénti
+
+Explicit következmény, amit ki kell mondani: ha **egyetlen** `DBT` mondat csonka
+vagy validáció-bukott, a rákövetkező `DPT` **nem** ugrik be helyette — a
+`BoatState.depth` ~1 s-ig a korábbi értéket tartja.
+
+Ez szándékos. Egy kimaradó minta 1 Hz mellett észrevehetetlen; egy hamis 2,0 m
+viszont hamis kritikus riasztást vált ki. A gate tehát az A1-D1 **szándékát
+erősíti**, a **betűjét** viszont felülírja: a D2 és az A1-D1 mondat-szintű
+fallback-megfogalmazása helyébe ez a pont lép.
+
+### A2-D5 — Teszt-kötelezettségek
+
+A gate önálló unit-tesztet kap a mapper-tesztben:
+
+- **Interleaved sorrend** (`DBT` → `DPT` ugyanazon a másodpercen belül):
+  pontosan **egy** `DepthEvent`, a `DBT` értékével.
+- **A `DBT` elnémulása:** az ablak lejárta után a `DPT` eseménye átmegy.
+- **A `DBT` visszatérése:** az elsőbbség azonnal visszaáll.
+- **`DPT` mint egyetlen forrás** (soha nem volt `DBT`): az esemény már az első
+  mintától megy.
+
+A replay-teszt (`nmea_event_pipeline_replay_test.dart`) `_streamLines`
+fixture-je valós, **interleaved** `$SDDBT` / `$SDDPT` sorokat kap; a
+típus-szekvencia assertje bizonyítja, hogy egy `DBT`+`DPT` párra **egy**
+`DepthEvent` jut.
+
+### Következmények
+
+- A változás a `data` réteg **mapper-varratára** korlátozódik; a domain, a
+  küszöbök és a ratchet-állapotgép változatlanok.
+- A nyers `.nmea` telemetria továbbra is **mindkét** mondatot rögzíti, tehát a
+  döntés post-race újraértékelhető.
+- Ha a jeladó-csere után a `DBT` is tüskézne, az ablak-logika változatlanul
+  helyes marad — csak a forrás-prioritást (A1 hatálya) kellene újranyitni.
+- **Nem tárgya ennek az addendumnak:** a mélység-adat *teljes* kimaradása
+  élő gateway-kapcsolat mellett. Ilyenkor a `BoatState.depth` a régi értéket
+  tartja, és az `EvaluateDepthAlert` `depth == null`-ra a `previous`-t adja
+  vissza, tehát nem keletkezik „elavult mélység" jelzés. Ez az ADR 0031 D-sor
+  eredeti hatókörének a réséből ered, nem a gate-ből; külön szeletben
+  rendezendő.
