@@ -94,6 +94,16 @@ class _TrackMapState extends State<TrackMap> {
   /// illesztes kiszamithatatlanul elmaradna (A2-D5).
   final MapController _mapController = MapController();
 
+  /// Meg csak az elso viewport-meretvaltozas van hatra (a nulla -> valodi
+  /// meret atmenet), vagy az mar lezajlott?
+  ///
+  /// A kezdeti illesztest a `MapOptions.initialCameraFit` vegzi, ezert az
+  /// elso esemenyre nem szabad ujrailleszteni: a `flutter_map` a
+  /// kameravaltasra ujratervezi a csempe-keszletet, es a mar futo kereseket
+  /// eldobja. A kartyan a kamera tobbe nem mozdul, tehat az igy kimarado
+  /// csempek VEGLEG szurkek maradnak (on-device igazolt regresszio).
+  bool _isFirstSizeChange = true;
+
   @override
   void dispose() {
     _mapController.dispose();
@@ -208,6 +218,13 @@ class _TrackMapState extends State<TrackMap> {
   /// szandekos (A2-D3): kiszamithato es allapotmentes.
   void _onMapEvent(MapEvent event) {
     if (event is! MapEventNonRotatedSizeChange) return;
+    // Az elso esemeny a kezdeti elrendezes, nem valodi meretvaltozas: azt a
+    // MapOptions.initialCameraFit mar leilleszette. Csak jelezzuk, hogy
+    // megtortent, es kilepunk -- lasd az _isFirstSizeChange doc-kommentjet.
+    if (_isFirstSizeChange) {
+      _isFirstSizeChange = false;
+      return;
+    }
     final fit = _cameraFit();
     if (fit == null) return;
     // Az esemeny a postFrameCallbacks fazisban erkezik, NEM build/layout
