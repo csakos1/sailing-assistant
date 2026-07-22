@@ -376,7 +376,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   └── widgets/
 │   │   │   │   ├── connection/                         # Gateway kapcsolat státusz/setup
 │   │   │   │   ├── settings/                           # Wind shift ablak, küszöb, stb.
-│   │   │   │   ├── post_race/                          # Befejezett race-ek listája + analízis
+│   │   │   │   ├── race_detail/                        # Verseny-detail: track-térkép, statok, PNG-export (export/)
 │   │   │   │   │       # (track-térkép: track_map.dart, ADR 0035;
 │   │   │   │   │       #  domain SummarizeTrack + TrackStats, Add. 3)
 │   │   │   │   └── debug/                              # Replay log, raw NMEA viewer
@@ -3924,7 +3924,7 @@ megbízhatóság-előny).
   **látható** nézetről készül — a tile-ok aszinkron töltődnek, offscreen
   renderelésnél féligkész mozaik rögzülne —, tile-hiány esetén az export
   előtt figyelmeztetés. Megosztás `share_plus`, temp fájl
-  `path_provider` (mindkettő az F2-ben kerül a `pubspec`-be).
+  `path_provider` (mindkettő bent van az `apps/phone` pubspecében).
 - Szélfordulás-/sebesség-grafikon, leg-statok, race-history nézet, a megtett
   út GPS-jitter-szűrése, offline tile-cache → **v2 további darabjai**
   (szándékosan kívül a v1 core-on).
