@@ -3723,6 +3723,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_map: ^7.0.0        # post-race track-terkep (ADR 0035)
   latlong2: ^0.9.0           # flutter_map LatLng tipus
+  share_plus: ^13.2.0        # export megosztas (ADR 0036 F2-D14)
+  path_provider: ^2.1.0      # temp konyvtar az exporthoz (0036)
   data:
     path: ../../packages/data
   domain:
