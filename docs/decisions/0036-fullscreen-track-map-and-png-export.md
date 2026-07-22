@@ -247,3 +247,140 @@ eldöntheti, hogy így is exportál-e. Néma szürke kép nem elfogadható kimen
 - **Az export felbontásának emelése:** a raszter tile-ok a natív
   csempe-élességnél nem lesznek jobbak; nagyobb kép csak nagyobb kivágással
   vagy vektoros tile-forrással érne valamit.
+
+## Addendum 1 — Az F2 renderelési hatóköre, felbontása és hibaútvonalai
+
+**Státusz:** elfogadva
+**Dátum:** 2026-07
+**Kapcsolódik:** F2-D8 (szándékosan nyitva hagyott pont), F2-D10, F2-D14
+
+### Kontextus
+
+Az F2-D8 nyitva hagyta, hogy a **legenda** és a **statisztika-sor** a
+capture-be vagy az export-canvasra kerül-e. Az F2 kezdetén tartott
+design-mikrokör ezt lezárta, és közben két olyan tény is felszínre jött, ami
+az F2-D8-at és az F2-D10-et pontosítja.
+
+### A1-D1 — A statisztika-sor canvasra kerül (kényszer, nem választás)
+
+A `_TrackStatsRow` a `PostRaceAnalysisSection`-ben él, a detail-képernyőn; a
+`FullScreenTrackMapScreen` `RepaintBoundary`-je (F1-D7) csak a térképet és a
+legendát tartalmazza. A statisztika tehát fizikailag nincs a capture-fában —
+a „capture-be kerüljön" ág csak úgy létezne, ha előbb kitennénk a
+statisztikát a fullscreen nézetre is, amit sem az F1, sem az F2-D11 nem kért.
+
+Ez nem az F2-D8 megváltoztatása: a D8 törzsszövege eleve a keretbe sorolta a
+statisztika-sort. Az Addendum az indoklást rögzíti.
+
+### A1-D2 — A legenda a capture-be kerül
+
+A mikrokör előtti trade-off egyik fele téves volt: nem igaz, hogy a
+capture-elt legenda a képernyő felbontásán maradna. A
+`RenderRepaintBoundary.toImage(pixelRatio:)` skálája **független az eszköz
+`devicePixelRatio`-jától**, és a boundary egy rögzített `Picture`-t játszik
+vissza a megadott skálán — a szöveg és a vektorgrafika a **cél**felbontáson
+raszterizálódik. `pixelRatio: 3` mellett a legenda-feliratok élesek.
+
+Marad a determinizmus-érv (a canvasra rajzolt legenda mérete nem függene a
+rendszer betűméret-skálázásától), de ez üres: a bója-nevek a térképen belül
+szintén képernyőn renderelt `Text`-ek, tehát a kép így is, úgy is örökli a
+felhasználó `textScaler`-ét. A legenda kiemelése nem tenné determinisztikussá
+a képet, viszont **duplikálná a legenda geometriáját** — pontosan azt, amit
+az F1-D5 („származtatva, nem duplikálva") el akart kerülni.
+
+Következmény: egyetlen legenda-implementáció marad (`TrackSpeedLegend`), és a
+`RepaintBoundary` ott marad, ahova az F1-D7 letette — a widget-fa nem
+változik.
+
+### A1-D3 — A kép felépítése
+
+```
+[canvas]    fejléc-sáv: a verseny neve + a Race.startedAt dátuma
+[capture]   térkép + bóják névfelirattal + gradient-track + legenda
+[canvas]    statisztika-sor: átlag / max / megtett út
+```
+
+A canvas szélessége **a capture szélessége**, tehát a térkép-blokk 1:1
+arányban kerül a képre: nincs átméretezés, nincs levágás, nincs
+aspect-arány-egyeztetés. A kép magassága a capture magassága plusz a két
+canvas-sáv.
+
+### A1-D4 — `pixelRatio: 3.0`, fixen
+
+Nem a `MediaQuery.devicePixelRatio`-t olvassuk: a megosztott kép mérete
+legyen eszköztől független és reprodukálható. Felfelé két korlát van: a GPU
+maximális textúra-mérete (efölött a `toImage` csendben kisebb képet ad), és
+hogy a raszter tile-ok élességén a nagyobb szorzó nem javít (ez az ADR
+„Következmények" szakaszában már szerepel). Lefelé az 1.0 olvashatatlanul
+apró feliratokat adna.
+
+### A1-D5 — Nincs külön canvas-attribúció (az F2-D10 pontosítása)
+
+A fullscreen térkép `isInteractive: true`, ezért a `SimpleAttributionWidget`
+olvasható szövege **már a capture részét képezi**. Egy további
+attribúció-csík a canvason ugyanazt a mondatot írná ki másodszor. Az F2-D10
+követelménye — olvasható szöveges attribúció a képen — tehát teljesül; a D10
+akkor született, amikor a capture hatóköre még nem volt eldöntve.
+
+### A1-D6 — A kártya attribúciója is `SimpleAttributionWidget`
+
+A `track_map.dart` `isInteractive`-hoz kötött attribúció-elágazása megszűnik:
+mindkét helyen a látható szöveges változat áll. Indok: az `IgnorePointer`
+alatt (F1-D2) a `RichAttributionWidget` összecsukott badge-e **halott ikon** —
+a felhasználó nem tudja kinyitni, tehát se őszinte UI, se védhető
+ODbL-attribúció. Ráadásul egy elágazással kevesebb.
+
+Ez látható változás a mai kártyán: az „i" ikon helyére alacsony szöveg-csík
+kerül a térkép jobb alsó sarkában.
+
+### A1-D7 — Hibaútvonalak
+
+Az export határ-műveletei **várható** módon hibázhatnak, ezért `Result`, nem
+kivétel (a projekt konvenciója szerint a kivétel a nem várt hibáké):
+
+- `sealed class TrackExportError` három ágon: `CaptureFailed`,
+  `StorageUnavailable`, `ShareFailed`,
+- a művelet `Result<File, TrackExportError>`-t ad (`packages/shared`),
+- a hívó `switch`-e kimerítő, és áganként külön ARB-üzenetet mutat
+  `SnackBar`-ban.
+
+Nincs újrapróbálkozás és nincs csendes elnyelés. A típus presentation-only:
+az `apps/phone`-ban él, a domain nem látja.
+
+### A1-D8 — A capture technikai előfeltételei
+
+- A `FullScreenTrackMapScreen` `StatefulWidget`-té alakul, és a
+  `RepaintBoundary` `GlobalKey`-e a `State` mezője lesz. A build-ben
+  létrehozott `GlobalKey` minden újraépítéskor kicserélődne, és a capture
+  kiszámíthatatlanul bukna. Az állapot amúgy is kell a folyamatban lévő
+  exporthoz és az F2-D13 figyelmeztetéséhez.
+- A `toImage` `!debugNeedsPaint` feltételt állít, ezért a capture előtt meg
+  kell várni a keret kifestését (`WidgetsBinding.instance.endOfFrame`).
+
+### A1-D9 — Az új képernyő-paraméterek
+
+A `FullScreenTrackMapScreen` az F1-D3 ISP-elvét követve **skalárt és
+értékobjektumot** kap, nem a `Race` entitást: `raceStartedAt` a fejléc
+dátumához és a `TrackStats` a statisztika-sorhoz. A `PostRaceAnalysisSection`
+ugyanezeket továbbadja.
+
+### Elvetett alternatívák
+
+- **A legenda canvasra:** duplikálná a legenda geometriáját; az
+  élesség-nyereség nem létezik (A1-D2), a determinizmus-nyereség látszólagos.
+- **`pixelRatio: MediaQuery.devicePixelRatio`:** eszközfüggő kimeneti méret, a
+  két teszt-eszközön más kép ugyanarról a versenyről.
+- **A kártya `RichAttributionWidget`-jének megtartása:** halott ikon (A1-D6).
+- **Kivétel-alapú hibakezelés az exportnál:** a projekt a kivételt a nem várt
+  hibáknak tartja fenn.
+
+### Következmények
+
+- Az F2a szelet szűkül: a tiszta geometria-függvények már csak a fejléc- és a
+  statisztika-sávra vonatkoznak, a legendára nem.
+- A `track_map.dart` attribúció-elágazása eltűnik — látható UI-változás a
+  kártyán (A1-D6).
+- A `share_plus` 10-es majorja óta az API `SharePlus.instance.share(
+  ShareParams(...))` alakú, és `ShareResultStatus`-t ad vissza; a régi
+  statikus `Share.shareXFiles` már nem létezik.
+- Új ARB-kulcsok: export gomb, tile-hiány figyelmeztetés, három hibaüzenet.
