@@ -3902,6 +3902,27 @@ megbízhatóság-előny).
   látszik (felhasználói funkció); a megkerülés-elemzés (next-mark TWA delta,
   hibasáv-kártyák) marad `kDebugMode` mögött (fejlesztői validáció). Debug-ban
   a track FELÜL, a next-TWA elemzés ALUL.
+- **Fullscreen track-nézet és megosztható PNG-export (ADR 0036).** A
+  track-kártya koppintásra teljes képernyős, nagyítható nézetet nyit
+  (`FullScreenTrackMapScreen`): pan + pinch-zoom + dupla-koppintás,
+  **rotáció tiltva** (észak-fent rögzítve, hogy a tájolás a kártyával és
+  az exporttal azonos maradjon), a térkép alatt sebesség-legenda a
+  `colorForTrackSpeed` sávhatáraiból származtatva, a bójákon `Mark.name`
+  felirat. A `TrackMap` ehhez **additívan** bővül (`isInteractive`,
+  `height`, `showMarkLabels`, mind a mai viselkedést defaultolva) — nincs
+  második térkép-widget. A kártyán a `FlutterMap` akkor is elnyeli a
+  pointer-eseményeket, ha az interakció ki van kapcsolva, ezért a belépő
+  `IgnorePointer` + `InkWell`. A nézet tartalom-oszlopa
+  `RepaintBoundary`-be kerül: ez az F2 fázis capture-pontja, ahol a
+  fullscreen nézet AppBar-jából egy export gomb e-mailben csatolható
+  PNG-t állít elő (fejléc: verseny neve + `startedAt` dátuma; a
+  capture-ölt térkép-blokk; átlag/max sebesség és megtett út a
+  `TrackStats`-ból; legenda; **szöveges** OSM-attribúció, mert a
+  megosztott kép az OSM-adat továbbterjesztése). A capture szándékosan a
+  **látható** nézetről készül — a tile-ok aszinkron töltődnek, offscreen
+  renderelésnél féligkész mozaik rögzülne —, tile-hiány esetén az export
+  előtt figyelmeztetés. Megosztás `share_plus`, temp fájl
+  `path_provider` (mindkettő az F2-ben kerül a `pubspec`-be).
 - Szélfordulás-/sebesség-grafikon, leg-statok, race-history nézet, a megtett
   út GPS-jitter-szűrése, offline tile-cache → **v2 további darabjai**
   (szándékosan kívül a v1 core-on).
