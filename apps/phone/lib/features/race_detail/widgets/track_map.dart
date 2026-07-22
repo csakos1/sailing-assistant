@@ -20,9 +20,14 @@ import 'package:phone/features/race_detail/track_point.dart';
 ///   bojak neve is latszik. `height: null` eseten a hivonak KELL korlatos
 ///   magassagot adnia (pl. [Expanded]).
 ///
+/// Allapotos, mert sajat [MapController]-t tart (ADR 0036 A2-D5): a viewport
+/// meretvaltozasakor -- tipikusan eszkoz-forgataskor -- a kamerat ujra kell
+/// illeszteni, amire a [MapOptions] maga nem kepes, mert a mezoi csak
+/// inicializalaskor ervenyesulnek (A2-D2).
+///
 /// A widget kizarolag a presentation reteg: a [TrackPoint]/[Mark] primitiveken
 /// kap adatot, es itt mappeli `LatLng`-re (a `flutter_map` tipusa).
-class TrackMap extends StatelessWidget {
+class TrackMap extends StatefulWidget {
   /// A [points] track-vonalat (sebesseggel szinezve) es a [marks] bojakat
   /// rajzolja; ures pontlistanal az [emptyLabel] szoveget mutatja.
   const TrackMap({
@@ -72,22 +77,39 @@ class TrackMap extends StatelessWidget {
   static LatLng _toLatLng(Coordinate c) => LatLng(c.latitude, c.longitude);
 
   @override
+  State<TrackMap> createState() => _TrackMapState();
+}
+
+class _TrackMapState extends State<TrackMap> {
+  /// A kamera ujrailleszteshez kell (A2-D2). Azert State-mezo, mert a
+  /// build-ben letrehozott controller minden ujraepiteskor kicserelodne, es az
+  /// illesztes kiszamithatatlanul elmaradna (A2-D5).
+  final MapController _mapController = MapController();
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final height = widget.height;
     // A lekerekites a kartya sajatja; a nagy nezet elig kifut a szelekig.
     final isCard = height != null;
-    if (points.isEmpty) {
+    if (widget.points.isEmpty) {
       return Container(
         height: height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: isCard ? BorderRadius.circular(_radius) : null,
+          borderRadius: isCard ? BorderRadius.circular(TrackMap._radius) : null,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            emptyLabel,
+            widget.emptyLabel,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -96,28 +118,21 @@ class TrackMap extends StatelessWidget {
         ),
       );
     }
-    final trackLatLng = [for (final p in points) _toLatLng(p.position)];
-    // A kamera-illesztes a track ES a bojak egyuttes befoglalo-doboza.
-    final fitPoints = [
-      ...trackLatLng,
-      for (final m in marks) _toLatLng(m.position),
+    final trackLatLng = [
+      for (final p in widget.points) TrackMap._toLatLng(p.position),
     ];
-    // 2+ pontnal bounds-fit; egyetlen pontnal null -> az initialCenter/Zoom
-    // lep eletbe (a zero-meretu fit elkerulese vegett).
-    final cameraFit = fitPoints.length < 2
-        ? null
-        : CameraFit.bounds(
-            bounds: LatLngBounds.fromPoints(fitPoints),
-            padding: const EdgeInsets.all(24),
-          );
     final map = FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
-        initialCameraFit: cameraFit,
+        initialCameraFit: _cameraFit(),
         initialCenter: trackLatLng.first,
         initialZoom: 14,
         interactionOptions: InteractionOptions(
-          flags: isInteractive ? _interactiveFlags : InteractiveFlag.none,
+          flags: widget.isInteractive
+              ? TrackMap._interactiveFlags
+              : InteractiveFlag.none,
         ),
+        onMapEvent: _onMapEvent,
       ),
       children: [
         TileLayer(
@@ -127,16 +142,18 @@ class TrackMap extends StatelessWidget {
         PolylineLayer(polylines: _buildSpeedPolylines(trackLatLng)),
         MarkerLayer(
           markers: [
-            for (final m in marks)
+            for (final m in widget.marks)
               Marker(
-                point: _toLatLng(m.position),
-                width: showMarkLabels ? _MarkPin.labelledWidth : _MarkPin.size,
-                height: showMarkLabels
+                point: TrackMap._toLatLng(m.position),
+                width: widget.showMarkLabels
+                    ? _MarkPin.labelledWidth
+                    : _MarkPin.size,
+                height: widget.showMarkLabels
                     ? _MarkPin.labelledHeight
                     : _MarkPin.size,
                 child: _MarkPin(
                   label: '${m.sequence}',
-                  name: showMarkLabels ? m.name : null,
+                  name: widget.showMarkLabels ? m.name : null,
                 ),
               ),
           ],
@@ -145,7 +162,7 @@ class TrackMap extends StatelessWidget {
         // osszecsukott badge-ebol egy capture-on csak az ikon latszana --
         // ODbL-hez az nem eleg (ADR 0036 F2-D10). A SimpleAttributionWidget
         // maga irja ki a "flutter_map | (c) " prefixet a source ele.
-        if (isInteractive)
+        if (widget.isInteractive)
           const SimpleAttributionWidget(
             source: Text('OpenStreetMap contributors'),
           )
@@ -159,9 +176,42 @@ class TrackMap extends StatelessWidget {
     );
     if (!isCard) return map;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(_radius),
+      borderRadius: BorderRadius.circular(TrackMap._radius),
       child: SizedBox(height: height, child: map),
     );
+  }
+
+  /// A track ES a bojak egyuttes befoglalo-dobozara illeszto kamera, vagy
+  /// `null`, ha kettonel kevesebb pont van (a zero-meretu fit elkerulese
+  /// vegett -> ilyenkor az initialCenter/initialZoom lep eletbe).
+  ///
+  /// Ket helyrol kell: a kezdeti illesztesnel es minden meretvaltozaskor
+  /// (A2-D2), ezert nem inline szamoljuk a build-ben.
+  CameraFit? _cameraFit() {
+    final fitPoints = [
+      for (final p in widget.points) TrackMap._toLatLng(p.position),
+      for (final m in widget.marks) TrackMap._toLatLng(m.position),
+    ];
+    if (fitPoints.length < 2) return null;
+    return CameraFit.bounds(
+      bounds: LatLngBounds.fromPoints(fitPoints),
+      padding: const EdgeInsets.all(24),
+    );
+  }
+
+  /// A viewport meretvaltozasakor (eszkoz-forgatas, split-screen) ujrailleszti
+  /// a kamerat a teljes trackre. A kezi nagyitas ilyenkor elveszik -- ez
+  /// szandekos (A2-D3): kiszamithato es allapotmentes.
+  void _onMapEvent(MapEvent event) {
+    if (event is! MapEventNonRotatedSizeChange) return;
+    final fit = _cameraFit();
+    if (fit == null) return;
+    // Az esemeny a postFrameCallbacks fazisban erkezik, NEM build/layout
+    // kozben (merve) -- a fitCamera setState-je itt legalis, szinkron hivhato.
+    // Halasztani viszont tilos: az addPostFrameCallback maga nem utemez
+    // keretet, es forgataskor a terkep sem utemez (nincs mit mozdulnia), igy a
+    // halasztott callback sosem futna le.
+    _mapController.fitCamera(fit);
   }
 
   /// A track-et szakaszonkenti [Polyline]-okra bontja: minden szakasz a kezdo-
@@ -173,7 +223,7 @@ class TrackMap extends StatelessWidget {
     if (segmentCount < 1) return const <Polyline>[];
     final segmentColors = [
       for (var i = 0; i < segmentCount; i++)
-        colorForTrackSpeed(points[i].sogMps),
+        colorForTrackSpeed(widget.points[i].sogMps),
     ];
     final polylines = <Polyline>[];
     var runStart = 0;
