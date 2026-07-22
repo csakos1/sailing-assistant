@@ -663,6 +663,12 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Track nagyítása'**
   String get detailTrackOpenFullscreen;
+
+  /// A megoszthato track-kep fejlecehez a verseny startdatuma.
+  ///
+  /// In hu, this message translates to:
+  /// **'{date}'**
+  String exportImageDate(DateTime date);
 }
 
 class _AppLocalizationsDelegate

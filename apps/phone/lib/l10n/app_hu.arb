@@ -406,5 +406,15 @@
   "detailTrackOpenFullscreen": "Track nagyítása",
   "@detailTrackOpenFullscreen": {
     "description": "A track-kártya koppintási affordanciája: teljes képernyős nézet."
+  },
+  "exportImageDate": "{date}",
+  "@exportImageDate": {
+    "description": "A megoszthato track-kep fejlecehez a verseny startdatuma.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMMd"
+      }
+    }
   }
 }
