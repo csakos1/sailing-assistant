@@ -454,6 +454,29 @@ ugyanarra a befoglaló dobozra (track + bóják), amit az induló illesztés
 használ. Az esemény a méretváltozás **után** tüzel, tehát az illesztés már az
 új viewporttal számol.
 
+**Pontosítás (2026-07, on-device mérésből):** az **első**
+`MapEventNonRotatedSizeChange` nem valódi méretváltozás, hanem a nulla →
+valódi méret átmenet a kezdeti elrendezéskor — arra a `TrackMap` **nem**
+illeszt újra.
+
+Indok: a kezdeti illesztést a `MapOptions.initialCameraFit` már elvégezte, és
+a fölé tett `fitCamera` pont akkor mozdítja el a kamerát, amikor az első
+csempe-kérések úton vannak. A `flutter_map` a kameraváltásra újratervezi a
+csempe-készletet, a futó kéréseket pedig eldobja. A kártyán a kamera ezután
+soha többé nem mozdul, tehát a kimaradt csempék **véglegesen szürkék
+maradnak**; a fullscreen nézet csak azért gyógyul meg, mert a pásztázás új
+kérés-sorozatot indít.
+
+Az implementáció egy `bool _isFirstSizeChange` State-mező: az első eseményre
+csak jelez és kilép. A döntés lényege változatlan — minden **későbbi**
+méretváltozás (forgatás, split-screen) továbbra is újrailleszt (A2-D3).
+
+Ez a viselkedés automatizált teszttel nem fedhető: ami elromlott, az a
+`flutter_map` belső csempe-kérés-kezelése, aminek widget-tesztben nincs
+megfigyelhető felülete (a teszt-környezet minden HTTP-kérést 400-zal ver
+vissza). A két meglévő `track_map_test` eset a megtartott felet — a forgatás
+utáni újraillesztést — őrzi.
+
 ### A2-D3 — Az újraillesztés eldobja a kézi nagyítást
 
 Forgatás után a nézet visszaáll a teljes track-re, a kézzel beállított zoom és
