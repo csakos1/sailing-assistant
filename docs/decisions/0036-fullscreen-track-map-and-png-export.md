@@ -384,3 +384,95 @@ ugyanezeket továbbadja.
   ShareParams(...))` alakú, és `ShareResultStatus`-t ad vissza; a régi
   statikus `Share.shareXFiles` már nem létezik.
 - Új ARB-kulcsok: export gomb, tile-hiány figyelmeztetés, három hibaüzenet.
+
+## Addendum 2 — Eszköz-orientáció és kamera-újraillesztés
+
+**Státusz:** elfogadva
+**Dátum:** 2026-07
+**Kapcsolódik:** F1-D1, F1-D4, F2-D9, Addendum 1 (A1-D3)
+
+### Kontextus
+
+Az export elrendezésének átnézésekor kiderült, hogy egy balatoni tour-leg
+track-je jellemzően szélesebb, mint amilyen magas: a két rögzített bója (VK,
+BS) között kelet–nyugati irányban ~2,55 km, észak–déliben ~1,65 km a
+különbség, vagyis a pálya nagyjából 1,55:1 arányban fekvő. Álló viewportban a
+`CameraFit.bounds` ezt szélességre illeszti, és fölötte-alatta üres víz marad.
+
+Mivel az F2-D9 (WYSIWYG) lezártan kimondja, hogy a kép azt a kivágást
+örökli, amit a felhasználó a képernyőn lát, fekvő képet **csak fekvő nézet**
+adhat. Két tényt ellenőriztünk a repóban, illetve a `flutter_map`
+dokumentációjában:
+
+- Globális orientáció-zár nincs; a `LiveRaceScreen` a saját `initState`-jében
+  áll `portraitUp`-ra, és a `dispose`-ban visszaadja az összes orientációt.
+- A `MapOptions` mezői **csak inicializáláskor** érvényesülnek, az első build
+  után módosításuk hatástalan. Az `initialCameraFit` tehát a viewport
+  méretváltozásakor nem illeszt újra: a kamera megtartja a középpontot és a
+  zoomot, a track kilóg vagy fölösleges üres terület marad. Ez ma a 220 px-es
+  kártyán is így van, csak ott nem tűnik fel.
+
+### A2-D1 — Az eszköz-orientáció szabad a fullscreen nézeten
+
+Az F1-D4 a **térkép** rotációját tiltja (észak-fent rögzítve) — az **eszköz**
+forgatásáról nem rendelkezik, és nem is akarjuk tiltani. A képernyő nem hív
+`SystemChrome.setPreferredOrientations`-t: a kényszerített fekvő módot ki
+kellene lépéskor állítani vissza, ami a rendszer-visszalépés és a háttérbe
+kerülés körül klasszikus hibaforrás. A felhasználó a telefon elfordításával
+dönt, az export pedig követi (F2-D9).
+
+Az észak-fent rögzítés ettől függetlenül érvényes marad: fekvő eszközön is
+észak van fölül.
+
+### A2-D2 — A kamera újrailleszt a viewport méretváltozásakor
+
+A `TrackMap` `MapController`-t kap, és a `MapOptions.onMapEvent`
+`MapEventNonRotatedSizeChange` ágán újrailleszti a `CameraFit.bounds`-ot
+ugyanarra a befoglaló dobozra (track + bóják), amit az induló illesztés
+használ. Az esemény a méretváltozás **után** tüzel, tehát az illesztés már az
+új viewporttal számol.
+
+### A2-D3 — Az újraillesztés eldobja a kézi nagyítást
+
+Forgatás után a nézet visszaáll a teljes track-re, a kézzel beállított zoom és
+kivágás elvész. Ez szándékos: kiszámítható és állapotmentes.
+
+Elvetve: „csak akkor illesszen újra, ha a felhasználó még nem mozgatta a
+kamerát". Ehhez a `MapEventSource`-t kellene követni, és a keletkező szabály
+(néha újrailleszt, néha nem) nehezebben megjósolható, mint maga a veszteség.
+A tipikus munkamenet amúgy is megnyitás → forgatás → nagyítás → export.
+
+### A2-D4 — A javítás a `TrackMap`-be kerül, nem a képernyőre
+
+A `FullScreenTrackMapScreen` nem tud a kameráról; a hiba a `TrackMap`
+sajátja, és a kártyát ugyanúgy érinti. A javítás ott, egy helyen történik —
+így a kártya is megjavul, és marad az F1-D1 elve: egyetlen renderelő logika a
+kártyán, a nagy nézeten és az exporton.
+
+### A2-D5 — A `TrackMap` `StatefulWidget`-té alakul
+
+A `MapController` a `State` mezője lesz. A `build`-ben létrehozott controller
+minden újraépítéskor kicserélődne, és az illesztés kiszámíthatatlanul
+elmaradna — ugyanaz a hiba-alak, mint a capture `GlobalKey`-énél (A1-D8).
+
+A widget **publikus felülete nem változik**: a konstruktor, a paraméterek és a
+defaultok azonosak, tehát a meglévő hívók és tesztek érintetlenek.
+
+### Elvetett alternatívák
+
+- **`SystemChrome.setPreferredOrientations` fekvő zárral a képernyőn:**
+  lásd A2-D1.
+- **`ValueKey(orientation)` a `FlutterMap`-en**, hogy forgatáskor újraépüljön:
+  működne, de az egész térkép-állapotot és a tile-réteget eldobja, és elrejti
+  a tényleges mechanizmust egy kulcs mögé.
+- **Offscreen renderelés fekvő canvasra:** az F2-D9 már elvetette (a
+  tile-betöltés bevárására nincs megbízható jel).
+- **Az álló capture fekvő keretbe vágása:** levágná a track egy részét.
+
+### Következmények
+
+- A `TrackMap` állapotos lesz; a publikus felület változatlan (A2-D5).
+- Az export lehet fekvő és álló is. Az F2a geometria-függvényei ezért a
+  capture méretét **paraméterként** kapják, nem rögzített képarányt
+  feltételeznek — az A1-D3 sávos felépítése mindkét irányban érvényes.
+- A forgatás eldobja a kézi nagyítást (A2-D3).
