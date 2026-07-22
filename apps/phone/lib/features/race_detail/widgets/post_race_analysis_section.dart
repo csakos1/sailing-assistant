@@ -6,13 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/race_detail/post_race_analysis.dart';
+import 'package:phone/features/race_detail/track_stats_formatters.dart';
 import 'package:phone/features/race_detail/widgets/full_screen_track_map_screen.dart';
 import 'package:phone/features/race_detail/widgets/track_map.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/post_race_analysis_provider.dart';
-
-/// Hianyzo ertek jele a szekcioban.
-const _kMissing = '—';
 
 /// Post-race elemzes szekcio a verseny-detailen (ADR 0034 + Addendum 3).
 ///
@@ -172,21 +170,21 @@ class _TrackStatsRow extends StatelessWidget {
         Expanded(
           child: _SummaryCell(
             label: l10n.detailTrackMaxSpeed,
-            value: _formatKnots(stats.maxSpeedMps),
+            value: formatKnots(stats.maxSpeedMps),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _SummaryCell(
             label: l10n.detailTrackAvgSpeed,
-            value: _formatKnots(stats.avgSpeedMps),
+            value: formatKnots(stats.avgSpeedMps),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _SummaryCell(
             label: l10n.detailTrackDistance,
-            value: _formatDistance(stats.distanceMeters),
+            value: formatDistance(stats.distanceMeters),
           ),
         ),
       ],
@@ -205,7 +203,7 @@ class _SummaryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final avgDelta = summary.avgAbsDeltaDeg;
     final bandValue = summary.bandTotal == 0
-        ? _kMissing
+        ? missingValueLabel
         : '${summary.bandHits}/${summary.bandTotal}';
 
     return Row(
@@ -214,7 +212,7 @@ class _SummaryHeader extends StatelessWidget {
           child: _SummaryCell(
             label: l10n.detailAnalysisAvgDelta,
             value: avgDelta == null
-                ? _kMissing
+                ? missingValueLabel
                 : '${avgDelta.toStringAsFixed(1)}°',
           ),
         ),
@@ -365,7 +363,7 @@ class _RawNumbers extends StatelessWidget {
 
     final lead = result.leadTime;
     final window = lead == null
-        ? _kMissing
+        ? missingValueLabel
         : '${_formatMinSec(lead)} → '
               '${_formatMinSec(result.lastReliableLeadTime)} '
               '${l10n.detailAnalysisBeforeMark}';
@@ -493,35 +491,19 @@ class _BandBarPainter extends CustomPainter {
 /// Egy fok-ertek elojeles alakja egesz fokra kerekitve (`+3°` / `-17°`),
 /// vagy a hianyjel.
 String _formatSignedDeg(double? value) {
-  if (value == null) return _kMissing;
+  if (value == null) return missingValueLabel;
   final rounded = value.round();
   return rounded > 0 ? '+$rounded°' : '$rounded°';
 }
 
 /// Egy TWA-ertek magnitudoja egesz fokra kerekitve (`120°`), vagy a hianyjel.
 String _formatDegMag(double? value) =>
-    value == null ? _kMissing : '${value.abs().round()}°';
+    value == null ? missingValueLabel : '${value.abs().round()}°';
 
 /// Egy idotartam `m:ss` alakja (`5:34`), vagy a hianyjel.
 String _formatMinSec(Duration? duration) {
-  if (duration == null) return _kMissing;
+  if (duration == null) return missingValueLabel;
   final minutes = duration.inMinutes;
   final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
   return '$minutes:$seconds';
-}
-
-/// m/s -> csomo egy tizedesre (`5.3 kn`), vagy a hianyjel.
-String _formatKnots(double? metersPerSecond) {
-  if (metersPerSecond == null) return _kMissing;
-  const mpsToKnots = 1.943844;
-  return '${(metersPerSecond * mpsToKnots).toStringAsFixed(1)} kn';
-}
-
-/// Meter -> tavolsag (`1.2 km` vagy `840 m`), vagy a hianyjel.
-String _formatDistance(double? meters) {
-  if (meters == null) return _kMissing;
-  if (meters >= 1000) {
-    return '${(meters / 1000).toStringAsFixed(1)} km';
-  }
-  return '${meters.round()} m';
 }
