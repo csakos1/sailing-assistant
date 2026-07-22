@@ -235,6 +235,40 @@ halasztva.
 
 ---
 
+## Post-race megosztás (ADR 0036)
+
+Az ADR 0036 „Halasztva” szakaszából emelve, a fullscreen track-nézet és a
+PNG-export lezárásakor.
+
+### Track-pont koppintás a fullscreen nézeten
+- **Mi**: egy track-pontra bökve az adott pillanat ideje / sebessége /
+  TWA-ja.
+- **Miért nem most**: a v1 a nézet és az export köré épült; a pont-találat
+  és a buborék önálló interakció-tervezést kíván.
+- **Megjegyzés**: a felhasználó kifejezetten kérte a feljegyzését.
+
+### Időtartam (versenyidő) a statisztikában
+- **Mi**: `finishedAt.difference(startedAt)` a kép fejlécében és a detail
+  statisztika-sorában.
+- **Miért nem most**: technikailag egy sor, de előbb el kell dönteni, mit
+  jelent a kézi start/finish gombnyomás versenyidőként. Külön döntés.
+
+### PDF-kimenet a PNG mellé
+- **Mi**: ugyanaz a kompozíció PDF-ben.
+- **Miért nem most**: a megosztás célpontjai (üzenetküldők) képet várnak; a
+  PDF-et az ADR 0036 „Elvetett alternatívák” szakasza tárgyalja.
+
+### Offline tile-cache
+- **Mi**: a térkép-csempék helyi gyorsítótára.
+- **Miért nem most**: az ADR 0035 „Halasztva” szakasza már rögzíti. Az
+  export offline használhatósága ettől függ: hálózat nélkül a kép ma szürke
+  foltokkal készül, amiről a felhasználó figyelmeztetést kap (F2-D13).
+
+### Az export felbontásának emelése
+- **Mi**: 3× fölötti `pixelRatio` vagy nagyobb kivágás.
+- **Miért nem most**: a raszter tile-ok a natív csempe-élességnél nem
+  lesznek jobbak; érdemi nyereséghez vektoros tile-forrás kellene.
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
