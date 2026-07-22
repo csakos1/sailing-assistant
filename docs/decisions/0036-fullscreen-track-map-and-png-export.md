@@ -316,13 +316,13 @@ apró feliratokat adna.
 
 ### A1-D5 — Nincs külön canvas-attribúció (az F2-D10 pontosítása)
 
-A fullscreen térkép `isInteractive: true`, ezért a `SimpleAttributionWidget`
-olvasható szövege **már a capture részét képezi**. Egy további
-attribúció-csík a canvason ugyanazt a mondatot írná ki másodszor. Az F2-D10
+A fullscreen térképen a mindig látható szöveges attribúció (A1-D6) **már a
+capture részét képezi**. Egy további attribúció-csík a canvason ugyanazt a
+mondatot írná ki másodszor. Az F2-D10
 követelménye — olvasható szöveges attribúció a képen — tehát teljesül; a D10
 akkor született, amikor a capture hatóköre még nem volt eldöntve.
 
-### A1-D6 — A kártya attribúciója is `SimpleAttributionWidget`
+### A1-D6 — A kártya attribúciója is mindig látható szöveg
 
 A `track_map.dart` `isInteractive`-hoz kötött attribúció-elágazása megszűnik:
 mindkét helyen a látható szöveges változat áll. Indok: az `IgnorePointer`
@@ -332,6 +332,28 @@ ODbL-attribúció. Ráadásul egy elágazással kevesebb.
 
 Ez látható változás a mai kártyán: az „i" ikon helyére alacsony szöveg-csík
 kerül a térkép jobb alsó sarkában.
+
+**Pontosítás (2026-07, az implementációból):** a szöveges változat **nem** a
+`flutter_map` `SimpleAttributionWidget`-je, hanem egy saját, pár soros widget
+ugyanabban a fájlban. Két tény kényszerítette ki:
+
+- A `SimpleAttributionWidget` belső felépítése `Row(mainAxisSize: min)`, a
+  `source` mezője pedig **`Text` típusú, nem `Widget`** — `Flexible`-be tehát
+  nem csomagolható, és keskeny térképen a sor kényszerűen túlcsordul. A
+  `track_map_test.dart` 300 px-es viewportján ez mért tény, nem elméleti
+  kockázat.
+- A widget kiírja a `flutter_map | ` prefixet is, ami így a **megosztott
+  képre** is rákerülne. Az ODbL a térkép-adat kreditjét kéri
+  (`© OpenStreetMap contributors`); a `flutter_map` BSD-3 licence a
+  forrás-terjesztésben kér jogi közlést, a felhasználói felületen nem.
+
+A saját widget felépítése `Align(bottomRight) > ColoredBox > Padding >
+Text(maxLines: 1, overflow: ellipsis)`. Az `Align` laza kényszert ad, ezért a
+szöveg bármilyen szélességen elfér: szűk helyen rövidül, de **sosem csordul
+túl** — sem split-screenben, sem 220 px magas kártyán.
+
+A döntés lényege változatlan: mindkét módban ugyanaz a mindig látható,
+olvasható szöveges kredit áll, elágazás nélkül.
 
 ### A1-D7 — Hibaútvonalak
 
