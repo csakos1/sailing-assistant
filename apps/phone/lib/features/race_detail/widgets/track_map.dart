@@ -169,20 +169,13 @@ class _TrackMapState extends State<TrackMap> {
               ),
           ],
         ),
-        // A nagy nezetrol exportal az F2, es a RichAttributionWidget
-        // osszecsukott badge-ebol egy capture-on csak az ikon latszana --
-        // ODbL-hez az nem eleg (ADR 0036 F2-D10). A SimpleAttributionWidget
-        // maga irja ki a "flutter_map | (c) " prefixet a source ele.
-        if (widget.isInteractive)
-          const SimpleAttributionWidget(
-            source: Text('OpenStreetMap contributors'),
-          )
-        else
-          const RichAttributionWidget(
-            attributions: [
-              TextSourceAttribution('© OpenStreetMap contributors'),
-            ],
-          ),
+        // A kartyan a terkep IgnorePointer alatt ul (F1-D2), ott a
+        // RichAttributionWidget osszecsukott badge-e halott ikon lenne: nem
+        // lehet kinyitni. A nagy nezetrol pedig az F2 exportal, es abbol a
+        // badge-bol egy capture-on csak az ikon latszana -- ODbL-hez az sem
+        // eleg (ADR 0036 F2-D10 + A1-D6). Ezert mindket modban ugyanaz a
+        // mindig lathato szoveges kredit all.
+        const _MapAttribution(),
       ],
     );
     if (!isCard) return map;
@@ -333,6 +326,46 @@ class _MarkPin extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Az OSM-kredit mindig lathato, szoveges valtozata (ADR 0036 A1-D6).
+///
+/// Miert nem a flutter_map SimpleAttributionWidget-je: annak a torzse
+/// `Row(mainAxisSize: min)`, a `source` mezoje pedig `Text` tipusu (NEM
+/// `Widget`), tehat `Flexible`-be nem csomagolhato -- keskeny terkepen a sor
+/// kenyszeruen tulcsordul. Itt a szoveg egy `Align` laza kenyszere alatt ul,
+/// ezert szuk helyen rovidul, de SOSEM csordul tul.
+///
+/// A `flutter_map | ` prefix szandekosan marad ki: az ODbL a terkep-adat
+/// kreditjet keri, nem a csomag reklamjat -- es a megosztott kepre (F2-D10)
+/// az is rakerulne.
+class _MapAttribution extends StatelessWidget {
+  const _MapAttribution();
+
+  /// A copyright-jel escape-elve, hogy a fajl ASCII maradjon.
+  static const String _credit = '\u00a9 OpenStreetMap contributors';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: ColoredBox(
+        color: theme.colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Text(
+            _credit,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
