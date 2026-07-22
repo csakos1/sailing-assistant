@@ -10,8 +10,15 @@ import 'package:phone/features/race_detail/track_point.dart';
 /// [Polyline]-ok, a szomszedos azonos-savu szakaszok run-merge-elve (A4-D4); a
 /// szin a [colorForTrackSpeed] savjabol jon. A bojak szamozott [Marker]-ek; a
 /// nezet a track (+ bojak) befoglalo-dobozara illeszt ([CameraFit.bounds]).
-/// Pozicio nelkul az [emptyLabel] ures-allapotot mutat (A3-D5). Statikus nezet
-/// (nincs gesztus), hogy a szulo lista gorgeteset ne nyelje el.
+/// Pozicio nelkul az [emptyLabel] ures-allapotot mutat (A3-D5).
+///
+/// Ket megjelenesi modja van (ADR 0036 F1-D1), ugyanabbol a kodbol:
+/// - **kartya** (default): fix magassag, lekerekitett doboz, gesztus-mentes,
+///   hogy a szulo lista gorgeteset ne nyelje el;
+/// - **nagy nezet**: `isInteractive: true`, `height: null`,
+///   `showMarkLabels: true` -- a widget kitolti a helyet, nagyithato, es a
+///   bojak neve is latszik. `height: null` eseten a hivonak KELL korlatos
+///   magassagot adnia (pl. [Expanded]).
 ///
 /// A widget kizarolag a presentation reteg: a [TrackPoint]/[Mark] primitiveken
 /// kap adatot, es itt mappeli `LatLng`-re (a `flutter_map` tipusa).
@@ -22,6 +29,9 @@ class TrackMap extends StatelessWidget {
     required this.points,
     required this.marks,
     required this.emptyLabel,
+    this.isInteractive = false,
+    this.height = _defaultHeight,
+    this.showMarkLabels = false,
     super.key,
   });
 
@@ -34,21 +44,45 @@ class TrackMap extends StatelessWidget {
   /// Az ures-allapot szovege, ha nincs egyetlen track-pont sem.
   final String emptyLabel;
 
-  static const double _height = 220;
+  /// Engedelyezi a huzast, a pinch-zoomot es a dupla-koppintasos zoomot
+  /// (ADR 0036 F1-D4). A rotacio SOHA nincs engedelyezve: eszak-fent rogzitve.
+  final bool isInteractive;
+
+  /// A terkep fix magassaga; `null` eseten kitolti a rendelkezesre allo helyet,
+  /// es a lekerekites is elmarad (nagy nezet).
+  final double? height;
+
+  /// Kiirja a bojak neveit a szamozott korong ala (ADR 0036 F1-D6). A
+  /// kartyan kikapcsolva, mert ott a feliratok egymasra csusznanak.
+  final bool showMarkLabels;
+
+  static const double _defaultHeight = 220;
   static const double _radius = 10;
+
+  /// A nagy nezeten engedelyezett gesztusok. A [InteractiveFlag.rotate]
+  /// szandekosan kimarad (ADR 0036 F1-D4): elforgatott terkepen a vitorlazo
+  /// elveszti az eszak-referenciat, es nincs kezenfekvo "vissza eszakra".
+  static const int _interactiveFlags =
+      InteractiveFlag.drag |
+      InteractiveFlag.flingAnimation |
+      InteractiveFlag.pinchMove |
+      InteractiveFlag.pinchZoom |
+      InteractiveFlag.doubleTapZoom;
 
   static LatLng _toLatLng(Coordinate c) => LatLng(c.latitude, c.longitude);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // A lekerekites a kartya sajatja; a nagy nezet elig kifut a szelekig.
+    final isCard = height != null;
     if (points.isEmpty) {
       return Container(
-        height: _height,
+        height: height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(_radius),
+          borderRadius: isCard ? BorderRadius.circular(_radius) : null,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -76,44 +110,57 @@ class TrackMap extends StatelessWidget {
             bounds: LatLngBounds.fromPoints(fitPoints),
             padding: const EdgeInsets.all(24),
           );
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(_radius),
-      child: SizedBox(
-        height: _height,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCameraFit: cameraFit,
-            initialCenter: trackLatLng.first,
-            initialZoom: 14,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.none,
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.csakos.foretack',
-            ),
-            PolylineLayer(polylines: _buildSpeedPolylines(trackLatLng)),
-            MarkerLayer(
-              markers: [
-                for (final m in marks)
-                  Marker(
-                    point: _toLatLng(m.position),
-                    width: 22,
-                    height: 22,
-                    child: _MarkPin(label: '${m.sequence}'),
-                  ),
-              ],
-            ),
-            const RichAttributionWidget(
-              attributions: [
-                TextSourceAttribution('© OpenStreetMap contributors'),
-              ],
-            ),
-          ],
+    final map = FlutterMap(
+      options: MapOptions(
+        initialCameraFit: cameraFit,
+        initialCenter: trackLatLng.first,
+        initialZoom: 14,
+        interactionOptions: InteractionOptions(
+          flags: isInteractive ? _interactiveFlags : InteractiveFlag.none,
         ),
       ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.csakos.foretack',
+        ),
+        PolylineLayer(polylines: _buildSpeedPolylines(trackLatLng)),
+        MarkerLayer(
+          markers: [
+            for (final m in marks)
+              Marker(
+                point: _toLatLng(m.position),
+                width: showMarkLabels ? _MarkPin.labelledWidth : _MarkPin.size,
+                height: showMarkLabels
+                    ? _MarkPin.labelledHeight
+                    : _MarkPin.size,
+                child: _MarkPin(
+                  label: '${m.sequence}',
+                  name: showMarkLabels ? m.name : null,
+                ),
+              ),
+          ],
+        ),
+        // A nagy nezetrol exportal az F2, es a RichAttributionWidget
+        // osszecsukott badge-ebol egy capture-on csak az ikon latszana --
+        // ODbL-hez az nem eleg (ADR 0036 F2-D10). A SimpleAttributionWidget
+        // maga irja ki a "flutter_map | (c) " prefixet a source ele.
+        if (isInteractive)
+          const SimpleAttributionWidget(
+            source: Text('OpenStreetMap contributors'),
+          )
+        else
+          const RichAttributionWidget(
+            attributions: [
+              TextSourceAttribution('© OpenStreetMap contributors'),
+            ],
+          ),
+      ],
+    );
+    if (!isCard) return map;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(_radius),
+      child: SizedBox(height: height, child: map),
     );
   }
 
@@ -148,15 +195,37 @@ class TrackMap extends StatelessWidget {
   }
 }
 
-/// Egy boja-jelolo: szamozott korong feher kerettel (port-piros).
+/// Egy boja-jelolo: szamozott korong feher kerettel (port-piros), opcionalis
+/// nev-felirattal a korong alatt (ADR 0036 F1-D6).
+///
+/// Felirattal a doboz FUGGOLEGESEN SZIMMETRIKUS: a korong felett es alatt
+/// ugyanakkora sav all, igy a doboz kozepe tovabbra is a korong kozepe -- a
+/// [Marker] alapertelmezett kozepre-igazitasa mellett a korong pontosan a
+/// boja koordinatajara esik. Ezert nem egyszeruen "korong + alatta szoveg".
 class _MarkPin extends StatelessWidget {
-  const _MarkPin({required this.label});
+  const _MarkPin({required this.label, this.name});
 
+  /// A korong elerheto merete felirat nelkul (a [Marker] dobozanak merete).
+  static const double size = 22;
+
+  /// A nev-savok magassaga a korong felett es alatt.
+  static const double _nameSlot = 20;
+
+  /// A feliratos [Marker]-doboz merete.
+  static const double labelledWidth = 96;
+  static const double labelledHeight = size + 2 * _nameSlot;
+
+  /// A boja sorszama a korongon.
   final String label;
+
+  /// A boja neve a korong alatt; `null` eseten csak a korong latszik.
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final disc = Container(
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: portColor,
@@ -171,6 +240,38 @@ class _MarkPin extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+    final markName = name;
+    if (markName == null) return disc;
+    return Column(
+      children: [
+        // Felso ures sav: ez tartja a korongot a doboz kozepen.
+        const SizedBox(height: _nameSlot),
+        disc,
+        SizedBox(
+          height: _nameSlot,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                // A tile-hatter tetszoleges szinu lehet -> sotet pirula.
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                markName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -28,4 +28,36 @@ void main() {
       expect(colorForTrackSpeed(5), const Color(0xFFE5484D));
     });
   });
+
+  group('a sav-rampa olvashato felulete', () {
+    test('nyolc sav van', () {
+      expect(trackSpeedBandCount, 8);
+    });
+
+    test('a negativ index a legalso savra vagodik', () {
+      expect(trackSpeedBandColor(-3), trackSpeedBandColor(0));
+    });
+
+    test('a tartomanyon tuli index a legfelso savra vagodik', () {
+      expect(
+        trackSpeedBandColor(trackSpeedBandCount + 5),
+        trackSpeedBandColor(trackSpeedBandCount - 1),
+      );
+    });
+
+    test('minden sav szine egyezik a sebesseg-alapu keresessel', () {
+      // A legenda ugyanabbol a rampabol epul, mint a track szinezese
+      // (ADR 0036 F1-D5) -- a ket ut nem terhet el egymastol.
+      const knotsToMps = 1 / 1.943844;
+      for (var band = 0; band < trackSpeedBandCount; band++) {
+        // A sav kozepe csomoban, m/s-re visszavaltva.
+        final midBandMps = (band + 0.5) * knotsToMps;
+        expect(
+          colorForTrackSpeed(midBandMps),
+          trackSpeedBandColor(band),
+          reason: 'a $band. sav',
+        );
+      }
+    });
+  });
 }

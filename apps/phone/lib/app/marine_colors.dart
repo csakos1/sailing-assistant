@@ -23,12 +23,26 @@ const List<Color> _trackSpeedBands = [
 /// A hiányzó sebességű (SOG nélküli) track-szakasz semleges szürkéje.
 const Color trackSpeedUnknownColor = Color(0xFF9E9E9E);
 
+/// A sebesség-rámpa sávjainak száma.
+///
+/// A legenda (ADR 0036 F1-D5) ebből származtatja a sorait, nem saját
+/// konstans-listából — így a rámpa jövőbeni hangolása automatikusan átüt a
+/// jelmagyarázatra is, és nem lehet a kettő között csendes eltérés.
+int get trackSpeedBandCount => _trackSpeedBands.length;
+
+/// Az [index]-edik sáv színe a zöld→piros rámpán.
+///
+/// Az index a rámpa tartományára vágódik, így a hívónak nem kell határt
+/// ellenőriznie (ugyanaz a clamp-szemantika, mint a [colorForTrackSpeed]-nél).
+Color trackSpeedBandColor(int index) =>
+    _trackSpeedBands[index.clamp(0, _trackSpeedBands.length - 1)];
+
 /// A [sogMps] (m/s) sebességhez tartozó sáv-szín a zöld→piros rámpán (fix
 /// 0–8 csomó, 8 sáv, 1 csomós lépcsőkkel). `null` esetén
 /// [trackSpeedUnknownColor].
 Color colorForTrackSpeed(double? sogMps) {
   if (sogMps == null) return trackSpeedUnknownColor;
-  // m/s -> csomó, majd a 0..7 sávindexre vágva (8+ kn is a 7. sáv).
-  final band = (sogMps * 1.943844).floor().clamp(0, 7);
-  return _trackSpeedBands[band];
+  // m/s -> csomó, majd a rámpa utolsó sávjára vágva (8+ kn is a legfelső).
+  final band = (sogMps * 1.943844).floor();
+  return trackSpeedBandColor(band);
 }
