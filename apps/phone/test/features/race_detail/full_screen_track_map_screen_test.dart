@@ -35,6 +35,12 @@ void main() {
     ),
   ];
 
+  const stats = TrackStats(
+    maxSpeedMps: 4.2,
+    avgSpeedMps: 2.5,
+    distanceMeters: 5400,
+  );
+
   Future<void> pumpScreen(
     WidgetTester tester, {
     List<TrackPoint> points = const [],
@@ -45,8 +51,10 @@ void main() {
       supportedLocales: AppLocalizations.supportedLocales,
       home: FullScreenTrackMapScreen(
         raceName: 'Kedd esti',
+        raceStartedAt: DateTime.utc(2026, 7, 18, 16, 30),
         points: points,
         marks: marks,
+        stats: stats,
       ),
     ),
   );
@@ -75,9 +83,10 @@ void main() {
     addTearDown(() => FlutterError.onError = originalOnError);
   }
 
-  // Az elso ket teszt track NELKUL fut: ilyenkor a TrackMap az ures-agra
-  // megy, es nem epul fel FlutterMap. Az AppBar-cim es a legenda bekotese
-  // ettol fuggetlen, tehat itt olcsobban es stabilabban ellenorizheto.
+  // Az elso negy teszt track NELKUL fut: ilyenkor a TrackMap az ures-agra
+  // megy, es nem epul fel FlutterMap. Az AppBar-cim, az export gomb, a
+  // legenda es a capture-pont bekotese ettol fuggetlen, tehat itt olcsobban
+  // es stabilabban ellenorizheto.
   testWidgets('az AppBar cime a verseny neve', (tester) async {
     // ARRANGE + ACT
     await pumpScreen(tester);
@@ -103,6 +112,48 @@ void main() {
     expect(find.text(l10n.detailTrackLegendUnknown), findsOneWidget);
   });
 
+  testWidgets('az export gomb az AppBar-ban all, tooltippel', (tester) async {
+    // ARRANGE + ACT
+    await pumpScreen(tester);
+    final l10n = l10nOf(tester);
+
+    // ASSERT — F2-D9: az export a LATHATO nezetrol indul, ezert itt a helye
+    // es nem a kartya mellett.
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byIcon(Icons.ios_share),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byTooltip(l10n.trackExportAction), findsOneWidget);
+  });
+
+  testWidgets('a capture-pont a legendat is lefedi', (tester) async {
+    // ARRANGE + ACT
+    await pumpScreen(tester);
+
+    // ASSERT — F1-D7 + A1-D2: a kulcsolt RepaintBoundary a Scaffold torzsen
+    // belul all, es a legenda az o leszarmazottja, tehat a legenda is
+    // rakerul az exportalt kepre. A SafeArea-ra szukites NEM kozmetika: a
+    // Navigator modal route-ja is kulcsolt RepaintBoundary-t tesz a fa
+    // tetejere, es az az egesz kepernyot fedne.
+    final capturePoint = find.descendant(
+      of: find.byType(SafeArea),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is RepaintBoundary && widget.key is GlobalKey,
+      ),
+    );
+    expect(capturePoint, findsOneWidget);
+    expect(
+      find.descendant(
+        of: capturePoint,
+        matching: find.byType(TrackSpeedLegend),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('track eseten a bojak neve is megjelenik', (tester) async {
     // ARRANGE — ez az EGYETLEN teszt, ami valodi FlutterMap-et epit.
     ignoreTileLoadErrors();
@@ -116,6 +167,37 @@ void main() {
     expect(find.text('BS'), findsOneWidget);
 
     // A fa elejtese a FlutterMap idozitoit is leallitja a teszt vege elott.
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('hianyos terkep-hatternel az export megerositest ker', (
+    tester,
+  ) async {
+    // ARRANGE — a teszt-kornyezet minden csempet 400-zal ver vissza, tehat a
+    // TileLayer errorTileCallback-je biztosan tuzel: ez maga a hianyos
+    // terkep-hatter fixturaja (F2-D13).
+    ignoreTileLoadErrors();
+    await pumpScreen(tester, points: track);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.byIcon(Icons.ios_share));
+    await tester.pump();
+
+    // ASSERT — nema szurke folt nem elfogadhato kimenet: a felhasznalo
+    // dont, MIELOTT a kep elmegy.
+    expect(find.text(l10n.trackExportTileWarningTitle), findsOneWidget);
+
+    // ACT — az elutasitas tenyleg megszakit.
+    await tester.tap(find.text(l10n.trackExportTileWarningCancel));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // ASSERT
+    expect(find.text(l10n.trackExportTileWarningTitle), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

@@ -318,4 +318,30 @@ class AppLocalizationsHu extends AppLocalizations {
 
     return '$dateString';
   }
+
+  @override
+  String get trackExportAction => 'Kép megosztása';
+
+  @override
+  String get trackExportTileWarningTitle => 'Hiányos térkép';
+
+  @override
+  String get trackExportTileWarningBody =>
+      'A térkép egyes csempéi nem töltődtek be, ezért a megosztott képen fehér foltok lesznek. Így is exportálod?';
+
+  @override
+  String get trackExportTileWarningCancel => 'Mégsem';
+
+  @override
+  String get trackExportTileWarningConfirm => 'Exportálás így is';
+
+  @override
+  String get trackExportErrorCapture => 'A kép elkészítése nem sikerült.';
+
+  @override
+  String get trackExportErrorStorage =>
+      'Nem sikerült ideiglenes fájlt írni a képnek.';
+
+  @override
+  String get trackExportErrorShare => 'A megosztás nem indult el.';
 }

@@ -416,5 +416,37 @@
         "format": "yMMMMd"
       }
     }
+  },
+  "trackExportAction": "Kép megosztása",
+  "@trackExportAction": {
+    "description": "A teljes képernyős track-nézet export gombjának tooltipje."
+  },
+  "trackExportTileWarningTitle": "Hiányos térkép",
+  "@trackExportTileWarningTitle": {
+    "description": "A tile-hiány figyelmeztetés címe az export előtt."
+  },
+  "trackExportTileWarningBody": "A térkép egyes csempéi nem töltődtek be, ezért a megosztott képen fehér foltok lesznek. Így is exportálod?",
+  "@trackExportTileWarningBody": {
+    "description": "A tile-hiány figyelmeztetés szövege az export előtt."
+  },
+  "trackExportTileWarningCancel": "Mégsem",
+  "@trackExportTileWarningCancel": {
+    "description": "A tile-hiány figyelmeztetés elutasító gombja."
+  },
+  "trackExportTileWarningConfirm": "Exportálás így is",
+  "@trackExportTileWarningConfirm": {
+    "description": "A tile-hiány figyelmeztetés megerősítő gombja."
+  },
+  "trackExportErrorCapture": "A kép elkészítése nem sikerült.",
+  "@trackExportErrorCapture": {
+    "description": "Hibaüzenet, ha a track-nézet capture-je elbukott."
+  },
+  "trackExportErrorStorage": "Nem sikerült ideiglenes fájlt írni a képnek.",
+  "@trackExportErrorStorage": {
+    "description": "Hibaüzenet, ha az ideiglenes fájl írása elbukott."
+  },
+  "trackExportErrorShare": "A megosztás nem indult el.",
+  "@trackExportErrorShare": {
+    "description": "Hibaüzenet, ha a megosztás felülete nem nyílt meg."
   }
 }

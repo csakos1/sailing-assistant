@@ -57,6 +57,9 @@ void main() {
               child: PostRaceAnalysisSection(
                 raceId: 'r1',
                 raceName: 'Kedd esti',
+                // A start datuma ehhez a teszthez kozombos: a fejlec-datum
+                // az exportalt kepe, nem a szekcioe.
+                raceStartedAt: null,
               ),
             ),
           ),

@@ -164,6 +164,7 @@ class RaceDetailScreen extends ConsumerWidget {
                     PostRaceAnalysisSection(
                       raceId: current.id,
                       raceName: current.name,
+                      raceStartedAt: current.startedAt,
                       marks: current.marks,
                     ),
                 ],

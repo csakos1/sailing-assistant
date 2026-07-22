@@ -37,6 +37,7 @@ class TrackMap extends StatefulWidget {
     this.isInteractive = false,
     this.height = _defaultHeight,
     this.showMarkLabels = false,
+    this.onTileLoadError,
     super.key,
   });
 
@@ -60,6 +61,13 @@ class TrackMap extends StatefulWidget {
   /// Kiirja a bojak neveit a szamozott korong ala (ADR 0036 F1-D6). A
   /// kartyan kikapcsolva, mert ott a feliratok egymasra csusznanak.
   final bool showMarkLabels;
+
+  /// Jelzes a hivonak, ha egy terkep-csempe betoltese elbukott.
+  ///
+  /// Szandekosan argumentum nelkuli, hogy a hivonak ne kelljen flutter_map-
+  /// tipust importalnia: a csomag ebben a fajlban marad bezarva. Az export
+  /// elotti tile-hiany figyelmeztetes (ADR 0036 F2-D13) ebbol szamol.
+  final VoidCallback? onTileLoadError;
 
   static const double _defaultHeight = 220;
   static const double _radius = 10;
@@ -138,6 +146,9 @@ class _TrackMapState extends State<TrackMap> {
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.csakos.foretack',
+          // A flutter_map harom argumentuma itt elnyelodik: a hivot csak az
+          // erdekli, hogy VOLT hiba (ADR 0036 F2-D13).
+          errorTileCallback: (_, _, _) => widget.onTileLoadError?.call(),
         ),
         PolylineLayer(polylines: _buildSpeedPolylines(trackLatLng)),
         MarkerLayer(

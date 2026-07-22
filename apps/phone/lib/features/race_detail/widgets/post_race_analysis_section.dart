@@ -21,11 +21,13 @@ import 'package:phone/providers/post_race_analysis_provider.dart';
 /// `RaceDetailScreen` gateli); a provider autoDispose.
 class PostRaceAnalysisSection extends ConsumerWidget {
   /// A szekcio a [raceId]-hoz tartozo elemzest jeleniti meg; a [marks] a
-  /// track-terkep bojainak markereihez kell, a [raceName] pedig a teljes
-  /// kepernyos track-nezet AppBar-cimehez (ADR 0036 F1-D3).
+  /// track-terkep bojainak markereihez kell, a [raceName] es a
+  /// [raceStartedAt] pedig a teljes kepernyos track-nezethez, illetve az
+  /// onnan inditott PNG-export fejlecehez (ADR 0036 F1-D3, A1-D9).
   const PostRaceAnalysisSection({
     required this.raceId,
     required this.raceName,
+    required this.raceStartedAt,
     this.marks = const [],
     super.key,
   });
@@ -35,6 +37,10 @@ class PostRaceAnalysisSection extends ConsumerWidget {
 
   /// A befejezett verseny neve a teljes kepernyos nezet cimehez.
   final String raceName;
+
+  /// A verseny startja az exportalt kep fejlecenek datumahoz (A1-D9).
+  /// `null`, ha a versenynek nincs rogzitett startja.
+  final DateTime? raceStartedAt;
 
   /// A verseny bojai a track-terkep markereihez (ures, ha nincs).
   final List<Mark> marks;
@@ -71,6 +77,7 @@ class PostRaceAnalysisSection extends ConsumerWidget {
               data: data,
               marks: marks,
               raceName: raceName,
+              raceStartedAt: raceStartedAt,
               l10n: l10n,
             ),
           ),
@@ -87,12 +94,14 @@ class _AnalysisBody extends StatelessWidget {
     required this.data,
     required this.marks,
     required this.raceName,
+    required this.raceStartedAt,
     required this.l10n,
   });
 
   final PostRaceAnalysis data;
   final List<Mark> marks;
   final String raceName;
+  final DateTime? raceStartedAt;
   final AppLocalizations l10n;
 
   @override
@@ -127,8 +136,10 @@ class _AnalysisBody extends StatelessWidget {
                 MaterialPageRoute<void>(
                   builder: (_) => FullScreenTrackMapScreen(
                     raceName: raceName,
+                    raceStartedAt: raceStartedAt,
                     points: data.trackPoints,
                     marks: marks,
+                    stats: data.trackStats,
                   ),
                 ),
               ),

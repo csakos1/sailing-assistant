@@ -669,6 +669,54 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'{date}'**
   String exportImageDate(DateTime date);
+
+  /// A teljes képernyős track-nézet export gombjának tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kép megosztása'**
+  String get trackExportAction;
+
+  /// A tile-hiány figyelmeztetés címe az export előtt.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hiányos térkép'**
+  String get trackExportTileWarningTitle;
+
+  /// A tile-hiány figyelmeztetés szövege az export előtt.
+  ///
+  /// In hu, this message translates to:
+  /// **'A térkép egyes csempéi nem töltődtek be, ezért a megosztott képen fehér foltok lesznek. Így is exportálod?'**
+  String get trackExportTileWarningBody;
+
+  /// A tile-hiány figyelmeztetés elutasító gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégsem'**
+  String get trackExportTileWarningCancel;
+
+  /// A tile-hiány figyelmeztetés megerősítő gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Exportálás így is'**
+  String get trackExportTileWarningConfirm;
+
+  /// Hibaüzenet, ha a track-nézet capture-je elbukott.
+  ///
+  /// In hu, this message translates to:
+  /// **'A kép elkészítése nem sikerült.'**
+  String get trackExportErrorCapture;
+
+  /// Hibaüzenet, ha az ideiglenes fájl írása elbukott.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült ideiglenes fájlt írni a képnek.'**
+  String get trackExportErrorStorage;
+
+  /// Hibaüzenet, ha a megosztás felülete nem nyílt meg.
+  ///
+  /// In hu, this message translates to:
+  /// **'A megosztás nem indult el.'**
+  String get trackExportErrorShare;
 }
 
 class _AppLocalizationsDelegate
