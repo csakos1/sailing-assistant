@@ -301,4 +301,13 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get detailTrackDistance => 'megtett út';
+
+  @override
+  String get detailTrackLegendTitle => 'sebesség (kn)';
+
+  @override
+  String get detailTrackLegendUnknown => 'nincs adat';
+
+  @override
+  String get detailTrackOpenFullscreen => 'Track nagyítása';
 }

@@ -394,5 +394,17 @@
   "detailTrackDistance": "megtett út",
   "@detailTrackDistance": {
     "description": "Track-stat cella: a megtett út (haversine-összeg) címkéje."
+  },
+  "detailTrackLegendTitle": "sebesség (kn)",
+  "@detailTrackLegendTitle": {
+    "description": "A track sebesség-legendájának fejléce a nagy nézeten."
+  },
+  "detailTrackLegendUnknown": "nincs adat",
+  "@detailTrackLegendUnknown": {
+    "description": "A legenda címkéje az ismeretlen sebességű track-szakaszhoz."
+  },
+  "detailTrackOpenFullscreen": "Track nagyítása",
+  "@detailTrackOpenFullscreen": {
+    "description": "A track-kártya koppintási affordanciája: teljes képernyős nézet."
   }
 }

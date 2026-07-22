@@ -645,6 +645,24 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'megtett út'**
   String get detailTrackDistance;
+
+  /// A track sebesség-legendájának fejléce a nagy nézeten.
+  ///
+  /// In hu, this message translates to:
+  /// **'sebesség (kn)'**
+  String get detailTrackLegendTitle;
+
+  /// A legenda címkéje az ismeretlen sebességű track-szakaszhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'nincs adat'**
+  String get detailTrackLegendUnknown;
+
+  /// A track-kártya koppintási affordanciája: teljes képernyős nézet.
+  ///
+  /// In hu, this message translates to:
+  /// **'Track nagyítása'**
+  String get detailTrackOpenFullscreen;
 }
 
 class _AppLocalizationsDelegate

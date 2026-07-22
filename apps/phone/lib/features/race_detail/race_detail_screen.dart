@@ -163,6 +163,7 @@ class RaceDetailScreen extends ConsumerWidget {
                   if (current.status == RaceStatus.finished)
                     PostRaceAnalysisSection(
                       raceId: current.id,
+                      raceName: current.name,
                       marks: current.marks,
                     ),
                 ],

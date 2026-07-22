@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/race_detail/post_race_analysis.dart';
+import 'package:phone/features/race_detail/widgets/full_screen_track_map_screen.dart';
 import 'package:phone/features/race_detail/widgets/track_map.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/post_race_analysis_provider.dart';
@@ -22,15 +23,20 @@ const _kMissing = '—';
 /// `RaceDetailScreen` gateli); a provider autoDispose.
 class PostRaceAnalysisSection extends ConsumerWidget {
   /// A szekcio a [raceId]-hoz tartozo elemzest jeleniti meg; a [marks] a
-  /// track-terkep bojainak markereihez kell.
+  /// track-terkep bojainak markereihez kell, a [raceName] pedig a teljes
+  /// kepernyos track-nezet AppBar-cimehez (ADR 0036 F1-D3).
   const PostRaceAnalysisSection({
     required this.raceId,
+    required this.raceName,
     this.marks = const [],
     super.key,
   });
 
   /// A befejezett verseny azonositoja (a provider-family kulcsa).
   final String raceId;
+
+  /// A befejezett verseny neve a teljes kepernyos nezet cimehez.
+  final String raceName;
 
   /// A verseny bojai a track-terkep markereihez (ures, ha nincs).
   final List<Mark> marks;
@@ -63,7 +69,12 @@ class PostRaceAnalysisSection extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (_, _) => Text(l10n.detailAnalysisError, style: muted),
-            data: (data) => _AnalysisBody(data: data, marks: marks, l10n: l10n),
+            data: (data) => _AnalysisBody(
+              data: data,
+              marks: marks,
+              raceName: raceName,
+              l10n: l10n,
+            ),
           ),
         ],
       ),
@@ -77,11 +88,13 @@ class _AnalysisBody extends StatelessWidget {
   const _AnalysisBody({
     required this.data,
     required this.marks,
+    required this.raceName,
     required this.l10n,
   });
 
   final PostRaceAnalysis data;
   final List<Mark> marks;
+  final String raceName;
   final AppLocalizations l10n;
 
   @override
@@ -91,15 +104,39 @@ class _AnalysisBody extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
+    final trackMap = TrackMap(
+      points: data.trackPoints,
+      marks: marks,
+      emptyLabel: l10n.detailTrackEmpty,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // A track-terkep felul (release-ben is lathato, ADR 0034 A3-D4).
-        TrackMap(
-          points: data.trackPoints,
-          marks: marks,
-          emptyLabel: l10n.detailTrackEmpty,
-        ),
+        // Track eseten koppintasra teljes kepernyos nezet nyilik (ADR 0036
+        // F1-D2). Az IgnorePointer NEM elhagyhato: a FlutterMap kikapcsolt
+        // interakcio mellett is elnyeli a pointer-esemenyeket, tehat az
+        // InkWell onmagaban nem kapna koppintast. Ures allapotban nincs mit
+        // nagyitani -> ott a kartya szandekosan nem kattinthato.
+        if (data.trackPoints.isEmpty)
+          trackMap
+        else
+          Tooltip(
+            message: l10n.detailTrackOpenFullscreen,
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => FullScreenTrackMapScreen(
+                    raceName: raceName,
+                    points: data.trackPoints,
+                    marks: marks,
+                  ),
+                ),
+              ),
+              child: IgnorePointer(child: trackMap),
+            ),
+          ),
         const SizedBox(height: 10),
         _TrackStatsRow(stats: data.trackStats, l10n: l10n),
         // A next-TWA elemzes csak debug-buildben, a track ALATT (A3-D4).

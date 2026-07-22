@@ -54,7 +54,10 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: SingleChildScrollView(
-              child: PostRaceAnalysisSection(raceId: 'r1'),
+              child: PostRaceAnalysisSection(
+                raceId: 'r1',
+                raceName: 'Kedd esti',
+              ),
             ),
           ),
         ),
@@ -88,5 +91,20 @@ void main() {
 
     // ASSERT
     expect(find.text(l10n.detailAnalysisEmpty), findsOneWidget);
+  });
+
+  testWidgets('track nelkul a kartya nem nyitja meg a teljes kepernyot', (
+    tester,
+  ) async {
+    // ARRANGE + ACT — a fenti fixtura egyetlen mintaja sem hordoz poziciot,
+    // tehat a trackPoints ures marad.
+    await pumpSection(tester, reader: (_) async => scenario());
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ASSERT — az ures kartyan nincs mit nagyitani, ezert nem kattinthato
+    // (ADR 0036 F1-D2); a nagyitas-affordancia sem jelenik meg.
+    expect(find.text(l10n.detailTrackEmpty), findsOneWidget);
+    expect(find.byTooltip(l10n.detailTrackOpenFullscreen), findsNothing);
   });
 }
