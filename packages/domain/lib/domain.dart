@@ -6,12 +6,14 @@
 library;
 
 export 'src/entities/boat_state.dart';
+export 'src/entities/cardinal_direction.dart';
 export 'src/entities/eta_source.dart';
 export 'src/entities/mark.dart';
 export 'src/entities/mark_prediction.dart';
 export 'src/entities/polar.dart';
 export 'src/entities/race.dart';
 export 'src/entities/race_status.dart';
+export 'src/entities/safety_mark.dart';
 export 'src/entities/saved_mark.dart';
 export 'src/entities/twa_prediction.dart';
 export 'src/entities/twd_estimate.dart';
@@ -29,6 +31,7 @@ export 'src/repositories/nmea_stream.dart';
 export 'src/repositories/polar_repository.dart';
 export 'src/repositories/race_repository.dart';
 export 'src/repositories/rounding_sample_reader.dart';
+export 'src/repositories/safety_mark_repository.dart';
 export 'src/repositories/settings_repository.dart';
 export 'src/repositories/telemetry_logger.dart';
 export 'src/use_cases/analyze_roundings.dart';
