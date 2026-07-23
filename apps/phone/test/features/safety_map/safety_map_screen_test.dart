@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
+import 'package:phone/features/safety_map/widgets/cardinal_mark_pin.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
+import 'package:phone/providers/safety_mark_repository_provider.dart';
 import 'package:phone/widgets/map_attribution.dart';
 
 void main() {
@@ -34,11 +36,17 @@ void main() {
   Future<_ControllableBoatState> pumpScreen(
     WidgetTester tester, {
     required Coordinate? position,
+    List<SafetyMark> marks = const [],
   }) async {
     final notifier = _ControllableBoatState(boatAt(position));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [boatStateProvider.overrideWith(() => notifier)],
+        overrides: [
+          boatStateProvider.overrideWith(() => notifier),
+          safetyMarkRepositoryProvider.overrideWithValue(
+            _FakeSafetyMarkRepository(marks),
+          ),
+        ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -185,6 +193,55 @@ void main() {
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
+
+    testWidgets('a katalogus jeloloi kirajzolodnak a terkepre', (tester) async {
+      // ARRANGE
+      ignoreTileLoadErrors();
+
+      // ACT -- a jelolok a repositoryn at jonnek, tehat a teszt a teljes
+      // lancot meri: repository -> FutureProvider -> reteg-epites.
+      await pumpScreen(
+        tester,
+        position: tihany,
+        marks: const [
+          CardinalMark(
+            position: Coordinate(latitude: 46.8945, longitude: 17.8995),
+            label: 'Cso E1',
+            direction: CardinalDirection.south,
+          ),
+          FixedStructure(
+            position: Coordinate(latitude: 46.8935, longitude: 17.8985),
+            label: 'Platform',
+          ),
+        ],
+      );
+      await tester.pump();
+
+      // ASSERT -- a fajta hatarozza meg a jelet: a kardinalis sajat rajzot
+      // kap, a fix epitmeny nevet.
+      expect(find.byType(CardinalMarkPin), findsOneWidget);
+      expect(find.text('Platform'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('pozicio nelkul a jelolok sem rajzolodnak', (tester) async {
+      // ARRANGE + ACT -- nincs terkep, tehat nincs mire rajzolni.
+      await pumpScreen(
+        tester,
+        position: null,
+        marks: const [
+          FixedStructure(
+            position: Coordinate(latitude: 46.8935, longitude: 17.8985),
+            label: 'Platform',
+          ),
+        ],
+      );
+      await tester.pump();
+
+      // ASSERT
+      expect(find.text('Platform'), findsNothing);
+    });
   });
 }
 
@@ -204,4 +261,17 @@ class _ControllableBoatState extends BoatStateNotifier {
   // vissza), ezert a metodus-alak marad, celzott ignore-ral.
   // ignore: use_setters_to_change_properties
   void push(BoatState next) => state = next;
+}
+
+/// A katalogus helyett rogzitett listat ado repository.
+///
+/// A kepernyo-teszt igy nem a valodi 14 elemtol fugg, hanem attol, amit a
+/// teszt megad -- a katalogus tartalmat a sajat tesztje orzi.
+class _FakeSafetyMarkRepository implements SafetyMarkRepository {
+  const _FakeSafetyMarkRepository(this._marks);
+
+  final List<SafetyMark> _marks;
+
+  @override
+  Future<List<SafetyMark>> loadSafetyMarks() async => _marks;
 }

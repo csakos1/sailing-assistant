@@ -6,6 +6,15 @@ const Color starboardColor = Color(0xFF34C759);
 /// Port (bal) oldal — hajós (navigációs-fény) konvenció szerint piros.
 const Color portColor = Color(0xFFE5484D);
 
+/// A kardinális bóják IALA-feketéje (ADR 0037 D15).
+///
+/// Nem tiszta fekete: a csempe-háttéren a lágyabb tónus olvashatóbb, és
+/// a fehér keret is jobban elválik tőle.
+const Color cardinalBlack = Color(0xFF1B1B1B);
+
+/// A kardinális bóják és a gázló-jelölők IALA-sárgája (ADR 0037 D15).
+const Color cardinalYellow = Color(0xFFFFD100);
+
 /// A track gradient-színezés rámpája (ADR 0034 Addendum 4): lassú zöld →
 /// sárga → gyors piros, fix 0–8 csomóra normalizálva, 8 sávban. A szín
 /// abszolút sebességet jelent, így két verseny track-je összevethető.

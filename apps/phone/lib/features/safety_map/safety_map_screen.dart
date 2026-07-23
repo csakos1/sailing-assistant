@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:phone/features/safety_map/widgets/safety_mark_layers.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
+import 'package:phone/providers/safety_mark_provider.dart';
 import 'package:phone/widgets/map_attribution.dart';
 
 /// Az élő biztonsági térkép teljes képernyős nézete (ADR 0037,
@@ -106,6 +108,12 @@ class _SafetyMapScreenState extends ConsumerState<SafetyMapScreen> {
       boatStateProvider.select((state) => state.position),
     );
 
+    // A jelölők a binárisból jönnek, tehát a betöltés egyetlen mikrotaszk.
+    // Amíg tart, üres lista megy tovább: egy biztonsági képernyőn a
+    // jelölők nélküli térkép jobb, mint egy töltés-képernyő.
+    final safetyMarksAsync = ref.watch(safetyMarksProvider);
+    final safetyMarks = safetyMarksAsync.valueOrNull ?? const <SafetyMark>[];
+
     // A követés a snapshot frissülésére reagál, nem a build-re: a listener
     // a build-en KÍVÜL fut, tehát a `move()` nem esik layout közbe.
     ref.listen(boatStateProvider.select((state) => state.position), (_, next) {
@@ -120,7 +128,7 @@ class _SafetyMapScreenState extends ConsumerState<SafetyMapScreen> {
       appBar: AppBar(title: Text(l10n.safetyMapTitle)),
       body: centre == null
           ? _buildEmptyState(theme, l10n.safetyMapNoPosition)
-          : _buildMap(centre),
+          : _buildMap(centre, safetyMarks),
       floatingActionButton: _isFollowing || position == null
           ? null
           : FloatingActionButton.small(
@@ -146,7 +154,7 @@ class _SafetyMapScreenState extends ConsumerState<SafetyMapScreen> {
     );
   }
 
-  Widget _buildMap(Coordinate centre) {
+  Widget _buildMap(Coordinate centre, List<SafetyMark> marks) {
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
@@ -162,6 +170,7 @@ class _SafetyMapScreenState extends ConsumerState<SafetyMapScreen> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.csakos.foretack',
         ),
+        ...buildSafetyMarkLayers(marks),
         const MapAttribution(),
       ],
     );
