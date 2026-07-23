@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:phone/features/safety_map/widgets/boat_symbol_layer.dart';
+import 'package:phone/features/safety_map/widgets/boat_vector_layer.dart';
 import 'package:phone/features/safety_map/widgets/safety_mark_layers.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
@@ -171,6 +173,11 @@ class _SafetyMapScreenState extends ConsumerState<SafetyMapScreen> {
           userAgentPackageName: 'com.csakos.foretack',
         ),
         ...buildSafetyMarkLayers(marks),
+        // D10 rétegsorrend: a vektor a hajó ALATT, a hajó mindenek
+        // FÖLÖTT, az attribúció overlay-ként legfelül. A két réteg maga
+        // iratkozik fel a hajó-állapotra, ezért itt paraméter nélküli.
+        const BoatVectorLayer(),
+        const BoatSymbolLayer(),
         const MapAttribution(),
       ],
     );

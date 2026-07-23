@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
+import 'package:phone/features/safety_map/widgets/boat_symbol_layer.dart';
+import 'package:phone/features/safety_map/widgets/boat_vector_layer.dart';
 import 'package:phone/features/safety_map/widgets/cardinal_mark_pin.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
@@ -241,6 +243,22 @@ void main() {
 
       // ASSERT
       expect(find.text('Platform'), findsNothing);
+    });
+
+    testWidgets('a hajo ket retege bekerul a terkepbe', (tester) async {
+      // ARRANGE
+      ignoreTileLoadErrors();
+
+      // ACT
+      await pumpScreen(tester, position: tihany);
+
+      // ASSERT -- csak a bekotes: mit rajzolnak, azt a sajat tesztjuk
+      // meri (boat_layers_test.dart). Itt az szamit, hogy a terkep
+      // gyerekei legyenek, es a helyes sorrendben.
+      expect(find.byType(BoatVectorLayer), findsOneWidget);
+      expect(find.byType(BoatSymbolLayer), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 }

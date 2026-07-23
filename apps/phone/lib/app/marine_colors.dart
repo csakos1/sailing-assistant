@@ -15,6 +15,13 @@ const Color cardinalBlack = Color(0xFF1B1B1B);
 /// A kardinális bóják és a gázló-jelölők IALA-sárgája (ADR 0037 D15).
 const Color cardinalYellow = Color(0xFFFFD100);
 
+/// A saját hajó jelének és irányvektorának színe (ADR 0037 D10–D12).
+///
+/// Sem a starboard-zöld, sem a port-piros: azok oldalt jelentenek, itt
+/// pedig a hajó egésze a jelentés. A kék egyik jelölő-színnel sem
+/// téveszthető össze a térképen.
+const Color boatColor = Color(0xFF2D7FF9);
+
 /// A track gradient-színezés rámpája (ADR 0034 Addendum 4): lassú zöld →
 /// sárga → gyors piros, fix 0–8 csomóra normalizálva, 8 sávban. A szín
 /// abszolút sebességet jelent, így két verseny track-je összevethető.
