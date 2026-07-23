@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/race_detail/track_point.dart';
+import 'package:phone/widgets/map_attribution.dart';
 import 'package:phone/widgets/mark_pin.dart';
 
 /// A vitorlazott track + a palya bojai online OSM-terkep felett (ADR 0035 +
@@ -186,7 +187,7 @@ class _TrackMapState extends State<TrackMap> {
         // badge-bol egy capture-on csak az ikon latszana -- ODbL-hez az sem
         // eleg (ADR 0036 F2-D10 + A1-D6). Ezert mindket modban ugyanaz a
         // mindig lathato szoveges kredit all.
-        const _MapAttribution(),
+        const MapAttribution(),
       ],
     );
     if (!isCard) return map;
@@ -264,45 +265,5 @@ class _TrackMapState extends State<TrackMap> {
       }
     }
     return polylines;
-  }
-}
-
-/// Az OSM-kredit mindig lathato, szoveges valtozata (ADR 0036 A1-D6).
-///
-/// Miert nem a flutter_map SimpleAttributionWidget-je: annak a torzse
-/// `Row(mainAxisSize: min)`, a `source` mezoje pedig `Text` tipusu (NEM
-/// `Widget`), tehat `Flexible`-be nem csomagolhato -- keskeny terkepen a sor
-/// kenyszeruen tulcsordul. Itt a szoveg egy `Align` laza kenyszere alatt ul,
-/// ezert szuk helyen rovidul, de SOSEM csordul tul.
-///
-/// A `flutter_map | ` prefix szandekosan marad ki: az ODbL a terkep-adat
-/// kreditjet keri, nem a csomag reklamjat -- es a megosztott kepre (F2-D10)
-/// az is rakerulne.
-class _MapAttribution extends StatelessWidget {
-  const _MapAttribution();
-
-  /// A copyright-jel escape-elve, hogy a fajl ASCII maradjon.
-  static const String _credit = '\u00a9 OpenStreetMap contributors';
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Align(
-      alignment: Alignment.bottomRight,
-      child: ColoredBox(
-        color: theme.colorScheme.surface,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: Text(
-            _credit,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
