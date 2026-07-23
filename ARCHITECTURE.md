@@ -2912,6 +2912,17 @@ megbízható (ADR 0020). A vektor a pozíciót a COG mentén a látható átló
 nevesített sebesség-küszöb alatt (alap 1 kn) **nem rajzolódik** — kis
 sebességnél a COG zaj, amit a hosszú vonal felnagyítana.
 
+**A vektor végpontja domain-számítás.** A pozíciót a COG mentén kivetítő
+gömbi képlet (pont + irány + távolság → új pont) a
+`ProjectPositionAlongBearing` use case-ben él, kézzel írva, a
+`CalculateDistanceToMark` haversine-mintájára; a `latlong2`
+`Distance.offset`-je tudatosan nem használt (ADR 0037 A1-D1). Így a gömbi
+geometria direkt és inverz fele egy rétegben marad, a domain
+függőség-listája változatlan, és a presentation-rétegben meg sem születik
+a `latlong2` és a domain `Distance` névütközése. A use case true-north
+referenciájú `Bearing`-et követel meg (A1-D3), és a visszaadott
+hosszúságot ±180 fokra normálja (A1-D4).
+
 A verseny bójái a `MarkPin` megosztott widgettel rajzolódnak, amit a
 `TrackMap`-ből emeltünk ki (`apps/phone/lib/widgets/mark_pin.dart`), így a
 post-race és az élő térkép ugyanazt a vizuális nyelvet beszéli. A
