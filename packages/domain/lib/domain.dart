@@ -52,6 +52,7 @@ export 'src/use_cases/lookup_target_vmg.dart';
 export 'src/use_cases/mark_rounding_detector.dart';
 export 'src/use_cases/parse_geo_angle.dart';
 export 'src/use_cases/predict_twa_at_mark.dart';
+export 'src/use_cases/project_position_along_bearing.dart';
 export 'src/use_cases/summarize_roundings.dart';
 export 'src/use_cases/summarize_track.dart';
 export 'src/value_objects/analysis_params.dart';
