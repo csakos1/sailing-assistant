@@ -264,6 +264,8 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   ├── wind_data.dart
 │   │   │   │   │   ├── race.dart
 │   │   │   │   │   ├── mark.dart
+│   │   │   │   │   ├── safety_mark.dart
+│   │   │   │   │   ├── cardinal_direction.dart
 │   │   │   │   │   └── mark_prediction.dart
 │   │   │   │   ├── value_objects/
 │   │   │   │   │   ├── coordinate.dart
@@ -274,6 +276,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   ├── repositories/         # Abstract interfaces
 │   │   │   │   │   ├── nmea_stream.dart
 │   │   │   │   │   ├── race_repository.dart
+│   │   │   │   │   ├── safety_mark_repository.dart
 │   │   │   │   │   ├── telemetry_logger.dart
 │   │   │   │   │   ├── geomagnetic_service.dart
 │   │   │   │   │   └── settings_repository.dart
@@ -328,6 +331,8 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   │   └── migrations/
 │   │   │   │   ├── geomag/
 │   │   │   │   │   └── wmm_geomagnetic_service.dart
+│   │   │   │   ├── safety/
+│   │   │   │   │   └── safety_mark_catalogue.dart
 │   │   │   │   └── settings/
 │   │   │   │       └── shared_prefs_settings.dart
 │   │   ├── pubspec.yaml
@@ -379,6 +384,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   ├── race_detail/                        # Verseny-detail: track-térkép, statok, PNG-export (export/)
 │   │   │   │   │       # (track-térkép: track_map.dart, ADR 0035;
 │   │   │   │   │       #  domain SummarizeTrack + TrackStats, Add. 3)
+│   │   │   │   ├── safety_map/                         # Élő biztonsági térkép (ADR 0037)
 │   │   │   │   └── debug/                              # Replay log, raw NMEA viewer
 │   │   │   ├── providers/                              # Globális Riverpod providers
 │   │   │   │   ├── nmea_stream_provider.dart
@@ -872,6 +878,41 @@ entitást — nem létezik "üres/invalid" `WindShiftTrend` állapot. Ez a
 nullable-pattern konzisztens a 7.3 `CourseCorrection` és a 7.6 `ETA`
 return-szemantikájával.
 
+#### SafetyMark — sealed navigációs jelölő-hierarchia (ADR 0037)
+
+Az állandó navigációs jelölők (kardinális bóják a tihanyi csőben,
+meteorológiai platformok, védett terület, gázlót jelző bóják) **nem**
+`Mark`-ok. A `Mark` sorszámozott, egy `Race` pályájában él, megkerülendő,
+felhasználó által szerkeszthető (ADR 0029), és élő gépezetet hajt
+(`MarkRoundingDetector`, `activeMarkIndex`, next-leg bearing). Egy
+kardinálisnak ezekből egyik sincs — közös típusban a `sequence` a
+példányok felére értelmetlen lenne (LSP-törés), és minden fogyasztónak
+szűrnie kellene; az egy elfelejtett szűrő vízen jelentkezne, egy
+kardinálissal mint predikció-célponttal.
+
+```dart
+sealed class SafetyMark          // Coordinate position, String label
+  final class CardinalMark       // + CardinalDirection direction
+  final class FixedStructure     // meteorologiai platform, colop
+  final class RestrictedArea     // + double sideMeters (position = kozep)
+  final class ShallowWaterMark   // gazlot jelzo piros boja
+```
+
+A rajzolás kimerítő `switch`-csel választ jelet, a `Warning` és a
+`DecodedSentence` mintájára: egy ötödik fajta felvétele **fordítási
+hibaként** mutatja meg az összes rajzolási pontot.
+
+A `CardinalDirection` enum mind a négy értéket viszi
+(`north`/`east`/`south`/`west`), függetlenül attól, hogy a mai
+katalógusban melyik fordul elő — zárt, valós fogalomkészlet. A
+biztonságos szektort számoló függvény **nem** része ennek a szeletnek:
+fogyasztója a korridor- és riasztási réteg lesz (roadmap S3).
+
+A típus-hozzárendelés **katalógus-adat, nem architektúra**: a forrásban a
+jelölők neve a *sort* azonosítja, a kardinális fajtája ebből IALA szerint
+**fordítva** adódik (a csatorna déli szélén álló jelölőtől északra van a
+biztonságos víz, tehát az északi kardinális).
+
 ### 5.3 Repository interfészek
 
 A domain réteg csak **absztrakt** interfészeket definiál — az
@@ -1053,6 +1094,13 @@ A többi repository a saját fázisával együtt készül:
 - **`GeomagneticService`** (Phase 2) — declination a WMM-2025-ből (13.2);
   a v1 elsődleges TWD-útja a `MWD`-ből közvetlenül jön (6.5), ezért v1-ben
   nincs rá szükség.
+
+**Nem halasztott — az ADR 0037-tel landol:** a `SafetyMarkRepository`
+(`safety_mark_repository.dart`) az állandó navigációs jelölők
+katalógusát adja. A v1 implementáció `const` lista a data-rétegben
+(`safety/safety_mark_catalogue.dart`), tehát **nincs Drift-tábla és nincs
+migráció** — a `schemaVersion` marad 4. Az `async` szignatúra azért marad,
+hogy a későbbi letölthető csomag vagy DB-tábla ne törje az LSP-t (DIP).
 
 ### 5.4 Sealed classes hibakezeléshez
 
@@ -2834,6 +2882,47 @@ session-flag `false` marad → boot-kor nincs auto-indítás. A
 debug).
 
 ---
+
+### 8.10 Élő biztonsági térkép (ADR 0037)
+
+`apps/phone/lib/features/safety_map/` — teljes képernyős, **észak-fent**
+rögzített térkép, ami az élő verseny-képernyőről nyílik. Csak aktív
+verseny alatt érhető el: a pozíció és a COG a meglévő snapshot-útról jön
+(`RaceSnapshot` → `BoatState`), tehát nincs új adatforrás és nincs
+engine-életciklus-változás. A funkció **telefon-only**: a `WatchPayload`,
+a `wearable_bridge` és az `apps/watch` változatlan.
+
+**Rétegek alulról fölfelé:** `flutter_map` OSM raszter csempe (ADR 0035)
+→ `SafetyMark`-ok → az aktív verseny bójái → hajó és irányvektor →
+overlay-k (lépték, észak-jel, középre-igazító gomb, OSM-attribúció).
+
+**Interakció.** Pásztázás, csippentés és dupla-koppintásos zoom; a
+rotáció explicit tiltva (az `InteractiveFlag` értékei felsorolva, nem
+`all`-ból kivonva). **Követés-zár:** alapból a hajó a nézet közepén
+marad, bármely felhasználói gesztus elengedi a követést, egy lebegő gomb
+visszakapcsolja — enélkül az 1 Hz-es frissítés minden pásztázást
+visszarántana.
+
+**A hajó szimbóluma és az irányvektor egyaránt COG-ból** származik; a
+`HDG` nem használatos. Egyrészt a kérdés („ha ebbe az irányba haladok,
+hol jövök ki a bójákhoz képest") track-szemantika, és a csőben van valós
+áramlás; másrészt a ZG100 heading-hibája miatt az orr-irány önmagában sem
+megbízható (ADR 0020). A vektor a pozíciót a COG mentén a látható átló
+1,5-szeresére vetíti ki (a vágást a `flutter_map` végzi), és egy külön
+nevesített sebesség-küszöb alatt (alap 1 kn) **nem rajzolódik** — kis
+sebességnél a COG zaj, amit a hosszú vonal felnagyítana.
+
+A verseny bójái a meglévő `_MarkPin`-nel rajzolódnak (privátból
+megosztott widgetté emelve), így a post-race és az élő térkép ugyanazt a
+vizuális nyelvet beszéli. A `TrackMap` **nem** bővül: az post-race,
+egyszer illeszt bounding-boxra, statikus tartalmú — egy widget nem
+szolgálhat ki két életciklust (SRP).
+
+**Korlát:** a csempe-forrás **online**. Vízen, mobilháló nélkül a
+térkép-háttér nem tölt be — a jelölők, a hajó és a vektor ettől
+függetlenül rajzolódnak. Az offline csempe-csomag **saját ADR-t kap**;
+méretezésénél számít, hogy a jelölők Keszthelytől Siófokig szórtak,
+tehát a csomagnak a **teljes tavat** kell fednie.
 
 ## 9. Perzisztencia (Drift / SQLite)
 
