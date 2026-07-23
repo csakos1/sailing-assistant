@@ -269,6 +269,85 @@ PNG-export lezárásakor.
 - **Miért nem most**: a raszter tile-ok a natív csempe-élességnél nem
   lesznek jobbak; érdemi nyereséghez vektoros tile-forrás kellene.
 
+## Élő biztonsági térkép (ADR 0037)
+
+Az ADR 0037 „Halasztva” szakaszából emelve, plusz amit az implementáció
+közben tett hozzá. A csempe-csomag NEM stílus-kérdés: nélküle a képernyő
+a vízen szürke háttérrel megy.
+
+### Offline csempe-csomag
+- **Mi**: a teljes tavat lefedő, a binárisba csomagolt raszter
+  csempe-csomag, és a hozzá tartozó helyi tile-provider.
+- **Mikor**: közvetlenül ezután, **saját ADR-rel (0038)**.
+- **Miért nem most**: az ADR 0037 a képernyőt és a rétegeket zárta le; a
+  csomag külön adat-pipeline-t, licenc-döntést és méret-tervet igényel.
+- **Megjegyzés**: a Vulcan hotspotján a telefonnak NINCS internete
+  (kipróbálva), tehát online fallback nem létezik — a mai `TileLayer` a
+  vízen soha nem tölt. A csomagnak Keszthelytől Siófokig kell fednie,
+  mert a jelölők több mint 60 km-en szórva vannak. Az OSM csempe-szervere
+  a tömeges letöltést tiltja, tehát a csempéket elő kell állítani.
+- **Hivatkozás**: ADR 0035 és 0037 „Halasztva”; a fenti post-race
+  szakasz „Offline tile-cache” tétele ugyanezt a hiányt írja le a másik
+  oldalról.
+
+### Korridor / XTE és riasztási réteg (S3)
+- **Mi**: a csatorna-korridor kirajzolása, kereszt-irányú eltérés, és
+  riasztás, ha a hajó kilép belőle.
+- **Miért nem most**: a v1 megmutat, nem ítél. A szektor-geometria és a
+  riasztási szabály önálló tervezést kíván.
+- **Megjegyzés**: ez lesz a `RestrictedArea` sarok-geometriájának második
+  fogyasztója, lásd lentebb.
+
+### A hiányzó nyolcadik északi kardinális
+- **Mi**: a katalógus ma hét kardinálist ismer; a nyolcadik pozíciója
+  nincs megmérve.
+- **Miért nem most**: becsült pozíció nem kerül be (D17) — egy kitalált
+  bója egy biztonsági képernyőn rosszabb, mint egy hiányzó, mert
+  ugyanolyan magabiztosan néz ki.
+
+### A képernyő ébrentartása a biztonsági térképen
+- **Mi**: `screenWakeLockProvider`-varrat a `SafetyMapScreen`-re.
+- **Miért nem most**: nem volt az ADR 0037 szeleteiben. A
+  `LiveRaceScreen` már ébren tartja a kijelzőt, a térkép nem.
+- **Megjegyzés**: a csőben épp ez a képernyő az, aminek ébren kellene
+  maradnia. Kis munka, valós hiány.
+
+### A siófoki platform és a `VK` bója egymásra csúszása
+- **Mi**: a két jel kb. 23 méterre van egymástól, aktív versenyen
+  egymásra ér a térképen.
+- **Miért nem most**: az ADR elfogadta (két rekord, két különböző dolog);
+  hogy zavaró-e, az on-device fog kiderülni.
+
+### Zoom-küszöbös feliratozás (D15)
+- **Mi**: a jelölő-feliratok csak egy zoom-szint fölött látszanának.
+- **Miért nem most**: az N3b tudatosan küszöb nélkül ment — a küszöb
+  állapotot és `setState`-et hozna egy ma állapotmentes rétegbe,
+  tizennégy elemért. Kizoomolva a feliratok összeérhetnek.
+- **Megjegyzés**: tudatos eltérés az ADR-től, nem kifelejtés.
+
+### A fling újra elengedi a követést
+- **Mi**: ha a térkép el van pöckölve és a fling még fut a
+  középre-igazító gomb megnyomásakor, a fling gesztusként azonnal újra
+  elengedi a követést.
+- **Miért nem most**: a `flutter_map` 7.0.2-ben nincs publikus API a futó
+  animáció megállítására. A hatás kicsi és önjavító: még egy koppintás.
+
+### A `RestrictedArea` sarok-geometriája a presentationben él
+- **Mi**: a négyzet négy sarkát a `restricted_area_outline.dart` vezeti
+  le a `ProjectPositionAlongBearing`-gel.
+- **Mikor**: amikor az S3 korridor-réteg is kérdezni fogja, hogy a hajó a
+  területen belül van-e — akkor a geometria a domainbe kerül.
+- **Miért nem most**: egy fogyasztó, négy hívás fix irányszögekkel; a
+  domainben ma fogyasztó nélküli, drift-veszélyes kód lenne.
+
+### A `Coordinate` → `LatLng` átváltás hat helyen él
+- **Mi**: az egysoros `_toLatLng` a `TrackMap`, a `SafetyMapScreen`, a
+  `safety_mark_layers`, a `boat_vector_layer`, a `boat_symbol_layer` és a
+  `race_mark_layer` fájlokban ismétlődik.
+- **Mikor**: a következő előfordulásnál, egyetlen megosztott helyre.
+- **Miért nem most**: viselkedés-változás nélküli refaktor, ami a zöld,
+  post-race `TrackMap`-et is megérintené; az offline csomag előbbre való.
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
