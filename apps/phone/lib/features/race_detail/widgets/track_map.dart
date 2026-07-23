@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/race_detail/track_point.dart';
+import 'package:phone/widgets/mark_pin.dart';
 
 /// A vitorlazott track + a palya bojai online OSM-terkep felett (ADR 0035 +
 /// ADR 0034 Addendum 3/4). A track sebesseg szerint szinezett: szakaszonkenti
@@ -167,12 +168,12 @@ class _TrackMapState extends State<TrackMap> {
               Marker(
                 point: TrackMap._toLatLng(m.position),
                 width: widget.showMarkLabels
-                    ? _MarkPin.labelledWidth
-                    : _MarkPin.size,
+                    ? MarkPin.labelledWidth
+                    : MarkPin.size,
                 height: widget.showMarkLabels
-                    ? _MarkPin.labelledHeight
-                    : _MarkPin.size,
-                child: _MarkPin(
+                    ? MarkPin.labelledHeight
+                    : MarkPin.size,
+                child: MarkPin(
                   label: '${m.sequence}',
                   name: widget.showMarkLabels ? m.name : null,
                 ),
@@ -263,87 +264,6 @@ class _TrackMapState extends State<TrackMap> {
       }
     }
     return polylines;
-  }
-}
-
-/// Egy boja-jelolo: szamozott korong feher kerettel (port-piros), opcionalis
-/// nev-felirattal a korong alatt (ADR 0036 F1-D6).
-///
-/// Felirattal a doboz FUGGOLEGESEN SZIMMETRIKUS: a korong felett es alatt
-/// ugyanakkora sav all, igy a doboz kozepe tovabbra is a korong kozepe -- a
-/// [Marker] alapertelmezett kozepre-igazitasa mellett a korong pontosan a
-/// boja koordinatajara esik. Ezert nem egyszeruen "korong + alatta szoveg".
-class _MarkPin extends StatelessWidget {
-  const _MarkPin({required this.label, this.name});
-
-  /// A korong elerheto merete felirat nelkul (a [Marker] dobozanak merete).
-  static const double size = 22;
-
-  /// A nev-savok magassaga a korong felett es alatt.
-  static const double _nameSlot = 20;
-
-  /// A feliratos [Marker]-doboz merete.
-  static const double labelledWidth = 96;
-  static const double labelledHeight = size + 2 * _nameSlot;
-
-  /// A boja sorszama a korongon.
-  final String label;
-
-  /// A boja neve a korong alatt; `null` eseten csak a korong latszik.
-  final String? name;
-
-  @override
-  Widget build(BuildContext context) {
-    final disc = Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: portColor,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-    final markName = name;
-    if (markName == null) return disc;
-    return Column(
-      children: [
-        // Felso ures sav: ez tartja a korongot a doboz kozepen.
-        const SizedBox(height: _nameSlot),
-        disc,
-        SizedBox(
-          height: _nameSlot,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                // A tile-hatter tetszoleges szinu lehet -> sotet pirula.
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                markName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 
