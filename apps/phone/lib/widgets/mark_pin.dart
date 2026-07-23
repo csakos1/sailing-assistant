@@ -11,7 +11,12 @@ import 'package:phone/app/marine_colors.dart';
 /// boja koordinatajara esik. Ezert nem egyszeruen "korong + alatta szoveg".
 class MarkPin extends StatelessWidget {
   /// Szamozott bojajel, opcionalis nev-felirattal a korong alatt.
-  const MarkPin({required this.label, this.name, super.key});
+  const MarkPin({
+    required this.label,
+    this.name,
+    this.isActive = false,
+    super.key,
+  });
 
   /// A korong elerheto merete felirat nelkul (a [Marker] dobozanak merete).
   static const double size = 22;
@@ -26,11 +31,24 @@ class MarkPin extends StatelessWidget {
   /// nev-sav.
   static const double labelledHeight = size + 2 * _nameSlot;
 
+  /// A korong alap keretvastagsaga.
+  static const double _borderWidth = 1.5;
+
+  /// A kiemelt boja vastagabb kerete. A doboz MERETE NEM valtozik: a
+  /// fuggoleges szimmetria a meretbol jon, tehat egy nagyobb aktiv jel a
+  /// valos koordinatajatol elcsuszva rajzolodna (ADR 0037 D14, D15).
+  static const double _activeBorderWidth = 3.5;
+
   /// A boja sorszama a korongon.
   final String label;
 
   /// A boja neve a korong alatt; `null` eseten csak a korong latszik.
   final String? name;
+
+  /// Kiemelt-e a boja: az elo terkepen a soron kovetkezo, megkerulendo
+  /// boja (ADR 0037 D14). A post-race track-terkep nem hasznalja, ott
+  /// minden boja mar megkerult.
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +59,10 @@ class MarkPin extends StatelessWidget {
       decoration: BoxDecoration(
         color: portColor,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
+        border: Border.all(
+          color: Colors.white,
+          width: isActive ? _activeBorderWidth : _borderWidth,
+        ),
       ),
       child: Text(
         label,

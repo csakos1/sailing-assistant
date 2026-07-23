@@ -15,6 +15,7 @@ import 'package:phone/features/live_race/widgets/metric_value_text.dart';
 import 'package:phone/features/live_race/widgets/next_twa_value.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
+import 'package:phone/features/safety_map/safety_map_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
@@ -176,6 +177,18 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       appBar: AppBar(
         title: Text(race.name),
         actions: [
+          // A biztonsági térkép a versenyhez tartozik, ezért innen nyílik
+          // (ADR 0037 D16). A leállítás marad a szélén: azt keresi a kéz
+          // vakon is, és nem szabad, hogy egy új gomb elcsúsztassa.
+          IconButton(
+            onPressed: () => unawaited(
+              Navigator.of(context).push<void>(
+                MaterialPageRoute(builder: (_) => const SafetyMapScreen()),
+              ),
+            ),
+            icon: const Icon(Icons.map_outlined),
+            tooltip: l10n.safetyMapOpen,
+          ),
           IconButton(
             onPressed: () => unawaited(_confirmStop(context, l10n)),
             icon: const Icon(Icons.stop_circle_outlined),

@@ -352,5 +352,8 @@ class AppLocalizationsHu extends AppLocalizations {
   String get safetyMapNoPosition => 'Nincs pozíció-adat a műszerekről.';
 
   @override
+  String get safetyMapOpen => 'Biztonsági térkép';
+
+  @override
   String get safetyMapRecentre => 'Hajó középre';
 }

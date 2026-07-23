@@ -730,6 +730,12 @@ abstract class AppLocalizations {
   /// **'Nincs pozíció-adat a műszerekről.'**
   String get safetyMapNoPosition;
 
+  /// Az élő verseny-képernyő gombja: megnyitja a térképet.
+  ///
+  /// In hu, this message translates to:
+  /// **'Biztonsági térkép'**
+  String get safetyMapOpen;
+
   /// A biztonsági térkép gombja: a kamera visszatér a hajóra.
   ///
   /// In hu, this message translates to:

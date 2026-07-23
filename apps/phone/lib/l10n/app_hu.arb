@@ -457,6 +457,10 @@
   "@safetyMapNoPosition": {
     "description": "A biztonsági térkép üres állapota: nincs GPS-pozíció."
   },
+  "safetyMapOpen": "Biztonsági térkép",
+  "@safetyMapOpen": {
+    "description": "Az élő verseny-képernyő gombja: megnyitja a térképet."
+  },
   "safetyMapRecentre": "Hajó középre",
   "@safetyMapRecentre": {
     "description": "A biztonsági térkép gombja: a kamera visszatér a hajóra."

@@ -8,6 +8,7 @@ import 'package:phone/features/safety_map/safety_map_screen.dart';
 import 'package:phone/features/safety_map/widgets/boat_symbol_layer.dart';
 import 'package:phone/features/safety_map/widgets/boat_vector_layer.dart';
 import 'package:phone/features/safety_map/widgets/cardinal_mark_pin.dart';
+import 'package:phone/features/safety_map/widgets/race_mark_layer.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/safety_mark_repository_provider.dart';
@@ -245,7 +246,9 @@ void main() {
       expect(find.text('Platform'), findsNothing);
     });
 
-    testWidgets('a hajo ket retege bekerul a terkepbe', (tester) async {
+    testWidgets('a boja- es hajo-retegek bekerulnek a terkepbe', (
+      tester,
+    ) async {
       // ARRANGE
       ignoreTileLoadErrors();
 
@@ -255,6 +258,7 @@ void main() {
       // ASSERT -- csak a bekotes: mit rajzolnak, azt a sajat tesztjuk
       // meri (boat_layers_test.dart). Itt az szamit, hogy a terkep
       // gyerekei legyenek, es a helyes sorrendben.
+      expect(find.byType(RaceMarkLayer), findsOneWidget);
       expect(find.byType(BoatVectorLayer), findsOneWidget);
       expect(find.byType(BoatSymbolLayer), findsOneWidget);
 
