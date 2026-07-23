@@ -27,3 +27,4 @@ export 'package:data/src/persistence/repositories/settings_repository_impl.dart'
 export 'package:data/src/persistence/repositories/snapshot_logger_impl.dart';
 export 'package:data/src/persistence/repositories/telemetry_logger_impl.dart';
 export 'package:data/src/polar/asset_polar_repository.dart';
+export 'package:data/src/safety/safety_mark_catalogue.dart';
