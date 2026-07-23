@@ -299,3 +299,73 @@ gyakorlatilag nulla tartalék.
 - A képernyő ébrentartása navigáció közben (nincs `wakelock`-varrat,
   lásd `docs/deferred.md`).
 - A siófoki platform és a `VK` bója összevonása a térképen.
+
+## Addendum 1 — Előre-vetítés a domainben (a COG-vektor végpontja)
+
+**Kapcsolódik:** ADR 0037 D11 (a hajó és a vektor egyaránt COG-ból), D12
+(a vektor a képernyő széléig ér), ADR 0020 (a COG szerepe).
+
+A D12 a hajó pozícióját a COG mentén a látható átló 1,5-szeresére
+vetíti ki. A vetítés maga — pont + irány + távolság → új pont — a
+geodézia direkt feladata, és a kód írásakor derült ki, hogy a domain
+csak az inverz feladatot ismeri (`CalculateBearingToMark`,
+`CalculateDistanceToMark`); a direkt hiányzik. A `latlong2` tud ilyet
+(`Distance.offset`, haversine és Vincenty változatban is), tehát valódi
+választásról van szó, nem kényszerről.
+
+### A1-D1 — A vetítés a domainbe kerül, kézzel írva
+Új use case a `packages/domain/lib/src/use_cases/` alatt:
+`project_position_along_bearing.dart`. A `latlong2` NEM kerül be sem a
+domain függőségei közé, sem a számítás útjába.
+
+Indok: a projekt egyszer már eldöntötte, hogy a gömbi geometriát a
+domain birtokolja és kézzel írja — a `CalculateDistanceToMark` a
+haversine-t sajátként hordozza, holott a `latlong2` akkor is elérhető
+volt. Ugyanannak a fogalomcsaládnak a direkt és inverz felét két rétegre
+vágni azt jelentené, hogy a következő geodéziai igény megint tárgyalás
+tárgya. A domain függőség-listája (`collection`, `equatable`, `meta`,
+`shared`) változatlan marad, és a use case tiszta függvényként
+tesztelhető marad, mock nélkül.
+
+Mellékhaszon: a presentation-rétegben meg sem születik a `latlong2`
+`Distance` és a domain `Distance` névütközése — a térkép-widget a
+`latlong2`-ből továbbra is csak a `LatLng`-et használja.
+
+### A1-D2 — Szignatúra: value objectek, nevesített paraméterekkel
+`Coordinate call({required Coordinate from, required Bearing bearing,
+required Distance distance})`.
+
+Indok: mindhárom paraméter ugyanarra a primitívre (`double`) redukalódna,
+tehát pozicionálisan felcserélhetők lennének. A value objectek a
+mértékegységet is hordozzák, így a hívó nem tud fokot méter helyére adni.
+A `CalculateDistanceToMark` két azonos típusú paraméterrel dolgozik, ott a
+pozicionális alak nem hordoz kockázatot — ez nem eltérés a mintától,
+hanem ugyanannak az elvnek a következménye.
+
+### A1-D3 — A bearing kötelezően true-north referenciájú
+A hívás assertel: `bearing.reference == BearingReference.trueNorth`.
+
+Indok: a gömbi vetítés a földrajzi északhoz mér. Mágneses bearinggel a
+végpont a deklináció szögével fordulna el — csendben, mert az eredmény
+továbbra is érvényes koordináta lenne. Ez a `BoatState`
+bearing-invariánsainak bevett mintája, és a hibát fejlesztés közben
+kapja el, nem vízen.
+
+### A1-D4 — A hosszúság ±180 fokra normált
+A képlet nyers eredménye átlépheti a ±180 fokot; a visszaadott
+`Coordinate` normált.
+
+Indok: a `Coordinate` alap-konstruktora nem validal, tehát egy tartományon
+kívüli hosszúság nem itt bukna ki, hanem a térképen. A Balatonon ez sosem
+fordul elő, de egy normálatlan érték bármely későbbi fogyasztónál
+(befoglaló doboz, távolság) értelmetlen eredményt adna. Két sor, és
+megszűnik egy hibaosztály.
+
+### A1-D5 — A szeletelés bővül
+Az N3 elé önálló szelet kerül (use case + tesztjei, egy commit), és ez az
+addendum + a hozzá tartozó ARCHITECTURE-sync további két docs-commit. A
+feature három committal hosszabb a tervezettnél.
+
+Indok: a hiány kód közben derült ki, nem tervezéskor. A docs-first sorrend
+attól nem függ, hogy a döntés mikor születik — a lezart ADR bővítése
+addendummal történik, nem a törzs átírásával.
