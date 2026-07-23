@@ -344,4 +344,13 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get trackExportErrorShare => 'A megosztás nem indult el.';
+
+  @override
+  String get safetyMapTitle => 'Biztonsági térkép';
+
+  @override
+  String get safetyMapNoPosition => 'Nincs pozíció-adat a műszerekről.';
+
+  @override
+  String get safetyMapRecentre => 'Hajó középre';
 }

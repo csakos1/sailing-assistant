@@ -448,5 +448,17 @@
   "trackExportErrorShare": "A megosztás nem indult el.",
   "@trackExportErrorShare": {
     "description": "Hibaüzenet, ha a megosztás felülete nem nyílt meg."
+  },
+  "safetyMapTitle": "Biztonsági térkép",
+  "@safetyMapTitle": {
+    "description": "Az élő biztonsági térkép képernyő címe."
+  },
+  "safetyMapNoPosition": "Nincs pozíció-adat a műszerekről.",
+  "@safetyMapNoPosition": {
+    "description": "A biztonsági térkép üres állapota: nincs GPS-pozíció."
+  },
+  "safetyMapRecentre": "Hajó középre",
+  "@safetyMapRecentre": {
+    "description": "A biztonsági térkép gombja: a kamera visszatér a hajóra."
   }
 }

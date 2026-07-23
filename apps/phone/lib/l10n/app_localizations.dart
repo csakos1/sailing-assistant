@@ -717,6 +717,24 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'A megosztás nem indult el.'**
   String get trackExportErrorShare;
+
+  /// Az élő biztonsági térkép képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Biztonsági térkép'**
+  String get safetyMapTitle;
+
+  /// A biztonsági térkép üres állapota: nincs GPS-pozíció.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs pozíció-adat a műszerekről.'**
+  String get safetyMapNoPosition;
+
+  /// A biztonsági térkép gombja: a kamera visszatér a hajóra.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hajó középre'**
+  String get safetyMapRecentre;
 }
 
 class _AppLocalizationsDelegate
