@@ -2912,11 +2912,11 @@ megbízható (ADR 0020). A vektor a pozíciót a COG mentén a látható átló
 nevesített sebesség-küszöb alatt (alap 1 kn) **nem rajzolódik** — kis
 sebességnél a COG zaj, amit a hosszú vonal felnagyítana.
 
-A verseny bójái a meglévő `_MarkPin`-nel rajzolódnak (privátból
-megosztott widgetté emelve), így a post-race és az élő térkép ugyanazt a
-vizuális nyelvet beszéli. A `TrackMap` **nem** bővül: az post-race,
-egyszer illeszt bounding-boxra, statikus tartalmú — egy widget nem
-szolgálhat ki két életciklust (SRP).
+A verseny bójái a `MarkPin` megosztott widgettel rajzolódnak, amit a
+`TrackMap`-ből emeltünk ki (`apps/phone/lib/widgets/mark_pin.dart`), így a
+post-race és az élő térkép ugyanazt a vizuális nyelvet beszéli. A
+`TrackMap` **nem** bővül: az post-race, egyszer illeszt bounding-boxra,
+statikus tartalmú — egy widget nem szolgálhat ki két életciklust (SRP).
 
 **Korlát:** a csempe-forrás **online**. Vízen, mobilháló nélkül a
 térkép-háttér nem tölt be — a jelölők, a hajó és a vektor ettől
