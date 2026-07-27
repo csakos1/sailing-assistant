@@ -290,3 +290,115 @@ ezért a doc-komment rögzíti: a **dark** a sötét-only alaptéma (v1 óta), a
   ha a vízi tapasztalat kéri.
 - **Az `onCritical`-hoz hasonló tokenizálás a többi implicit színpárra** —
   ha az on-device kör talál még fehér szivárgást.
+
+---
+
+## Addendum 1 — Az éjszakai mód a jel-színeket is tompítja
+
+**Dátum:** 2026-07
+**Kiváltó ok:** az első on-device verifikáció (2026-07-27, valódi napnyugtakor).
+
+### Kontextus
+
+A verifikáció a törzs döntéseit igazolta: a váltás pontosan a számított
+napnyugtakor történt meg, a szöveg-rámpa mindhárom foka helyes, az ambient a
+második fokot kapta, és **fehér szöveg sehol nem szivárgott át** — a D5
+(`ColorScheme.onSurface` rögzítése) tehát elég volt.
+
+Egy dolog viszont a képernyőn derült ki, amit a kontraszt-számítás nem
+jelzett előre: a jelentés-hordozó színek a tompított narancs **mellett**
+kiugróan világosak. A `signal` (teál, relatív fényerő 0,575) és a
+`starboard` (zöld, 0,468) a `text` (0,242) mellett most már a képernyő
+legvilágosabb pontjai — vagyis pont az a felület vakít, aminek a
+sötét-adaptációt kellene őriznie. A törzs D2-je ezt nem látta előre, mert a
+tokeneket **jelentésük szerint** csoportosította, nem fényerő szerint.
+
+Ehhez járul egy fizikai tény: a szem szkotópos érzékenységének csúcsa
+~507 nm, azaz **épp a kék-zöld tartományban** — a teál a lehető
+legrosszabb szín a sötét-adaptáció szempontjából.
+
+### Döntés
+
+#### A1-D1 — A D2 megnyílik: a jel-színek is váltanak
+
+A törzs D2-je („kizárólag a három szöveg-token vált") **hatályát veszti**.
+Éjszakai módban a `signal`, a `starboard` és az `amber` is tompított
+változatot kap.
+
+Amit a D2-ből **megtartunk**: az árnyalat nem változik, tehát a színkód
+jelentése sértetlen. Zöld marad zöld, teál marad teál — csak halkabb.
+
+#### A1-D2 — A tompítás mértéke: ~79% fényerő-vágás, azonos árnyalaton
+
+| Token | Nappali | Éjszakai | Kontraszt a háttéren |
+|---|---|---|---|
+| `signal` | `#16E0C4` | **`#0C6E60`** | 3,27 : 1 |
+| `starboard` | `#2FD06E` | **`#176B3C`** | 3,06 : 1 |
+| `amber` | `#FFB300` | **`#7D5800`** | 3,13 : 1 |
+
+A három érték azonos relatív vágással készült, így a nappali fényerő-sorrend
+megmarad. A 3:1 körüli kontraszt tudatos: ezek **glyph-ek és ívek**, nem
+folyó szöveg — a mai szöveg-rámpa alsó két foka is ez alatt van.
+
+#### A1-D3 — A `port` változatlan marad
+
+A bal-oldal piros (`#FF5A52`) nem tompul, tehát éjszaka ez lesz a képernyő
+legvilágosabb színe.
+
+Indok: a vörös hosszú hullámhosszú, a sötét-adaptációt lényegesen kevésbé
+rontja, mint az azonos fényerejű zöld vagy teál — a tompítás itt keveset
+nyerne, cserébe a bal-oldal jelzését halkítaná. Ez **szándékos aszimmetria**,
+nem kifelejtés.
+
+Következmény: a `port` és a `text` közötti kontraszt továbbra is 1,17:1,
+tehát a bal-nyíl gyakorlatilag a szöveg színén van (a törzs Következmények
+szakaszában vállalt romlás) — a jelentést a nyíl geometriája hordozza.
+
+#### A1-D4 — A konfidencia-ív fokozatait a hossz különbözteti meg, nem a szín
+
+A tompítás után a három fokozat fényereje összeér: `signal` 0,121,
+`amber` 0,113, `textTertiary` 0,077 — a high és a medium közötti kontraszt
+**1,04:1**.
+
+Ezt vállaljuk, mert az ív jelentését elsősorban a **kitöltött hányad**
+hordozza (1 / 0,66 / 0,33), és ez az ADR 0023 D7 óta tudatosan shape-kódolt
+(„shape is, nem csak szín"). A szín innentől megerősítés, nem önálló jel.
+
+Ha az on-device kör mégis azt mutatja, hogy a fokozatok összemosódnak, a
+javítás **nem** a szín visszavilágosítása, hanem a hossz- vagy
+vastagság-különbség növelése.
+
+#### A1-D5 — A „csak a szöveg-rámpa vált" szerkezeti invariáns szűkül
+
+A `watchNightColors` továbbra is a `watchDayColors`-ból származik
+`copyWith`-tel, de már hat mezőt ír felül. A szerkezet így is garantálja,
+hogy **ami nem szerepel a `copyWith`-ben, az nem térhet el**; a garantáltan
+azonos halmaz ezután: `background`, `surface`, `critical`, `port`.
+
+Az `onCritical` (törzs D4) és a séma-rögzítés (törzs D5) **érintetlen**.
+
+### Következmények
+
+- A `watch_night_theme_test.dart` „leaves every meaning-carrying colour
+  untouched" tesztje szűkül a négy ténylegesen változatlan tokenre, és
+  kiegészül a három új érték állításával. A teszt neve is pontosításra
+  szorul: már nem minden jelentés-hordozó szín marad.
+- Az on-device kör megismétlendő, külön figyelemmel a konfidencia-ív
+  fokozataira és a `starboard` nyíl olvashatóságára a 42 mm-es Watch4-en.
+- A `docs/design-system.md` éjszakai rámpa-táblázata kiegészül a három
+  jel-színnel.
+- A törzs D2-je történelmi feljegyzés marad; az érvényes szabály ez az
+  addendum.
+
+### Elvetett alternatívák
+
+- **Egyetlen zöld család két világossággal** (a `signal` és a `starboard`
+  ugyanaz az árnyalat): vizuálisan egységesebb, de visszavonná az ADR 0023
+  D7 döntését, ami a konfidenciát szándékosan tette teálra, hogy ne ütközzön
+  a starboard zöldjével.
+- **Enyhébb, ~50%-os tompítás:** olvashatóbb glyph-eket adna, de a
+  verifikáció épp azt mutatta, hogy a probléma a nappali fényerő — a fél
+  megoldás a panaszt nem szüntetné meg.
+- **A jel-színek narancsba forgatása:** a legjobb lenne a
+  sötét-adaptációnak, de megszüntetné a színkódot (starboard/port,
+  megbízható/megbízhatatlan), ami a felület fő olvasási segédlete.
