@@ -51,7 +51,7 @@ A főképernyőn folyamatosan, real-time, fix layoutban (de architektúrailag b�
 | 6 | **Predicted TWA at next mark** | Számolt: TWD (COG + csúcs-TWA) + wind shift trend + **következő szár iránya** | 1 Hz |
 | 7 | **GPS műszer-idő** (óra:perc:mp) | NMEA `RMC` UTC dátum/idő → local | ~1 Hz |
 
-> A watch nézetei (§10.4) a fenti értékeket emelik ki a kerek kijelzőn: a **B** (alapnézet) a #6 predikciót, #3 korrekciót, #5 ETA-t és #4 távot; az **A** a **SOG**-ot (`kts`), a polár-cél-%-ot, és az élő + target VMG-t (`kts`). A SOG és az élő VMG így v1-ben megjelenített érték is (eddig a VMG rezervált slot volt, ADR 0015 D2); az élő + target VMG most bekötve (ADR 0028 Addendum 4). A VMG-optimum szögre vezető **steer-korrekció** is megjelenik az A-lapon (ADR 0028 Addendum 5). A #1 TWA így a telefon-gridre szorul (az óra A-lapjáról a target VMG kiszorította).
+> A watch nézetei (§10.4) a fenti értékeket emelik ki a kerek kijelzőn: a **B** (alapnézet) a #6 predikciót, #3 korrekciót, #5 ETA-t, #4 távot és a layline-visszaszámlálót (ADR 0040); az **A** a **SOG**-ot (`kts`), a polár-cél-%-ot, és az élő + target VMG-t (`kts`). A SOG és az élő VMG így v1-ben megjelenített érték is (eddig a VMG rezervált slot volt, ADR 0015 D2); az élő + target VMG most bekötve (ADR 0028 Addendum 4). A VMG-optimum szögre vezető **steer-korrekció** is megjelenik az A-lapon (ADR 0028 Addendum 5). A #1 TWA így a telefon-gridre szorul (az óra A-lapjáról a target VMG kiszorította).
 
 Háttérfunkciók:
 
@@ -1965,6 +1965,90 @@ jön. Predikció hiányában (utolsó láb / 50 m freeze) a band `null`, a
 
 ---
 
+### 7.9 Layline-geometria és -visszaszámláló (ADR 0040)
+
+A felszeles lábon a döntés az, hogy **mikor kell fordulni**. A geometriai
+alap a **layline**: az a pozíció-halmaz, ahonnan a bója egyetlen halzzal
+elérhető a polár VMG-optimum szögén (β) vitorlázva. Kettő van belőle, a
+bójában találkoznak, és egy szél felé záródó kúpot alkotnak, aminek a
+fél-szöge β.
+
+Két pure use case, SRP szerint elválasztva: a bearingek pozíció-
+függetlenek (a telefonos térkép-réteg is ezeket fogyasztaná), a
+visszaszámláló viszont a hajó helyzetétől függ.
+
+```dart
+/// A két layline iránya a bójából nézve. Pozíció-független.
+typedef Laylines = ({Bearing portTack, Bearing starboardTack});
+
+final class CalculateLaylineBearings {
+  const CalculateLaylineBearings();
+
+  /// A [twd] és a pozitív [optimumTwaMagnitude] (fok) alapján.
+  Laylines call({
+    required Bearing twd,
+    required double optimumTwaMagnitude,
+  });
+}
+
+/// Hány másodperc a releváns layline a pillanatnyi pályán, előjelesen.
+final class EvaluateLaylineApproach {
+  const EvaluateLaylineApproach();
+
+  /// `null`, ha nincs értelmes kimenet (lásd a kapukat lent).
+  int? call({
+    required Coordinate boatPosition,
+    required Coordinate markPosition,
+    required Bearing twd,
+    required Bearing courseOverGround,
+    required double speedOverGroundKnots,
+    required double currentTwaDegrees,
+    required double optimumTwaMagnitude,
+  });
+}
+```
+
+**A β kívülről jön.** A `LookupTargetVmg` a halz-irányt a *pillanatnyi*
+TWA-ból dönti el (`isUpwind = twaDegrees.abs() < 90`), tehát szélezés
+közben a leszeles optimumot adná vissza. A felszeles β kiválasztása a
+kompozíciós réteg (engine) felelőssége; a use case pozitív magnitúdót
+kap, a `ComputeVmgSteerCorrection` (ADR 0028 Add. 5) mintájára.
+
+**Kapu.** A bójához szükséges TWA a `twd − bearingToMark` előjeles,
+`(-180, 180]`-ra normált különbsége. Ha `|requiredTwa| >= β`, a bója
+egyenesen megvitorlázható, tehát **nincs layline** → `null`. Csak
+`< β` esetén van kimenet.
+
+**Az ellentétes halz szabálya.** A saját halz pályája **párhuzamos a
+saját halz layline-jával**, tehát azt sosem éri el: starboard halzon
+(pozitív TWA) a **port** layline a releváns, és fordítva. Ez ±180°-os
+hiba lehetősége — a hibás változat csendben rossz irányba küld —, ezért
+a teszteknek mindkét halzra rögzíteniük kell.
+
+**Számítás.** Szinusztétel a hajó–bója–metszéspont háromszögben:
+`s = d · sin(γ) / sin(α + γ)`, ahol `d` a bója-távolság (7.2), `α` a COG
+és a bójára mutató bearing (7.1) közötti előjeles szög a hajónál, `γ`
+pedig a bójánál a hajóra mutató bearing és a layline-irány közötti szög.
+Nincs síkba vetítés; a meglévő `Bearing - Bearing = Angle` (előjeles
+legrövidebb út) aritmetika elég. Az idő `s / SOG`.
+
+A **COG-ot** használjuk, nem a headinget: így a hajó tényleges sodródása
+a saját lábán benne van a számban. A layline szöge (β) viszont sodródás
+nélküli, ezért a maradék hiba **előjeles**: a valódi layline mindig
+kijjebb van, tehát a szám rendszeresen optimista (ADR 0040 D14).
+
+**`null`-feltételek:** a kapu nem teljesül; nem-véges bemenet; hiányzó
+vagy nulla SOG; `sin(α + γ)` nullához közeli (a pálya párhuzamos a
+layline-nal); a metszéspont a bója mögé esik.
+
+**Kimenet.** Egyetlen előjeles másodperc: pozitív = ennyi van hátra,
+negatív = ennyivel ment túl a hajó. Nincs méter és nincs állapot-enum —
+az állapotot az előjel hordozza. A mező a `RaceSnapshot`-ra és a
+`WatchPayload`-ra additívan átkerül (§10.2), és a B-nézet cím-sora alatt
+jelenik meg (§10.4).
+
+---
+
 ## 8. State management (Riverpod)
 
 ### 8.1 Riverpod alapelvek a projektben
@@ -3197,6 +3281,7 @@ class WatchPayload {
   final List<String> criticalWarnings; // csak critical, telefon által lokalizált
   final double? depthAlertMeters;       // sekély-víz mélység, vagy null
   final int depthBuzzCounter;           // monoton; óra a felfutó élén rezeg
+  final int? secondsToLayline;          // mp, signed; <0 = túlment (ADR 0040)
   final DateTime timestamp;             // a payload build-ideje (app-óra)
 }
 ```
@@ -3237,9 +3322,17 @@ kontextusában marad).
 
 **Nézet B — Köv. bója (taktika), alapnézet.** A GPS-idő sor alatt egy
 **cím-sor**: a bója neve és a **Bója táv** (`m`/`km`) összevonva (pl.
-`Tihany · 450 m`). Hero: a **TWA a köv. bójánál** (predikció, fok előjeles,
-teal, nyíl **befelé**). Alatta **egy sorban, azonos betűmérettel** a
-**Korrekció** (csak nyíl **kifelé**, szöveg nélkül) és az **ETA** (`m:ss`).
+`Tihany · 450 m`). Alatta a **layline-visszaszámláló** (ADR 0040): a
+cím-sorral azonos szeparátorral `layline · 1:12`, előjeles `m:ss`; a
+±15 s-os sávban **amber**, negatív értéknél a mínusz jelzi a túlmenést,
+kimenet hiányában `—`. A felirat nem elhagyható: ambientben a cím-sor
+elmarad, tehát a szám a GPS-óra alá csúszna, és a lapon az ETA is
+idő-jellegű — a `layline` szó mindkettőtől megkülönbözteti. Hero: a
+**TWA a köv. bójánál** (predikció, fok előjeles, teal, nyíl **befelé**);
+a mérete **52 → 40 pt** csökkent, hogy az új sor helyben elférjen, és ne
+a `FittedBox` zsugorítsa az egész oszlopot (ADR 0040 D10). Alatta **egy
+sorban, azonos betűmérettel** a **Korrekció** (csak nyíl **kifelé**,
+szöveg nélkül) és az **ETA** (`m:ss`).
 
 **Nézet C — Bója-megerősítés (ADR 0024).** Egy nagy, **kör alakú teal
 gomb** középen, **press-and-hold ~1 s** gesztussal és kitöltő gyűrűvel: a
