@@ -20,6 +20,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     required this.port,
     required this.starboard,
     this.amber = const Color(0xFFFFB300),
+    this.onCritical = const Color(0xFFE9F1F7),
   });
 
   /// Háttér (OLED-fekete).
@@ -54,6 +55,13 @@ class WatchColors extends ThemeExtension<WatchColors> {
   /// [WatchColors]-konstrukciók (téma + tesztek) változatlanul fordulnak.
   final Color amber;
 
+  /// A `critical` mezőre írt szöveg színe (ADR 0039 D4).
+  /// Additív token; a default a mai világos szövegszín, tehát a meglévő
+  /// [WatchColors]-konstrukciók változatlanul fordulnak és a nappali
+  /// kinézet sem változik. Éjszakai témában sötét: a narancs szöveg a
+  /// piros mezőn 1,10:1 kontraszttal olvashatatlan lenne.
+  final Color onCritical;
+
   @override
   WatchColors copyWith({
     Color? background,
@@ -66,6 +74,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     Color? port,
     Color? starboard,
     Color? amber,
+    Color? onCritical,
   }) => WatchColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -77,6 +86,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
     port: port ?? this.port,
     starboard: starboard ?? this.starboard,
     amber: amber ?? this.amber,
+    onCritical: onCritical ?? this.onCritical,
   );
 
   @override
@@ -97,6 +107,7 @@ class WatchColors extends ThemeExtension<WatchColors> {
       port: Color.lerp(port, other.port, t) ?? port,
       starboard: Color.lerp(starboard, other.starboard, t) ?? starboard,
       amber: Color.lerp(amber, other.amber, t) ?? amber,
+      onCritical: Color.lerp(onCritical, other.onCritical, t) ?? onCritical,
     );
   }
 }

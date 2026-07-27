@@ -12,6 +12,10 @@ import 'package:watch/theme/watch_colors.dart';
 /// energia) és nincs bezárás gomb sem — az érintés ambientben nem
 /// megbízható. Ilyenkor fekete háttéren piros szöveg marad.
 ///
+/// A piros mezőre írt szöveg az `onCritical` tokenből jön (ADR 0039 D4):
+/// éjszakai témában az általános narancs szövegszín ezen a háttéren
+/// olvashatatlan lenne.
+///
 /// A widget natív-mentes és állapotmentes: a láthatóságot és a bezárt
 /// állapotot a `RaceShell` tartja (`depth_alert_edge.dart`).
 class DepthAlertOverlay extends StatelessWidget {
@@ -39,7 +43,7 @@ class DepthAlertOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final background = ambient ? colors.background : colors.critical;
-    final foreground = ambient ? colors.critical : colors.text;
+    final foreground = ambient ? colors.critical : colors.onCritical;
 
     return GestureDetector(
       // Az üres onTap kell ahhoz, hogy a GestureDetector egyáltalán
