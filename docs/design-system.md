@@ -1,12 +1,12 @@
-# Design System — Foretack (sötét téma)
+# Design System — Foretack (sötét + éjszakai téma)
 
 Műszer-szintű, nyugodt, strapabíró vizuális nyelv vitorlázáshoz: glanceable
 hierarchia, magas kontraszt, tabuláris live-számok. Tengeri műszer (B&G/Garmin),
 repülős HUD és sport-óra esztétika. Claude Designban tervezve.
 
-Cross-surface (watch + később phone). v1-ben **csak a sötét téma** van bekötve;
-a Napfény és a Piros éjszakai téma definiált, de **v2-deferred** (lásd
-`docs/deferred.md`).
+Cross-surface (watch + később phone). Az órán a **sötét** és az **éjszakai**
+téma van bekötve — utóbbi automatikusan, napnyugtakor (ADR 0039); a
+telefon ma sötét-only. A **Napfény** téma definiált, de **v2-deferred**.
 
 ## Színek
 
@@ -33,6 +33,21 @@ a Napfény és a Piros éjszakai téma definiált, de **v2-deferred** (lásd
 | `mob` | `#FF3B30` | vész (man-overboard) — v1-ben nem használt |
 | `port` | `#FF5A52` | bal (piros) — hajós konvenció |
 | `stbd` | `#2FD06E` | jobb (zöld) — hajós konvenció |
+| `on-crit` | `#E9F1F7` | a `crit` mezőre írt szöveg (éjjel `#04080D`) |
+
+### Éjszakai rámpa (óra, ADR 0039)
+| Token | Nappali | Éjszakai | Kontraszt `bg`-n |
+|---|---|---|---|
+| `text` | `#E9F1F7` | `#EE5035` | 5,6 : 1 |
+| `text-2` | `#93A8BA` | `#A63825` | 3,1 : 1 |
+| `text-3` | `#5C7285` | `#8C2F1F` | 2,4 : 1 |
+
+Az alapszín a hajón lévő B&G Vulcan éjszakai módjának megfigyelt
+vörös-narancsa (hue ≈ 9°) — a sötét-adaptációt a vörös felé tolt szín
+őrzi meg. A rámpa alsó két foka **nem** a nappali arányokkal képződik: a
+`#EE5035` érzékelt fényereje eleve a nappali tercier szintjén van, tehát az
+arányos tompítás olvashatatlan lenne. Csak a szöveg-tokenek váltanak; a
+`signal` / `crit` / `port` / `stbd` / `warn` jelentést kódol, ezért marad.
 
 ## Tipográfia
 | Szerep | Font | Megjegyzés |

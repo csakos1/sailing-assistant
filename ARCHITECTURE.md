@@ -3215,8 +3215,9 @@ A natív küldés (ADR 0015 D5): a `WatchTransport` produkciós implementációj
 
 ### 10.4 Watch UI
 
-A watch app kerek kijelzőre optimalizált, **sötét témával** (v1; a Napfény /
-Piros téma v2-deferred). Három nézet, a forgatható peremmel váltva; az **alapnézet
+A watch app kerek kijelzőre optimalizált, **sötét témával**; napnyugta után
+automatikusan az éjszakai rámpára vált (§10.10, ADR 0039). A Napfény téma
+v2-deferred. Három nézet, a forgatható peremmel váltva; az **alapnézet
 a B**. Mindkét nézet tetején a **GPS-idő** (`HH:mm:ss`, JetBrains Mono) és egy
 **állapot-pötty** (megbízható idő → teal, egyébként tompított).
 
@@ -3433,6 +3434,44 @@ explicit ack nélkül). `sendMessage`-hibára (nincs BT-kapcsolat) haptic + röv
 telefonon ártalmatlan (`applyRoundMarkCommand` no-op, ha nem `active`).
 
 A részletes döntést az **ADR 0024** rögzíti.
+
+### 10.10 Automatikus éjszakai mód (ADR 0039)
+
+A tour-race-ek éjszakába nyúlnak, és az óra a primary élő kijelző (ADR 0016),
+ami a verseny alatt láthatóan marad (ADR 0019). A mai majdnem-fehér
+(`#E9F1F7`) szövegszín ilyenkor elrontja a sötét-adaptációt, ezért a téma
+napnyugtakor egy vörös-narancs rámpára vált, a hajón lévő B&G Vulcan
+éjszakai módjának mintájára.
+
+**Mi vált.** Kizárólag a három szöveg-token (`text`, `textSecondary`,
+`textTertiary`). A jelentés-hordozó színek — `critical`, `port`, `starboard`,
+`signal`, `amber` — és a felületek változatlanok: ezek nem díszítés, hanem
+kódolás (navigációs-fény konvenció, riasztás, konfidencia). Az éjszakai
+felület ezért **nem egyszínű**.
+
+**A riasztás olvashatósága.** A mélység-overlay `critical` háttérre ír; a
+narancs szöveg ott 1,10:1 kontrasztot adna, azaz eltűnne. Ezért a
+`WatchColors` additív `onCritical` tokent kap (default: a mai világos
+szövegszín, tehát a nappali kinézet változatlan), amit az éjszakai téma a
+háttér-színre állít (6,1:1). A widget így nem ismeri a módot, csak tokent
+olvas.
+
+**Az ambient tompítás.** Az ambient ma is token-választással tompít
+(`ambient ? textSecondary : text`), ezért az éjszakai rámpa bekötésével az
+ambient magától a rámpa második fokát kapja — nincs külön ambient-szín.
+
+**A kapcsolás.** A nap-állás az órán, helyben számolódik: tiszta Dart
+napkelte/napnyugta a `shared`-ben (`src/sun_times.dart`), fix balatoni
+referencia-koordinátával (két `double` konstans — a `shared` nem függhet a
+`domain`-től) és a rendszeróra UTC-idejével. A `WatchPayload` **nem bővül**,
+tehát a mód kapcsolat-vesztéskor is helyes. Percenkénti újraértékelés,
+hiszterézis nélkül; a küszöb a geometriai napnyugta/napkelte, egy
+`nightModeOffset` konstanssal (v1: nulla). Kézi kapcsoló nincs; a tesztelést
+a `--dart-define=FORETACK_FORCE_NIGHT=1` seam teszi lehetővé (ADR 0007
+névtér-mintája).
+
+A részletes döntést és a vállalt romlásokat (a port-nyíl és a
+low-konfidencia-ív halványodása) az **ADR 0039** rögzíti.
 
 ## 11. Hibakezelés és warning rendszer
 
