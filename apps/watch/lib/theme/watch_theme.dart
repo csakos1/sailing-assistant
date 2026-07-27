@@ -14,17 +14,25 @@ const WatchColors watchDayColors = WatchColors(
   starboard: Color(0xFF2FD06E),
 );
 
-/// Az óra éjszakai szín-tokenjei (ADR 0039 D2–D4).
+/// Az óra éjszakai szín-tokenjei (ADR 0039 D2–D4 + Addendum 1).
 ///
-/// Szándékosan a nappali készletből származik: **csak a három szöveg-token
-/// és a `onCritical` vált**, minden jelentés-hordozó szín (port/starboard,
-/// critical, signal, amber) és a felületek változatlanok. Így a „csak a
-/// szöveg-rámpa vált” invariánst a szerkezet tartja, nem egy teszt.
+/// A nappali készletből származik, így amit a `copyWith` nem ír felül, az nem
+/// is térhet el — garantáltan azonos marad a `background`, a `surface`, a
+/// `critical` és a `port`.
+///
+/// A három szöveg-token és az `onCritical` mellett az Addendum 1 óta a
+/// `signal`, a `starboard` és az `amber` is tompul: a vízen kiderült, hogy a
+/// narancs szöveg mellett épp ezek a képernyő legvilágosabb pontjai. Az
+/// árnyalatuk változatlan, tehát a színkód jelentése sértetlen. A `port`
+/// szándékosan fényes marad (Addendum 1 A1-D3).
 final WatchColors watchNightColors = watchDayColors.copyWith(
   text: const Color(0xFFEE5035),
   textSecondary: const Color(0xFFA63825),
   textTertiary: const Color(0xFF8C2F1F),
   onCritical: watchDayColors.background,
+  signal: const Color(0xFF0C6E60),
+  starboard: const Color(0xFF176B3C),
+  amber: const Color(0xFF7D5800),
 );
 
 /// Az óra app-szintű sötét (nappali) témája.

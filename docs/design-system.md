@@ -41,13 +41,21 @@ telefon ma sötét-only. A **Napfény** téma definiált, de **v2-deferred**.
 | `text` | `#E9F1F7` | `#EE5035` | 5,6 : 1 |
 | `text-2` | `#93A8BA` | `#A63825` | 3,1 : 1 |
 | `text-3` | `#5C7285` | `#8C2F1F` | 2,4 : 1 |
+| `signal` | `#16E0C4` | `#0C6E60` | 3,3 : 1 |
+| `stbd` | `#2FD06E` | `#176B3C` | 3,1 : 1 |
+| `amber` | `#FFB300` | `#7D5800` | 3,1 : 1 |
 
 Az alapszín a hajón lévő B&G Vulcan éjszakai módjának megfigyelt
 vörös-narancsa (hue ≈ 9°) — a sötét-adaptációt a vörös felé tolt szín
 őrzi meg. A rámpa alsó két foka **nem** a nappali arányokkal képződik: a
 `#EE5035` érzékelt fényereje eleve a nappali tercier szintjén van, tehát az
-arányos tompítás olvashatatlan lenne. Csak a szöveg-tokenek váltanak; a
-`signal` / `crit` / `port` / `stbd` / `warn` jelentést kódol, ezért marad.
+arányos tompítás olvashatatlan lenne.
+
+A jel-színek (`signal`, `stbd`, és a kód `amber` tokenje, ami a medium
+konfidenciáé — nem azonos a `warn`-nal) az ADR 0039 Addendum 1 óta szintén
+tompulnak, azonos árnyalaton, ~79%-os fényerő-vágással: a vízen kiderült,
+hogy a narancs szöveg mellett épp ezek a legvilágosabb pontok. A `crit` és a
+`port` **nem** tompul — a vörös a sötét-adaptációt alig rontja.
 
 ## Tipográfia
 | Szerep | Font | Megjegyzés |

@@ -11,16 +11,32 @@ void main() {
       expect(watchNightColors.textTertiary, const Color(0xFF8C2F1F));
     });
 
-    test('leaves every meaning-carrying colour untouched', () {
-      // Ez a szelet igerete: csak a szoveg-rampa valt. Ha barmelyik allitas
-      // bukik, a szinkod serult, nem a megjelenes valtozott.
+    test('leaves the surfaces, the alert and the port cue untouched', () {
+      // Az Addendum 1 utan csak ez a negy token garantaltan azonos.
       expect(watchNightColors.background, watchDayColors.background);
       expect(watchNightColors.surface, watchDayColors.surface);
-      expect(watchNightColors.signal, watchDayColors.signal);
       expect(watchNightColors.critical, watchDayColors.critical);
       expect(watchNightColors.port, watchDayColors.port);
-      expect(watchNightColors.starboard, watchDayColors.starboard);
-      expect(watchNightColors.amber, watchDayColors.amber);
+    });
+
+    test('dims the signal colours and keeps their hue', () {
+      expect(watchNightColors.signal, const Color(0xFF0C6E60));
+      expect(watchNightColors.starboard, const Color(0xFF176B3C));
+      expect(watchNightColors.amber, const Color(0xFF7D5800));
+
+      // A hex onmagaban nem mond semmit: az invarians az, hogy az arnyalat
+      // marad (a szinkod jelentese), a vilagossag pedig csokken.
+      final pairs = <(Color, Color)>[
+        (watchDayColors.signal, watchNightColors.signal),
+        (watchDayColors.starboard, watchNightColors.starboard),
+        (watchDayColors.amber, watchNightColors.amber),
+      ];
+      for (final (day, night) in pairs) {
+        final dayHsl = HSLColor.fromColor(day);
+        final nightHsl = HSLColor.fromColor(night);
+        expect(nightHsl.hue, closeTo(dayHsl.hue, 4));
+        expect(nightHsl.lightness, lessThan(dayHsl.lightness));
+      }
     });
 
     test('writes dark on the critical field where day writes light', () {
