@@ -89,7 +89,7 @@ bool isNightAt({
   required DateTime nowUtc,
   required double latitudeDegrees,
   required double longitudeDegrees,
-  Duration offset = Duration.zero,
+  required Duration offset,
 }) {
   assert(nowUtc.isUtc, 'nowUtc must be a UTC timestamp');
 
