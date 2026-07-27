@@ -3325,9 +3325,12 @@ kontextusában marad).
 `Tihany · 450 m`). Alatta a **layline-visszaszámláló** (ADR 0040): a
 cím-sorral azonos szeparátorral `layline · 1:12`, előjeles `m:ss`; a
 ±15 s-os sávban **amber**, negatív értéknél a mínusz jelzi a túlmenést,
-kimenet hiányában `—`. A felirat nem elhagyható: ambientben a cím-sor
-elmarad, tehát a szám a GPS-óra alá csúszna, és a lapon az ETA is
-idő-jellegű — a `layline` szó mindkettőtől megkülönbözteti. Hero: a
+kimenet hiányában és egy órán túl `—`. A perc **nincs** nullával
+feltöltve (`1:12`, nem `01:12`), és ez nem stílus: az ETA ugyanezt az
+értéket feltöltve írja, tehát a formátum-különbség a második
+megkülönböztető jel a felirat mellett (saját `formatLaylineSeconds`,
+ADR 0040 D17). A felirat sem elhagyható: ambientben a cím-sor elmarad,
+tehát a szám a GPS-óra alá csúszna. Hero: a
 **TWA a köv. bójánál** (predikció, fok előjeles, teal, nyíl **befelé**);
 a mérete **52 → 40 pt** csökkent, hogy az új sor helyben elférjen, és ne
 a `FittedBox` zsugorítsa az egész oszlopot (ADR 0040 D10). Alatta **egy

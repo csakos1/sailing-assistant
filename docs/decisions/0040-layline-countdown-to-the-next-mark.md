@@ -178,8 +178,11 @@ shell **GPS-órája alá** csúszik. Két óra-alakú szám egymás alatt
 félreolvasható, ezért a `layline` felirat kötelező — és egy sorban, mert
 függőlegesen nincs elvesztegetni való hely.
 
-Az ETA-val nincs alak-ütközés: az `formatEtaSeconds(..., minutesUnit:
-'perc')` „12 perc" alakot ad, nem mm:ss-t.
+Az ETA **ugyanilyen alakú**: a `formatEtaSeconds` csak 3600 s fölött vált
+perc-címkés alakra, alatta nullával feltöltött `mm:ss`-t ad — egy
+versenyláb ETA-ja tehát gyakorlatilag mindig `mm:ss`. A két számot ezért
+a felirat, a függőleges pozíció és a formátum-különbség (D17) választja
+el, nem a mértékegység.
 
 ### D10 — A hero 52-ről 40-re csökken
 
@@ -261,6 +264,28 @@ triviálisnak, a tétel a `docs/deferred.md`-be megy. Ezt előre kimondjuk,
 hogy ne szelet közben kelljen alkudni: a funkció az órán teljes, a
 telefonos rajz ráadás.
 
+### D17 — Saját formázó: nincs nulla-feltöltés, és egy órán túl `—`
+
+A visszaszámláló **nem** a `formatEtaSeconds`-ot használja. Saját
+`formatLaylineSeconds` kerül a `shared`-be:
+
+- `1:12`, `0:42` — a perc **nincs** nullával feltöltve,
+- `-0:24` — negatívnál ASCII mínusz előtag (nem U+2212: a tipográfiai
+  mínusz Wear OS-en font-függő, és a `tabularFigures` sem garantálja a
+  szélességét),
+- `—` (`missingValue`) — `null`-ra és `|s| >= 3600`-ra.
+
+A feltöltés elhagyása az egyetlen **tipográfiai** jel, ami akkor is
+elválasztja a két számot, ha a felirat lemarad a pillantásról: az ETA
+ugyanarra az értékre `01:12`-t ír. Az egy órás korlát azért van, mert
+ekkora távolságon a szám úgyis zaj (a layline addigra többször
+elfordul), a `73:20` alak viszont már olvashatatlanul hosszú lenne a
+soron.
+
+Miért nem a `formatEtaSeconds` bővítése: annak nincs előjel-fogalma, és
+a bővítése egy zöld, több fogyasztójú formázót érintene egy olyan
+viselkedésért, amit egyetlen hely kér.
+
 ---
 
 ## Következmények
@@ -331,3 +356,14 @@ telefonos rajz ráadás.
 - Méter-kimenet és a hozzá tartozó megjelenítés.
 - Simítás / hiszterézis, ha az on-device kör indokolja.
 - A telefonos `LaylineLayer`, ha a 8. szelet kimarad.
+
+---
+
+## Utólagos pontosítások
+
+- **A D9 „nincs alak-ütközés az ETA-val" indoklása téves volt**; a
+  javítás inline megtörtént, itt marad nyoma. A `formatEtaSeconds`
+  dumpja mutatta meg, hogy a perc-címkés alak csak 3600 s fölött jön,
+  tehát egy versenyláb ETA-ja `mm:ss`. Az állítást ellenőrizetlenül
+  vezettem le a hívás `minutesUnit: 'perc'` argumentumából. A D17 ezért
+  nem kozmetika: ez tartja meg a két szám megkülönböztethetőségét.
