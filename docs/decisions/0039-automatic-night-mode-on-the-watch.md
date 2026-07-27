@@ -179,7 +179,7 @@ kell: a napállás monoton, a küszöböt naponta kétszer, egy irányba lépi �
 
 A felhasználó felé **nulla UI**: nincs kapcsoló, nincs beállítás.
 
-A tesztelhetőségért egy `--dart-define=FORETACK_FORCE_NIGHT=1` seam
+A tesztelhetőségért egy `--dart-define=FORETACK_FORCE_NIGHT=true` seam
 kényszeríti a módot (az ADR 0007 `FORETACK_` névtér-mintája). Ez nem
 felhasználói felület, és nem is jelenik meg sehol — nélküle az on-device
 verifikáció napnyugtára várást jelentene.
@@ -239,8 +239,11 @@ ezért a doc-komment rögzíti: a **dark** a sötét-only alaptéma (v1 óta), a
 - **Doc-sync:** a `docs/design-system.md` „v1-ben csak a sötét téma van
   bekötve … a Piros éjszakai téma v2-deferred" mondata elavul, és az
   `ARCHITECTURE.md` óra-fejezete is bővül. A `docs/deferred.md` „Piros
-  éjszakai téma" tétele a feature végén a `## Done` szakaszba mozdul, a
-  commit hash-ével.
+  éjszakai téma" tétele valójában nem létezik — a lógó hivatkozás a
+  `design-system.md`-ben volt, azt a doc-sync commit rendezte. A feature
+  végén ezért nem mozgatás, hanem felvétel történik: az ADR 0039
+  halasztott tételei és egy `## Done` bejegyzés kerül a fájlba, a
+  commit hash-ekkel.
 
 ### Szeletek
 
@@ -402,3 +405,19 @@ Az `onCritical` (törzs D4) és a séma-rögzítés (törzs D5) **érintetlen**.
 - **A jel-színek narancsba forgatása:** a legjobb lenne a
   sötét-adaptációnak, de megszüntetné a színkódot (starboard/port,
   megbízható/megbízhatatlan), ami a felület fő olvasási segédlete.
+
+---
+
+## Utólagos pontosítások
+
+A törzs két állítása a lezárás után pontosításra szorult. A javítás
+mindkét helyen inline megtörtént; itt marad nyoma, hogy mi volt hibás.
+
+- **`FORETACK_FORCE_NIGHT=1` → `=true`** (D10). A `bool.fromEnvironment`
+  kizárólag a literál `true` értéket fogadja el, az `=1` csendben hamis
+  marad. A kódba eleve a helyes alak került, a hiba csak a dokumentumban
+  élt.
+- **A `docs/deferred.md` „Piros éjszakai téma" tétele nem létezett**
+  (Következmények). Az állítás ellenőrizetlen feltevés volt: a lógó
+  hivatkozás a `docs/design-system.md`-ben élt, nem a deferred-listán.
+  A záró bookkeeping ezért felvesz, nem mozgat.

@@ -348,6 +348,41 @@ a vízen szürke háttérrel megy.
 - **Miért nem most**: viselkedés-változás nélküli refaktor, ami a zöld,
   post-race `TrackMap`-et is megérintené; az offline csomag előbbre való.
 
+## Automatikus éjszakai mód az órán (ADR 0039)
+
+### Éjszakai mód a telefonon
+- **Mi**: az `apps/phone` UI is napszakhoz igazodna, az órán bevált
+  vörös-narancs rámpával.
+- **Mikor**: ha a telefon a versenyen kézben lesz, nem zsebben.
+- **Miért nem most**: a telefonon a drága rész nem a téma, hanem a
+  biztonsági térkép raszter csempéje: azt csak `ColorFilter`-rel lehetne
+  tintázni, az viszont a partvonalat is átfestené. Önálló probléma,
+  önálló ADR-t érdemel.
+- **Hivatkozás**: ADR 0039 D1.
+
+### Napfény-téma (erős fényben)
+- **Mi**: harmadik témaként világos hátterű, maximális kontrasztú
+  színkészlet a déli napra.
+- **Mikor**: ha egy on-device kör azt találja, hogy a mai sötét téma
+  tűző napon nem olvasható.
+- **Miért nem most**: nincs mért panasz; a téma-választó szerkezet
+  (`nightModeProvider`) viszont már készen áll rá.
+
+### Kézi felülbírálás és hangolható offset
+- **Mi**: kapcsoló az órán, illetve a `nightModeOffset` felhasználói
+  hangolása.
+- **Mikor**: ha a számított küszöb a vízen zavarónak bizonyul.
+- **Miért nem most**: a mód szándékosan automatikus, és az órán nincs
+  beállítás-felület; a konstans egyetlen sor, a UI viszont teljes
+  szelet lenne.
+- **Hivatkozás**: ADR 0039 D7, D10.
+
+### További tokenizálás fehér szivárgás esetén
+- **Mi**: minden maradék, explicit szín nélküli `Text` tokenre állítása.
+- **Mikor**: ha egy on-device kör mégis talál át nem váltó fehéret.
+- **Miért nem most**: a két on-device kör egyetlen szivárgást sem talált
+  — a D5 `ColorScheme`-rögzítése elégnek bizonyult.
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
@@ -373,3 +408,10 @@ kerülnek ide.)_
   `BearingReference.magneticNorth`). Default ctor szemantika: nincs
   validáció, nincs normalize.
 - **Hol**: ugyanazon commit.
+
+### Automatikus éjszakai mód az órán (ADR 0039) — `fb09ec6`…`a337d8c`
+- **Mi**: napnyugtakor automatikusan váltó éjszakai téma az órán: NOAA
+  nap-idő számítás a `shared`-ben, vörös-narancs szöveg-rámpa, additív
+  `onCritical` token, és tompított jel-színek (Addendum 1).
+- **Hol**: hét commit, `fb09ec6` … `a337d8c`; docs + `shared` + `watch`,
+  huszonkilenc új teszttel, kétszer on-device igazolva.
