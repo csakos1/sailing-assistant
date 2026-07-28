@@ -336,3 +336,36 @@ tartja, de ez a szám az on-device körben ellenőrizendő.
    alatt.
 6. `docs(deferred)` — az ADR 0041 + 0042 halasztottjai és a `## Done`
    bejegyzés.
+
+## Addendum 1 — A fokjel marad a rácson (a D6 megfordítása)
+
+**Dátum:** 2026-07
+
+A D6 táblázata a fokjel elhagyását írta elő a rácson (`32`, `095`, `±4`), a
+`Foretack_Design_dc.html` 1c variánsának kimérésére hivatkozva. Ezt a
+döntést **megfordítjuk: a fokjel marad**, ahogy a v1 képernyőn eddig is
+volt — `32°`, `095°`, `±4°`, `12°`.
+
+Az ellentmondás már a döntés írásakor látszott: a `docs/design-system.md`
+tipográfia-táblája a hibasávot `±4°` alakban írja, tehát a kimérés ezen a
+ponton nem volt egyértelmű. A mértékegység a szám mellett vízen eggyel
+kevesebb értelmezési lépés, és a mai képernyőt valós versenyeken olvassuk —
+a megszokás megtartása többet ér, mint a nyert karakterhely.
+
+**Ami a D6-ból érvényben marad:** a tizedes-elválasztó vessző (`1,85 km`,
+`5,8`) és a VMG két soros alakja (`5,8` + `cél 6,2`). Ezzel a D5
+phone-lokális formázó-rétege is megmarad, csak kisebb felülettel: a
+`formatAngleMagnitude` és a `formatBearing` változatlanul a `shared`
+primitívjeire delegálhat, mert a fokjel nem divergencia.
+
+**A D4 mérése nem változik:** a sín leghosszabb alakjai (`1,85 km`,
+`83 perc`) hét karakteresek maradnak, a `095°` pedig négy karakter — 60 dp
+a 104-ből.
+
+**Egy következmény a fő oszlopra.** A hero 76 pt-on `−4,56` letterSpacinggel
+karakterenként 52,44 dp, tehát a `180°` négy karaktere **209,8 dp**, szemben
+a fokjel nélküli 157,3-mal. A Pixel 412 dp-s szélessége mellett a fő oszlop
+belső szélessége `412 − 132 − 20 − 14 = 246 dp`, tehát elfér — de a tartalék
+40 dp-re szűkült. Ezért a D4 `FittedBox(scaleDown)` szabálya **kiterjed a fő
+oszlop szám-celláira is**, változatlanul cellánként, soha az oszlopra. A
+tényleges viselkedés az 5. szelet on-device körében ellenőrizendő.

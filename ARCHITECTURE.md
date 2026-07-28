@@ -2649,15 +2649,15 @@ predikció olvasható, a többi kereséssel.
 │ ● Csatlakozva          Szemes  18:24:53      │   státuszsor (34)
 ├───────────────────────────────┬──────────────┤
 │ TWA KÖV.              ●●○     │ BEARING      │   fő oszlop: flex(1)
-│  51                     (76)  │ 095          │   sín: 132 dp fix
-│  ±4                           ├──────────────┤
+│  51°                    (76)  │ 095°         │   sín: 132 dp fix
+│  ±4°                          ├──────────────┤
 ├───────────────────────────────┤ TÁV          │   belső flex:
 │ KORREKCIÓ                     │ 450 m        │     TWA KÖV.  1.6
-│  12 →                  (48)   ├──────────────┤     KORREKCIÓ 1.15
+│  12° →                 (48)   ├──────────────┤     KORREKCIÓ 1.15
 │  jobbra                       │ ETA          │     TWA MOST  1.0
 ├───────────────────────────────┤ 07:32        │
 │ TWA MOST                      ├──────────────┤   sín: 5 cella,
-│  42 ◀                  (38)   │ CÉL-SEB.     │   mind flex 1
+│  42° ◀                 (38)   │ CÉL-SEB.     │   mind flex 1
 │                               │ 94%          │
 │                               ├──────────────┤
 │                               │ VMG          │
@@ -2684,21 +2684,21 @@ csak egyetlen cella egyetlen értékére.
 
 | Hely | Cella | Forrás (provider → mező) | Formátum | null |
 |------|-------|--------------------------|----------|------|
-| Fő 1 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl, fokjel nélkül; alatta `±4` | `—` |
+| Fő 1 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl; alatta `±4°` | `—` |
 | Fő 2 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl; alatta `jobbra` / `balra` | `—` |
 | Fő 3 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
-| Sín 1 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095` | `—` |
+| Sín 1 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
 | Sín 2 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `450 m`; `≥1000 m → 1,85 km` | `—` |
 | Sín 3 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
 | Sín 4 | Cél-seb. | `raceSnapshotProvider` → élő sebesség + `targetSpeedKnots` | egész `%` | `—` |
 | Sín 5 | VMG | `raceSnapshot` → `vmgKnots` / `targetVmgKnots` / `vmgSteerCorrection` | `5,8`, alatta `cél 6,2` + steer-nyíl | `—` |
 | Státuszsor | GPS-idő | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
 
-A rácson a szám mellől **a fokjel elmarad** — a cella-felirat hordozza a
-mértékegységet, és a hero 76 pt-os méreténél a `°` feltűnően sok helyet
-vinne. A tizedes-elválasztó vessző. Mindkettő **phone-lokális** formázási
-szabály (ADR 0042 D5–D6): a `packages/shared` primitív formázói és így az
-óra kijelzése változatlan.
+A fokjel a szám mellett **marad** (`32°`, `095°`, `±4°`) — a v1 viselkedés
+megtartása (ADR 0042 Addendum 1). A tizedes-elválasztó viszont vessző
+(`1,85 km`, `5,8`), és a VMG két sorban áll: ez a két szabály
+**phone-lokális** (ADR 0042 D5), tehát a `packages/shared` primitív
+formázói és így az óra kijelzése változatlan.
 
 A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és a célbója neve: a stepped snapshot `prediction.mark.name`-jéből (így rounding után M1→M2 vált, egyezve a cellákkal), `prediction` hiányában (pre-fix / `finished`) az `activeRaceProvider` → `activeMarkOrNull?.name` fallbackre, különben `—`.
 
@@ -2738,13 +2738,13 @@ nullable; a `0°` „perfekt kurzus", nem „nincs adat").
 **TWA-cellák: előjel-konvenció és oldal-nyíl.** A `trueAngleWater` /
 `predictedTwaAtMark` `Angle` signed `[-180, +180)`, **+ = starboard
 (jobbról fúj), − = port (balról fúj)** (lásd `angle.dart`, 7.5). A
-képernyőn **előjelet és fokjelet nem írunk** — a számot magnitúdóként
+képernyőn **előjelet nem írunk** — a számot magnitúdóként
 mutatjuk, a **nyíl pozíciója kódolja az oldalt**, és a glyph a szám felé
 (befelé) mutat:
 
-- `+` (starboard): nyíl a szám jobbján, balra mutat — `32 ◀`
-- `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47`
-- `0`: szélbe, nincs oldal → nyíl nélkül.
+- `+` (starboard): nyíl a szám jobbján, balra mutat — `32° ◀`
+- `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47°`
+- `0°`: szélbe, nincs oldal → nyíl nélkül.
 
 A nyíl **színe a hajós (navigációs-fény) konvenciót követi**: starboard
 (jobb) → **zöld**, port (bal) → **piros** — a szín redundánsan megerősíti az
@@ -2755,9 +2755,9 @@ fordulj (starboard), − = balra (port)** (lásd 7.3). Magnitúdó + a nyíl azo
 az oldalon, amerre kormányozni kell, **kifelé** (a fordulás irányába)
 mutatva, alatta a `jobbra` / `balra` kísérőszöveg (`TextTones.low`):
 
-- `+` (jobbra): `12 →`
-- `−` (balra): `← 12`
-- `0`: nincs nyíl.
+- `+` (jobbra): `12° →`
+- `−` (balra): `← 12°`
+- `0°`: nincs nyíl.
 
 A kormány-nyíl színe ugyanazt a side-konvenciót követi (jobbra → **zöld**,
 balra → **piros**); a TWA-nyíltól a glyph-stílus (vékony vonal vs. tömör
@@ -2855,8 +2855,8 @@ bearing 3-jegy, távolság m/km, ETA mm:ss/perc, idő HH:mm:ss, és a signed
 `Angle` → nyíl-oldal leképezés. A screen és a cellák widget-teszttel, a
 §8.6-ban bevált `ProviderScope`/`ProviderContainer` override-mintákkal
 (fake notifier `build()` override + kontrollált `tick`). Az 1c
-formátum-eltéréseit (fokjel nélküli szám, tizedesvessző, két soros VMG) ez a
-réteg viseli, **phone-lokálisan** (ADR 0042 D5) — a `packages/shared` a
+formátum-eltéréseit (tizedesvessző, két soros VMG) ez a réteg viseli,
+**phone-lokálisan** (ADR 0042 D5) — a `packages/shared` a
 primitív szabályt tartja (kerekítés, küszöbök, `missingValue`), így az óra
 kijelzése változatlan marad.
 

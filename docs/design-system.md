@@ -123,7 +123,7 @@ A track sebesség-rámpája (ADR 0034 Addendum 4) szintén változatlan.
 | Korrekció | Martian Mono | 48 / w700 |
 | TWA most | Martian Mono | 38 / w700 |
 | Sín-érték | Martian Mono | 20 / w700 |
-| Hibasáv (`±4`) | Martian Mono | 14 / w600 |
+| Hibasáv (`±4°`) | Martian Mono | 14 / w600 |
 | Al-érték (`cél 6,2`) | Martian Mono | 10.5 / w500 |
 | GPS-idő | IBM Plex Mono | 13 / w600 |
 | Cím | IBM Plex Sans | 19 / w600 |
@@ -138,9 +138,9 @@ szállítjuk, a Martian Mono viszont kivágott súly-példányokként.
 
 Az 1c elrendezés geometriája (fő oszlop + 132 dp adatsín, flex-arányok,
 paddingek, hairline-ek) és az érték→forrás→formátum leképezés az
-`ARCHITECTURE.md` §8.7-ben él; az indoklás az ADR 0042-ben. A rácson a szám
-mellől a fokjel elmarad, a tizedes-elválasztó vessző — ezek **phone-lokális**
-formázási szabályok, az órára nem vonatkoznak.
+`ARCHITECTURE.md` §8.7-ben él; az indoklás az ADR 0042-ben. A rácson a
+fokjel marad; a tizedes-elválasztó viszont vessző, és a VMG két sorban áll —
+ez a két utóbbi **phone-lokális** szabály, az órára nem vonatkozik.
 
 ## Implementációs megkötések
 - **Tokenek `ThemeExtension`-ként** (a `ConfidenceColors` / `WarningColors`
