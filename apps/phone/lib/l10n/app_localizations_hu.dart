@@ -18,22 +18,22 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveStale => 'Elavult';
 
   @override
-  String get liveTwaNow => 'TWA most';
+  String get liveTwaNow => 'TWA MOST';
 
   @override
-  String get liveTwaNext => 'TWA köv.';
+  String get liveTwaNext => 'TWA KÖV.';
 
   @override
   String get liveTwdHeld => 'tartott';
 
   @override
-  String get liveBearing => 'Bearing';
+  String get liveBearing => 'BEARING';
 
   @override
-  String get liveCorrection => 'Korrekció';
+  String get liveCorrection => 'KORREKCIÓ';
 
   @override
-  String get liveDistance => 'Táv';
+  String get liveDistance => 'TÁV';
 
   @override
   String get liveEta => 'ETA';
@@ -238,10 +238,21 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
+  String get liveCorrectionRight => 'jobbra';
+
+  @override
+  String get liveCorrectionLeft => 'balra';
+
+  @override
+  String liveVmgTarget(String value) {
+    return 'cél $value';
+  }
+
+  @override
   String get liveVmg => 'VMG';
 
   @override
-  String get liveTargetSpeed => 'Cél-seb.';
+  String get liveTargetSpeed => 'CÉL-SEB.';
 
   @override
   String get warningPolarMissing => 'Nincs polár-adat';

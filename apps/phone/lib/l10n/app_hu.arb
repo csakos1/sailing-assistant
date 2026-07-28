@@ -12,11 +12,11 @@
   "@liveStale": {
     "description": "Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül)."
   },
-  "liveTwaNow": "TWA most",
+  "liveTwaNow": "TWA MOST",
   "@liveTwaNow": {
     "description": "Cella-címke: aktuális TWA."
   },
-  "liveTwaNext": "TWA köv.",
+  "liveTwaNext": "TWA KÖV.",
   "@liveTwaNext": {
     "description": "Cella-címke: a következő bójánál várható TWA."
   },
@@ -24,15 +24,15 @@
   "@liveTwdHeld": {
     "description": "Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7)."
   },
-  "liveBearing": "Bearing",
+  "liveBearing": "BEARING",
   "@liveBearing": {
     "description": "Cella-címke: irány a bójához (abszolút bearing)."
   },
-  "liveCorrection": "Korrekció",
+  "liveCorrection": "KORREKCIÓ",
   "@liveCorrection": {
     "description": "Cella-címke: kormányzási korrekció a bójához."
   },
-  "liveDistance": "Táv",
+  "liveDistance": "TÁV",
   "@liveDistance": {
     "description": "Cella-címke: távolság a bójához."
   },
@@ -309,11 +309,28 @@
       }
     }
   },
+  "liveCorrectionRight": "jobbra",
+  "@liveCorrectionRight": {
+    "description": "Kísérőszöveg a korrekció-cellában: jobbra kell fordulni"
+  },
+  "liveCorrectionLeft": "balra",
+  "@liveCorrectionLeft": {
+    "description": "Kísérőszöveg a korrekció-cellában: balra kell fordulni"
+  },
+  "liveVmgTarget": "cél {value}",
+  "@liveVmgTarget": {
+    "description": "A polár cél-VMG kísérő sora a VMG sín-cellában",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "liveVmg": "VMG",
   "@liveVmg": {
     "description": "Élő VMG csomóban, előjelesen (negatív = lemenő)"
   },
-  "liveTargetSpeed": "Cél-seb.",
+  "liveTargetSpeed": "CÉL-SEB.",
   "warningPolarMissing": "Nincs polár-adat",
   "@warningPolarMissing": {
     "description": "Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható."

@@ -115,13 +115,13 @@ abstract class AppLocalizations {
   /// Cella-címke: aktuális TWA.
   ///
   /// In hu, this message translates to:
-  /// **'TWA most'**
+  /// **'TWA MOST'**
   String get liveTwaNow;
 
   /// Cella-címke: a következő bójánál várható TWA.
   ///
   /// In hu, this message translates to:
-  /// **'TWA köv.'**
+  /// **'TWA KÖV.'**
   String get liveTwaNext;
 
   /// Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7).
@@ -133,19 +133,19 @@ abstract class AppLocalizations {
   /// Cella-címke: irány a bójához (abszolút bearing).
   ///
   /// In hu, this message translates to:
-  /// **'Bearing'**
+  /// **'BEARING'**
   String get liveBearing;
 
   /// Cella-címke: kormányzási korrekció a bójához.
   ///
   /// In hu, this message translates to:
-  /// **'Korrekció'**
+  /// **'KORREKCIÓ'**
   String get liveCorrection;
 
   /// Cella-címke: távolság a bójához.
   ///
   /// In hu, this message translates to:
-  /// **'Táv'**
+  /// **'TÁV'**
   String get liveDistance;
 
   /// Cella-címke: becsült érkezés a bójához (ETA).
@@ -520,6 +520,24 @@ abstract class AppLocalizations {
   /// **'{count} bója'**
   String listMarkCount(int count);
 
+  /// Kísérőszöveg a korrekció-cellában: jobbra kell fordulni
+  ///
+  /// In hu, this message translates to:
+  /// **'jobbra'**
+  String get liveCorrectionRight;
+
+  /// Kísérőszöveg a korrekció-cellában: balra kell fordulni
+  ///
+  /// In hu, this message translates to:
+  /// **'balra'**
+  String get liveCorrectionLeft;
+
+  /// A polár cél-VMG kísérő sora a VMG sín-cellában
+  ///
+  /// In hu, this message translates to:
+  /// **'cél {value}'**
+  String liveVmgTarget(String value);
+
   /// Élő VMG csomóban, előjelesen (negatív = lemenő)
   ///
   /// In hu, this message translates to:
@@ -529,7 +547,7 @@ abstract class AppLocalizations {
   /// No description provided for @liveTargetSpeed.
   ///
   /// In hu, this message translates to:
-  /// **'Cél-seb.'**
+  /// **'CÉL-SEB.'**
   String get liveTargetSpeed;
 
   /// Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható.

@@ -26,11 +26,12 @@ String formatBearing(Bearing? bearing) {
   return '${degrees.toString().padLeft(3, '0')}°';
 }
 
-/// Egy [Distance] formázása: `< 1000 m` egész méter, `>= 1000 m` két tizedes
-/// km, vagy `missingValue` ha null. A szabályt a `shared` `formatDistanceMeters`
-/// adja.
+/// Egy [Distance] formázása: `< 1000 m` egész méter, `>= 1000 m` két
+/// tizedes km **tizedesvesszővel** (`1,85 km`), vagy `missingValue` ha null.
+/// A kerekítés szabálya a `shared` `formatDistanceMeters`-é; a magyar
+/// tizedes-elválasztó a rács phone-lokális prezentációja (ADR 0042 D5).
 String formatDistance(Distance? distance) =>
-    formatDistanceMeters(distance?.meters);
+    _withDecimalComma(formatDistanceMeters(distance?.meters));
 
 /// Egy ETA [Duration] formázása: `< 60 perc` → `mm:ss`, `>= 60 perc` → egész
 /// perc a [minutesUnit] címkével, vagy `missingValue` ha null. A szabályt a
@@ -66,4 +67,30 @@ String formatVmgWithTarget(double? live, double? target) {
     return liveText;
   }
   return '$liveText / ${target.toStringAsFixed(1)}';
+}
+
+// A rácson a tizedes-elválasztó vessző (ADR 0042 D5): a `shared` a primitív
+// szabályt tartja (kerekítés, küszöbök), a magyar prezentációt ez a réteg
+// adja rá. Az órát ez nem érinti.
+String _withDecimalComma(String text) => text.replaceAll('.', ',');
+
+/// Az élő VMG a sín cellájában: egy tizedes, tizedesvesszővel (`5,8`), vagy
+/// `missingValue` ha nincs adat. Az előjel megmarad (negatív = lemenő).
+String formatVmgLive(double? knots) {
+  if (knots == null) {
+    return missingValue;
+  }
+  return _withDecimalComma(knots.toStringAsFixed(1));
+}
+
+/// A polár cél-VMG kísérő értéke (`6,2`), vagy `null`, ha nincs cél.
+///
+/// A `null` itt **nem** hiányzó adatot jelez: ilyenkor a kísérő sor elmarad
+/// a cellából (ADR 0042 D3), mert az élő VMG önmagában is teljes információ.
+/// A `cél` előtagot a hívó teszi hozzá az ARB-ből.
+String? formatVmgTarget(double? knots) {
+  if (knots == null) {
+    return null;
+  }
+  return _withDecimalComma(knots.toStringAsFixed(1));
 }
