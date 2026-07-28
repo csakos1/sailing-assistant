@@ -2745,16 +2745,27 @@ pontokon + az accenten él, a magnitúdó-szám high-contrast semleges, a nyíl
 pedig zöld/piros az oldal szerint. A low **nem** szűr ki értéket (7.5:
 low-confidence-szűrés nem a domainben).
 
-**Téma (marine dark).** A meglévő `foretackTheme` (`app/theme.dart`,
-`ThemeData.dark(useMaterial3: true)`) bővül marine-dark irányba: sötét
-felület-tokenek, high-contrast szám-tipográfia tabular figures-szel
-(`FontFeature.tabularFigures()`, hogy a számok ne ugráljanak 1 Hz-en),
-napfény-olvashatóság. A side-nyilak zöld/piros és a confidence-színek külön
-`ConfidenceColors extends ThemeExtension<ConfidenceColors>`
-(`app/confidence_colors.dart`, one public class per file), a
-`foretackTheme.extensions`-be regisztrálva; a cellák
-`Theme.of(context).extension<ConfidenceColors>()`-szal olvassák. App-wide
-dark marad (a meglévő CRUD-screenek öröklik).
+**Téma (marine dark).** A `foretackTheme` (`app/theme.dart`) Material 3
+`ColorScheme`-je hordozza a felület-, szöveg- és accent-tokeneket: a
+`fromSeed` alapot explicit `copyWith` rögzíti (`surface`,
+`surfaceContainer`, `surfaceContainerHigh`, `outline`, `outlineVariant`,
+`onSurface`, `onSurfaceVariant`, `primary`, `onPrimary`,
+`secondaryContainer`, `onSecondaryContainer`, `error`), így a paletta
+minden képernyőre és minden Material-widgetre érvényes — a `primary`-t
+azért kell explicit megadni, mert a `fromSeed` a magot tonálisan átképzi.
+Amire az M3-nak nincs slotja, az `ThemeExtension`: `ConfidenceColors`
+(`app/confidence_colors.dart`), `WarningColors` (§11) és `TextTones`
+(`app/text_tones.dart`, a label-szint tercier szövegszíne). A
+starboard/port oldal-színek, az IALA-sárga, a hajó-kék és a track
+sebesség-rámpa top-level konstansok maradnak (`app/marine_colors.dart`):
+térkép- és rajz-rétegek fogyasztják, nem téma-váltó felületek. Betűk:
+bundle-ölt asset-fontok — `IBM Plex Sans` az UI-nak, `IBM Plex Mono` a
+GPS-időnek, `Martian Mono` a mérőszámoknak —, a szám-stílusok az
+`app/foretack_typography.dart` konstansaiban; a mono családok eleve fix
+számjegy-szélességűek, így a számok nem ugrálnak az 1 Hz-es frissülésnél.
+A token→slot táblázat és a típusskála a `docs/design-system.md`
+„Telefon" szakaszában, az indoklás az ADR 0041-ben. App-wide dark marad
+(a meglévő CRUD-screenek öröklik).
 
 **Képernyő ébren tartása.** Új dep: `wakelock_plus` az `apps/phone`-ban — a
 `LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben

@@ -36,8 +36,10 @@ kanonikus otthona egy képernyő-specifikus dokumentum.
 
 **A kiinduló állapot felmérése egy fontos meglepetést hozott.** A
 token-lap színeinek jelentős része **karakterre azonos** azzal, ami ma a
-kódban van — a design-dokumentum nyilvánvalóan a meglévő
-`docs/design-system.md`-ből dolgozott. A munka tehát nem paletta-csere,
+kódban van — a token-lap a telefon **kódjának** mai értékeivel egyezik
+(`theme.dart`, `confidence_colors.dart`, `marine_colors.dart`); a
+`docs/design-system.md` ettől független, az az óra külön palettája. A
+munka tehát nem paletta-csere,
 hanem **kiegészítés**: a hiányzó felület- és szövegskála beemelése, plusz
 a betűtípus, ami valóban új.
 
@@ -284,3 +286,64 @@ Az alábbiakat mérés vagy dump igazolta, nem becslés:
 - A D7 glif-lefedettség a három TTF `cmap` táblájából.
 - Az OFL Reserved Font Name-ek: a Martian Mono `OFL.txt`-jében nincs, az
   IBM Plexében `Reserved Font Name "Plex"`.
+
+---
+
+## Addendum 1 — A `text-low` token mégis `ThemeExtension`
+
+**Dátum:** 2026-07
+**Kiváltó ok:** a `docs/design-system.md` dumpja, a `docs(architecture)`
+sync előkészítésekor.
+
+### Kontextus
+
+A D3 azzal indokolta a top-level konstanst, hogy az app dark-only, tehát
+a szín nem témánként változik. A `docs/design-system.md`
+`## Implementációs megkötések` szakasza viszont egy korábbi, kimondott
+szabályt rögzít: a tokenek `ThemeExtension`-ként éljenek, ne szórt
+konstansként, hogy a Napfény/Piros téma később drop-in lehessen.
+
+A projekt saját története ezt a szabályt igazolja: az óra is dark-only
+volt, és az ADR 0039 éjszakai módja **pontosan azért** lett drop-in, mert
+a tokenek `ThemeExtension`-ben ültek. A telefonos éjszakai mód pedig
+nevesítve szerepel a `docs/deferred.md`-ben, tehát nem hipotetikus.
+
+Konstansként a `text-low` egyetlen kivétel lenne: a `text-hi` és a
+`text-mid` a `ColorScheme`-mel váltana, a tercier szint pedig beragadna —
+épp az a csendes hiba, ami ellen a szabály íródott.
+
+### Döntés
+
+Az `app/text_tones.dart` marad, de a tartalma
+`TextTones extends ThemeExtension<TextTones>`, egyetlen `textLow`
+mezővel, `copyWith` + `lerp` implementációval a `ConfidenceColors`
+sablonjára, a `foretackTheme.extensions`-be regisztrálva.
+
+**A D1-et ez nem érinti.** A `ColorScheme` maga is témánként cserélhető,
+tehát a szabály *szándékát* (drop-in téma) teljesíti; a megkötés azokra a
+tokenekre íródott, amiknek nincs M3 slotjuk. A D2 és a
+`marine_colors.dart` konstansai szintén változatlanok: azokat rajz- és
+térkép-rétegek fogyasztják, nem téma-váltó felületek.
+
+**A D4 független megerősítést kapott.** Ugyanaz a szakasz kimondja, hogy
+a fontokat assetként kell bundle-ölni, `google_fonts` runtime-fetch
+helyett, mert versenyen nincs internet — ugyanaz a következtetés, két
+egymástól független úton.
+
+---
+
+## Utólagos pontosítások
+
+- **A Kontextus szakasz hamis állítást tartalmazott.** Azt írta, hogy a
+  design-dokumentum „nyilvánvalóan a meglévő `docs/design-system.md`-ből
+  dolgozott". Ez ellenőrizetlen következtetés volt a szín-egyezésből, és
+  a `design-system.md` dumpja megcáfolta: az az **óra** palettája
+  (`bg #04080D`, `port #FF5A52`, `stbd #2FD06E`, fontok: Saira és
+  JetBrains Mono), egyetlen hexje sem egyezik a token-lapéval. A
+  token-lap a telefon **kódjának** mai értékeivel egyezik. Inline
+  javítva.
+- **Mi fogta meg:** a `docs(architecture)` sync előtti kötelező dump. A
+  hibaminta ugyanaz, mint az ADR 0040 D9-ében — egy állítást nem
+  ellenőriztem, hanem levezettem valami közvetettből.
+- **A D3 megfordult**, lásd Addendum 1. Ez döntés-változás, nem elírás,
+  ezért addendum a formája, nem inline átírás.

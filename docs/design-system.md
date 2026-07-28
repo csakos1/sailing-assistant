@@ -4,9 +4,16 @@ Műszer-szintű, nyugodt, strapabíró vizuális nyelv vitorlázáshoz: glanceab
 hierarchia, magas kontraszt, tabuláris live-számok. Tengeri műszer (B&G/Garmin),
 repülős HUD és sport-óra esztétika. Claude Designban tervezve.
 
-Cross-surface (watch + később phone). Az órán a **sötét** és az **éjszakai**
-téma van bekötve — utóbbi automatikusan, napnyugtakor (ADR 0039); a
-telefon ma sötét-only. A **Napfény** téma definiált, de **v2-deferred**.
+**A két felületnek külön palettája van.** Az alábbi `## Színek` és
+`## Tipográfia` szakasz az **órára** vonatkozik; a telefon tokenjei a
+`## Telefon (ADR 0041)` szakaszban élnek. A token-nevek
+**felület-hatókörűek** — a `text`, `surface`, `port` és `stbd` mindkét
+felületen létezik, MÁS hexszel —, ezért hivatkozásnál mindig mondd meg,
+melyik felületről van szó.
+
+Az órán a **sötét** és az **éjszakai** téma van bekötve — utóbbi
+automatikusan, napnyugtakor (ADR 0039). A **Napfény** téma definiált, de
+**v2-deferred**.
 
 ## Színek
 
@@ -66,6 +73,68 @@ hogy a narancs szöveg mellett épp ezek a legvilágosabb pontok. A `crit` és a
 
 - Label: ~11 px, 0.13em betűköz, `text-2`.
 - Hero / value: nagy (≈46–132 px a felülettől függően), `text` vagy `signal`.
+
+## Telefon (ADR 0041)
+
+A telefon palettája **nem** azonos az óráéval, és nem is abból származik:
+az alábbi értékek az `apps/phone` mai kódjából valók (`theme.dart`,
+`confidence_colors.dart`, `warning_colors.dart`, `marine_colors.dart`),
+kiegészítve a hiányzó felület- és szövegskálával.
+
+### Felületek és szöveg — Material 3 `ColorScheme` slotok
+| Token | Hex | Slot |
+|---|---|---|
+| `bg` | `#0B0F14` | `surface` |
+| `surface-1` | `#111823` | `surfaceContainer` |
+| `surface-2` | `#182230` | `surfaceContainerHigh` |
+| `hairline` | `#1E2A38` | `outlineVariant` |
+| `hairline-erős` | `#2A3B4E` | `outline` |
+| `text-hi` | `#F2F7FA` | `onSurface` |
+| `text-mid` | `#9FB2C2` | `onSurfaceVariant` |
+| `accent` | `#1E9FB5` | `primary` |
+| `on-accent` | `#04262B` | `onPrimary` |
+| `accent-container` | `#16323A` | `secondaryContainer` |
+| `on-accent-container` | `#9FD9E4` | `onSecondaryContainer` |
+| `warn-critical` | `#B3261E` | `error` |
+
+A `text-low` (`#66788A`) az egyetlen token, amire nem jut M3 slot — a
+`TextTones` `ThemeExtension` hordozza (`app/text_tones.dart`,
+ADR 0041 Addendum 1).
+
+### Jel- és állapot-színek — változatlanok
+| Token | Hex | Hol él |
+|---|---|---|
+| `conf-low` | `#6B7785` | `ConfidenceColors.low` |
+| `conf-med` | `#E0A82E` | `ConfidenceColors.medium` |
+| `conf-high` | `#35C2D6` | `ConfidenceColors.high` |
+| `warn-warning` | `#E0A82E` | `WarningColors.warning` |
+| `warn-info-bg` | `#24323F` | `WarningColors.info` |
+| `starboard` | `#34C759` | `starboardColor` |
+| `port` | `#E5484D` | `portColor` |
+| IALA sárga | `#FFD100` | `cardinalYellow` |
+| `boat` | `#2D7FF9` | `boatColor` |
+
+A track sebesség-rámpája (ADR 0034 Addendum 4) szintén változatlan.
+
+### Tipográfia
+| Szerep | Font | Méret / súly |
+|---|---|---|
+| Hero (TWA köv.) | Martian Mono | 76 / w800 |
+| Korrekció | Martian Mono | 48 / w700 |
+| TWA most | Martian Mono | 38 / w700 |
+| Sín-érték | Martian Mono | 20 / w700 |
+| Hibasáv (`±4°`) | Martian Mono | 14 / w600 |
+| Al-érték (`cél 6,2`) | Martian Mono | 10.5 / w500 |
+| GPS-idő | IBM Plex Mono | 13 / w600 |
+| Cím | IBM Plex Sans | 19 / w600 |
+| Fő felirat | IBM Plex Sans | 11 / w600, caps, +0.1em |
+| Sín-felirat | IBM Plex Sans | 9.5 / w600, caps, +0.09em |
+| Segédszöveg | IBM Plex Sans | 12-13 / w500 |
+
+Nyolc bundle-ölt statikus TTF (`apps/phone/assets/fonts/`): Martian Mono
+500/600/700/800, IBM Plex Sans 500/600/700, IBM Plex Mono 600. Mindkettő
+OFL 1.1; az IBM Plex Reserved Font Name-es, ezért **változatlanul**
+szállítjuk, a Martian Mono viszont kivágott súly-példányokként.
 
 ## Implementációs megkötések
 - **Tokenek `ThemeExtension`-ként** (a `ConfidenceColors` / `WarningColors`
