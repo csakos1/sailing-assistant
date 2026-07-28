@@ -9,7 +9,7 @@ import 'package:phone/l10n/app_localizations.dart';
 
 /// Az élő képernyő státuszsora (§8.7, ADR 0042 D10): kapcsolat-jelző, aktív
 /// bója neve, GPS-idő (true-time forrás, ADR 0012), és — ha az adat elavult
-/// — egy „elavult" chip.
+/// — egy „ELAVULT" chip.
 ///
 /// Fix 34 dp magas, fent és lent 1 dp hairline határolja: az 1c elrendezésben
 /// ez választja el a rácstól, nem a margó.
@@ -80,20 +80,8 @@ class LiveStatusBar extends StatelessWidget {
             ),
           ),
           if (isStale) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: scheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                l10n.liveStale,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: scheme.onErrorContainer,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
+            _StaleChip(label: l10n.liveStale, color: warningColors.warning),
+            const SizedBox(width: 10),
           ],
           Text(
             markName ?? missingValue,
@@ -131,4 +119,33 @@ class LiveStatusBar extends StatelessWidget {
       warningColors.critical,
     ),
   };
+}
+
+/// Az „elavult adat" chip a státuszsorban (ADR 0042 D12).
+///
+/// Kontúros pill, nem tömör doboz: az elavulás **nem** riasztás — az értékek
+/// megmaradnak a képernyőn, csak a koruk kérdéses —, ezért a jelzés a
+/// warning-tokent viszi, de nem foglal el hátteret a státuszsorban.
+class _StaleChip extends StatelessWidget {
+  const _StaleChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      border: Border.all(color: color),
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.schedule, size: 11, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: sectionLabelStyle.copyWith(color: color)),
+      ],
+    ),
+  );
 }

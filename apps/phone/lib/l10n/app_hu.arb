@@ -8,7 +8,7 @@
   "@liveNoActiveRace": {
     "description": "Az élő képernyő üres állapota: nincs aktív verseny."
   },
-  "liveStale": "Elavult",
+  "liveStale": "ELAVULT",
   "@liveStale": {
     "description": "Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül)."
   },
@@ -20,7 +20,7 @@
   "@liveTwaNext": {
     "description": "Cella-címke: a következő bójánál várható TWA."
   },
-  "liveTwdHeld": "tartott",
+  "liveTwdHeld": "TARTOTT",
   "@liveTwdHeld": {
     "description": "Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7)."
   },

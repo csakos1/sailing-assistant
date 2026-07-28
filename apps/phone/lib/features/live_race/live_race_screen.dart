@@ -213,22 +213,17 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
               trueTime: gpsTime,
               isStale: _isStale(status: status, boat: boat, tick: tick),
             ),
-            if (serviceError != null || warnings.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (serviceError != null) ...[
-                      _EngineServiceErrorStrip(
-                        message: l10n.liveServiceError(serviceError),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    WarningBanner(warnings: warnings),
-                  ],
-                ),
+            // Az infrastruktúra-hibasor a warningok FÖLÖTT áll: az
+            // engine-indítás hibája megelőzi a verseny-warningokat, mert
+            // nélküle nincs is miből warningot számolni (ADR 0042 D12).
+            if (serviceError != null)
+              WarningStrip(
+                message: l10n.liveServiceError(serviceError),
+                severity: WarningSeverity.critical,
+                background: Theme.of(context).colorScheme.errorContainer,
+                icon: Icons.error_outline,
               ),
+            WarningBanner(warnings: warnings),
             Expanded(
               child: Opacity(
                 opacity: gridOpacity,
@@ -423,48 +418,5 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       return false;
     }
     return tick.difference(boat.lastUpdate) > const Duration(seconds: 5);
-  }
-}
-
-/// Egy teljes szélességű hibasor az élő képernyőn: a háttér-engine
-/// foreground-service indításának hibáját jeleníti meg (ADR 0017 A13). A
-/// `WarningBanner` strip-geometriáját követi, de szemantikailag külön —
-/// ez infrastruktúra-hiba (service-indítás), nem verseny-warning.
-class _EngineServiceErrorStrip extends StatelessWidget {
-  const _EngineServiceErrorStrip({required this.message});
-
-  /// A megjelenítendő, már lokalizált hibaüzenet.
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 18,
-            color: theme.colorScheme.onErrorContainer,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

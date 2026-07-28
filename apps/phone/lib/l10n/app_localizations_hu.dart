@@ -15,7 +15,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveNoActiveRace => 'Nincs aktív verseny';
 
   @override
-  String get liveStale => 'Elavult';
+  String get liveStale => 'ELAVULT';
 
   @override
   String get liveTwaNow => 'TWA MOST';
@@ -24,7 +24,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveTwaNext => 'TWA KÖV.';
 
   @override
-  String get liveTwdHeld => 'tartott';
+  String get liveTwdHeld => 'TARTOTT';
 
   @override
   String get liveBearing => 'BEARING';

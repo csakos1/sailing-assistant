@@ -195,7 +195,7 @@ void main() {
       expect(find.text('450 m'), findsOneWidget);
       expect(find.text('07:32'), findsOneWidget);
       expect(find.text('jobbra'), findsOneWidget);
-      expect(find.text('Elavult'), findsNothing);
+      expect(find.text('ELAVULT'), findsNothing);
     });
 
     testWidgets('a státuszsor a stepped prediction-bóját mutatja, nem a '
@@ -287,7 +287,7 @@ void main() {
         tick: now,
       );
 
-      expect(find.text('Elavult'), findsOneWidget);
+      expect(find.text('ELAVULT'), findsOneWidget);
     });
 
     testWidgets('shows the error label on a connection error', (tester) async {

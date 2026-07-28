@@ -49,7 +49,7 @@ void main() {
 
       expect(find.text('47°'), findsOneWidget);
       expect(_heroOpacity(tester), 1.0);
-      expect(find.text('tartott'), findsNothing);
+      expect(find.text('TARTOTT'), findsNothing);
     });
 
     testWidgets('held TWD quality dims the hero and labels it', (
@@ -58,7 +58,7 @@ void main() {
       await _pump(tester, twdQuality: TwdQuality.held);
 
       expect(_heroOpacity(tester), 0.6);
-      expect(find.text('tartott'), findsOneWidget);
+      expect(find.text('TARTOTT'), findsOneWidget);
     });
 
     testWidgets('renders the forecast band under the hero', (tester) async {

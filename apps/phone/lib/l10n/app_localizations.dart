@@ -109,7 +109,7 @@ abstract class AppLocalizations {
   /// Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül).
   ///
   /// In hu, this message translates to:
-  /// **'Elavult'**
+  /// **'ELAVULT'**
   String get liveStale;
 
   /// Cella-címke: aktuális TWA.
@@ -127,7 +127,7 @@ abstract class AppLocalizations {
   /// Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7).
   ///
   /// In hu, this message translates to:
-  /// **'tartott'**
+  /// **'TARTOTT'**
   String get liveTwdHeld;
 
   /// Cella-címke: irány a bójához (abszolút bearing).
