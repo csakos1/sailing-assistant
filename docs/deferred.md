@@ -383,6 +383,84 @@ a vízen szürke háttérrel megy.
 - **Miért nem most**: a két on-device kör egyetlen szivárgást sem talált
   — a D5 `ColorScheme`-rögzítése elégnek bizonyult.
 
+## Foretack design-rendszer és az 1c élő képernyő (ADR 0041 + 0042)
+
+Az ADR 0041 és az ADR 0042 „Halasztva" szakaszaiból emelve, plusz amit az
+implementáció és az első on-device kör tett hozzá.
+
+### Font-subsetelés
+- **Mi**: a bundle-ölt TTF-ek latin-only vágása.
+- **Mikor**: ha az APK-méret szemponttá válik.
+- **Miért nem most**: a vágás a tömörítetlen ~978 KB-ot ~260-ra vinné (a
+  valós APK-növekmény ma ~450 KB), de az IBM Plex OFL-je Reserved Font
+  Name-es, tehát a subsetelt család átnevezést igényelne.
+- **Hivatkozás**: ADR 0041 D9.
+
+### A többi képernyő migrációja az 1c token-rétegre
+- **Mi**: a verseny-lista, a setup, a detail, a biztonsági térkép és a
+  fullscreen track-nézet elrendezésének átvitele (a design-dokumentum
+  1g–1k lapjai).
+- **Mikor**: képernyőnként, egyenként.
+- **Miért nem most**: a paletta és a tipográfia app-szintű, tehát minden
+  képernyő megkapta a tokeneket — az elrendezésük viszont még a régi. Ez a
+  vegyes állapot tudatos.
+- **Hivatkozás**: ADR 0041 (hatókör); ADR 0042 „Halasztva".
+
+### A tizedesvessző kiterjesztése a többi képernyőre
+- **Mi**: a phone-lokális vesszős formázás ma csak az élő képernyőn hat; a
+  többi felület a `shared` pontos alakját mutatja (`1.85 km`).
+- **Mikor**: az érintett képernyő migrációjával együtt.
+- **Miért nem most**: a `shared` az óra igazságforrása is, és az óra
+  kijelzése szándékosan nem változik.
+- **Hivatkozás**: ADR 0042 D5.
+
+### Az 1c geometria és a Martian Mono átvitele az órára
+- **Mi**: a műszer-oszlop elrendezés és a szám-font órás megfelelője.
+- **Miért nem most**: az óra saját design-rendszerrel megy (Saira /
+  JetBrains Mono), és a v1-ben on-device igazolt. Külön döntés.
+- **Hivatkozás**: ADR 0041 „Halasztva".
+
+### Landscape / tablet elrendezés
+- **Mi**: a műszer-oszlop és a sín fekvő elrendezése.
+- **Miért nem most**: a képernyő verseny közben portrait-lockolt, fekvő
+  nézetre nincs használati eset.
+- **Hivatkozás**: ADR 0042 „Halasztva".
+
+### A `formatVmgKnots` takarítása
+- **Mi**: a `live_formatters.dart` `formatVmgKnots` függvényének nincs
+  hívója.
+- **Mikor**: önálló `refactor(phone)` commit.
+- **Miért nem most**: nem az 1c átépítés hagyta árván (a
+  `formatVmgWithTarget`-et igen, azt el is vitte), tehát nem annak a
+  commitnak a témája.
+- **Hivatkozás**: ADR 0042 „Halasztva".
+
+### Az `ARCHITECTURE.md` §4.1 fájl-fája
+- **Mi**: a fa több levélen elmarad — az ADR 0041 három `app/` fájlja és az
+  ADR 0042 öt új `live_race/widgets/` fájlja sem szerepel benne.
+- **Mikor**: a doksi-sync batch-csel.
+- **Miért nem most**: tudatosan halasztott, nem blokkol.
+
+---
+
+## Adatréteg
+
+### A telemetria-flush elkapatlan `SqliteException`-je
+- **Mi**: a `TelemetryLoggerImpl._flush` batch-commitja `Unhandled
+  Exception`-ként dobja a `SqliteException(5): database is locked` hibát.
+- **Mikor**: önálló `fix(data)` commit, teszttel.
+- **Miért nem most**: az ADR 0042 UI-munkája közben derült ki, de nincs
+  köze hozzá — külön koncern, külön commit.
+- **Megjegyzés**: telepítéskor ártalmatlan volt (az előző futás
+  háttér-izolátuma még fogta a DB-t), de a vízen ugyanez a lock-ütközés
+  előfordulhat a foreground-service és az UI-izolátum között. Egy
+  elkapatlan kivétel a telemetria miatt nem dönthet meg semmit: a
+  telemetria kényelmi funkció, nem verseny-kritikus.
+- **Hivatkozás**: `packages/data/lib/src/persistence/repositories/`
+  `telemetry_logger_impl.dart:67`.
+
+---
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
@@ -415,3 +493,13 @@ kerülnek ide.)_
   `onCritical` token, és tompított jel-színek (Addendum 1).
 - **Hol**: hét commit, `fb09ec6` … `a337d8c`; docs + `shared` + `watch`,
   huszonkilenc új teszttel, kétszer on-device igazolva.
+
+### Foretack design-rendszer és az 1c élő képernyő (ADR 0041 + 0042) — `6cdc657`…`87428ac`
+- **Mi**: app-szintű paletta és tipográfia nyolc bundle-ölt fonttal, majd a
+  `LiveRaceScreen` átépítése az 1c műszer-oszlop elrendezésre: méret-lépcsős
+  fő oszlop, fix 132 dp-s adatsín cellánkénti `FittedBox`-szal,
+  `CustomPainter` nyilak, kontúros TARTOTT / ELAVULT pillek, és a
+  palettához kötött kapcsolat-jelző (a zöld kizárólag starboard marad).
+- **Hol**: a `feature/ui-redesign` branch commitjai, `6cdc657` … `87428ac`;
+  két ADR, öt új widget, három törölt, négy új teszt-fájl, egy on-device
+  javítókör.
