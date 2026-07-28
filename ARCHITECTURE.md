@@ -2377,7 +2377,8 @@ egy validált `(name, marks)` párt ad `onSubmit`-en. A `RaceDetailScreen`
 `ReorderableListView`-ben ülnek, külön drag-handle-lel; a `sequence`
 pozíció-alapú, ezért a reorder a domaint és a data-t nem érinti. A mentés
 create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
-`save` delete-and-rewrite-ja felülír).
+`save` delete-and-rewrite-ja felülír). Az űrlap 1h-elrendezését és a
+mező-geometriáját a §8.11 rögzíti (ADR 0044).
 
 **Koordináta-bevitel (ADR 0029 Addendum 1).** A bója lat/lon mezői a
 tizedes-fok mellett DDM (`46° 56.793' N`) és DMS (`46° 56' 47.6" N`)
@@ -2811,7 +2812,7 @@ GPS-időnek, `Martian Mono` a mérőszámoknak —, a szám-stílusok az
 számjegy-szélességűek, így a számok nem ugrálnak az 1 Hz-es frissülésnél.
 A token→slot táblázat és a típusskála a `docs/design-system.md`
 „Telefon" szakaszában, az indoklás az ADR 0041-ben. App-wide dark marad
-(a meglévő CRUD-screenek öröklik).
+(a meglévő CRUD-screenek öröklik); az elrendezésük migrációja a §8.11-ben.
 
 **Képernyő ébren tartása.** Új dep: `wakelock_plus` az `apps/phone`-ban — a
 `LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben
@@ -3083,6 +3084,105 @@ térkép-háttér nem tölt be — a jelölők, a hajó és a vektor ettől
 függetlenül rajzolódnak. Az offline csempe-csomag **saját ADR-t kap**;
 méretezésénél számít, hogy a jelölők Keszthelytől Siófokig szórtak,
 tehát a csomagnak a **teljes tavat** kell fednie.
+
+### 8.11 CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
+
+Az ADR 0041 token-rétege app-wide hat, de az ADR 0042 csak az élő képernyő
+**elrendezését** építette át. A CRUD-felület (lista, setup, edit, detail, a
+két térkép-nézet) migrációja egy közös döntés-rekordban él (**ADR 0044**),
+képernyőnkénti szakaszokkal és folytatólagos `D`-számozással: a token-réteg
+és a kijelző-komponensek nyelve zárt, itt már csak alkalmazás történik.
+
+**Az input-komponensek nyelve itt születik.** Az ADR 0042 öt widgetje
+(`MainColumnCell`, `RailCell`, `DataRail`, `SideArrow`, `WarningStrip`)
+kizárólag kijelző-elem; a CRUD-képernyők viszont beviteliek, ezért a hiányzó
+fél — mező-alapértelmezés, hibaút, akció-sáv, szakasz-címke — ebben a
+szakaszban áll össze.
+
+**A setup és az edit egyszerre migrál.** A két képernyő űrlapja a közös
+`RaceForm` (§8.5, ADR 0029 D2), tehát az 1h makett átvezetése mindkettőt
+viszi. A `RaceSetupScreen` és a `RaceEditScreen` fájlja viszont **nem
+változik**: az akció-sáv is a formon belül ül, így nem kell új paramétert
+nyitni, és nem duplázódik a két hívóban.
+
+**Layout: görgetett törzs + rögzített akció-sáv (ADR 0044 D1).**
+
+```
++------------------------------------------------+
+| <  Verseny szerkesztese                        |  AppBar, screenTitleStyle
++------------------------------------------------+
+| [ Verseny neve ............................. ] |  52 dp, r12
+|                                                |
+| BOJAK                                          |  sectionLabelStyle + low
+| +--------------------------------------------+ |
+| | 1  [ Boja neve ......................] [x] | |  kartya r14
+| | :: [ Szelesseg .... ] [ Hosszusag ...... ] | |  mezok 48 dp, r10
+| +--------------------------------------------+ |
+| +--------------------------------------------+ |
+| | 2  [ Boja neve ......................] [x] | |
+| | :: [ Szelesseg .... ] [ Hosszusag ...... ] | |
+| +--------------------------------------------+ |
+| ( Korabbi bojak )                              |  48 dp, r14
+|                                                |
+|          (a torzs innentol gorgetheto)         |
++------------------------------------------------+
+| [ + Boja hozzaadasa ]  [      Mentes      ]    |  hairline felul, 52 dp
++------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| Törzs-padding | `8/16/0`, szakasz-gap 14 | — |
+| Szakasz-címke | 11 w600, `+.08em`, verzál | `sectionLabelStyle` + `TextTones.low` |
+| Verseny-név mező | 52 dp, r12, pad 16 | `surfaceContainer` + `outline` |
+| Bója-kártya | r14, 1 px keret, pad `12/12/12/8`, gap 8 | `surfaceContainer` + `outlineVariant` |
+| Drag-handle oszlop | 28 dp, badge + hat pötty | `TextTones.low` |
+| Kártyán belüli mező | 48 dp, r10, pad 14 / 10 | `surface` + `outline` |
+| Koordináta-szöveg | 13,5 IBM Plex Mono | `onSurface` |
+| Törlés-gomb | 48×48 | `TextTones.low` |
+| „Korábbi bóják" | 48 dp, r14, 14 w600 | `secondaryContainer` |
+| Akció-sáv | felül 1 px, pad `14/16/8`, gap 10 | `outlineVariant` |
+| Akció-gombok | 2× `Expanded`, 52 dp, r14, 15 | `outline` / `primary` |
+
+**A bója-sor kártya, sorszám-badge-dzsel (D2).** A lapos sor helyett kártya:
+a keret adja a sor-határt, amit ma semmi nem jelöl. A bal oldali 28 dp-s
+oszlopban fölül a sorszám ül (a meglévő `setupMarkHeader` ARB-kulcsból),
+alatta a drag-handle. A sorszám azért marad, mert tour-race-en a **sorrend
+maga az adat**: a bóják számozása a versenykiírásból jön, és a badge az
+egyetlen visszajelzés arról, hogy a húzás azt tette, amit akartunk.
+
+**Mező-alapértelmezés a témában (D3).** A `theme.dart` egy
+`inputDecorationTheme`-mel bővül (`filled`, `surfaceContainer`,
+`OutlineInputBorder` r12, `outline` keret, fókuszban `primary`, hibában
+`error`); a kártyán belüli mezők ezt lokálisan szűkítik `isDense` +
+`surface` kitöltés + r10 alakban, mert a kártya háttere már
+`surfaceContainer`. A **szín-blokk érintetlen**: a makett minden színe
+meglévő slotra képződik, tehát ez az ADR nem nyúl az ADR 0041 tokenjeihez.
+
+**Két kimondott eltérés a makettől.** A kártyán belüli mezők és a
+törlés-gomb **48 dp**-esek, nem 44 (D4): megtartottuk a lebegő `labelText`-et,
+és 44 dp-be a tartalom-sor plusz a fölé ülő címke nem fér el vágás nélkül —
+ráadásul a 44 dp a design-lap **saját** „≥ 48 dp" szabályát sértené. A
+verseny-név mező fölül **elmarad** a verzál szakasz-címke (D5), mert
+ugyanazt a szót mondaná el kétszer, amit a lebegő címke már kiír; a „BÓJÁK"
+viszont marad, az csoportot címkéz, nem mezőt.
+
+**A hiba a Material `errorText` slotján megy (D6).** A koordináta-parse hét
+hibaága a `validator`-on át a beépített slotra képződik, `errorMaxLines: 2`
+mellett, `colorScheme.error` színnel; a sorban a másik mező felül igazodik,
+hogy a kétsoros üzenet ne nyújtsa meg a szomszédját. A makett világosabb
+piros hibaszövege **nem** kap tokent — egy árnyalatért nem duplázunk
+szemantikai szerepet (ADR 0042 precedens).
+
+**Fájlok (D7).** A `race_form.dart` marad az űrlap-állapot gazdája
+(kontrollerek, reorder, submit), a megjelenítés kiköltözik:
+`features/race_setup/widgets/mark_row_card.dart` és `.../form_action_bar.dart`,
+plusz a képernyő-független `widgets/section_label.dart` a verzál
+szakasz-címkéhez. A `SavedMarkPicker` sheet ebben a körben **nem változik**
+(D8): a design-dokumentumban nincs hozzá makett, a geometriát pedig nem
+vezetjük le tippből.
 
 ## 9. Perzisztencia (Drift / SQLite)
 

@@ -142,6 +142,11 @@ paddingek, hairline-ek) és az érték→forrás→formátum leképezés az
 fokjel marad; a tizedes-elválasztó viszont vessző, és a VMG két sorban áll —
 ez a két utóbbi **phone-lokális** szabály, az órára nem vonatkozik.
 
+A CRUD-képernyők (setup/edit űrlap, lista, detail, térképek) elrendezése és
+a mező-geometriája az `ARCHITECTURE.md` §8.11-ben él; az indoklás az ADR
+0044-ben. Az űrlap-mezők alapértelmezését a téma `InputDecorationTheme`-je
+hordozza, nem a hívóhelyek.
+
 ## Implementációs megkötések
 - **Tokenek `ThemeExtension`-ként** (a `ConfidenceColors` / `WarningColors`
   mintára), nem szórt konstansok — így a Napfény/Piros téma később drop-in.
