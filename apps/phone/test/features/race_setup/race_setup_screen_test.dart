@@ -2,11 +2,19 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/id_provider.dart';
 import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+
+// A savban ket kitoltott gomb ul (a mentes es a konyvtar-valaszto
+// tonal valtozata), ezert a mentest a feliratarol cimezzuk.
+Finder _saveButton(WidgetTester tester) => find.widgetWithText(
+  FilledButton,
+  AppLocalizations.of(tester.element(find.byType(RaceSetupScreen)))!.setupSave,
+);
 
 void main() {
   late _FakeRaceRepository repository;
@@ -34,6 +42,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          theme: foretackTheme,
           locale: const Locale('hu'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -63,7 +72,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), '46.9');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(_saveButton(tester));
     await tester.pumpAndSettle();
   }
 
@@ -101,7 +110,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), '200');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(_saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a validáció megállította a mentést, a képernyő marad.

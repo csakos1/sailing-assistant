@@ -53,11 +53,14 @@ ThemeData _buildForetackTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: scheme.surfaceContainer,
-      border: _fieldBorder(scheme.outline),
-      enabledBorder: _fieldBorder(scheme.outline),
-      focusedBorder: _fieldBorder(scheme.primary, width: 1.5),
-      errorBorder: _fieldBorder(scheme.error, width: 1.5),
-      focusedErrorBorder: _fieldBorder(scheme.error, width: 1.5),
+      border: foretackFieldBorder(scheme.outline),
+      enabledBorder: foretackFieldBorder(scheme.outline),
+      focusedBorder: foretackFieldBorder(scheme.primary, width: 1.5),
+      errorBorder: foretackFieldBorder(scheme.error, width: 1.5),
+      focusedErrorBorder: foretackFieldBorder(
+        scheme.error,
+        width: 1.5,
+      ),
       errorMaxLines: 2,
     ),
     extensions: const [
@@ -80,9 +83,18 @@ ThemeData _buildForetackTheme() {
 ///
 /// A radius minden állapotban azonos, csak a vonal színe és vastagsága
 /// vált — így a fókusz és a hiba nem mozdítja el a mező geometriáját.
-OutlineInputBorder _fieldBorder(Color color, {double width = 1}) {
+/// A [radius] alapértéke a 12 dp-s űrlap-mező; a bója-kártyán belüli
+/// mezők 10-et kérnek, hogy ne versenyezzenek a kártya 14-es
+/// sarkával (ADR 0044 D3). Publikus, mert a kártya-dekoráció a
+/// `race_form.dart`-ban épül, és a létra másolása két helyre
+/// szétcsúszást hívna elő.
+OutlineInputBorder foretackFieldBorder(
+  Color color, {
+  double width = 1,
+  double radius = 12,
+}) {
   return OutlineInputBorder(
-    borderRadius: const BorderRadius.all(Radius.circular(12)),
+    borderRadius: BorderRadius.all(Radius.circular(radius)),
     borderSide: BorderSide(color: color, width: width),
   );
 }

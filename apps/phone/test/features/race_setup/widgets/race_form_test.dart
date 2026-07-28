@@ -1,6 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
@@ -25,6 +26,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: foretackTheme,
         locale: const Locale('hu'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -35,6 +37,13 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  // A savban ket kitoltott gomb ul (a mentes es a konyvtar-valaszto
+  // tonal valtozata), ezert a mentest a feliratarol cimezzuk.
+  Finder saveButton(WidgetTester tester) => find.widgetWithText(
+    FilledButton,
+    AppLocalizations.of(tester.element(find.byType(RaceForm)))!.setupSave,
+  );
 
   testWidgets('edit módban feltölti a mezőket az initialRace-ből', (
     tester,
@@ -72,7 +81,7 @@ void main() {
     );
 
     // ACT
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — sorrend és sequence a vizuális sorrendet követi.
@@ -107,7 +116,7 @@ void main() {
     reorderable.onReorder(1, 0);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — B előre került, a sequence az új vizuális sorrendet tükrözi.
@@ -140,7 +149,7 @@ void main() {
     expect(find.byType(TextFormField), findsNWidgets(7));
 
     // ACT — az első sort töröljük.
-    await tester.tap(find.byIcon(Icons.remove_circle_outline).first);
+    await tester.tap(find.byIcon(Icons.close).first);
     await tester.pumpAndSettle();
 
     // ASSERT — egy sor maradt (név + 1 sor = 4 mező).
@@ -158,7 +167,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), '200');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a tartományon kívüli szélesség megállította a mentést.
@@ -178,7 +187,7 @@ void main() {
     await tester.enterText(fields.at(1), 'VK');
     await tester.enterText(fields.at(2), "46° 56.793' N");
     await tester.enterText(fields.at(3), "018° 00.727' E");
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a DDM-bemenet tizedes-fokra konvertálva került ki.
@@ -198,7 +207,7 @@ void main() {
     await tester.enterText(fields.at(1), 'VK');
     await tester.enterText(fields.at(2), '46° 56\' 47.6" N');
     await tester.enterText(fields.at(3), '18° 0\' 43.6" E');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a DMS-bemenet ugyanarra a fok-értékre konvertál.
@@ -220,7 +229,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), 'abc');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — az érvénytelen formátum megállította a mentést.

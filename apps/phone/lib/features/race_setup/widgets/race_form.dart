@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/app/theme.dart';
+import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
+import 'package:phone/features/race_setup/widgets/mark_row_card.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/section_label.dart';
 import 'package:shared/shared.dart';
 
 /// Verseny-űrlap: név + dinamikus, átrendezhető bója-sorok.
@@ -21,6 +25,11 @@ import 'package:shared/shared.dart';
 /// long-press ütközne velük). A `Mark.sequence` nincs külön tárolva: a
 /// submit a vizuális sorrend `index + 1`-éből gyártja, ezért a reorder a
 /// domain/data réteget egyáltalán nem érinti.
+///
+/// **Elrendezés (ADR 0044 D1).** Görgetett törzs + rögzített akció-sáv: a
+/// „Mentés" hat bójánál is elérhető marad görgetés nélkül. A sáv a formon
+/// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
+/// A sor-megjelenítés a [MarkRowCard]-ban van, itt csak az állapot marad.
 class RaceForm extends StatefulWidget {
   /// [initialRace] null = create (üres űrlap); nem-null = edit.
   const RaceForm({required this.onSubmit, this.initialRace, super.key});
@@ -127,56 +136,178 @@ class _RaceFormState extends State<RaceForm> {
     widget.onSubmit(_nameController.text.trim(), marks);
   }
 
+  String? _validateName(AppLocalizations l10n, String? value) =>
+      (value == null || value.trim().isEmpty)
+      ? l10n.setupMarkNameRequired
+      : null;
+
+  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
+  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
+  String? _coordinateError(AppLocalizations l10n, String? value, GeoAxis axis) {
+    final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
+    return switch (result) {
+      Ok() => null,
+      Err(error: EmptyInput()) => l10n.setupInvalidNumber,
+      Err(error: Unrecognized()) => l10n.setupCoordinateUnrecognized,
+      Err(error: ComponentOutOfRange()) => l10n.setupCoordinateComponentRange,
+      Err(error: CardinalMismatch()) => l10n.setupCoordinateCardinalMismatch,
+      Err(error: OutOfRange()) =>
+        axis == GeoAxis.latitude
+            ? l10n.setupLatitudeOutOfRange
+            : l10n.setupLongitudeOutOfRange,
+    };
+  }
+
+  /// A kártyán belüli mezők dekorációja (ADR 0044 D3).
+  ///
+  /// A téma alapját két ponton szűkíti: a kitöltés `surface`, mert a kártya
+  /// háttere már `surfaceContainer` — azonos színnel a mező eltűnne —, és a
+  /// radius 10, hogy a mező ne versenyezzen a kártya 14-es sarkával.
+  InputDecoration _cardFieldDecoration(String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      fillColor: scheme.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      border: foretackFieldBorder(scheme.outline, radius: 10),
+      enabledBorder: foretackFieldBorder(scheme.outline, radius: 10),
+      focusedBorder: foretackFieldBorder(
+        scheme.primary,
+        width: 1.5,
+        radius: 10,
+      ),
+      errorBorder: foretackFieldBorder(scheme.error, width: 1.5, radius: 10),
+      focusedErrorBorder: foretackFieldBorder(
+        scheme.error,
+        width: 1.5,
+        radius: 10,
+      ),
+    );
+  }
+
+  Widget _coordinateField(
+    AppLocalizations l10n,
+    TextEditingController controller,
+    GeoAxis axis,
+  ) {
+    return TextFormField(
+      controller: controller,
+      decoration: _cardFieldDecoration(
+        axis == GeoAxis.latitude
+            ? l10n.setupLatitudeLabel
+            : l10n.setupLongitudeLabel,
+      ),
+      keyboardType: const TextInputType.numberWithOptions(
+        signed: true,
+        decimal: true,
+      ),
+      validator: (value) => _coordinateError(l10n, value, axis),
+    );
+  }
+
+  Widget _markRowCard(AppLocalizations l10n, int index) {
+    final row = _markRows[index];
+    return MarkRowCard(
+      number: index + 1,
+      // Explicit drag-handle: a sor-szintű long-press ütközne a
+      // szövegmezőkkel, ezért csak innen indul a húzás.
+      dragHandle: ReorderableDragStartListener(
+        index: index,
+        child: Tooltip(
+          message: l10n.setupReorderHandle,
+          child: const Icon(Icons.drag_indicator, size: 20),
+        ),
+      ),
+      nameField: TextFormField(
+        controller: row.nameController,
+        decoration: _cardFieldDecoration(l10n.setupMarkNameLabel),
+        textInputAction: TextInputAction.next,
+        validator: (value) => _validateName(l10n, value),
+      ),
+      latitudeField: _coordinateField(
+        l10n,
+        row.latitudeController,
+        GeoAxis.latitude,
+      ),
+      longitudeField: _coordinateField(
+        l10n,
+        row.longitudeController,
+        GeoAxis.longitude,
+      ),
+      removeTooltip: l10n.setupRemoveMark,
+      onRemove: _onRemoveFor(index),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Form(
       key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: InputDecoration(labelText: l10n.setupRaceNameLabel),
-            textInputAction: TextInputAction.next,
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? l10n.setupRaceNameRequired
-                : null,
-          ),
-          // A bója-sorok átrendezhetők; a ReorderableListView a külső
-          // ListView-on belül zsugorodik és nem görget külön.
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: _reorderMarkRow,
-            children: [
-              for (var i = 0; i < _markRows.length; i++)
-                _MarkRowFields(
-                  key: ObjectKey(_markRows[i]),
-                  index: i,
-                  l10n: l10n,
-                  controllers: _markRows[i],
-                  number: i + 1,
-                  onRemove: _onRemoveFor(i),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: l10n.setupRaceNameLabel,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.setupRaceNameRequired
+                      : null,
                 ),
-            ],
+                const SizedBox(height: 14),
+                SectionLabel(text: l10n.setupMarksSection),
+                const SizedBox(height: 6),
+                // A bója-sorok átrendezhetők; a ReorderableListView a külső
+                // ListView-on belül zsugorodik és nem görget külön. A
+                // sor-kulcs a Paddingen ül, mert a reorder a KÖZVETLEN
+                // gyerekeket mozgatja.
+                ReorderableListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  onReorder: _reorderMarkRow,
+                  children: [
+                    for (var i = 0; i < _markRows.length; i++)
+                      Padding(
+                        key: ObjectKey(_markRows[i]),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _markRowCard(l10n, i),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => unawaited(_pickFromLibrary()),
+                    icon: const Icon(Icons.history, size: 17),
+                    label: Text(l10n.setupPickFromLibrary),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _addMarkRow,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.setupAddMark),
+          FormActionBar(
+            secondaryLabel: l10n.setupAddMark,
+            secondaryIcon: Icons.add,
+            onSecondary: _addMarkRow,
+            primaryLabel: l10n.setupSave,
+            onPrimary: _submit,
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => unawaited(_pickFromLibrary()),
-            icon: const Icon(Icons.history),
-            label: Text(l10n.setupPickFromLibrary),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(onPressed: _submit, child: Text(l10n.setupSave)),
         ],
       ),
     );
@@ -217,130 +348,6 @@ class _MarkRowControllers {
     nameController.dispose();
     latitudeController.dispose();
     longitudeController.dispose();
-  }
-}
-
-/// Egy bója-sor megjelenítése: drag-handle + sorszám-fejléc, név/lat/lon
-/// mezők, és (egynél több sornál) törlés gomb.
-class _MarkRowFields extends StatelessWidget {
-  const _MarkRowFields({
-    required this.index,
-    required this.l10n,
-    required this.controllers,
-    required this.number,
-    required this.onRemove,
-    super.key,
-  });
-
-  final int index;
-  final AppLocalizations l10n;
-  final _MarkRowControllers controllers;
-  final int number;
-  final VoidCallback? onRemove;
-
-  String? _validateName(String? value) =>
-      (value == null || value.trim().isEmpty)
-      ? l10n.setupMarkNameRequired
-      : null;
-
-  String? _validateLatitude(String? value) =>
-      _coordinateError(value, GeoAxis.latitude);
-
-  String? _validateLongitude(String? value) =>
-      _coordinateError(value, GeoAxis.longitude);
-
-  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
-  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
-  String? _coordinateError(String? value, GeoAxis axis) {
-    final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
-    return switch (result) {
-      Ok() => null,
-      Err(error: EmptyInput()) => l10n.setupInvalidNumber,
-      Err(error: Unrecognized()) => l10n.setupCoordinateUnrecognized,
-      Err(error: ComponentOutOfRange()) => l10n.setupCoordinateComponentRange,
-      Err(error: CardinalMismatch()) => l10n.setupCoordinateCardinalMismatch,
-      Err(error: OutOfRange()) =>
-        axis == GeoAxis.latitude
-            ? l10n.setupLatitudeOutOfRange
-            : l10n.setupLongitudeOutOfRange,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Explicit drag-handle: a sor-szintű long-press ütközne a
-              // szövegmezőkkel, ezért csak innen indul a húzás.
-              ReorderableDragStartListener(
-                index: index,
-                child: Tooltip(
-                  message: l10n.setupReorderHandle,
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Icon(Icons.drag_handle),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  l10n.setupMarkHeader(number),
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-              if (onRemove != null)
-                IconButton(
-                  onPressed: onRemove,
-                  icon: const Icon(Icons.remove_circle_outline),
-                  tooltip: l10n.setupRemoveMark,
-                ),
-            ],
-          ),
-          TextFormField(
-            controller: controllers.nameController,
-            decoration: InputDecoration(labelText: l10n.setupMarkNameLabel),
-            textInputAction: TextInputAction.next,
-            validator: _validateName,
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: controllers.latitudeController,
-                  decoration: InputDecoration(
-                    labelText: l10n.setupLatitudeLabel,
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    signed: true,
-                    decimal: true,
-                  ),
-                  validator: _validateLatitude,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: controllers.longitudeController,
-                  decoration: InputDecoration(
-                    labelText: l10n.setupLongitudeLabel,
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    signed: true,
-                    decimal: true,
-                  ),
-                  validator: _validateLongitude,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 

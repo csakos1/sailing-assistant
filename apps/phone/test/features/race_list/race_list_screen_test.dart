@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
@@ -31,11 +32,12 @@ void main() {
         overrides: [
           raceRepositoryProvider.overrideWithValue(_FakeRaceRepository(races)),
         ],
-        child: const MaterialApp(
-          locale: Locale('hu'),
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: RaceListScreen(),
+          home: const RaceListScreen(),
         ),
       ),
     );

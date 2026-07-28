@@ -2,10 +2,18 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+
+// A savban ket kitoltott gomb ul (a mentes es a konyvtar-valaszto
+// tonal valtozata), ezert a mentest a feliratarol cimezzuk.
+Finder _saveButton(WidgetTester tester) => find.widgetWithText(
+  FilledButton,
+  AppLocalizations.of(tester.element(find.byType(RaceEditScreen)))!.setupSave,
+);
 
 void main() {
   const markA = Mark(
@@ -30,9 +38,10 @@ void main() {
   // Az edit-screent egy home-route fölé pusholjuk, hogy a mentés utáni pop
   // tiszta visszatérést adjon, és a navigáció assertelhető legyen.
   Future<void> openEdit(WidgetTester tester, Race race) async {
-    // Nagyobb teszt-viewport: a (picker-gombbal magasabb) űrlap teljesen
-    // épüljön fel — különben a lusta ListView az AppBar alatt lapozott
-    // Mentés gombot nem építené meg, és a find.byType(FilledButton) 0-t adna.
+    // Nagyobb teszt-viewport, hogy mindkét bója-kártya
+    // felépüljön: a ListView lusta, a lapozott sorok mezői
+    // viszont assertelendők. A mentés gombja az ADR 0044 D1
+    // óta a rögzített sávban ül, nem rejtheti el a görgetés.
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -44,6 +53,7 @@ void main() {
           markLibraryRepositoryProvider.overrideWithValue(library),
         ],
         child: MaterialApp(
+          theme: foretackTheme,
           locale: const Locale('hu'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -98,7 +108,7 @@ void main() {
 
     // ACT — átírjuk a verseny nevét, majd mentünk.
     await tester.enterText(find.byType(TextFormField).first, 'Új név');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(_saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — ugyanaz az id, friss név, a bóyák megmaradtak; pop megtörtént.
@@ -125,7 +135,7 @@ void main() {
 
     // ACT — átnevezés + mentés.
     await tester.enterText(find.byType(TextFormField).first, 'Új név');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(_saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — mindkét bója a frissített verseny-névvel kerül a könyvtárba.
