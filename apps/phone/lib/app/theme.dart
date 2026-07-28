@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phone/app/confidence_colors.dart';
+import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/warning_colors.dart';
 
 /// A Foretack app Material 3 témája — marine dark (§8.7).
@@ -7,6 +8,10 @@ import 'package:phone/app/warning_colors.dart';
 /// Sötét, magas kontrasztú felület a napfény-olvashatóságért; a
 /// confidence-színeket a [ConfidenceColors] `ThemeExtension` hordozza, a
 /// cellák onnan olvassák. App-wide dark — a CRUD-screenek is öröklik.
+///
+/// Az UI-szövegek betűcsaládja app-szinten az IBM Plex Sans (ADR 0041
+/// D5); a mérőszámok stílusai nem itt élnek, hanem a
+/// `foretack_typography.dart` konstansaiban.
 final ThemeData foretackTheme = _buildForetackTheme();
 
 ThemeData _buildForetackTheme() {
@@ -18,6 +23,7 @@ ThemeData _buildForetackTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    fontFamily: uiFontFamily,
     scaffoldBackgroundColor: scheme.surface,
     extensions: const [
       ConfidenceColors(
