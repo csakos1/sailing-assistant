@@ -2634,38 +2634,71 @@ launcher-home-mal való ütközés elkerülésére `LiveRaceScreen`. Fájlok:
 státuszsor `features/live_race/widgets/` alatt; a pure formázók
 `features/live_race/live_formatters.dart`-ban.
 
-**Layout: státuszsor + 2×3 érték-rács.** A §1.2 hét értéke = **hat
-érték-cella + státuszsor**. A 7. érték (GPS műszer-idő) a státuszsorban él,
-nem külön cella — ez a §1.2 „7 érték" és a §14 Fázis 5 „6 widget" frazírozás
-reconcile-ja. A cellák funkció szerint csoportosítva (szél → kormányzás →
-haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
+**Layout: státuszsor + műszer-oszlop + adatsín (ADR 0042).** A §1.2 hét
+értéke a cél-sebesség %-kal és a VMG-vel (ADR 0028 Addendum) együtt
+**nyolc érték-cella + státuszsor**: a GPS műszer-idő a státuszsorban él,
+nem külön cella. A cellák **nem egyenrangúak** — a kormányzáshoz kellő
+három érték (predikált TWA, korrekció, pillanatnyi TWA) a bal oldali fő
+oszlopba kerül erős méret-lépcsővel (76 / 48 / 38 pt), a kontextus-adatok
+(bearing, táv, ETA, cél-sebesség, VMG) a jobb oldali, fix szélességű
+adatsínbe (20 pt). A hierarchia maga az információ: egy pillantásra a
+predikció olvasható, a többi kereséssel.
 
 ```
-┌─────────────────────────────────────┐
-│ ● Csatlakozva    1. bója    14:32:07 │   státuszsor (+„elavult" chip stale-nél)
-├──────────────────┬──────────────────┤
-│  TWA most        │  TWA köv.   ●●○   │   #1 | #6 (hero: confidence-szín + pontok)
-│   32° ◀          │   ▶ 47°          │
-├──────────────────┼──────────────────┤
-│  Bearing         │  Korrekció       │   #2 | #3
-│   095°           │   8° →           │
-├──────────────────┼──────────────────┤
-│  Táv             │  ETA             │   #4 | #5
-│   450 m          │   07:32          │
-└──────────────────┴──────────────────┘
+┌──────────────────────────────────────────────┐
+│ ● Csatlakozva          Szemes  18:24:53      │   státuszsor (34)
+├───────────────────────────────┬──────────────┤
+│ TWA KÖV.              ●●○     │ BEARING      │   fő oszlop: flex(1)
+│  51                     (76)  │ 095          │   sín: 132 dp fix
+│  ±4                           ├──────────────┤
+├───────────────────────────────┤ TÁV          │   belső flex:
+│ KORREKCIÓ                     │ 450 m        │     TWA KÖV.  1.6
+│  12 →                  (48)   ├──────────────┤     KORREKCIÓ 1.15
+│  jobbra                       │ ETA          │     TWA MOST  1.0
+├───────────────────────────────┤ 07:32        │
+│ TWA MOST                      ├──────────────┤   sín: 5 cella,
+│  42 ◀                  (38)   │ CÉL-SEB.     │   mind flex 1
+│                               │ 94%          │
+│                               ├──────────────┤
+│                               │ VMG          │
+│                               │ 5,8  cél 6,2 │
+├───────────────────────────────┴──────────────┤
+│        [  Bója megvan  ]  56 dp              │
+└──────────────────────────────────────────────┘
 ```
+
+**Geometria (ADR 0042 D1, D4).** A törzs egyetlen `Row`: bal oldalon a fő
+oszlop `Expanded`-ként, jobb oldalon a sín **fix 132 dp**-vel (nem arány —
+a sín tartalma karakter-korlátos, nem képernyő-arányos). A fő oszlop három
+cellája `flex` 1.6 / 1.15 / 1.0, cella-padding `16/14/14/20` (TWA köv.) és
+`14/14/12/20` (a másik kettő); a sín öt cellája `flex: 1`, padding `10/14`,
+háttere `surfaceContainer`. Az elválasztás mindenütt 1 dp `outlineVariant`
+hairline — cella-rés és radius nincs. A sín-értékek **cellánkénti**
+`FittedBox(scaleDown)` alatt élnek: a Martian Mono advance 0,75 em, tehát
+20 pt-on 15,00 dp/karakter, és a `1,85 km` / `83 perc` hét karaktere 105
+dp-t kér a 104-ből — a ritka hosszú alak ~1%-ot zsugorodik, a gyakori
+rövidek érintetlenek. A `FittedBox` soha nem a sínre vagy az oszlopra megy,
+csak egyetlen cella egyetlen értékére.
 
 **Érték → forrás → formátum.**
 
-| # | Cella | Forrás (provider → mező) | Formátum | null |
-|---|-------|--------------------------|----------|------|
-| 1 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
-| 6 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl + confidence | `—` |
-| 2 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
-| 3 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl | `—` |
-| 4 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `<1000 m → 450 m`; `≥1000 m → 1.85 km` | `—` |
-| 5 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
-| 7 | GPS-idő (státuszsor) | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+| Hely | Cella | Forrás (provider → mező) | Formátum | null |
+|------|-------|--------------------------|----------|------|
+| Fő 1 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl, fokjel nélkül; alatta `±4` | `—` |
+| Fő 2 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl; alatta `jobbra` / `balra` | `—` |
+| Fő 3 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
+| Sín 1 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095` | `—` |
+| Sín 2 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `450 m`; `≥1000 m → 1,85 km` | `—` |
+| Sín 3 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
+| Sín 4 | Cél-seb. | `raceSnapshotProvider` → élő sebesség + `targetSpeedKnots` | egész `%` | `—` |
+| Sín 5 | VMG | `raceSnapshot` → `vmgKnots` / `targetVmgKnots` / `vmgSteerCorrection` | `5,8`, alatta `cél 6,2` + steer-nyíl | `—` |
+| Státuszsor | GPS-idő | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+
+A rácson a szám mellől **a fokjel elmarad** — a cella-felirat hordozza a
+mértékegységet, és a hero 76 pt-os méreténél a `°` feltűnően sok helyet
+vinne. A tizedes-elválasztó vessző. Mindkettő **phone-lokális** formázási
+szabály (ADR 0042 D5–D6): a `packages/shared` primitív formázói és így az
+óra kijelzése változatlan.
 
 A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és a célbója neve: a stepped snapshot `prediction.mark.name`-jéből (így rounding után M1→M2 vált, egyezve a cellákkal), `prediction` hiányában (pre-fix / `finished`) az `activeRaceProvider` → `activeMarkOrNull?.name` fallbackre, különben `—`.
 
@@ -2705,12 +2738,13 @@ nullable; a `0°` „perfekt kurzus", nem „nincs adat").
 **TWA-cellák: előjel-konvenció és oldal-nyíl.** A `trueAngleWater` /
 `predictedTwaAtMark` `Angle` signed `[-180, +180)`, **+ = starboard
 (jobbról fúj), − = port (balról fúj)** (lásd `angle.dart`, 7.5). A
-képernyőn **előjelet nem írunk** — a számot magnitúdóként mutatjuk, a **nyíl
-pozíciója kódolja az oldalt**, és a glyph a szám felé (befelé) mutat:
+képernyőn **előjelet és fokjelet nem írunk** — a számot magnitúdóként
+mutatjuk, a **nyíl pozíciója kódolja az oldalt**, és a glyph a szám felé
+(befelé) mutat:
 
-- `+` (starboard): nyíl a szám jobbján, balra mutat — `32° ◀`
-- `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47°`
-- `0°`: szélbe, nincs oldal → nyíl nélkül.
+- `+` (starboard): nyíl a szám jobbján, balra mutat — `32 ◀`
+- `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47`
+- `0`: szélbe, nincs oldal → nyíl nélkül.
 
 A nyíl **színe a hajós (navigációs-fény) konvenciót követi**: starboard
 (jobb) → **zöld**, port (bal) → **piros** — a szín redundánsan megerősíti az
@@ -2719,11 +2753,11 @@ oldalt. Tömör háromszög-glyph, hogy a kormány-nyíltól elkülönüljön.
 **Korrekció: kormány-nyíl.** A `courseCorrection` `Angle?`, **+ = jobbra
 fordulj (starboard), − = balra (port)** (lásd 7.3). Magnitúdó + a nyíl azon
 az oldalon, amerre kormányozni kell, **kifelé** (a fordulás irányába)
-mutatva:
+mutatva, alatta a `jobbra` / `balra` kísérőszöveg (`TextTones.low`):
 
-- `+` (jobbra): `8° →`
-- `−` (balra): `← 8°`
-- `0°`: nincs nyíl.
+- `+` (jobbra): `12 →`
+- `−` (balra): `← 12`
+- `0`: nincs nyíl.
 
 A kormány-nyíl színe ugyanazt a side-konvenciót követi (jobbra → **zöld**,
 balra → **piros**); a TWA-nyíltól a glyph-stílus (vékony vonal vs. tömör
@@ -2732,18 +2766,29 @@ Az oldal-döntés mindkét cellánál ugyanaz a pure függvény (`>0 → jobb`,
 `<0 → bal`, `0`/`null` → nincs); a glyph-stílus, -irány és a szín (jobb →
 zöld, bal → piros) a widget side→prezentáció leképezése.
 
+**A nyilak `CustomPainter`-ek (ADR 0042 D7).** A v1 Material ikonjai
+(`Icons.arrow_left`, `Icons.east` / `Icons.west`) helyére két festő kerül: a
+TWA tömör háromszöge és a korrekció vonal-nyila (`strokeWidth` ~2,4). Indok:
+a Material készletből a tömör vs. vonal megkülönböztetés nem hozható ki
+konzisztensen, és az ikon optikai súlya a 76 pt-os hero mellett aránytalan.
+A nyíl mérete a kísérő szám stílusából származik, nem konstans, hogy a
+76 / 48 / 38 / 20 pt-os helyeken arányos maradjon.
+
 **ETA-formátum.** `<60 perc → mm:ss` (`07:32`); **`≥60 perc → egész perc`**
 (`83 perc`), nem `60+` cap. `null` (SOG-vesztés / drift) → `—`.
 
 **shiftConfidence-jelzés.** A pred-TWA cellán: szín (a `ConfidenceColors`
-`ThemeExtension`-ből) + 3-szegmenses pont-indikátor (`●○○`/`●●○`/`●●●`) —
+`ThemeExtension`-ből) + 3-szegmenses pont-indikátor
+(`●○○`/`●●○`/`●●●`) —
 shape is, nem csak szín (színvak-safe). low = tompított (megbízhatatlan, nem
 riasztás), medium = borostyán, high = **accent (cyan/teal, nem zöld)**. A
 zöld/piros szándékosan a starboard/port oldal-nyilaké marad, hogy a
 confidence-szín ne ütközzön vele; ezért a pred-TWA cellán a confidence a
 pontokon + az accenten él, a magnitúdó-szám high-contrast semleges, a nyíl
 pedig zöld/piros az oldal szerint. A low **nem** szűr ki értéket (7.5:
-low-confidence-szűrés nem a domainben).
+low-confidence-szűrés nem a domainben). Az 1c elrendezésben a
+pont-indikátor a `TWA KÖV.` felirat sorának jobb szélén ül, nem a szám
+alatt; a `±` hibasáv közvetlenül a hero alá kerül (ADR 0042 D8).
 
 **Téma (marine dark).** A `foretackTheme` (`app/theme.dart`) Material 3
 `ColorScheme`-je hordozza a felület-, szöveg- és accent-tokeneket: a
@@ -2798,14 +2843,22 @@ kapcsolat-badge-e a `connectionStatusProvider`-ből; emellett egy „elavult"
 chip, ha csatlakozott állapotban `tick − boatState.lastUpdate > 5 s`. Ezt a
 státuszsor-widget inline számolja (`tickProvider` + `boatStateProvider`
 watch) — nincs új provider, nincs `Warning` sealed-class; a teljes
-warning-rendszer a Fázis 6.
+warning-rendszer a Fázis 6. A badge színe a palettából jön, és **soha nem
+zöld** (a zöld a terméken kizárólag starboard, ADR 0042 D10):
+`Connected` → `primary` (teál), `Connecting` → `WarningColors.warning`,
+`Disconnected` → `TextTones.low`, `ConnectionError` →
+`WarningColors.critical`.
 
 **Pure formázók (testelhetőség).** A formázás és a nyíl-oldal döntés pure
 függvény (`live_formatters.dart`), widget nélkül unit-tesztelhető:
 bearing 3-jegy, távolság m/km, ETA mm:ss/perc, idő HH:mm:ss, és a signed
 `Angle` → nyíl-oldal leképezés. A screen és a cellák widget-teszttel, a
 §8.6-ban bevált `ProviderScope`/`ProviderContainer` override-mintákkal
-(fake notifier `build()` override + kontrollált `tick`).
+(fake notifier `build()` override + kontrollált `tick`). Az 1c
+formátum-eltéréseit (fokjel nélküli szám, tizedesvessző, két soros VMG) ez a
+réteg viseli, **phone-lokálisan** (ADR 0042 D5) — a `packages/shared` a
+primitív szabályt tartja (kerekítés, küszöbök, `missingValue`), így az óra
+kijelzése változatlan marad.
 
 Vázlat — a nyíl-oldal pure helper és a `ConfidenceColors` extension (a törzs
 a feat-ben):
