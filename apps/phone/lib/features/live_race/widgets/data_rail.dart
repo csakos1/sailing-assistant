@@ -28,7 +28,12 @@ class DataRail extends StatelessWidget {
         color: scheme.surfaceContainer,
         border: Border(left: BorderSide(color: scheme.outlineVariant)),
       ),
+      // A `stretch` nélkül minden cella a saját tartalmára zsugorodna és
+      // középre igazodna: az elválasztó hairline nem érne el a sín széléig,
+      // a rövid értékek (`232°`, `57%`) pedig középre ugranának a hosszúakhoz
+      // képest. On-device kör igazolta.
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [for (final cell in cells) Expanded(child: cell)],
       ),
     );

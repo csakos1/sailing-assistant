@@ -143,5 +143,24 @@ void main() {
           .toList();
       expect(flexes, [1, 1, 1]);
     });
+
+    // Regresszio-or: stretch nelkul a cellak a tartalmukra zsugorodnak, es
+    // a cella-hatarok nem ernek el a sin szeleig.
+    testWidgets('stretches every cell to the full rail width', (tester) async {
+      await _pump(
+        tester,
+        const DataRail(
+          cells: [
+            RailCell(label: 'BEARING', value: '232°'),
+            RailCell(label: 'ETA', value: '128 perc'),
+          ],
+        ),
+      );
+
+      // A sin bal szeli hairline-ja a BoxDecoration Border-je, ami a
+      // dobozon BELUL rajzolodik: a cellak a 132 dp-bol 131-et kapnak.
+      expect(tester.getSize(find.byType(RailCell).first).width, 131);
+      expect(tester.getSize(find.byType(RailCell).last).width, 131);
+    });
   });
 }

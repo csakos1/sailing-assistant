@@ -10,9 +10,11 @@ import 'package:phone/app/text_tones.dart';
 /// nem gondolatjel áll benne, mert az érték önmagában is teljes.
 ///
 /// Az érték **cellánkénti** `FittedBox(scaleDown)` alatt van (ADR 0042 D4):
-/// a `1,85 km` és a `83 perc` hét karaktere 20 pt-on 105 dp-t kér, a sín
-/// belső szélessége viszont 104 — a ritka hosszú alak ~1%-ot zsugorodik, a
-/// gyakori rövidek érintetlenek.
+/// a `1,85 km` és a `83 perc` hét karaktere 20 pt-on 105 dp-t kér, a cella
+/// belső szélessége viszont 103 — a sín 132 dp-jéből 1 dp-t a bal szél
+/// hairline-ja visz el (a `Border` a dobozon BELÜL rajzolódik), 28-at a
+/// padding. A ritka hosszú alak így ~2%-ot zsugorodik, a gyakori rövidek
+/// érintetlenek.
 ///
 /// A magasságot a `DataRail` flexe adja.
 class RailCell extends StatelessWidget {

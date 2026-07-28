@@ -394,16 +394,21 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       child: SizedBox(
         width: double.infinity,
         height: 56,
-        child: FilledButton.icon(
+        child: FilledButton(
+          // Ikon nélkül és nagyobb felirattal: ez az egyetlen akció a
+          // képernyőn, és kesztyűs kézzel, hullámzásban is el kell találni.
           style: FilledButton.styleFrom(
+            textStyle: supportTextStyle.copyWith(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
           ),
           onPressed: () =>
               unawaited(_confirmRoundMark(context, l10n, markName)),
-          icon: const Icon(Icons.flag_outlined),
-          label: Text(l10n.liveRoundMark),
+          child: Text(l10n.liveRoundMark),
         ),
       ),
     ),
