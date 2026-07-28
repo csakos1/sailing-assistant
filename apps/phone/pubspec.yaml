@@ -44,6 +44,31 @@ flutter:
   uses-material-design: true
   assets:
     - assets/polars/foretack.pol
+    - assets/fonts/OFL-IBMPlex.txt
+    - assets/fonts/OFL-MartianMono.txt
+  fonts:
+    - family: Martian Mono
+      fonts:
+        - asset: assets/fonts/MartianMono-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/MartianMono-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/MartianMono-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/MartianMono-ExtraBold.ttf
+          weight: 800
+    - family: IBM Plex Sans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSans-Bold.ttf
+          weight: 700
+    - family: IBM Plex Mono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-SemiBold.ttf
+          weight: 600
 
 flutter_launcher_icons:
   android: true
