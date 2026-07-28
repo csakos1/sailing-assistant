@@ -6,6 +6,7 @@ import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/live_race/widgets/data_rail.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
@@ -107,7 +108,7 @@ BoatState _boat(DateTime lastUpdate) => BoatState(
 
 double _liveGridOpacity(WidgetTester tester) {
   final finder = find
-      .ancestor(of: find.byType(GridView), matching: find.byType(Opacity))
+      .ancestor(of: find.byType(DataRail), matching: find.byType(Opacity))
       .first;
   return tester.widget<Opacity>(finder).opacity;
 }
@@ -169,7 +170,9 @@ Future<void> _pump(
 
 void main() {
   group('LiveRaceScreen', () {
-    testWidgets('renders all seven values with live data', (tester) async {
+    testWidgets('renders the main column and the rail with live data', (
+      tester,
+    ) async {
       final now = DateTime(2026, 5, 29, 14, 32, 10);
       await _pump(
         tester,
@@ -191,6 +194,7 @@ void main() {
       expect(find.text('8°'), findsOneWidget);
       expect(find.text('450 m'), findsOneWidget);
       expect(find.text('07:32'), findsOneWidget);
+      expect(find.text('jobbra'), findsOneWidget);
       expect(find.text('Elavult'), findsNothing);
     });
 
@@ -264,9 +268,9 @@ void main() {
         status: const Connected(),
       );
 
-      // TWA most a windData-ból megvan; a tobbi hat cella „—".
+      // TWA most a windData-ból megvan; a tobbi het cella „—".
       expect(find.text('32°'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(8));
+      expect(find.text('—'), findsNWidgets(7));
     });
 
     testWidgets('shows the stale chip when connected data is old', (

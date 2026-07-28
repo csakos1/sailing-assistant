@@ -55,20 +55,6 @@ String formatVmgKnots(double? knots) {
   return knots.toStringAsFixed(1);
 }
 
-/// Az élő és a target VMG (kn) egy közös cellában: `élő / cél` (pl.
-/// `4.5 / 6.1`), egy tizedesre, előjelesen. Ha nincs élő VMG, gondolatjel
-/// — ilyenkor a cél is rejtve. Ha csak a cél hiányzik, az élő áll magában.
-String formatVmgWithTarget(double? live, double? target) {
-  if (live == null) {
-    return '—';
-  }
-  final liveText = live.toStringAsFixed(1);
-  if (target == null) {
-    return liveText;
-  }
-  return '$liveText / ${target.toStringAsFixed(1)}';
-}
-
 // A rácson a tizedes-elválasztó vessző (ADR 0042 D5): a `shared` a primitív
 // szabályt tartja (kerekítés, küszöbök), a magyar prezentációt ez a réteg
 // adja rá. Az órát ez nem érinti.

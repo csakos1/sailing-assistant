@@ -1,12 +1,18 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/app/foretack_typography.dart';
+import 'package:phone/app/text_tones.dart';
 import 'package:phone/app/true_time.dart';
+import 'package:phone/app/warning_colors.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
-/// Az élő képernyő státuszsora (§8.7): kapcsolat-jelző, aktív bója neve,
-/// GPS-idő (true-time forrás, ADR 0012), és — ha az adat elavult — egy
-/// „elavult" chip.
+/// Az élő képernyő státuszsora (§8.7, ADR 0042 D10): kapcsolat-jelző, aktív
+/// bója neve, GPS-idő (true-time forrás, ADR 0012), és — ha az adat elavult
+/// — egy „elavult" chip.
+///
+/// Fix 34 dp magas, fent és lent 1 dp hairline határolja: az 1c elrendezésben
+/// ez választja el a rácstól, nem a margó.
 ///
 /// „Dumb" widget: a nyers értékeket kapja, az l10n-t a kontextusból olvassa
 /// (az `AppLocalizations.of` `!`-ja biztonságos a `MaterialApp` alatt).
@@ -35,63 +41,94 @@ class LiveStatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    // A foretackTheme mindkét extensiont regisztrálja.
+    final tones = theme.extension<TextTones>()!;
+    final warningColors = theme.extension<WarningColors>()!;
     final l10n = AppLocalizations.of(context)!;
-    final (label, color) = _connection(connectionStatus, l10n);
+    final (label, color) = _connection(
+      connectionStatus,
+      l10n,
+      scheme,
+      warningColors,
+      tones,
+    );
 
     // wallClockUnsynced → explicit „nem szinkronizált" jel: `~` prefix +
     // tompított szín (ADR 0012 D6). gnss/sessionAnchor → sima idő.
     final unsynced = trueTime.source == TrueTimeSource.wallClockUnsynced;
     final timeText = formatInstrumentTime(trueTime.utc);
 
-    return Row(
-      children: [
-        Icon(Icons.circle, size: 10, color: color),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
-          ),
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: scheme.outlineVariant),
         ),
-        if (isStale) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.circle, size: 9, color: color),
+          const SizedBox(width: 7),
+          Expanded(
             child: Text(
-              l10n.liveStale,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: supportTextStyle.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ),
+          if (isStale) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: scheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                l10n.liveStale,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
               ),
             ),
+            const SizedBox(width: 12),
+          ],
+          Text(
+            markName ?? missingValue,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: supportTextStyle.copyWith(color: scheme.onSurface),
           ),
           const SizedBox(width: 12),
-        ],
-        Text(markName ?? missingValue, style: theme.textTheme.bodyMedium),
-        const SizedBox(width: 12),
-        Text(
-          unsynced ? '~$timeText' : timeText,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-            color: unsynced ? theme.colorScheme.onSurfaceVariant : null,
+          Text(
+            unsynced ? '~$timeText' : timeText,
+            style: instrumentClockStyle.copyWith(
+              color: unsynced ? tones.low : scheme.onSurface,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  (String, Color) _connection(ConnectionStatus status, AppLocalizations l10n) =>
-      switch (status) {
-        Connecting() => (l10n.statusConnecting, Colors.orange.shade700),
-        Connected() => (l10n.statusConnected, Colors.green.shade700),
-        Disconnected() => (l10n.statusDisconnected, Colors.grey.shade600),
-        ConnectionError(:final message) => (
-          l10n.statusError(message),
-          Colors.red.shade700,
-        ),
-      };
+  // A kapcsolat-jelző SOHA nem zöld: a zöld a terméken kizárólag starboardot
+  // jelent, és ugyanezen a képernyőn ott vannak a starboard nyilak
+  // (ADR 0042 D10).
+  (String, Color) _connection(
+    ConnectionStatus status,
+    AppLocalizations l10n,
+    ColorScheme scheme,
+    WarningColors warningColors,
+    TextTones tones,
+  ) => switch (status) {
+    Connecting() => (l10n.statusConnecting, warningColors.warning),
+    Connected() => (l10n.statusConnected, scheme.primary),
+    Disconnected() => (l10n.statusDisconnected, tones.low),
+    ConnectionError(:final message) => (
+      l10n.statusError(message),
+      warningColors.critical,
+    ),
+  };
 }
