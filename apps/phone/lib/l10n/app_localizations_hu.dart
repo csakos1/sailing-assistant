@@ -131,6 +131,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupRaceNameRequired => 'Adj meg egy nevet.';
 
   @override
+  String get setupMarksSection => 'BÓJÁK';
+
+  @override
   String setupMarkHeader(int number) {
     return '$number. bója';
   }

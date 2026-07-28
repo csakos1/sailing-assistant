@@ -167,6 +167,10 @@
   "@setupRaceNameRequired": {
     "description": "Validációs hiba: a verseny neve üres."
   },
+  "setupMarksSection": "BÓJÁK",
+  "@setupMarksSection": {
+    "description": "A bója-lista szakasz-címkéje az űrlapon (verzál)."
+  },
   "setupMarkHeader": "{number}. bója",
   "@setupMarkHeader": {
     "description": "Egy bója-sor fejléce a sorszámmal.",

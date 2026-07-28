@@ -322,6 +322,12 @@ abstract class AppLocalizations {
   /// **'Adj meg egy nevet.'**
   String get setupRaceNameRequired;
 
+  /// A bója-lista szakasz-címkéje az űrlapon (verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'BÓJÁK'**
+  String get setupMarksSection;
+
   /// Egy bója-sor fejléce a sorszámmal.
   ///
   /// In hu, this message translates to:

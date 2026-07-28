@@ -10,6 +10,11 @@ import 'package:phone/app/warning_colors.dart';
 /// confidence-színeket a [ConfidenceColors] `ThemeExtension` hordozza, a
 /// cellák onnan olvassák. App-wide dark — a CRUD-screenek is öröklik.
 ///
+/// Az űrlap-mezők alapértelmezését az `inputDecorationTheme` hordozza
+/// (ADR 0044 D3): kitöltött mező, 12 dp-s kontúr, `outline` kerettel és
+/// kétsoros hibaszöveggel. A bója-kártyán belüli mezők ezt lokálisan
+/// szűkítik, mert ott a kártya háttere már `surfaceContainer`.
+///
 /// Az UI-szövegek betűcsaládja app-szinten az IBM Plex Sans (ADR 0041
 /// D5); a mérőszámok stílusai nem itt élnek, hanem a
 /// `foretack_typography.dart` konstansaiban.
@@ -45,6 +50,16 @@ ThemeData _buildForetackTheme() {
     colorScheme: scheme,
     fontFamily: uiFontFamily,
     scaffoldBackgroundColor: scheme.surface,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: scheme.surfaceContainer,
+      border: _fieldBorder(scheme.outline),
+      enabledBorder: _fieldBorder(scheme.outline),
+      focusedBorder: _fieldBorder(scheme.primary, width: 1.5),
+      errorBorder: _fieldBorder(scheme.error, width: 1.5),
+      focusedErrorBorder: _fieldBorder(scheme.error, width: 1.5),
+      errorMaxLines: 2,
+    ),
     extensions: const [
       ConfidenceColors(
         low: Color(0xFF6B7785),
@@ -58,5 +73,16 @@ ThemeData _buildForetackTheme() {
       ),
       TextTones(low: Color(0xFF66788A)),
     ],
+  );
+}
+
+/// Egy mező-kontúr a témához (ADR 0044 D3).
+///
+/// A radius minden állapotban azonos, csak a vonal színe és vastagsága
+/// vált — így a fókusz és a hiba nem mozdítja el a mező geometriáját.
+OutlineInputBorder _fieldBorder(Color color, {double width = 1}) {
+  return OutlineInputBorder(
+    borderRadius: const BorderRadius.all(Radius.circular(12)),
+    borderSide: BorderSide(color: color, width: width),
   );
 }
