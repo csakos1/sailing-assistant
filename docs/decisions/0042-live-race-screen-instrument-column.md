@@ -115,22 +115,24 @@ vagy az oszlopra.
 
 A számpélda, amiért ez kell (mérve, nem becsülve): a Martian Mono advance
 width **750/1000 upem = 0,75 em**, és ez a `wght` tengely mentén
-(500/700/800) **változatlan**, mert a család monospace. A sín belső
-szélessége `132 − 2×14 = 104 dp`. `numeralSmallStyle` = 20 pt, letterSpacing
-nélkül, tehát **15,00 dp/karakter**:
+(500/700/800) **változatlan**, mert a család monospace. A cella belső
+szélessége `132 − 1 − 2×14 = 103 dp`: a sín bal szélén futó hairline a
+`BoxDecoration` `Border`-je, ami a dobozon belül rajzolódik, tehát a
+cellából vesz el (lásd az Utólagos pontosításokat). `numeralSmallStyle` =
+20 pt, letterSpacing nélkül, tehát **15,00 dp/karakter**:
 
-| Alak | Karakter | Szélesség | 104 dp-be |
+| Alak | Karakter | Szélesség | 103 dp-be |
 |---|---|---|---|
-| `1,85 km` | 7 | 105,0 dp | **nem fér** (−1 dp) |
-| `83 perc` | 7 | 105,0 dp | **nem fér** (−1 dp) |
+| `1,85 km` | 7 | 105,0 dp | **nem fér** (−2 dp) |
+| `83 perc` | 7 | 105,0 dp | **nem fér** (−2 dp) |
 | `07:32` | 5 | 75,0 dp | fér |
 | `450 m` | 5 | 75,0 dp | fér |
 | `095` | 3 | 45,0 dp | fér |
 | `94%` | 3 | 45,0 dp | fér |
 | `5,8` | 3 | 45,0 dp | fér |
 
-Vagyis a két hosszú alak **egyetlen dp-vel** csordul túl: a `scaleDown`
-körülbelül 1%-ot kicsinyít rajtuk, ami nem észrevehető, és **csak azon a
+Vagyis a két hosszú alak **két dp-vel** csordul túl: a `scaleDown`
+körülbelül 2%-ot kicsinyít rajtuk, ami nem észrevehető, és **csak azon a
 két cellán**, amelyik éppen a hosszú alakot mutatja.
 
 **Elvetve:** kisebb fokozat (18 pt) a sínben. Ez 94,5 dp-re vinné a hosszú
@@ -360,7 +362,7 @@ primitívjeire delegálhat, mert a fokjel nem divergencia.
 
 **A D4 mérése nem változik:** a sín leghosszabb alakjai (`1,85 km`,
 `83 perc`) hét karakteresek maradnak, a `095°` pedig négy karakter — 60 dp
-a 104-ből.
+a 103-ból.
 
 **Egy következmény a fő oszlopra.** A hero 76 pt-on `−4,56` letterSpacinggel
 karakterenként 52,44 dp, tehát a `180°` négy karaktere **209,8 dp**, szemben
@@ -369,3 +371,17 @@ belső szélessége `412 − 132 − 20 − 14 = 246 dp`, tehát elfér — de a
 40 dp-re szűkült. Ezért a D4 `FittedBox(scaleDown)` szabálya **kiterjed a fő
 oszlop szám-celláira is**, változatlanul cellánként, soha az oszlopra. A
 tényleges viselkedés az 5. szelet on-device körében ellenőrizendő.
+
+
+## Utólagos pontosítások
+
+**A D4 számpéldájában a cella belső szélessége 103 dp, nem 104.** A döntés
+`132 − 2×14 = 104`-gyel számolt, vagyis a sín szélességéből csak a cella
+paddingjét vonta le. A sín bal szélén futó 1 dp-s hairline azonban a
+`BoxDecoration` `Border`-je, ami a dobozon **belül** rajzolódik, tehát a
+gyerek szélességéből vesz el: a cellák 131 dp-t kapnak, a tartalom 103-at.
+Az első on-device kör után a widget-teszt mérte ki (`132` helyett `131`).
+
+A **következtetés változatlan**: a `1,85 km` és a `83 perc` 105 dp-je így
+sem fér be, a `FittedBox(scaleDown)` ~1% helyett ~2%-ot kicsinyít rajtuk.
+A D4 törzsében és az `ARCHITECTURE.md` §8.7-ben a szám inline javítva.

@@ -2676,8 +2676,9 @@ háttere `surfaceContainer`. Az elválasztás mindenütt 1 dp `outlineVariant`
 hairline — cella-rés és radius nincs. A sín-értékek **cellánkénti**
 `FittedBox(scaleDown)` alatt élnek: a Martian Mono advance 0,75 em, tehát
 20 pt-on 15,00 dp/karakter, és a `1,85 km` / `83 perc` hét karaktere 105
-dp-t kér a 104-ből — a ritka hosszú alak ~1%-ot zsugorodik, a gyakori
-rövidek érintetlenek. A `FittedBox` soha nem a sínre vagy az oszlopra megy,
+dp-t kér a 103-ból — a sín 132 dp-jéből 1 dp-t a bal szél hairline-ja visz
+el (a `Border` a dobozon belül rajzolódik), 28-at a padding. A ritka hosszú
+alak így ~2%-ot zsugorodik, a gyakori rövidek érintetlenek. A `FittedBox` soha nem a sínre vagy az oszlopra megy,
 csak egyetlen cella egyetlen értékére.
 
 **Érték → forrás → formátum.**
