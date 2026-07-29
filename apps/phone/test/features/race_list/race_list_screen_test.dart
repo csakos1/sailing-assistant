@@ -6,6 +6,7 @@ import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
+import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
@@ -58,20 +59,23 @@ void main() {
     expect(find.text('Kedd esti'), findsOneWidget);
 
     // ACT — sorra koppintunk.
-    await tester.tap(find.byType(ListTile));
+    await tester.tap(find.byType(RaceListRow));
     await tester.pumpAndSettle();
 
     // ASSERT — a detail nyílt meg.
     expect(find.byType(RaceDetailScreen), findsOneWidget);
   });
 
-  testWidgets('a FAB a setup képernyőt nyitja', (tester) async {
+  testWidgets('az Új verseny gomb a setup képernyőt nyitja', (
+    tester,
+  ) async {
     // ARRANGE
     await pumpList(tester, const []);
     await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
 
     // ACT
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.listAddRace));
     await tester.pumpAndSettle();
 
     // ASSERT
@@ -117,7 +121,7 @@ void main() {
     expect(activeY, lessThan(notStartedY));
   });
 
-  testWidgets('a befejezett-gomb megjelenik, ha van befejezett', (
+  testWidgets('a befejezett-gomb aktív, ha van befejezett', (
     tester,
   ) async {
     // ARRANGE — csak befejezett -> a fő lista üres.
@@ -125,22 +129,29 @@ void main() {
     await tester.pumpAndSettle();
     final l10n = l10nOf(tester);
 
-    // ASSERT — a befejezett-gomb + az üres fő lista együtt látszik.
-    expect(find.text(l10n.listFinishedRacesTitle), findsOneWidget);
+    // ASSERT - az ures fo lista mellett a befejezett-gomb kattinthato.
     expect(find.text(l10n.listEmpty), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+    );
+    expect(button.onPressed, isNotNull);
   });
 
-  testWidgets('a befejezett-gomb rejtett befejezett nélkül', (
+  testWidgets('a befejezett-gomb letiltva marad befejezett nélkül', (
     tester,
   ) async {
-    // ARRANGE — csak notStarted.
+    // ARRANGE - csak notStarted.
     final race = Race.create(id: 'r1', name: 'Alfa', marks: const [mark]);
     await pumpList(tester, [race]);
     await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
 
-    // ASSERT — nincs befejezett-gomb.
-    expect(find.byIcon(Icons.history), findsNothing);
+    // ASSERT - a gomb ott van, de nem kattinthato: az akcio-sav
+    // felezese nem ugralhat attol, hogy van-e befejezett verseny.
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+    );
+    expect(button.onPressed, isNull);
   });
 
   testWidgets('a befejezett-gombra koppintva a modal nyílik', (
