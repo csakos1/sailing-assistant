@@ -546,6 +546,27 @@ szakasz a migráció haladtával bővül.
   sem hívta (nem volt alcíme), a kulcs leírása viszont alcímnek szánta.
   Külön koncern, külön commit.
 
+### A `numeralMicroStyle` egyetlen fogyasztóra fogyott
+- **Mi**: a fokozatot a lajstrom sorszámának törlése óta már csak a
+  `PredictedTwaCell` `±N°` hibasávja hívja.
+- **Mikor**: ha a RaceDetail és a további képernyők sem veszik elő —
+  akkor eldönthető, hogy összevonjuk-e egy szomszédos fokozattal.
+- **Miért nem most**: a létra tagjait nem a fogyasztók száma indokolja,
+  hanem a szerep; a hibasáv él és jól van, a törlés viszont a
+  tipográfia-szerződés átírása lenne.
+- **Hivatkozás**: ADR 0044 Addendum 2; ADR 0042 (a `±N°` hibasáv).
+
+### A verzál AppBar-cím csak a home-képernyőn áll
+- **Mi**: a home-cím `VERSENYEK` verzál 26; a mélyebb képernyők a
+  `screenTitleStyle` 19-esével, rendes kis-nagybetűvel címeznek.
+- **Mikor**: a többi képernyő migrációjával, ha az AppBar-nyelvet
+  egységesen verzálra visszük.
+- **Miért nem most**: a verzál a home hangsúlyát viszi — a
+  `homeTitleStyle` eleve azért vált külön a `screenTitleStyle`-tól. A
+  mélyebb képernyők verzálozása több ARB-kulcsot és saját on-device kört
+  kérne, és nem ez a javítás tárgya volt.
+- **Hivatkozás**: ADR 0044 Addendum 2.
+
 ---
 
 ## Adatréteg
