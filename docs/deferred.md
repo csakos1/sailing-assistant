@@ -444,6 +444,18 @@ implementáció és az első on-device kör tett hozzá.
 - **Mikor**: a doksi-sync batch-csel.
 - **Miért nem most**: tudatosan halasztott, nem blokkol.
 
+### A sáv-váz kiemelése közös widgetbe
+- **Mi**: a `ListActionBar` (lajstrom) és a `LiveRaceScreen`
+  `_roundMarkButton`-je ugyanazt a keretet rajzolja: felső 1 dp hairline,
+  `SafeArea(top: false)`, fix 60 dp magasság, radius és padding nélkül.
+- **Mikor**: az első olyan fogyasztóra, amelyik a **tartalmat** is osztja,
+  vagy ha a sáv geometriája változik és két helyen kellene követni.
+- **Miért nem most**: csak a keret közös, a tartalom nem — a lajstromon két
+  fél, elválasztó vonallal és 14-es feliratokkal, az élő képernyőn egyetlen
+  teljes szélességű gomb 18-cal. A kiemelés ma egy néhány soros vázért
+  nyúlna bele egy frissen on-device igazolt képernyőbe.
+- **Hivatkozás**: ADR 0042 Addendum 2; ADR 0044 D14, D17.
+
 ---
 
 ## CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
