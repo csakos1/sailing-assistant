@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/rounding_sample_reader_provider.dart';
@@ -48,11 +49,15 @@ void main() {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          locale: Locale('hu'),
+        // A tema NEM elhagyhato: a stat-cellak a TextTones extensiont
+        // olvassak, amit a foretackTheme regisztral. A MaterialApp ezert
+        // nem lehet const, a fa alatta viszont igen.
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
+          home: const Scaffold(
             body: SingleChildScrollView(
               child: PostRaceAnalysisSection(
                 raceId: 'r1',

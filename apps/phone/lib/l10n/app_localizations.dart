@@ -694,6 +694,24 @@ abstract class AppLocalizations {
   /// **'megtett út'**
   String get detailTrackDistance;
 
+  /// Track-stat cella verzál címkéje a detailen: maximális SOG.
+  ///
+  /// In hu, this message translates to:
+  /// **'MAX SEB.'**
+  String get detailTrackMaxSpeedCaps;
+
+  /// Track-stat cella verzál címkéje a detailen: átlagos SOG.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG SEB.'**
+  String get detailTrackAvgSpeedCaps;
+
+  /// Track-stat cella verzál címkéje a detailen: megtett út.
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁV'**
+  String get detailTrackDistanceCaps;
+
   /// A track sebesség-legendájának fejléce a nagy nézeten.
   ///
   /// In hu, this message translates to:

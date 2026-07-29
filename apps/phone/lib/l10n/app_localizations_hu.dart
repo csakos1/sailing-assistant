@@ -332,6 +332,15 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailTrackDistance => 'megtett út';
 
   @override
+  String get detailTrackMaxSpeedCaps => 'MAX SEB.';
+
+  @override
+  String get detailTrackAvgSpeedCaps => 'ÁTLAG SEB.';
+
+  @override
+  String get detailTrackDistanceCaps => 'TÁV';
+
+  @override
   String get detailTrackLegendTitle => 'sebesség (kn)';
 
   @override

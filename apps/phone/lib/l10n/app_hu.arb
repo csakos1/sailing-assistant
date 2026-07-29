@@ -437,6 +437,18 @@
   "@detailTrackDistance": {
     "description": "Track-stat cella: a megtett út (haversine-összeg) címkéje."
   },
+  "detailTrackMaxSpeedCaps": "MAX SEB.",
+  "@detailTrackMaxSpeedCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: maximális SOG."
+  },
+  "detailTrackAvgSpeedCaps": "ÁTLAG SEB.",
+  "@detailTrackAvgSpeedCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: átlagos SOG."
+  },
+  "detailTrackDistanceCaps": "TÁV",
+  "@detailTrackDistanceCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: megtett út."
+  },
   "detailTrackLegendTitle": "sebesség (kn)",
   "@detailTrackLegendTitle": {
     "description": "A track sebesség-legendájának fejléce a nagy nézeten."
