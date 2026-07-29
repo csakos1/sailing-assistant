@@ -15,7 +15,8 @@ import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_list_provider.dart';
 
-/// A versenyek listája — az app `home` képernyője (ADR 0044 D10–D18).
+/// A versenyek listája — az app `home` képernyője (ADR 0044 D10–D18 +
+/// Addendum 2).
 ///
 /// A `raceListProvider` reaktív projekcióját mutatja (loading/error/data).
 /// A fő lista státusz szerint particionál (ADR 0033): csak a folyamatban
@@ -23,9 +24,6 @@ import 'package:phone/providers/race_list_provider.dart';
 /// hairline-sorokban; a befejezettek az alsó akció-sáv bal gombja mögötti
 /// modalba kerülnek. Ha nincs befejezett verseny, a gomb **letiltva** marad
 /// és nem tűnik el, különben a sáv felezése ugrálna.
-///
-/// A sorok sorszáma a **szűrt és rendezett nézet** 1-től induló indexe, nem
-/// a tárolási sorrend — a lajstromban ez a látható sorrend az információ.
 ///
 /// Az AppBar-action a Fázis 3 debug raw-viewer; debug-buildben mellette a
 /// háttér-engine verifikáló képernyője. Az `AppLocalizations.of(context)!`
@@ -131,7 +129,6 @@ class RaceListScreen extends ConsumerWidget {
                     final race = pending[index];
                     return RaceListRow(
                       race: race,
-                      ordinal: index + 1,
                       onTap: () => _openDetail(context, race),
                     );
                   },

@@ -4,7 +4,7 @@ import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
-/// Egy verseny sora a lajstromban (ADR 0044 D11).
+/// Egy verseny sora a lajstromban (ADR 0044 D11 + Addendum 2).
 ///
 /// Teljes szélességű hairline-sor, kártya-héj nélkül: a sor határát az alsó
 /// vonal adja, az aktív versenyt a bal éli sáv és a `surfaceContainer`
@@ -22,17 +22,12 @@ class RaceListRow extends StatelessWidget {
   /// Egy lajstrom-sor.
   const RaceListRow({
     required this.race,
-    required this.ordinal,
     this.onTap,
     super.key,
   });
 
   /// A megjelenítendő verseny.
   final Race race;
-
-  /// A sor 1-től induló sorszáma a listában. Szándékosan nem a `Race`
-  /// mezője: a lajstrom szűrt és rendezett nézet, nem a tárolási sorrend.
-  final int ordinal;
 
   /// Koppintás a sorra; `null` esetén a sor nem interaktív.
   final VoidCallback? onTap;
@@ -59,7 +54,7 @@ class RaceListRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Az él-sáv helye akkor is megmarad, ha nincs kiemelés,
-                  // különben a sorszám bal éle sorról sorra ugrálna.
+                  // különben a verseny-név bal éle sorról sorra ugrálna.
                   SizedBox(
                     width: 4,
                     child: isActive ? ColoredBox(color: scheme.primary) : null,
@@ -69,13 +64,6 @@ class RaceListRow extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 18, 20, 18),
                       child: Row(
                         children: [
-                          Text(
-                            ordinal.toString().padLeft(2, '0'),
-                            style: numeralMicroStyle.copyWith(
-                              color: tones.low,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

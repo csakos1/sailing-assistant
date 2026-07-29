@@ -1,7 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/text_tones.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -29,7 +28,6 @@ void main() {
   Future<void> pumpRow(
     WidgetTester tester,
     Race race, {
-    int ordinal = 1,
     VoidCallback? onTap,
   }) {
     return tester.pumpWidget(
@@ -39,7 +37,7 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: RaceListRow(race: race, ordinal: ordinal, onTap: onTap),
+          body: RaceListRow(race: race, onTap: onTap),
         ),
       ),
     );
@@ -52,12 +50,16 @@ void main() {
     (widget) => widget is ColoredBox && widget.color == color,
   );
 
-  testWidgets('pads the list ordinal to two digits', (tester) async {
+  testWidgets('starts the row content at the left edge, unnumbered', (
+    tester,
+  ) async {
     // ARRANGE & ACT
-    await pumpRow(tester, notStartedRace(), ordinal: 3);
+    await pumpRow(tester, notStartedRace());
 
-    // ASSERT
-    expect(find.text('03'), findsOneWidget);
+    // ASSERT - nincs sorszam-oszlop, es a nev a sor bal elenel kezdodik:
+    // 4 dp el-sav + 16 dp padding.
+    expect(find.text('01'), findsNothing);
+    expect(tester.getTopLeft(find.text('Alfa')).dx, 20);
   });
 
   testWidgets('shows the mark count of the race', (tester) async {
@@ -120,15 +122,6 @@ void main() {
     // ASSERT - kimondott elteres a maketttol: minden nev onSurface.
     final name = tester.widget<Text>(find.text('Alfa'));
     expect(name.style?.color, foretackTheme.colorScheme.onSurface);
-  });
-
-  testWidgets('paints the ordinal with the tertiary text tone', (tester) async {
-    // ARRANGE & ACT
-    await pumpRow(tester, notStartedRace());
-
-    // ASSERT
-    final ordinal = tester.widget<Text>(find.text('01'));
-    expect(ordinal.style?.color, foretackTheme.extension<TextTones>()!.low);
   });
 
   testWidgets('reports a tap on the whole row', (tester) async {
