@@ -385,3 +385,42 @@ Az első on-device kör után a widget-teszt mérte ki (`132` helyett `131`).
 A **következtetés változatlan**: a `1,85 km` és a `83 perc` 105 dp-je így
 sem fér be, a `FittedBox(scaleDown)` ~1% helyett ~2%-ot kicsinyít rajtuk.
 A D4 törzsében és az `ARCHITECTURE.md` §8.7-ben a szám inline javítva.
+
+
+## Addendum 2 — Az alsó akciógomb sávvá válik (a D11 megfordítása)
+
+A D11 a „Bója megvan" gombot 56 dp magas, 14 radiusú, `16/14/16/8`
+paddinggel körülvett gombként rögzítette. Ez a geometria a képernyő alján
+egy lebegő CTA-t rajzol: a gomb nem ér el a kijelző széléig, és fölötte
+üresen marad egy sáv a rács utolsó cellája és a gomb között.
+
+**Az új geometria:** rögzített alsó akció-sáv, **60 dp**, éltől élig,
+**radius nélkül**, padding nélkül — a gomb kitölti a sávot. Fölötte
+változatlanul egy 1 dp `outlineVariant` hairline. Ez a vonal nem
+duplázódik: a fő oszlop utolsó cellája alatt nincs elválasztó, a sín
+utolsó cellája pedig `hasDivider: false`, tehát a rács alján a sáv
+saját felső kerete az egyetlen vonal. A sáv `SafeArea(top: false)`-ban ül.
+
+A felirat mérete a sáv magasságából **származtatott** (`_barHeight * 0.3`
+= 18 a 60-ból), nem önálló konstans: ha a geometria valaha változik, az
+arány magától követi. Ikon nincs — ez az egyetlen akció a képernyőn,
+nincs mitől megkülönböztetni.
+
+Indok: az ADR 0044 D14 óta a lajstromnak éltől élig érő, 60 dp-s, radius
+nélküli alsó akció-sávja van, és az app-szintű vizuális egység explicit
+felhasználói kérés (ARCHITECTURE §8.11 szín-szerződés). Két képernyő
+alján két különböző alakú akció-sáv pontosan az a komponens-nyelvi
+széttartás, amit a képernyőnkénti migráció fel akar számolni.
+
+**A viselkedés változatlan.** A gomb csak `RaceStatus.active` alatt
+jelenik meg, és a tompító `Opacity`-n **kívül** marad, hogy kritikus
+warning mellett is használható legyen; a megerősítő dialógus és a
+`sendRoundMarkCommand` érintetlen. A D11 többi állítása (`primary`
+háttér, `onPrimary` felirat, teljes szélesség) szintén áll.
+
+**Elvetve:** a sáv-váz közös widgetbe emelése a `ListActionBar`-ral. A
+két sáv csak a keretében azonos (hairline + `SafeArea` + 60 dp); a
+tartalmuk eltér — két fél elválasztóval, illetve egyetlen teljes
+szélességű gomb —, és a lajstrom képernyője frissen zárult on-device
+körrel. A kiemelés halasztott tétel, az első olyan fogyasztóra vár,
+amelyik a tartalmat is osztja.
