@@ -449,6 +449,16 @@
   "@detailTrackOpenFullscreen": {
     "description": "A track-kártya koppintási affordanciája: teljes képernyős nézet."
   },
+  "detailFinishedDate": "{date}",
+  "@detailFinishedDate": {
+    "description": "A befejezes datuma a detail statusz-csikjan; a verzalt a hivo adja.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
   "exportImageDate": "{date}",
   "@exportImageDate": {
     "description": "A megoszthato track-kep fejlecehez a verseny startdatuma.",

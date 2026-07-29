@@ -341,6 +341,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailTrackOpenFullscreen => 'Track nagyítása';
 
   @override
+  String detailFinishedDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
   String exportImageDate(DateTime date) {
     final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMd(localeName);
     final String dateString = dateDateFormat.format(date);

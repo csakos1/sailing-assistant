@@ -712,6 +712,12 @@ abstract class AppLocalizations {
   /// **'Track nagyítása'**
   String get detailTrackOpenFullscreen;
 
+  /// A befejezes datuma a detail statusz-csikjan; a verzalt a hivo adja.
+  ///
+  /// In hu, this message translates to:
+  /// **'{date}'**
+  String detailFinishedDate(DateTime date);
+
   /// A megoszthato track-kep fejlecehez a verseny startdatuma.
   ///
   /// In hu, this message translates to:
