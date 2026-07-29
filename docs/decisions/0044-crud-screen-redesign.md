@@ -681,7 +681,7 @@ A makett vászna 412 dp — a teszt-telefon logikai szélessége.
 |< Szerdai edzőverseny         [ceruza] [kuka]    |  AppBar 64 dp
 |[] NEM INDULT                       3 BÓJA       |  státusz-csík 44 dp
 |PÁLYA                                            |  16/20/8
-| 01   Szemes                                     |  bója-sor 72,3 dp
+| 01   Szemes                                     |  bója-sor 68,3 dp
 |      46.9000, 18.0500                           |
 | 02   Boglári pálya É                            |
 |      46.7853, 18.8550                           |
@@ -701,7 +701,7 @@ A makett vászna 412 dp — a teszt-telefon logikai szélessége.
 | MAX SEB.      ÁTLAG SEB.        TÁV             |  stat-sor 65,4 dp
 |  7,4 kn         5,1 kn        24,6 km           |  hairline-osztás
 |PÁLYA                                            |  16/20/8
-| 01   Szemes                                     |  bója-sor 72,3 dp
+| 01   Szemes                                     |  bója-sor 68,3 dp
 |      46.9000, 18.0500                           |
 ```
 
@@ -796,7 +796,7 @@ A sor bal szélén **a 4 dp-s él-sáv helye mindig fennmarad** (D27), tehát a
 sorszám bal éle 20 dp-nél van — ugyanott, ahol a lajstromban a verseny-név.
 
 Sor-magasság: 16 + 16 padding + 17,6 (név, 16 × 1,1) + 4 (rés) + 13,7
-(koordináta, 10,5 × ~1,3) = 71,3 dp, plusz 1 px hairline = **72,3 dp**.
+(koordináta, 10,5 × ~1,3) = 67,3 dp, plusz 1 px hairline = **68,3 dp**.
 
 ### D24 — A bója-sor tipográfiája és az új `markNameStyle`
 
@@ -927,3 +927,10 @@ harmadik *egysoros* fogyasztó kell hozzá.
 - A menetidő (`04:48:12`) a befejezett csíkon — új formázó kellene.
 - A setup DDM-alakú és a detail tizedes-fok koordinátáinak egységesítése.
 - A 60 dp-s sáv-váz közös widgetbe emelése (harmadik *egysoros* fogyasztóra).
+### Utólagos pontosítás (3a)
+
+A D23 sor-magasság-számpéldája elsőre rosszul volt összeadva: 16 + 16 + 17,6
++ 4 + 13,7 = **67,3**, nem 71,3, tehát a hairline-nal **68,3 dp**, nem 72,3.
+A hibás érték a D23 mondatában és mindkét rajz jegyzetében állt; mindhárom
+helyen javítva. A szakasz többi számpéldája (146,3 és 407,7 dp fejléc, nyolc
+illetve hat kiférő sor) a javított értékkel is áll, ezért változatlan.
