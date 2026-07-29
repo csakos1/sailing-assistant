@@ -2664,7 +2664,7 @@ predikció olvasható, a többi kereséssel.
 │                               │ VMG          │
 │                               │ 5,8  cél 6,2 │
 ├───────────────────────────────┴──────────────┤
-│        [  Bója megvan  ]  56 dp              │
+│              Bója megvan                     │   60 dp, radius 0
 └──────────────────────────────────────────────┘
 ```
 
@@ -2681,6 +2681,16 @@ dp-t kér a 103-ból — a sín 132 dp-jéből 1 dp-t a bal szél hairline-ja vi
 el (a `Border` a dobozon belül rajzolódik), 28-at a padding. A ritka hosszú
 alak így ~2%-ot zsugorodik, a gyakori rövidek érintetlenek. A `FittedBox` soha nem a sínre vagy az oszlopra megy,
 csak egyetlen cella egyetlen értékére.
+
+**Az alsó akció-sáv (ADR 0042 D11 + Addendum 2).** Az alsó akció-sáv
+**60 dp**, éltől élig ér, radius és padding nélkül; a „Bója megvan" gomb
+kitölti a sávot, fölötte 1 dp `outlineVariant` hairline-nal, és
+`SafeArea(top: false)`-ban ül. A felirat mérete a sáv magasságából
+származtatott (`60 × 0,3 = 18`), nem önálló konstans. A D11 eredeti
+56 dp-s, 14 radiusú, `16/14/16/8` paddinges geometriáját az Addendum 2
+fordította meg, hogy a sáv alakja egyezzen a lajstroméval (ADR 0044 D14,
+§8.11). A gomb viselkedése változatlan: csak `RaceStatus.active` alatt
+látszik, és a critical-tompító `Opacity`-n kívül marad.
 
 **Érték → forrás → formátum.**
 
