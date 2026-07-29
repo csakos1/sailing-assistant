@@ -80,6 +80,10 @@ Mark _mark() => const Mark(
 
 Race _race() => Race.create(id: 'r1', name: 'Teszt verseny', marks: [_mark()]);
 
+// Az also akcio-sav csak RaceStatus.active alatt latszik, a _race() viszont
+// notStarted -- ezert a sav-teszt inditott versennyel dolgozik.
+Race _activeRace() => _race().start(at: DateTime(2026, 5, 29, 14));
+
 MarkPrediction _prediction() => MarkPrediction(
   mark: _mark(),
   bearingToMark: const Bearing.true_(95),
@@ -196,6 +200,38 @@ void main() {
       expect(find.text('07:32'), findsOneWidget);
       expect(find.text('jobbra'), findsOneWidget);
       expect(find.text('ELAVULT'), findsNothing);
+    });
+
+    testWidgets('renders the round mark action as a full width bar', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _activeRace(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+      );
+
+      // ACT - a sav az egyetlen FilledButton a kepernyon; a megerosito
+      // dialogus nincs kinyitva.
+      final bar = find.byType(FilledButton);
+      expect(bar, findsOneWidget);
+
+      // ASSERT - a sav a _pump viewportjanak teljes szelesseget kitolti,
+      // es pontosan 60 dp magas.
+      final size = tester.getSize(bar);
+      expect(size.height, 60);
+      expect(size.width, 1000);
+
+      // ASSERT - nincs radius, es a felirat a sav magassagabol szarmazik
+      // (60 * 0,3), nem a regi fix 17-bol.
+      final style = tester.widget<FilledButton>(bar).style;
+      expect(style?.shape?.resolve(const {}), const RoundedRectangleBorder());
+      expect(style?.textStyle?.resolve(const {})?.fontSize, 18);
     });
 
     testWidgets('a státuszsor a stepped prediction-bóját mutatja, nem a '

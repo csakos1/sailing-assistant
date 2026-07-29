@@ -379,6 +379,14 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     );
   }
 
+  // Az alsó akció-sáv magassága; a lajstrom sávjával egyezik
+  // (ADR 0044 D14), hogy a két képernyő alja azonos alakú legyen.
+  static const double _actionBarHeight = 60;
+
+  // A felirat mérete a sáv magasságából származik, hogy a geometria
+  // változásakor az arány magától kövesse (ADR 0042 Addendum 2).
+  static const double _actionLabelSize = _actionBarHeight * 0.3;
+
   Widget _roundMarkButton(
     BuildContext context,
     AppLocalizations l10n,
@@ -389,22 +397,22 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
         top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
     ),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+    child: SafeArea(
+      top: false,
       child: SizedBox(
         width: double.infinity,
-        height: 56,
+        height: _actionBarHeight,
         child: FilledButton(
           // Ikon nélkül és nagyobb felirattal: ez az egyetlen akció a
           // képernyőn, és kesztyűs kézzel, hullámzásban is el kell találni.
+          // A gomb kitölti a sávot: éltől élig ér, radius nélkül
+          // (ADR 0042 Addendum 2).
           style: FilledButton.styleFrom(
             textStyle: supportTextStyle.copyWith(
-              fontSize: 17,
+              fontSize: _actionLabelSize,
               fontWeight: FontWeight.w600,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            shape: const RoundedRectangleBorder(),
           ),
           onPressed: () =>
               unawaited(_confirmRoundMark(context, l10n, markName)),
