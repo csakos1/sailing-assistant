@@ -437,9 +437,10 @@ implementáció és az első on-device kör tett hozzá.
 
 ### Az `ARCHITECTURE.md` §4.1 fájl-fája
 - **Mi**: a fa több levélen elmarad — az ADR 0041 három `app/` fájlja, az
-  ADR 0042 öt új `live_race/widgets/` fájlja és az ADR 0044 három új
+  ADR 0042 öt új `live_race/widgets/` fájlja és az ADR 0044 öt új
   widgetje (`section_label.dart`, `mark_row_card.dart`,
-  `form_action_bar.dart`) sem szerepel benne.
+  `form_action_bar.dart`, `race_list_row.dart`, `list_action_bar.dart`)
+  sem szerepel benne.
 - **Mikor**: a doksi-sync batch-csel.
 - **Miért nem most**: tudatosan halasztott, nem blokkol.
 
@@ -447,8 +448,9 @@ implementáció és az első on-device kör tett hozzá.
 
 ## CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
 
-Az ADR 0044 1h szakaszából (`RaceSetupScreen` / `RaceEditScreen`) eredő
-halasztott tételek. A szakasz a migráció haladtával bővül.
+Az ADR 0044 képernyő-szakaszaiból eredő halasztott tételek: 1h
+(`RaceSetupScreen` / `RaceEditScreen`) és 2a (`RaceListScreen`). A
+szakasz a migráció haladtával bővül.
 
 ### A `SavedMarkPicker` sheet migrációja
 - **Mi**: a bója-könyvtár bottom sheet a téma-szintű tokeneket megkapta, az
@@ -491,6 +493,46 @@ halasztott tételek. A szakasz a migráció haladtával bővül.
   elérhető) a rögzített akció-sávval megszűnt, a komment javítva — de a
   méret levétele önmagában is elronthat assertokat, tehát nem vak törlés.
 - **Hivatkozás**: ADR 0044 D1.
+
+### Az eltelt idő az aktív lajstrom-soron
+- **Mi**: a 2a makett `03:12:44` alakban mutatja a futó verseny eltelt
+  idejét; a megvalósult sor csak a bója-számot viszi.
+- **Mikor**: ha a telefon-lista tényleg kap élő szerepet.
+- **Miért nem most**: az adat megvan (`Race.startedAt`), de a kijelzés
+  másodpercenként ketyeg, és három dolgot húzna egy ma teljesen statikus
+  képernyőre: 1 Hz-es tick-forrást, külön widgetet a szám köré (különben az
+  egész `ListView` újraépülne), és a widget-tesztekbe fake órát. Verseny
+  közben a telefon zsebben van, az eltelt idő az órán látszik.
+- **Hivatkozás**: ADR 0044 D13.
+
+### A `finished_races_sheet.dart` migrációja
+- **Mi**: a sheet még `ListTile` + `RaceStatusChip` párost mutat, tehát a
+  befejezett lista vizuálisan elvált a lajstromtól.
+- **Mikor**: az ADR 0033 v2 munkájával, vagy a következő lista-körben.
+- **Miért nem most**: a design-dokumentumban nincs sheet-makett — ugyanaz a
+  gát, ami a `SavedMarkPicker`-t is tartja (D8).
+
+### A `race_detail_screen` státusz-megjelenítése
+- **Mi**: a detailen marad a `RaceStatusChip`; a lajstrom viszont már
+  szögletes jelölőt és verzál mono feliratot használ.
+- **Mikor**: az 1i szakasszal.
+- **Miért nem most**: a chipnek két élő fogyasztója van, és egyiket sem ez
+  a szelet migrálja — használatban lévő widgetet nem törlünk.
+- **Hivatkozás**: ADR 0044 D12.
+
+### A 2b és 2c lista-irányok
+- **Mi**: a design-dokumentum két további irányt is megrajzolt (2b aktív
+  műszerfej élő mini-adatokkal, 2c napló-tábla mono dátum-sínnel).
+- **Miért nem most**: a 2a irány landolt és on-device igazolt; a másik
+  kettő alternatíva volt, nem hátralék.
+
+### A `listMarkCount` ARB-kulcs árván áll
+- **Mi**: a régi, kisbetűs `{count} bója` kulcsnak nincs hívója; a
+  lajstrom-sor a verzál `listMarkCountCaps`-et használja.
+- **Mikor**: önálló `chore(phone)` commit, ha a l10n-t egyben takarítjuk.
+- **Miért nem most**: **nem ez a szelet hagyta árván** — a régi lista-sor
+  sem hívta (nem volt alcíme), a kulcs leírása viszont alcímnek szánta.
+  Külön koncern, külön commit.
 
 ---
 
