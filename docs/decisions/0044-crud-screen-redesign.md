@@ -554,3 +554,40 @@ semmi.
 - A 2b és 2c irányok: a lap megrajzolta őket, nem valósulnak meg.
 - Hosszú verseny-nevek tördelése/rövidítése — a viselkedést az on-device kör
   dönti el.
+
+---
+
+## Addendum 1 — A lista-sor cím-fokozata (a D15 kiegészítése)
+
+**Kontextus.** A D15 két új tipográfia-konstansról döntött
+(`homeTitleStyle`, `statusLabelStyle`), és a lista-sor **verseny-nevét** nem
+tárgyalta. Az additív szelet írásakor derült ki, hogy ehhez a szerephez
+nincs fokozat: a 2a makett 18 / w600 IBM Plex Sans-t kér, a létrán viszont a
+`screenTitleStyle` (19 / w600) és a `supportTextStyle` (13 / w500) között
+nincs semmi.
+
+**Döntés.** Harmadik konstans születik: `listItemTitleStyle` — IBM Plex
+Sans, 18, w600, `height: 1.1`. A D15 „két új konstans" állítása ezzel
+háromra bővül; a D15 törzse változatlan marad.
+
+**Indok.** A `screenTitleStyle` újrahasználása egy pixelen belül maradt
+volna, és formálisan illeszkedne is a D15 elvéhez (fél pixelért nem
+hízlaljuk a létrát) — de a **neve ígéret**: azt mondja, AppBar-cím. Egy
+lista-soron olvasva félrevezet, és a következő képernyőnél ugyanez a kérdés
+újra előjönne, immár egy megszilárdult félreértéssel. A `listItemTitleStyle`
+ezzel szemben a nevével is elmondja a szerepét, és az 1i detail bója-listája
+várhatóan ugyanezt a fokozatot kéri majd.
+
+**Miért nem a hívóhelyen.** Képernyő-lokális `TextStyle` szóba sem jött: az
+ARCHITECTURE §8.11 szín- és tipográfia-szerződése szerint a fokozatok a
+`foretack_typography.dart`-ban élnek, a hívóhely csak színt tesz hozzájuk. A
+lokális konstans pontosan az a drift, amit a szerződés kizár.
+
+**Elvetve.** A `screenTitleStyle` újrahasználása (a név hazudna), és a
+képernyő-lokális stílus (szerződés-sértés).
+
+**Következmény.** A §8.11 sor-magasság számpéldája **változatlanul
+érvényes**: a 19,8 dp-s név-sor eleve a 18 × 1,1 szorzatból jött, tehát a
+75,1 dp nem mozdul. A §8.11 geometria-táblájában a „Verseny-név" sor
+Token-oszlopa egészül ki a fokozat nevével — ez a szinkron külön commitban
+megy, a docs-first sorrend szerint.
