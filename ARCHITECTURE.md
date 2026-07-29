@@ -3227,7 +3227,7 @@ makett elavult.
 | Sor (aktív) | él-sáv 4 dp végig, pad `18/20/18/16` | `primary` + `surfaceContainer` |
 | Sor (nem indult) | pad `18/20/18/20`, nincs sáv | `surface` |
 | Sorszám | 14 w600, két jegyre töltve | `numeralMicroStyle` + `TextTones.low` |
-| Verseny-név | 18 w600, `height: 1.1` | `onSurface` (mindkét állapotban) |
+| Verseny-név | 18 w600, `height: 1.1` | `listItemTitleStyle` + `onSurface` |
 | Státusz-jelölő | 7×7 dp, tömör vagy 1,5 px keret | `primary` / `TextTones.low` |
 | Státusz-felirat | 11 w600 mono, `+.08em`, verzál | `statusLabelStyle` |
 | Bója-szám és utótag | 10,5 w500 mono | `numeralCaptionStyle` + `TextTones.low` |
