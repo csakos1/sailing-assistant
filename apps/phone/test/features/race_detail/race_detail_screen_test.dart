@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
+import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
+import 'package:phone/features/race_detail/widgets/detail_mark_row.dart';
+import 'package:phone/features/race_detail/widgets/detail_status_strip.dart';
+import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
@@ -56,6 +60,15 @@ void main() {
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(RaceDetailScreen)))!;
 
+  // Az akcio-sav sorai Material-bol szinezodnek; a kitoltott sor a primary.
+  Color rowBackgroundOf(WidgetTester tester, String label) {
+    final row = find.ancestor(
+      of: find.text(label),
+      matching: find.byType(Material),
+    );
+    return tester.widget<Material>(row.first).color!;
+  }
+
   testWidgets('notStarted: az Indítás elindítja és aktívvá teszi a versenyt', (
     tester,
   ) async {
@@ -65,16 +78,18 @@ void main() {
     final l10n = l10nOf(tester);
 
     // ACT
-    expect(find.widgetWithText(FilledButton, l10n.detailStart), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, l10n.detailStart));
+    expect(find.text(l10n.detailStart), findsOneWidget);
+    await tester.tap(find.text(l10n.detailStart));
     await tester.pumpAndSettle();
 
-    // ASSERT — aktívként mentve, és a gomb Befejezésre vált.
+    // ASSERT — aktívként mentve, a felirat Befejezésre vált, és a kitöltés
+    // átvándorol az élő nézet sorára.
     expect(repository.saved, hasLength(1));
     expect(repository.saved.single.status, RaceStatus.active);
+    expect(find.text(l10n.detailFinish), findsOneWidget);
     expect(
-      find.widgetWithText(FilledButton, l10n.detailFinish),
-      findsOneWidget,
+      rowBackgroundOf(tester, l10n.liveOpen),
+      foretackTheme.colorScheme.primary,
     );
   });
 
@@ -90,17 +105,14 @@ void main() {
     final l10n = l10nOf(tester);
 
     // ACT
-    expect(
-      find.widgetWithText(FilledButton, l10n.detailFinish),
-      findsOneWidget,
-    );
-    await tester.tap(find.widgetWithText(FilledButton, l10n.detailFinish));
+    expect(find.text(l10n.detailFinish), findsOneWidget);
+    await tester.tap(find.text(l10n.detailFinish));
     await tester.pumpAndSettle();
 
-    // ASSERT — befejezett állapot mentve, nincs több akció-gomb.
+    // ASSERT — befejezett állapot mentve, és az egész alsó sáv eltűnik.
     expect(repository.saved, hasLength(1));
     expect(repository.saved.single.status, RaceStatus.finished);
-    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(DetailActionBar), findsNothing);
   });
 
   testWidgets('notStarted: a Szerkesztés akció a RaceEditScreen-t nyitja', (
@@ -220,7 +232,7 @@ void main() {
     expect(find.byType(RaceDetailScreen), findsNothing);
   });
 
-  testWidgets('SafeArea: az alsó akció-gomb a nav-inset fölött marad', (
+  testWidgets('SafeArea: az alsó akció-sáv a nav-inset fölött marad', (
     tester,
   ) async {
     // ARRANGE — 3-gombos navigációt szimulálunk alsó view-paddinggel.
@@ -229,18 +241,65 @@ void main() {
     final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
     await pumpDetail(tester, race);
     await tester.pumpAndSettle();
-    final l10n = l10nOf(tester);
 
-    // ACT — az alsó (Indítás) gomb alsó pereme logikai pixelben.
+    // ACT — az alsó sáv alsó pereme logikai pixelben.
     final dpr = tester.view.devicePixelRatio;
     final screenHeight = tester.view.physicalSize.height / dpr;
     final bottomInset = 96 / dpr;
-    final button = find.widgetWithText(FilledButton, l10n.detailStart);
-    final buttonBottom = tester.getBottomRight(button).dy;
+    final barBottom = tester.getBottomRight(find.byType(DetailActionBar)).dy;
 
-    // ASSERT — a gomb a rendszer-inset sávja fölött van; SafeArea nélkül a
-    // bottom Padding(16) a navsáv alá vinné a gombot, ezt védi ez a teszt.
-    expect(buttonBottom, lessThanOrEqualTo(screenHeight - bottomInset));
+    // ASSERT — a sáv a rendszer-inset sávja fölött van; SafeArea nélkül a
+    // navsáv alá csúszna, ezt védi ez a teszt.
+    expect(barBottom, lessThanOrEqualTo(screenHeight - bottomInset));
+  });
+
+  testWidgets('renders the status strip above the course list', (tester) async {
+    // ARRANGE & ACT
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+
+    // ASSERT - a csik es a szakasz-cimke all a bojak folott, es a bojak a
+    // sajat sor-widgetjukben (nem ListTile-ban).
+    expect(find.byType(DetailStatusStrip), findsOneWidget);
+    expect(find.text(l10nOf(tester).detailCourseLabel), findsOneWidget);
+    expect(find.byType(DetailMarkRow), findsOneWidget);
+    expect(find.byType(ListTile), findsNothing);
+    expect(
+      tester.getTopLeft(find.byType(DetailStatusStrip)).dy,
+      lessThan(tester.getTopLeft(find.byType(DetailMarkRow)).dy),
+    );
+  });
+
+  testWidgets('keeps the mark coordinate format untouched', (tester) async {
+    // ARRANGE & ACT
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+
+    // ASSERT - ADR 0044 D25: tizedes fok, negy jeggyel.
+    expect(find.text('46.9000, 18.0500'), findsOneWidget);
+  });
+
+  testWidgets('puts the track section above the list when finished', (
+    tester,
+  ) async {
+    // ARRANGE & ACT
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark],
+    ).start(at: clock).finish(at: clock.add(const Duration(hours: 3)));
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+
+    // ASSERT - a track-szekcio a palya-lista FOLE kerul, es nincs also sav.
+    expect(find.byType(PostRaceAnalysisSection), findsOneWidget);
+    expect(find.byType(DetailActionBar), findsNothing);
+    expect(
+      tester.getTopLeft(find.byType(PostRaceAnalysisSection)).dy,
+      lessThan(tester.getTopLeft(find.byType(DetailMarkRow)).dy),
+    );
   });
 }
 

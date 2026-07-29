@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
+import 'package:phone/features/race_detail/widgets/detail_mark_row.dart';
+import 'package:phone/features/race_detail/widgets/detail_status_strip.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -11,11 +15,16 @@ import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
-import 'package:phone/widgets/race_status_chip.dart';
+import 'package:phone/widgets/section_label.dart';
 
-/// Egy verseny részletei: státusz, bóya-lista, és státuszfüggő akciók
+/// Egy verseny részletei: státusz-csík, pálya-lista, és státuszfüggő akciók
 /// (start/finish, törlés, valamint `notStarted` versenynél szerkesztés),
-/// továbbá az élő képernyő megnyitása.
+/// továbbá az élő képernyő megnyitása (ADR 0044 3a).
+///
+/// **Egy képernyő, három állapot** (D19). A `RaceStatus` négy helyen kapuz:
+/// az AppBar-akcióknál, a státusz-csík meta-mezőjében, az aktív bója
+/// él-sávjánál és az alsó akció-sávnál. Befejezett versenyen a track-kártya
+/// és a stat-sor a pálya-lista **fölé** kerül, alsó sáv pedig nincs.
 ///
 /// A listától kapott [race] egy pillanatkép. Az aktív futó verseny esetén az
 /// `activeRaceProvider` élő (in-memory) állapotát mutatjuk; egyébként a
@@ -115,10 +124,13 @@ class RaceDetailScreen extends ConsumerWidget {
     final current = (active != null && active.id == race.id)
         ? active
         : (_findById(listValue, race.id) ?? race);
+    final isFinished = current.status == RaceStatus.finished;
+    final isActive = current.status == RaceStatus.active;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(current.name),
+        toolbarHeight: 64,
+        title: Text(current.name, style: screenTitleStyle),
         actions: [
           // Szerkesztés csak el nem indított versenyen (ADR 0029 D1).
           if (current.status == RaceStatus.notStarted)
@@ -138,84 +150,45 @@ class RaceDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: RaceStatusChip(status: current.status),
-              ),
-            ),
+            DetailStatusStrip(race: current),
             Expanded(
               child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  for (final mark in current.marks)
-                    ListTile(
-                      leading: CircleAvatar(child: Text('${mark.sequence}')),
-                      title: Text(mark.name),
-                      subtitle: Text(_formatPosition(mark.position)),
-                      trailing: mark.roundedAt != null
-                          ? const Icon(Icons.check_circle_outline)
-                          : null,
-                    ),
-                  // Post-race elemzés a befejezett verseny alatt: a track +
-                  // statok release-ben is, a next-TWA a szekción belül debug
-                  // mögött (ADR 0034 Addendum 3 A3-D4).
-                  if (current.status == RaceStatus.finished)
+                  // A track-kártya, a stat-sor és — debug-buildben — a
+                  // next-TWA elemzés a pálya-lista FÖLÉ kerül (ADR 0044 3a).
+                  if (isFinished)
                     PostRaceAnalysisSection(
                       raceId: current.id,
                       raceName: current.name,
                       raceStartedAt: current.startedAt,
                       marks: current.marks,
                     ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: SectionLabel(text: l10n.detailCourseLabel),
+                  ),
+                  for (final (index, mark) in current.marks.indexed)
+                    DetailMarkRow(
+                      mark: mark,
+                      // Csak futó versenyen van soron következő bója (D27).
+                      isActive: isActive && index == current.activeMarkIndex,
+                    ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildAction(context, ref, current, l10n),
-            ),
+            // Befejezett versenyen nincs alsó sáv: a megosztás a teljes
+            // képernyős térkép-nézeté, a törlés az AppBaré (D30).
+            if (!isFinished)
+              DetailActionBar(
+                status: current.status,
+                onOpenLive: () => _openLive(context, ref, current),
+                onStatusAction: () =>
+                    isActive ? _finish(ref, current) : _start(ref, current),
+              ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildAction(
-    BuildContext context,
-    WidgetRef ref,
-    Race current,
-    AppLocalizations l10n,
-  ) {
-    final stateButton = switch (current.status) {
-      RaceStatus.notStarted => FilledButton(
-        onPressed: () => _start(ref, current),
-        child: Text(l10n.detailStart),
-      ),
-      RaceStatus.active => FilledButton(
-        onPressed: () => _finish(ref, current),
-        child: Text(l10n.detailFinish),
-      ),
-      RaceStatus.finished => const SizedBox.shrink(),
-    };
-
-    if (current.status == RaceStatus.finished) {
-      return stateButton;
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FilledButton.tonal(
-          onPressed: () => _openLive(context, ref, current),
-          child: Text(l10n.liveOpen),
-        ),
-        const SizedBox(height: 8),
-        stateButton,
-      ],
-    );
-  }
-
-  String _formatPosition(Coordinate position) =>
-      '${position.latitude.toStringAsFixed(4)}, '
-      '${position.longitude.toStringAsFixed(4)}';
 }

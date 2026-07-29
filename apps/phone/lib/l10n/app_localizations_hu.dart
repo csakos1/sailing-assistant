@@ -290,6 +290,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
 
   @override
+  String get detailCourseLabel => 'PÁLYA';
+
+  @override
   String get detailAnalysisTitle => 'Post-race elemzés';
 
   @override

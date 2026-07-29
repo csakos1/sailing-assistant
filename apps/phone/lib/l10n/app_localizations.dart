@@ -610,6 +610,12 @@ abstract class AppLocalizations {
   /// **'Még nincs mentett bója.'**
   String get setupPickFromLibraryEmpty;
 
+  /// A bója-lista verzál szakasz-címkéje a detail-képernyőn.
+  ///
+  /// In hu, this message translates to:
+  /// **'PÁLYA'**
+  String get detailCourseLabel;
+
   /// A debug-only post-race elemzés szekció címe a detailen.
   ///
   /// In hu, this message translates to:

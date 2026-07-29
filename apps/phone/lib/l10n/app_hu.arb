@@ -381,6 +381,10 @@
   "@setupPickFromLibraryEmpty": {
     "description": "A bója-választó üres állapota: a könyvtár üres."
   },
+  "detailCourseLabel": "PÁLYA",
+  "@detailCourseLabel": {
+    "description": "A bója-lista verzál szakasz-címkéje a detail-képernyőn."
+  },
   "detailAnalysisTitle": "Post-race elemzés",
   "@detailAnalysisTitle": {
     "description": "A debug-only post-race elemzés szekció címe a detailen."
