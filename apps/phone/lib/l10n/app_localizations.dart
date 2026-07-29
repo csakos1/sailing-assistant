@@ -532,6 +532,12 @@ abstract class AppLocalizations {
   /// **'NEM INDULT'**
   String get listStatusNotStarted;
 
+  /// A befejezett verseny verzál státusz-felirata a detail-képernyő csíkján.
+  ///
+  /// In hu, this message translates to:
+  /// **'BEFEJEZETT'**
+  String get listStatusFinished;
+
   /// A lajstrom-sor bója-számlálója, verzál alakban.
   ///
   /// In hu, this message translates to:

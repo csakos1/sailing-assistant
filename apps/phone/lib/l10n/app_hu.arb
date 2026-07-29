@@ -312,6 +312,10 @@
   "@listStatusNotStarted": {
     "description": "A lajstrom-sor státusz-felirata még nem indult versenynél."
   },
+  "listStatusFinished": "BEFEJEZETT",
+  "@listStatusFinished": {
+    "description": "A befejezett verseny verzál státusz-felirata a detail-képernyő csíkján."
+  },
   "listMarkCountCaps": "{count} BÓJA",
   "@listMarkCountCaps": {
     "description": "A lajstrom-sor bója-számlálója, verzál alakban.",

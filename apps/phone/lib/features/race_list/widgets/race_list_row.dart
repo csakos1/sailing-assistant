@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/status_badge.dart';
 
 /// Egy verseny sora a lajstromban (ADR 0044 D11 + Addendum 2).
 ///
@@ -116,8 +117,6 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
     // Aktív versenynél az activeMarkIndex a domain-invariáns szerint
     // tartományon belül van, tehát a getter nem ad null-t — a `?.` így csak
@@ -126,14 +125,7 @@ class _StatusLine extends StatelessWidget {
 
     return Row(
       children: [
-        _StatusMarker(isActive: isActive),
-        const SizedBox(width: 7),
-        Text(
-          isActive ? l10n.listStatusActive : l10n.listStatusNotStarted,
-          style: statusLabelStyle.copyWith(
-            color: isActive ? scheme.primary : tones.low,
-          ),
-        ),
+        StatusBadge(status: race.status),
         if (markName != null) ...[
           const SizedBox(width: 7),
           Flexible(
@@ -146,33 +138,6 @@ class _StatusLine extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// A 7×7 dp-s szögletes státusz-jelölő: aktívan tömör, egyébként keretes.
-///
-/// A keret a `BoxDecoration`-ben a dobozon BELÜL rajzolódik, tehát a jelölő
-/// külső mérete mindkét állapotban ugyanaz.
-class _StatusMarker extends StatelessWidget {
-  const _StatusMarker({required this.isActive});
-
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tones = Theme.of(context).extension<TextTones>()!;
-
-    return SizedBox(
-      width: 7,
-      height: 7,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: isActive ? scheme.primary : null,
-          border: isActive ? null : Border.all(color: tones.low, width: 1.5),
-        ),
-      ),
     );
   }
 }

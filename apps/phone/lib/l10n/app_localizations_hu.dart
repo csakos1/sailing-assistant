@@ -243,6 +243,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get listStatusNotStarted => 'NEM INDULT';
 
   @override
+  String get listStatusFinished => 'BEFEJEZETT';
+
+  @override
   String listMarkCountCaps(int count) {
     return '$count BÓJA';
   }
