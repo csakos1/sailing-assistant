@@ -3264,6 +3264,108 @@ tehát a listáról csak az importja tűnik el. A státusz-feliratok új, verzá
 ARB-kulcsokból jönnek (`listStatusActive`, `listStatusNotStarted`,
 `listMarkCountCaps`); a meglévő `raceStatus*` hármas a chip miatt érintetlen.
 
+**Detail-képernyő: a lajstrom nyelvének folytatása (D19–D30).** A
+design-dokumentum új „3" fejezete a detail-képernyőt is a műszer-nyelvre
+fogalmazza: mono sorszámos hairline bója-sorok, szögletes státusz-jelölő,
+rögzített alsó akció-sáv. A megvalósult irány a **3a Lajstrom-folytatás**;
+a korábban jelölt 1i makett elavult. A lap a folyamatban lévő állapotot nem
+rajzolja meg — azt a 3a nyelvén az ADR 0044 D21/D27/D30 tervezi meg.
+
+```
++---------------------------------------------------+
+|< Kekszalag 2026                    [kuka]         |  AppBar 64 dp
++---------------------------------------------------+
+|# FOLYAMATBAN                       4 BOJA         |  statusz-csik 44 dp
++---------------------------------------------------+
+|PALYA                                              |  sectionLabelStyle
+| 01   Rajt - Balatonfured                          |  boja-sor 68,3 dp
+|      46.9500, 17.8900                             |
++---------------------------------------------------+
+|| 02   Szemes                                      |  4 dp el-sav az aktivon
+||      46.9000, 18.0500                            |
++---------------------------------------------------+
+|            (a lista gorgetheto)                   |
++---------------------------------------------------+
+|                Elo nezet                          |  60 dp, teal
++---------------------------------------------------+
+|                Befejezes                          |  60 dp, semleges
++---------------------------------------------------+
+```
+
+A befejezett képernyő ugyanezt a fejlécet kapja, alatta a track-kártyával
+és a stat-sorral:
+
+```
++---------------------------------------------------+
+|< Oszi regatta                      [kuka]         |  AppBar 64 dp
++---------------------------------------------------+
+|# BEFEJEZETT                        JUL 20         |  statusz-csik 44 dp
++---------------------------------------------------+
+|           [ track-kartya ]                        |  196 dp
++---------------------------------------------------+
+| MAX SEB.     ATLAG SEB.        TAV                |  stat-sor 65,4 dp
+|  7,4 kn        5,1 kn       24,6 km               |
++---------------------------------------------------+
+|PALYA                                              |  sectionLabelStyle
+| 01   Szemes                                       |  boja-sor 68,3 dp
+|      46.9000, 18.0500                             |
++---------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| AppBar | 64 dp, alul 1 px, cím 19 | `screenTitleStyle` + `outlineVariant` |
+| Státusz-csík | 44 dp, pad `0/20`, jelölő 7×7, gap 8 | `statusLabelStyle` |
+| Csík-meta | 10,5 w500 mono, jobbra zárva | `numeralCaptionStyle` + `TextTones.low` |
+| Bója-sor | pad `16/20`, köz 20, él-sáv 4 dp | `primary` / `surface` |
+| Bója-név | 16 w600, `height: 1.1` | `markNameStyle` + `onSurface` |
+| Bója-sorszám | 14 w600 mono, két jegyre töltve | `numeralMicroStyle` + `TextTones.low` |
+| Koordináta | 10,5 w500 mono | `numeralCaptionStyle` + `TextTones.low` |
+| Track-kártya | 196 dp, alul 1 px | `surface` + `outlineVariant` |
+| Stat-cella | pad `12/0/14`, gap 6, közte 1 px | `railLabelStyle` + `numeralSmallStyle` |
+| Akció-sáv | 2 × 60 dp, radius nélkül, közte 1 px | `primary` / `surfaceContainer` |
+
+A bója-sor magassága 16 + 17,6 + 4 + 13,7 + 16 = 67,3 dp, plusz az alsó
+1 px hairline: **68,3 dp**. A nem indult képernyő fejléce 64 + 44 + 38,3
+(a `PÁLYA` felirat) = 146,3 dp, az alsó sáv 121 dp, tehát nyolc bója-sor
+fér ki görgetés nélkül; a befejezetten a fejléc 407,7 dp a track-kártyával
+és a stat-sorral együtt, alsó sáv pedig nincs, tehát hat sor.
+
+**Egy képernyő, négy kapu (D19).** A `RaceDetailScreen` egyetlen widget
+marad; a `RaceStatus` az AppBar-akcióknál, a csík-metánál, az aktív bója
+él-sávjánál és az alsó sávnál kapuz. A `RaceStatusChip` lekerül a
+detailről — a státuszt a csík mondja —, de **nem törlődik**: a
+befejezett-lista sheet továbbra is használja.
+
+**A dátum verzálja futásidőben áll elő (D21).** A csík jobb oldala nem
+indult és folyamatban állapotban a bója-számot mutatja, befejezetten a
+befejezés dátumát. A D5/D16 szerint a nagybetűsítés az ARB-értéken
+történik; egy futásidőben formázott dátumot viszont az ARB nem tud előre
+verzálra írni, ezért itt a hívó `toUpperCase()`-el a lokalizált dátumon. A
+kivétel **csak futásidő-formázású értékre** áll, statikus feliratra nem.
+
+**Új tipográfia-fokozat: `markNameStyle` (D24).** A létra 15 fokozatra nő:
+a bója neve 16 w600, mert 14 és 18 között nem volt semmi, a 18-as
+`listItemTitleStyle` pedig a **verseny** nevét ígéri a nevével. A
+koordináta-formátum viszont változatlan (tizedes fok, négy jegy) — a lap
+DDM-alakja önálló döntés lenne, saját tesztekkel (D25).
+
+**Kétsoros akció-sáv, képernyőnként egy teal sorral (D30).** A felső sor az
+`Élő nézet`, az alsó a státusz-akció; nem indultkor az `Indítás`,
+folyamatban az `Élő nézet` a kitöltött — a hangsúly mindig azon, amit abban
+az állapotban ténylegesen nyomunk. A befejezett képernyőn nincs alsó sáv: a
+megosztás a teljes képernyős térkép-nézeté, a törlés az AppBaré. A sáv-vázat
+**nem** emeljük közösbe: a `FormActionBar` 52 dp-es kétgombos, a
+`ListActionBar` egysoros, ez pedig kétsoros és van kitöltött sora.
+
+**Fájlok (D19–D30).** Három új fájl a `features/race_detail/widgets/` alatt:
+`detail_status_strip.dart`, `detail_mark_row.dart` és
+`detail_action_bar.dart`; a `track_stats_formatters.dart` publikus felülete
+érték/egység párra bomlik, a `_TrackStatsRow` pedig a
+`post_race_analysis_section.dart`-ban marad és ott alakul át.
+
 ## 9. Perzisztencia (Drift / SQLite)
 
 ### 9.1 Drift = típus-biztos SQL Dart-hoz
