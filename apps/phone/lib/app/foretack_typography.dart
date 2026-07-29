@@ -133,6 +133,19 @@ const TextStyle homeTitleStyle = TextStyle(
   height: 1,
 );
 
+/// A boja neve a detail-kepernyo palya-listajan (ADR 0044 D24).
+///
+/// Sajat fokozat, nem a `listItemTitleStyle` ujrahasznalasa: az a VERSENY
+/// nevet igeri a nevevel, es egy boja-soron olvasva ugyanugy felrevezetne,
+/// ahogy a `screenTitleStyle` tenne egy lista-soron. A hierarchia is ezt
+/// adja: a boja alarendelt a versenynek, tehat 16 < 18.
+const TextStyle markNameStyle = TextStyle(
+  fontFamily: uiFontFamily,
+  fontSize: 16,
+  fontWeight: FontWeight.w600,
+  height: 1.1,
+);
+
 /// Verzal statusz-felirat egy lista-soron (ADR 0044 D15).
 ///
 /// Szandekosan a szam-csalad, nem a `sectionLabelStyle`: a szogletes
