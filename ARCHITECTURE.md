@@ -3099,6 +3099,17 @@ kizárólag kijelző-elem; a CRUD-képernyők viszont beviteliek, ezért a hián
 fél — mező-alapértelmezés, hibaút, akció-sáv, szakasz-címke — ebben a
 szakaszban áll össze.
 
+**Egységes szín-szerződés az egész appon.** Egyetlen képernyő sem vezet be
+saját színt: minden érték a `ColorScheme` slotjaiból vagy a `TextTones`
+`ThemeExtension`-ből jön. Ha egy makett a token-lapon kívüli színt rajzol,
+azt meglévő slotra képezzük le, és az eltérést a döntés-rekord kimondja — az
+ADR 0044 eddig négy ilyen színt vezetett vissza a token-lapra. Ha egy
+szemantikai szerep tényleg hiányzik, **app-szintű** token születik (új
+`ColorScheme` slot vagy `ThemeExtension` mező), nem képernyő-lokális
+konstans: a lokális konstans pontosan az a drift, amitől két képernyő fél év
+múlva máshogy néz ki. Ugyanez áll a tipográfiára — a fokozatok a
+`foretack_typography.dart`-ban élnek, a hívóhely csak színt tesz hozzájuk.
+
 **A setup és az edit egyszerre migrál.** A két képernyő űrlapja a közös
 `RaceForm` (§8.5, ADR 0029 D2), tehát az 1h makett átvezetése mindkettőt
 viszi. A `RaceSetupScreen` és a `RaceEditScreen` fájlja viszont **nem
@@ -3183,6 +3194,66 @@ plusz a képernyő-független `widgets/section_label.dart` a verzál
 szakasz-címkéhez. A `SavedMarkPicker` sheet ebben a körben **nem változik**
 (D8): a design-dokumentumban nincs hozzá makett, a geometriát pedig nem
 vezetjük le tippből.
+
+**Lista-képernyő: hairline-lajstrom fix akció-sávval (D10–D18).** A
+design-dokumentum új „2" fejezete a lista-képernyőt az élő képernyő
+műszer-nyelvére fogalmazza újra: kártyák és pill-chipek helyett teljes
+szélességű hairline-sorok, szögletes státusz-jelzők, FAB helyett rögzített
+alsó akciósáv. A megvalósult irány a **2a Lajstrom**; a korábban jelölt 1g
+makett elavult.
+
+```
++--------------------------------------------------+
+| Versenyek                            [>_]  [bug]  |  AppBar 64 dp
++--------------------------------------------------+
+||  01  Kekszalag 2026                      4 BOJA  |  4 dp el-sav,
+||      # FOLYAMATBAN  · Szemes fele                |  surfaceContainer
++--------------------------------------------------+
+|   02  Szerdai edzoverseny                 3 BOJA  |
+|       o NEM INDULT                                |
++--------------------------------------------------+
+|                                                   |
+|            (a lista innentol gorgetheto)          |
++--------------------------------------------------+
+|   (o) Befejezettek       |      + Uj verseny      |  60 dp, radius 0
++--------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| AppBar | 64 dp, pad `0/10/0/20`, alul 1 px | `homeTitleStyle` + `outlineVariant` |
+| Sor (aktív) | él-sáv 4 dp végig, pad `18/20/18/16` | `primary` + `surfaceContainer` |
+| Sor (nem indult) | pad `18/20/18/20`, nincs sáv | `surface` |
+| Sorszám | 14 w600, két jegyre töltve | `numeralMicroStyle` + `TextTones.low` |
+| Verseny-név | 18 w600, `height: 1.1` | `onSurface` (mindkét állapotban) |
+| Státusz-jelölő | 7×7 dp, tömör vagy 1,5 px keret | `primary` / `TextTones.low` |
+| Státusz-felirat | 11 w600 mono, `+.08em`, verzál | `statusLabelStyle` |
+| Bója-szám és utótag | 10,5 w500 mono | `numeralCaptionStyle` + `TextTones.low` |
+| Akció-sáv | felül 1 px, 60 dp, radius nélkül | `outlineVariant` |
+| Akció-gombok | 2× `Expanded`, közte 1 px | `surfaceContainer` / `primary` |
+
+A sor-magasság ebből 18 + 19,8 + 5 + 14,3 + 18 = **75,1 dp**, tehát a „minden
+touch-target ≥ 48 dp" szabály itt magától teljesül. A sorszám bal éle
+mindkét állapotban 20 dp-nél van (aktívan 4 + 16), így a lista bal széle nem
+ugrál az aktív verseny alatt.
+
+**Az akció-sáv a FAB-stack helyén (D14).** A `Scaffold.floatingActionButton`
+ága megszűnik; a `body` `Column`-ná válik (`Expanded(ListView)` + sáv). Ha
+nincs befejezett verseny, a bal fél **letiltva** marad, nem tűnik el — így az
+50–50%-os felezés geometriája sosem ugrál. A `ListView.separated`
+elválasztója is megszűnik: a hairline a sor része, különben az utolsó sor
+alól hiányozna a vonal.
+
+**Fájlok és határok (D12, D17).** Két új fájl:
+`features/race_list/widgets/race_list_row.dart` és `.../list_action_bar.dart`;
+egyik sem kerül a közös `widgets/`-be, mert mindkettő a lista szerkezetéhez
+kötött. A `RaceStatusChip` **nem törlődik**:
+a `race_detail_screen` és a `finished_races_sheet` továbbra is használja,
+tehát a listáról csak az importja tűnik el. A státusz-feliratok új, verzál
+ARB-kulcsokból jönnek (`listStatusActive`, `listStatusNotStarted`,
+`listMarkCountCaps`); a meglévő `raceStatus*` hármas a chip miatt érintetlen.
 
 ## 9. Perzisztencia (Drift / SQLite)
 
