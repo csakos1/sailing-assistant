@@ -660,3 +660,270 @@ cím ritkítás nélkül marad.
 egy `fontSize == 26` assert a konstanst mondaná vissza, nem viselkedést
 rögzítene. A sorszám eltűnésére viszont **van** teszt: a sor tartalmának
 bal éle mérhető invariáns.
+## 3a — RaceDetailScreen
+
+A friss design-lapon a RaceDetail saját fejezetet kapott (3.), három
+iránnyal, mindegyik két állapotban. A választás a **3a**
+(„Lajstrom-folytatás"): a bóják mono sorszámos hairline-sorokban állnak, a
+befejezett verseny fölé track-kártya és három stat-cella kerül. A korábbi
+lapon szereplő **1i irány ezzel elavult**, nem hivatkozunk rá többé.
+
+A lap **két állapotot rajzol meg** (nem indult · befejezett), a folyamatban
+lévőt nem. Azt a 3a nyelvén mi tervezzük meg (D21, D27, D30).
+
+### A kimért geometria (3a)
+
+A makett vászna 412 dp — a teszt-telefon logikai szélessége.
+
+**Nem indult (és a mi folyamatban lévő változatunk):**
+
+```
+|< Szerdai edzőverseny         [ceruza] [kuka]    |  AppBar 64 dp
+|[] NEM INDULT                       3 BÓJA       |  státusz-csík 44 dp
+|PÁLYA                                            |  16/20/8
+| 01   Szemes                                     |  bója-sor 72,3 dp
+|      46.9000, 18.0500                           |
+| 02   Boglári pálya É                            |
+|      46.7853, 18.8550                           |
+|                                                 |
+|            Élő nézet                            |  60 dp, semleges
+|          > Indítás                              |  60 dp, teal
+```
+
+**Befejezett:**
+
+```
+|< Őszi regatta                          [kuka]   |  AppBar 64 dp
+|## BEFEJEZETT                         JÚL 20     |  státusz-csík 44 dp
+|                                                 |
+|           [ track-kártya ]                      |  196 dp
+|                                                 |
+| MAX SEB.      ÁTLAG SEB.        TÁV             |  stat-sor 65,4 dp
+|  7,4 kn         5,1 kn        24,6 km           |  hairline-osztás
+|PÁLYA                                            |  16/20/8
+| 01   Szemes                                     |  bója-sor 72,3 dp
+|      46.9000, 18.0500                           |
+```
+
+Függőlegesen, a nem indult képernyőn: 64 (AppBar) + 44 (státusz-csík) +
+38,3 (a `PÁLYA` felirat: 16 + 8 padding + 11 × 1,3 sormagasság) = 146,3 dp
+fejléc, alul 121 dp akció-sáv (2 × 60 + 1 px hairline), tehát egy 892 dp-s
+képernyőn a rendszer-navigációval együtt kb. 600 dp marad a listának:
+**nyolc bója-sor** fér ki görgetés nélkül.
+
+A befejezett képernyőn a fejléc 64 + 44 + 196 (track-kártya) + 65,4
+(stat-sor) + 38,3 = 407,7 dp, alsó sáv nincs, tehát kb. 460 dp marad:
+**hat bója-sor**. A pontos értékeket on-device körben igazoljuk.
+
+### Eltérések a design-laptól
+
+Négy ponton tudatosan eltérünk; az utolsó azért, mert a lap saját magával
+nem konzisztens.
+
+| Hely | A lap | Mi | Miért |
+|---|---|---|---|
+| AppBar | 58 dp | 64 dp | egy AppBar-geometria az egész appban |
+| Bója-sorszám | 13 | 14 (`numeralMicroStyle`) | nem nyitunk új fokozatot |
+| Stat-érték | 19 | 20 (`numeralSmallStyle`) | 1 px nem ér új fokozatot |
+| `PÁLYA` felirat | csak a nem indulton | mindhárom állapotban | egy kódút |
+| Bója-név | 16 / 15 | egységesen 16 | a lap ingadozik, ez nem döntés |
+
+### D19 — A 3a irány, egy képernyő három állapotban
+
+A `RaceDetailScreen` marad **egyetlen képernyő**, `RaceStatus`-onként
+változó tartalommal, nem három külön képernyő. A státusz négy helyen
+kapuz: az AppBar-akcióknál (D20), a státusz-csík meta-mezőjében (D21), az
+aktív bója él-sávjánál (D27) és az alsó akció-sávban (D30); a track-kártya
+és a stat-sor a `finished` ágon jelenik meg.
+
+Három külön képernyő esetén a bója-lista, a fejléc és a navigáció
+háromszorozódna, a státusz-átmenet pedig ugyanazon a fán történik
+(`activeRaceProvider`), tehát a szétválasztás újra összevarrást követelne.
+
+### D20 — AppBar 64 dp, a `RaceStatusChip` lekerül
+
+Az AppBar magassága **64 dp** (mint a lajstromon), a cím `screenTitleStyle`
+(19). Az akciók változatlanul állapotfüggők: szerkesztés csak
+`notStarted`-on (ADR 0029 D1), törlés mindig.
+
+A `RaceStatusChip` **lekerül a detailről** — a státuszt ezentúl a
+státusz-csík mondja (D21), és a kettő egymás alatt ugyanazt duplikálná. A
+chip **nem törlődik**: a `finished_races_sheet` továbbra is használja.
+Ezzel a `docs/deferred.md` „a `race_detail_screen` státusz-megjelenítése"
+tétele lezárul.
+
+### D21 — A státusz-csík (44 dp) és az állapotfüggő meta
+
+A cím alatt 44 dp magas, teljes szélességű csík, `0 20` paddinggal, alul
+1 px `outlineVariant` hairline-nal. Balra 7×7 dp-s szögletes jelölő és a
+státusz verzál felirata `statusLabelStyle`-lal, jobbra egy meta-mező
+`numeralCaptionStyle`-lal.
+
+A jelölő és a felirat **a lajstrom-sor formáját és ARB-kulcsait veszi át**
+— nem duplikálunk stringet, és nem írunk második státusz-nyelvet.
+
+A meta tartalma állapotfüggő:
+
+| Állapot | Meta |
+|---|---|
+| `notStarted` | `listMarkCountCaps` (`3 BÓJA`) |
+| `active` | `listMarkCountCaps` (`3 BÓJA`) |
+| `finished` | a befejezés dátuma, rövid alakban (`JÚL 20`) |
+
+**A dátum verzálja kivétel a D5/D16 alól.** Azok azt mondták ki, hogy a
+nagybetűsítés az ARB-értéken történik; egy futásidőben formázott dátumot
+viszont az ARB nem tud előre verzálra írni, ezért itt a hívó
+`toUpperCase()`-el, a lokalizált dátumon. A kivétel **csak
+futásidő-formázású értékre** áll, statikus feliratra nem.
+
+### D22 — A `PÁLYA` szakasz-címke mindhárom állapotban
+
+A bója-lista fölé `SectionLabel` kerül `16 20 8` paddinggal. A lap ezt a
+befejezett képernyőről elhagyja; **felülírjuk**, mert az állapotfüggő
+elhagyás egy további elágazást tenne a fába anélkül, hogy bármit nyerne —
+a listát így mindhárom állapotban ugyanaz vezeti be.
+
+Új widget nem születik: a `SectionLabel` doc-kommentje ma is kimondja,
+hogy a detail-makett is ezt a fokozatot használja.
+
+### D23 — A bója-sor geometriája: a köz 20 dp
+
+A sor paddingje `16 20`, a sorszám és a név-oszlop közötti köz **20 dp** (a
+lapon 14). A lapon a sorszám 20 dp-re áll a képernyő bal élétől, de csak
+14-re a névtől, tehát vizuálisan a névhez tapad; a 20/20 ezt kiegyenlíti.
+
+A sor bal szélén **a 4 dp-s él-sáv helye mindig fennmarad** (D27), tehát a
+sorszám bal éle 20 dp-nél van — ugyanott, ahol a lajstromban a verseny-név.
+
+Sor-magasság: 16 + 16 padding + 17,6 (név, 16 × 1,1) + 4 (rés) + 13,7
+(koordináta, 10,5 × ~1,3) = 71,3 dp, plusz 1 px hairline = **72,3 dp**.
+
+### D24 — A bója-sor tipográfiája és az új `markNameStyle`
+
+| Elem | Fokozat |
+|---|---|
+| Sorszám | `numeralMicroStyle` (14), két jegyre töltve |
+| Név | **`markNameStyle` (16)** — új fokozat |
+| Koordináta | `numeralCaptionStyle` (10,5) |
+
+A `markNameStyle` **új fokozat** (IBM Plex Sans, 16, w600, `height: 1.1`),
+mert a létrán 14 és 18 között nincs semmi, a 18-as `listItemTitleStyle`
+pedig a **verseny** nevét ígéri a nevével — egy bója-soron olvasva ugyanúgy
+félrevezetne, ahogy a doc-kommentje szerint a `screenTitleStyle` tenné egy
+lista-soron. A hierarchia is helyes: a bója alárendelt a versenynek, tehát
+16 < 18. A `RaceSetupScreen` nem adott precedenst, mert ott a név
+`TextField`, a fokozat az `InputDecorationTheme`-ből jön.
+
+A `numeralMicroStyle` ezzel **második fogyasztót kap**, tehát az Addendum 2
+óta nyitott „egyetlen fogyasztóra fogyott" `deferred`-tétel lezárul.
+
+### D25 — A koordináta-formátum változatlan
+
+A sor második sora továbbra is a mai `_formatPosition` kimenete: tizedes
+fok, négy jeggyel (`46.9000, 18.0500`). A lap DDM-alakja (`46° 48,738′ É`)
+**nem lép be** — a formátum-váltás önálló döntés, saját kockázattal és
+saját tesztekkel, és nincs köze ahhoz, hogy a sor hogyan **néz ki**.
+
+A `RaceSetupScreen` és a detail koordináta-alakjának esetleges eltérése
+`deferred`-tétel, nem ennek a szakasznak a hatásköre.
+
+### D26 — A befejezett bója-sor azonos a nem indulttal
+
+A lap a befejezett képernyőn `MEGKERÜLVE 15:42:08` második sort és jobb
+oldali pipát rajzol. **Egyiket sem valósítjuk meg most**: a befejezett sor
+ugyanaz a widget, ugyanazzal a koordináta-sorral.
+
+A megkerülési idő **halasztott, nem elvetett** tétel: a `Mark.roundedAt`
+már ma is a domainben van, tehát a későbbi bevezetés tisztán megjelenítési
+munka lesz.
+
+### D27 — Az aktív bója él-sávja a folyamatban lévő versenyen
+
+`active` állapotban a soron következő bója **4 dp-s teal él-sávot** kap, a
+lajstrom aktív verseny-sorának mintájára. A kiválasztás a
+`race.activeMarkIndex`-en történik — a mező a `Race` entitáson van, tehát
+**nem kell hozzá az élő motor**, a detail read-only marad.
+
+Az él-sáv helye a másik két állapotban **üresen fennmarad**, különben a
+sorszám bal éle állapotról állapotra ugrálna (ugyanaz a megfontolás, mint
+a lajstromban).
+
+### D28 — A track-kártyáról lekerül a felirat
+
+A `KOPPINTS A TELJES NÉZETHEZ` felirat **törlődik**. A koppintás megmarad,
+és a `detailTrackOpenFullscreen` kulcs sem árvul el: `Semantics` címkeként
+kerül a kártyára, tehát a képernyőolvasó továbbra is elmondja az
+affordanciát.
+
+Vizuális affordancia helyett a kártya **maga** hívja meg magát: teljes
+szélességű, hairline-nal zárt, és a képernyőn nincs más nagy felület.
+
+### D29 — A stat-sor és a formázók szétválasztása
+
+Három egyenlő cella, közöttük 1 px függőleges hairline, alul vízszintes
+hairline; cellánként `12 0 14` padding, 6 dp rés. A felirat
+`railLabelStyle`, az érték `numeralSmallStyle`, a mértékegység
+`supportTextStyle` `onSurfaceVariant` színnel.
+
+A mai `formatKnots` és `formatDistance` **egyetlen stringet** ad, ponttal
+(`7.4 kn`). A lap számképéhez az érték és az egység **külön** kell, és
+tizedesvesszővel. A formázók ezért érték/egység párra bomlanak, és
+átállnak vesszőre — ezzel a `deferred` „tizedesvessző kiterjesztése"
+tétele kap egy fogyasztót.
+
+A `_TrackStatsRow` már létezik privátként a `post_race_analysis_section`
+fájlban, tehát ez **átszabás a helyén**, nem új widget.
+
+### D30 — Kétsoros alsó akció-sáv, képernyőnként egy kitöltött sorral
+
+A sáv két **60 dp-s**, éltől élig érő sorból áll, radius nélkül (a
+`ListActionBar` geometriája), közöttük 1 px hairline. A felső sor mindig az
+`Élő nézet`, az alsó a státusz-akció.
+
+**Képernyőnként pontosan egy sor teal:**
+
+| Állapot | Felső sor | Alsó sor |
+|---|---|---|
+| `notStarted` | `Élő nézet` — semleges | `Indítás` — teal |
+| `active` | `Élő nézet` — teal | `Befejezés` — semleges |
+| `finished` | — | — (nincs sáv) |
+
+A hangsúly mindig azon van, amit abban az állapotban ténylegesen nyomunk:
+rajt előtt az indítás, verseny közben a visszaugrás az élő nézetre. A
+befejezett képernyőn **nincs alsó sáv**: a megosztás a teljes képernyős
+térkép-nézet dolga, a törlés pedig az AppBarban van.
+
+**A sáv-vázat nem emeljük közös widgetbe.** A `FormActionBar` más alak (52
+dp, r14, két gomb egy sorban, 10 dp rés), a `ListActionBar` egysoros; ez
+kétsoros, és van kitöltött sora. A közös keret vékonyabb lenne, mint a
+különbség. A `deferred`-tétel kiváltó feltétele ezzel **pontosodik**:
+harmadik *egysoros* fogyasztó kell hozzá.
+
+### Következmények (3a)
+
+- A tipográfia-létra **15 fokozatra nő** (`markNameStyle`).
+- A `numeralMicroStyle` újra többfogyasztós.
+- A `RaceStatusChip` egyetlen fogyasztóra fogy (`finished_races_sheet`).
+- A `track_stats_formatters.dart` publikus felülete változik (érték/egység
+  pár), tehát a meglévő hívóhelyek és tesztek igazodnak.
+- A `race_detail_screen.dart` `ListTile`/`CircleAvatar` szerkezete kivezetésre
+  kerül; a képernyő-teszt várakozásai ehhez igazodnak.
+
+### Megvalósítás (3a szeletek)
+
+| # | Szelet |
+|---|---|
+| S1 | `DetailStatusStrip` + dátum-formázó + ARB + teszt |
+| S2 | `DetailMarkRow` (él-sávval) + `markNameStyle` + teszt |
+| S3 | formázó-szétválasztás + `_TrackStatsRow` átszabása + a térkép-felirat |
+| S4 | `DetailActionBar` (kétsoros, hangsúly-kapcsolóval) + teszt |
+| S5 | a `RaceDetailScreen` átépítése + képernyő-teszt |
+| S6 | `deferred` bejegyzések |
+
+### Halasztott tételek (3a)
+
+- A megkerülési idő a bója-soron (`Mark.roundedAt` már megvan).
+- A pálya-hossz (`8,4 KM`) a státusz-csíkon — új domain-számítás kellene.
+- A menetidő (`04:48:12`) a befejezett csíkon — új formázó kellene.
+- A setup DDM-alakú és a detail tizedes-fok koordinátáinak egységesítése.
+- A 60 dp-s sáv-váz közös widgetbe emelése (harmadik *egysoros* fogyasztóra).
