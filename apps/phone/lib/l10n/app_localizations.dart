@@ -493,7 +493,7 @@ abstract class AppLocalizations {
   /// A versenylista (home) képernyő címsora.
   ///
   /// In hu, this message translates to:
-  /// **'Versenyek'**
+  /// **'VERSENYEK'**
   String get listTitle;
 
   /// A lista üres állapotának üzenete.

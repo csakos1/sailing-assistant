@@ -221,7 +221,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailDeleteConfirm => 'Törlés';
 
   @override
-  String get listTitle => 'Versenyek';
+  String get listTitle => 'VERSENYEK';
 
   @override
   String get listEmpty =>

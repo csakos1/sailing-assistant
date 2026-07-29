@@ -122,9 +122,13 @@ const TextStyle listItemTitleStyle = TextStyle(
 );
 
 /// A home-kepernyo cime - hangsulyosabb, mint a melyebb kepernyoke.
+///
+/// Verzal, de ritkitas nelkul (ADR 0044 Addendum 2): a rendszer tobbi
+/// verzal fokozata 9,5-11 px-es felirat, ott a ritkitas olvashatosagi
+/// kompenzacio; 26 px-en ugyanaz az arany 2 px folotti hezagot adna.
 const TextStyle homeTitleStyle = TextStyle(
   fontFamily: uiFontFamily,
-  fontSize: 24,
+  fontSize: 26,
   fontWeight: FontWeight.w700,
   height: 1,
 );
