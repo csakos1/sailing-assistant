@@ -591,3 +591,72 @@ képernyő-lokális stílus (szerződés-sértés).
 75,1 dp nem mozdul. A §8.11 geometria-táblájában a „Verseny-név" sor
 Token-oszlopa egészül ki a fokozat nevével — ez a szinkron külön commitban
 megy, a docs-first sorrend szerint.
+
+## Addendum 2 — A sorszám megszűnik, a cím verzál lesz (a 2a felülírása)
+
+**Kontextus.** A 2a szakasz on-device köre után a felhasználó két igazítást
+kért a lajstromon: tűnjön el a sorok elől a mono sorszám-oszlop, a
+képernyő-cím pedig legyen verzál és egy fokozattal nagyobb. Mindkettő a 2a
+kimondott döntéseit fordítja meg, ezért Addendum, nem inline javítás — a
+javítás mérete nem dönti el a docs-formát, azt az dönti el, hogy leírt
+döntést fordít-e meg.
+
+**A számozásról.** Ez a két tétel szándékosan nem kap `D` sorszámot: a D9
+szerinti folytatólagos számozás a következő képernyőnél, a RaceDetailnél
+folytatódik D19-cel, és egy utólagos betoldás elvinné a helyét.
+
+### A lajstrom-sor sorszám-oszlopa megszűnik
+
+**Döntés.** A `RaceListRow` sorszám-`Text`-je és az utána álló 14 dp-s
+térköz törlődik, az `ordinal` paraméter pedig kikerül a widget felületéből.
+A tartalom balra csúszik: a verseny-név bal éle mostantól a sor 20 dp-s bal
+élén ül (4 dp él-sáv + 16 dp padding).
+
+**Mit fordít meg.** A 2a kimért geometriájából a „sorszám és a tartalom
+között 14 dp" és „a sorszám bal éle mindkét esetben 20 dp-nél van"
+mondatokat, a D15-ből pedig az „Eltérés a maketttől" bekezdést — azt,
+amelyik épp azt indokolta, miért marad a sorszám, holott a makett elhagyja.
+A makett tehát utólag igazat kapott.
+
+**Indok.** A sorszám a szűrt és rendezett nézet futó indexe volt, nem a
+versenyé: se keresni, se hivatkozni nem lehet rá, a sort viszont egy néma
+oszloppal kezdte. A `ListView.builder` indexe bármikor visszaadja, ha
+mégis kellene.
+
+**Következmény.** A sor-magasság **változatlan 75,1 dp**: a sorszám a
+vízszintes `Row`-ban állt, a függőleges számpéldának egyetlen tagja sem
+volt. A 4 dp-s él-sáv helye minden soron megmarad — most a verseny-név bal
+éle az, aminek nem szabad ugrálnia.
+
+**Elvetve.** Az `ordinal` bennhagyása opcionális mezőként (holt felület), és
+a sorszám helyének üresen hagyása (pontosan azt a kártya-hatást hozná
+vissza, amit a 2a kiirtott).
+
+### A home-cím verzál lesz, és 24-ről 26-ra nő
+
+**Döntés.** A `listTitle` ARB-érték `VERSENYEK`, a `homeTitleStyle` mérete
+pedig 24 → **26**. A betűcsalád, a súly és a `height: 1` változatlan; új
+tipográfia-konstans nem születik.
+
+**Indok.** A verzál az ARB-ben él, nem `toUpperCase()`-ben — ez a D5/D16
+precedense, és nem hozunk be másodikat. A 26 nem új szám: pontosan az az
+érték, amit a D15 előtti inline `TextStyle(fontSize: 26)` felülírás vitt,
+tehát a létra nem hízik egy tetszőleges fokozattal.
+
+**A „2" fejezet mono caps elve ide nem ér el (kimondva).** A D15 azért tette
+a `statusLabelStyle`-t a szám-családba, mert a *lista-soron belüli* verzál
+felirat a szögletes jelölővel és a szám-oszloppal beszél egy nyelvet. A
+képernyő-cím nem felirat: a `screenTitleStyle`, a `listItemTitleStyle` és a
+`homeTitleStyle` egyaránt az UI-család fokozatai, és a home-cím monóra
+váltása elszakítaná a mélyebb képernyők címeitől.
+
+**Betűköz nincs.** A rendszer verzál fokozatai (`sectionLabelStyle` 1,1;
+`railLabelStyle` 0,86; `statusLabelStyle` 0,88) mind ~0,08–0,1 em ritkítást
+visznek, de azok 9,5–11 px-es feliratok, ahol a ritkítás olvashatósági
+kompenzáció. 26 px-en ugyanez az arány 2 px fölötti hézagot adna, ezért a
+cím ritkítás nélkül marad.
+
+**Nincs rá widget-teszt (kimondva).** A fokozat egyetlen hívóhelyű konstans;
+egy `fontSize == 26` assert a konstanst mondaná vissza, nem viselkedést
+rögzítene. A sorszám eltűnésére viszont **van** teszt: a sor tartalmának
+bal éle mérhető invariáns.

@@ -3214,13 +3214,13 @@ makett elavult.
 
 ```
 +--------------------------------------------------+
-| Versenyek                            [>_]  [bug]  |  AppBar 64 dp
+| VERSENYEK                            [>_]  [bug]  |  AppBar 64 dp
 +--------------------------------------------------+
-||  01  Kekszalag 2026                      4 BOJA  |  4 dp el-sav,
-||      # FOLYAMATBAN  · Szemes fele                |  surfaceContainer
+||  Kekszalag 2026                      4 BOJA      |  4 dp el-sav,
+||  # FOLYAMATBAN  · Szemes fele                    |  surfaceContainer
 +--------------------------------------------------+
-|   02  Szerdai edzoverseny                 3 BOJA  |
-|       o NEM INDULT                                |
+|   Szerdai edzoverseny                 3 BOJA      |
+|   o NEM INDULT                                    |
 +--------------------------------------------------+
 |                                                   |
 |            (a lista innentol gorgetheto)          |
@@ -3233,10 +3233,9 @@ makett elavult.
 
 | Elem | Geometria | Token |
 |---|---|---|
-| AppBar | 64 dp, pad `0/10/0/20`, alul 1 px | `homeTitleStyle` + `outlineVariant` |
+| AppBar | 64 dp, pad `0/10/0/20`, alul 1 px, verzál cím | `homeTitleStyle` (26) + `outlineVariant` |
 | Sor (aktív) | él-sáv 4 dp végig, pad `18/20/18/16` | `primary` + `surfaceContainer` |
 | Sor (nem indult) | pad `18/20/18/20`, nincs sáv | `surface` |
-| Sorszám | 14 w600, két jegyre töltve | `numeralMicroStyle` + `TextTones.low` |
 | Verseny-név | 18 w600, `height: 1.1` | `listItemTitleStyle` + `onSurface` |
 | Státusz-jelölő | 7×7 dp, tömör vagy 1,5 px keret | `primary` / `TextTones.low` |
 | Státusz-felirat | 11 w600 mono, `+.08em`, verzál | `statusLabelStyle` |
@@ -3245,7 +3244,7 @@ makett elavult.
 | Akció-gombok | 2× `Expanded`, közte 1 px | `surfaceContainer` / `primary` |
 
 A sor-magasság ebből 18 + 19,8 + 5 + 14,3 + 18 = **75,1 dp**, tehát a „minden
-touch-target ≥ 48 dp" szabály itt magától teljesül. A sorszám bal éle
+touch-target ≥ 48 dp" szabály itt magától teljesül. A verseny-név bal éle
 mindkét állapotban 20 dp-nél van (aktívan 4 + 16), így a lista bal széle nem
 ugrál az aktív verseny alatt.
 
