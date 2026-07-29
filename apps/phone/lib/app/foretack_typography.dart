@@ -109,3 +109,33 @@ const TextStyle supportTextStyle = TextStyle(
   fontSize: 13,
   fontWeight: FontWeight.w500,
 );
+
+/// A lajstrom-sor verseny-neve (ADR 0044 Addendum 1).
+///
+/// Sajat fokozat, nem a `screenTitleStyle` ujrahasznalasa: az a nevevel
+/// AppBar-cimet igerne, es egy lista-soron olvasva felrevezetne.
+const TextStyle listItemTitleStyle = TextStyle(
+  fontFamily: uiFontFamily,
+  fontSize: 18,
+  fontWeight: FontWeight.w600,
+  height: 1.1,
+);
+
+/// A home-kepernyo cime - hangsulyosabb, mint a melyebb kepernyoke.
+const TextStyle homeTitleStyle = TextStyle(
+  fontFamily: uiFontFamily,
+  fontSize: 24,
+  fontWeight: FontWeight.w700,
+  height: 1,
+);
+
+/// Verzal statusz-felirat egy lista-soron (ADR 0044 D15).
+///
+/// Szandekosan a szam-csalad, nem a `sectionLabelStyle`: a szogletes
+/// jelolovel es a szam-oszloppal egy nyelvet beszel.
+const TextStyle statusLabelStyle = TextStyle(
+  fontFamily: numeralFontFamily,
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+  letterSpacing: 0.88,
+);

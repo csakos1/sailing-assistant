@@ -499,7 +499,7 @@ abstract class AppLocalizations {
   /// A lista üres állapotának üzenete.
   ///
   /// In hu, this message translates to:
-  /// **'Még nincs verseny. Adj hozzá egyet a + gombbal.'**
+  /// **'Még nincs verseny. Indíts egyet az Új verseny gombbal.'**
   String get listEmpty;
 
   /// A lista hiba-állapotának üzenete.
@@ -508,7 +508,7 @@ abstract class AppLocalizations {
   /// **'Nem sikerült betölteni a versenyeket.'**
   String get listError;
 
-  /// Tooltip: a FAB, ami a setup képernyőt nyitja.
+  /// Az alsó akció-sáv gombja, ami a setup képernyőt nyitja.
   ///
   /// In hu, this message translates to:
   /// **'Új verseny'**
@@ -519,6 +519,24 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Befejezett versenyek'**
   String get listFinishedRacesTitle;
+
+  /// A lajstrom-sor státusz-felirata futó versenynél.
+  ///
+  /// In hu, this message translates to:
+  /// **'FOLYAMATBAN'**
+  String get listStatusActive;
+
+  /// A lajstrom-sor státusz-felirata még nem indult versenynél.
+  ///
+  /// In hu, this message translates to:
+  /// **'NEM INDULT'**
+  String get listStatusNotStarted;
+
+  /// A lajstrom-sor bója-számlálója, verzál alakban.
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} BÓJA'**
+  String listMarkCountCaps(int count);
 
   /// Egy versenysor alcíme: a bóyák száma.
   ///

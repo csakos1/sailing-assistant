@@ -288,7 +288,7 @@
   "@listTitle": {
     "description": "A versenylista (home) képernyő címsora."
   },
-  "listEmpty": "Még nincs verseny. Adj hozzá egyet a + gombbal.",
+  "listEmpty": "Még nincs verseny. Indíts egyet az Új verseny gombbal.",
   "@listEmpty": {
     "description": "A lista üres állapotának üzenete."
   },
@@ -298,11 +298,28 @@
   },
   "listAddRace": "Új verseny",
   "@listAddRace": {
-    "description": "Tooltip: a FAB, ami a setup képernyőt nyitja."
+    "description": "Az alsó akció-sáv gombja, ami a setup képernyőt nyitja."
   },
   "listFinishedRacesTitle": "Befejezett versenyek",
   "@listFinishedRacesTitle": {
     "description": "A befejezett versenyek modal címsora."
+  },
+  "listStatusActive": "FOLYAMATBAN",
+  "@listStatusActive": {
+    "description": "A lajstrom-sor státusz-felirata futó versenynél."
+  },
+  "listStatusNotStarted": "NEM INDULT",
+  "@listStatusNotStarted": {
+    "description": "A lajstrom-sor státusz-felirata még nem indult versenynél."
+  },
+  "listMarkCountCaps": "{count} BÓJA",
+  "@listMarkCountCaps": {
+    "description": "A lajstrom-sor bója-számlálója, verzál alakban.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "listMarkCount": "{count} bója",
   "@listMarkCount": {

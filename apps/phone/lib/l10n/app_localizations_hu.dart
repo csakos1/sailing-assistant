@@ -224,7 +224,8 @@ class AppLocalizationsHu extends AppLocalizations {
   String get listTitle => 'Versenyek';
 
   @override
-  String get listEmpty => 'Még nincs verseny. Adj hozzá egyet a + gombbal.';
+  String get listEmpty =>
+      'Még nincs verseny. Indíts egyet az Új verseny gombbal.';
 
   @override
   String get listError => 'Nem sikerült betölteni a versenyeket.';
@@ -234,6 +235,17 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get listFinishedRacesTitle => 'Befejezett versenyek';
+
+  @override
+  String get listStatusActive => 'FOLYAMATBAN';
+
+  @override
+  String get listStatusNotStarted => 'NEM INDULT';
+
+  @override
+  String listMarkCountCaps(int count) {
+    return '$count BÓJA';
+  }
 
   @override
   String listMarkCount(int count) {
