@@ -397,14 +397,14 @@ implementáció és az első on-device kör tett hozzá.
 - **Hivatkozás**: ADR 0041 D9.
 
 ### A többi képernyő migrációja az 1c token-rétegre
-- **Mi**: a verseny-lista, a setup, a detail, a biztonsági térkép és a
-  fullscreen track-nézet elrendezésének átvitele (a design-dokumentum
-  1g–1k lapjai).
+- **Mi**: a verseny-lista, a detail, a biztonsági térkép és a fullscreen
+  track-nézet elrendezésének átvitele (a design-dokumentum 1g, 1i, 1j
+  és 1k lapjai). A setup/edit űrlapot az ADR 0044 1h szakasza elvitte.
 - **Mikor**: képernyőnként, egyenként.
 - **Miért nem most**: a paletta és a tipográfia app-szintű, tehát minden
   képernyő megkapta a tokeneket — az elrendezésük viszont még a régi. Ez a
   vegyes állapot tudatos.
-- **Hivatkozás**: ADR 0041 (hatókör); ADR 0042 „Halasztva".
+- **Hivatkozás**: ADR 0041 (hatókör); ADR 0042 „Halasztva"; ADR 0044.
 
 ### A tizedesvessző kiterjesztése a többi képernyőre
 - **Mi**: a phone-lokális vesszős formázás ma csak az élő képernyőn hat; a
@@ -436,10 +436,61 @@ implementáció és az első on-device kör tett hozzá.
 - **Hivatkozás**: ADR 0042 „Halasztva".
 
 ### Az `ARCHITECTURE.md` §4.1 fájl-fája
-- **Mi**: a fa több levélen elmarad — az ADR 0041 három `app/` fájlja és az
-  ADR 0042 öt új `live_race/widgets/` fájlja sem szerepel benne.
+- **Mi**: a fa több levélen elmarad — az ADR 0041 három `app/` fájlja, az
+  ADR 0042 öt új `live_race/widgets/` fájlja és az ADR 0044 három új
+  widgetje (`section_label.dart`, `mark_row_card.dart`,
+  `form_action_bar.dart`) sem szerepel benne.
 - **Mikor**: a doksi-sync batch-csel.
 - **Miért nem most**: tudatosan halasztott, nem blokkol.
+
+---
+
+## CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
+
+Az ADR 0044 1h szakaszából (`RaceSetupScreen` / `RaceEditScreen`) eredő
+halasztott tételek. A szakasz a migráció haladtával bővül.
+
+### A `SavedMarkPicker` sheet migrációja
+- **Mi**: a bója-könyvtár bottom sheet a téma-szintű tokeneket megkapta, az
+  elrendezését viszont nem vittük át az 1h kártya-nyelvre.
+- **Mikor**: ha a design-dokumentum kap sheet-makettet.
+- **Miért nem most**: a lapon nincs sheet-makett, a geometriát pedig nem
+  vezetjük le tippből — ez az egész migráció alapszabálya.
+- **Hivatkozás**: ADR 0044 D8.
+
+### DDM-előtöltés a koordináta-mezőkben
+- **Mi**: a mezők ma `latitude.toString()`-et töltenek (tizedes-fok), a
+  makett viszont DDM-et rajzol.
+- **Mikor**: önálló `feat(phone)` commit, formázó függvénnyel és teszttel.
+- **Miért nem most**: a `ParseGeoAngle` mindhárom alakot érti, tehát ez
+  kényelmi kérdés, nem funkcionális hiány — és az előtöltés formátuma a
+  `race_form_test` assertjeit is átírná.
+- **Hivatkozás**: ADR 0044 (a döntés: az előtöltés marad decimális).
+
+### A `SectionLabel` közös használata a többi képernyőn
+- **Mi**: a widget már a közös `apps/phone/lib/widgets/`-ben ül, de ma
+  egyetlen fogyasztója van, a bója-szakasz címkéje.
+- **Mikor**: az 1g / 1i migrációjával, ha tényleg kell nekik verzál
+  szakasz-címke.
+- **Miért nem most**: a közösbe emelés megtörtént, a használat viszont az
+  első valódi igényre vár — nem tervezünk fogyasztót előre.
+
+### Az `InputDecorationTheme` kiterjesztése a keresőmezőre
+- **Mi**: az ADR 0033 v2 befejezett-lista keresőmezője a téma új
+  mező-alapértelmezését örökli majd; a kártya-mezőkhöz hasonlóan
+  valószínűleg lokális szűkítés kell hozzá (`isDense`, kisebb radius).
+- **Mikor**: az ADR 0033 v2 munkájával együtt.
+- **Miért nem most**: a keresőmező még nem létezik, a témát pedig nem
+  hangoljuk nem létező hívóhelyre.
+- **Hivatkozás**: ADR 0044 D3; ADR 0033 v2.
+
+### A `race_edit_screen_test` megnövelt teszt-viewportja
+- **Mi**: a teszt `physicalSize`-t állít, hogy a teljes űrlap elférjen.
+- **Mikor**: ha a teszt-készlet viewport-kezelését egyben nézzük át.
+- **Miért nem most**: az eredeti ok (a mentés gomb csak görgetés után volt
+  elérhető) a rögzített akció-sávval megszűnt, a komment javítva — de a
+  méret levétele önmagában is elronthat assertokat, tehát nem vak törlés.
+- **Hivatkozás**: ADR 0044 D1.
 
 ---
 
