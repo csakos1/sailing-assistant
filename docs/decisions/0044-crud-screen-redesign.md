@@ -850,10 +850,11 @@ a lajstromban).
 
 ### D28 — A track-kártyáról lekerül a felirat
 
-A `KOPPINTS A TELJES NÉZETHEZ` felirat **törlődik**. A koppintás megmarad,
-és a `detailTrackOpenFullscreen` kulcs sem árvul el: `Semantics` címkeként
-kerül a kártyára, tehát a képernyőolvasó továbbra is elmondja az
-affordanciát.
+A `KOPPINTS A TELJES NÉZETHEZ` felirat **nem jelenik meg**. A kód a
+feliratot soha nem rajzolta ki: a kártya a `detailTrackOpenFullscreen`
+kulcsot `Tooltip`-ként hordozza, és az egyben szemantikai címkét is ad,
+tehát a képernyőolvasó továbbra is elmondja az affordanciát. A koppintás
+változatlanul megmarad.
 
 Vizuális affordancia helyett a kártya **maga** hívja meg magát: teljes
 szélességű, hairline-nal zárt, és a képernyőn nincs más nagy felület.
@@ -867,9 +868,12 @@ hairline; cellánként `12 0 14` padding, 6 dp rés. A felirat
 
 A mai `formatKnots` és `formatDistance` **egyetlen stringet** ad, ponttal
 (`7.4 kn`). A lap számképéhez az érték és az egység **külön** kell, és
-tizedesvesszővel. A formázók ezért érték/egység párra bomlanak, és
-átállnak vesszőre — ezzel a `deferred` „tizedesvessző kiterjesztése"
-tétele kap egy fogyasztót.
+tizedesvesszővel. Ezért **új formázók születnek melléjük**
+(`measureKnots`, `measureDistance`), amelyek érték/egység párt adnak
+vesszővel — ezzel a `deferred` „tizedesvessző kiterjesztése" tétele kap
+egy fogyasztót. A régiek **változatlanul maradnak**: azokat a megosztható
+track-kép használja, és annak a felülete lezárt ADR 0036, amelynek az
+on-device verifikációja még hátra van.
 
 A `_TrackStatsRow` már létezik privátként a `post_race_analysis_section`
 fájlban, tehát ez **átszabás a helyén**, nem új widget.
@@ -934,3 +938,16 @@ A D23 sor-magasság-számpéldája elsőre rosszul volt összeadva: 16 + 16 + 17
 A hibás érték a D23 mondatában és mindkét rajz jegyzetében állt; mindhárom
 helyen javítva. A szakasz többi számpéldája (146,3 és 407,7 dp fejléc, nyolc
 illetve hat kiférő sor) a javított értékkel is áll, ezért változatlan.
+
+A **D28** azt ígérte, hogy a felirat törlődik és `Semantics` címke lép a
+helyére. A kód dumpja megcáfolta: a felirat soha nem került be, a kártya
+`Tooltip`-et használ, és az már ad szemantikai címkét — abból a döntésből
+tehát nem lett kódmunka.
+
+A **D29** azt mondta, hogy a formázók átállnak vesszőre. A dump kiderítette,
+hogy két fogyasztójuk van, nem egy: a megosztható track-kép is azokat
+hívja. Ezért a szelet szűkült — új formázók születtek a régiek mellé, és az
+egységesítés `deferred`-tétel lett.
+
+Mindkettő **inline javítás**, nem addendum: a döntések nem változtak, csak
+két állításuk vált pontatlanná a megvalósítás közben.
