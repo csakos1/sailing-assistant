@@ -551,21 +551,6 @@ szakasz a migráció haladtával bővül.
 
 ---
 
-### A bója megkerülési ideje a detail-soron
-
-**Mi:** a `DetailMarkRow` második sora befejezett versenyen a megkerülés
-idejét mutassa a koordináta helyett (vagy mellett), a design-lap
-`MEGKERÜLVE 15:42:08` alakjában.
-
-**Mikor:** a következő detail-körben; a felhasználó kifejezetten kérte,
-hogy ez ne vesszen el.
-
-**Miért:** az ADR 0044 D26 a 3a szakaszban elhagyta, hogy a befejezett sor
-ugyanaz a widget legyen, mint a nem indult. Az adat viszont **már megvan**:
-a `Mark.roundedAt` a domainben ül, tehát ez tisztán megjelenítési munka.
-
-**Hivatkozás:** ADR 0044 D26.
-
 ### A pálya-hossz a státusz-csíkon
 
 **Mi:** a design-lap `8,4 KM` mezője a nem indult és a folyamatban lévő
