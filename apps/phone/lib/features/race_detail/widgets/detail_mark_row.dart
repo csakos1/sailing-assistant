@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
+import 'package:shared/shared.dart';
 
 /// Egy bója sora a detail-képernyő pálya-listáján (ADR 0044 D23–D27).
 ///
@@ -14,6 +15,12 @@ import 'package:phone/app/text_tones.dart';
 /// A 4 dp-s él-sáv helye **mindig fennmarad**, akkor is, ha a bója nem
 /// aktív: különben a sorszám bal éle sorról sorra ugrálna. A kiemelést a
 /// hívó dönti el ([isActive]) — a sor nem ismeri a versenyt, csak a bóját.
+///
+/// A már megkerült bója sorának jobb szélén ott áll a megkerülés ideje
+/// (ADR 0044 Addendum 3). A kapu maga az adat, nem egy hívó-oldali
+/// kapcsoló: nem indult versenyen egyetlen bójának sincs ideje. Idő nélkül
+/// a hely üresen marad — gondolatjel sem kerül oda —, és a bal él sem
+/// mozdul, mert a név-oszlop `Expanded`.
 ///
 /// A `TextTones` biztonságos: a `foretackTheme` regisztrálja, tehát a fában
 /// mindig jelen van.
@@ -31,6 +38,9 @@ class DetailMarkRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
+    // Lokális másolat a típus-promócióhoz: a `Mark.roundedAt` egy másik
+    // csomag publikus mezője, azt a nyelv nem promotálja.
+    final roundedAt = mark.roundedAt;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -78,6 +88,19 @@ class DetailMarkRow extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (roundedAt != null) ...[
+                        const SizedBox(width: 16),
+                        // A `shared` `formatLocalClock`-ja `toLocal()`-t hív:
+                        // a DB-ből lokális, az élő motorból UTC-jelölt
+                        // példány jön ugyanarra a pillanatra, és zászló
+                        // nélkül a futó verseny nyáron két órát tévedne.
+                        Text(
+                          formatLocalClock(roundedAt),
+                          style: numeralMicroStyle.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -98,9 +121,9 @@ class DetailMarkRow extends StatelessWidget {
   String get _ordinal => mark.sequence.toString().padLeft(2, '0');
 
   // A koordináta-formátum változatlan (ADR 0044 D25): tizedes fok, négy
-  // jeggyel. Ma a `RaceDetailScreen` saját `_formatPosition`-je adja
-  // ugyanezt; a duplikáció az átépítési szeletig (S5) áll fenn, utána a
-  // képernyőé törlődik.
+  // jeggyel. A `RaceDetailScreen` korábbi `_formatPosition`-je ugyanezt
+  // adta; az átépítési szelet (S5) óta az törlődött, tehát ez az egyetlen
+  // helye a formátumnak.
   String get _position =>
       '${mark.position.latitude.toStringAsFixed(4)}, '
       '${mark.position.longitude.toStringAsFixed(4)}';
