@@ -3360,6 +3360,21 @@ megosztás a teljes képernyős térkép-nézeté, a törlés az AppBaré. A sá
 **nem** emeljük közösbe: a `FormActionBar` 52 dp-es kétgombos, a
 `ListActionBar` egysoros, ez pedig kétsoros és van kitöltött sora.
 
+**A megkerülési idő a bója-sor jobb szélén (Addendum 3).** A már megkerült
+bója sorának jobb szélén ott áll a megkerülés ideje `HH:mm:ss` alakban,
+felirat nélkül — **nem csak befejezett, hanem folyamatban lévő versenyen
+is**, ahol menet közben olvasható haladás-kijelzővé teszi a pálya-listát. A
+sor nem kap kapcsolót a hívótól: a `mark.roundedAt != null` önmagában
+kapuz, és nem indult versenyen egyetlen bójának sincs ideje. A jobb szél
+azért nyert a ballal szemben, mert ott a név-oszlop `Expanded`, tehát idő
+nélkül csak szélesebb lesz és a nevek bal éle nem mozdul; a bal sávban
+hely-fenntartás kellett volna, ami a D23 igazítását rontaná. Fokozat
+`numeralMicroStyle` (14, mono) `onSurfaceVariant` tónussal, 16 dp-re a
+névtől; a sor magassága **változatlan 68,3 dp**. A formázást a `shared`
+`formatLocalClock`-ja adja (`toLocal()`, DST-aware), ugyanaz, amelyik a
+GPS-műszeridőt: a DB-ből lokális, élőben UTC-jelölt példány jön, és zászló
+nélkül a futó verseny nyáron két órát tévedne. Új ARB-kulcs nincs. Ha a
+`roundedAt` null, a hely üresen marad, gondolatjel nélkül.
 **Fájlok (D19–D30).** Három új fájl a `features/race_detail/widgets/` alatt:
 `detail_status_strip.dart`, `detail_mark_row.dart` és
 `detail_action_bar.dart`; a `track_stats_formatters.dart` publikus felülete
