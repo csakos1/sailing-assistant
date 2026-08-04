@@ -40,9 +40,9 @@ sorrendje később bővül.
 
 | Szakasz | Képernyő(k) | Döntések | Állapot |
 |---|---|---|---|
-| 1h | `RaceSetupScreen` + `RaceEditScreen` | D1–D9 | ez a szelet |
-| 1g | `RaceListScreen` | — | később |
-| 1i | `RaceDetailScreen` | — | később |
+| 1h | `RaceSetupScreen` + `RaceEditScreen` | D1–D9 | kész |
+| 2a | `RaceListScreen` | D10–D18 | kész |
+| 3a | `RaceDetailScreen` | D19–D30 | kész |
 | 1j | `SafetyMapScreen` | — | később |
 | 1k | `FullScreenTrackMapScreen` | — | később |
 
@@ -1040,3 +1040,20 @@ A `docs/deferred.md` „A bója megkerülési ideje a detail-soron" tétele
 lezárul és törlődik. Domain- és data-változás nincs, ARB-kulcs nem születik,
 a képernyő nem változik. A szakasz egyetlen kód-szeletet kíván: a
 `DetailMarkRow` bővítését és a sor-tesztjeinek kiegészítését.
+
+---
+
+## Utólagos pontosítás — a szakasz-tábla
+
+A `## Hatókör és a döntések számozása` táblája az 1h szelet idején készült,
+és azóta két ponton elavult. A lajstrom nem `1g`, hanem **`2a`** néven
+valósult meg (D10–D18), a detail pedig nem `1i`, hanem **`3a`** néven
+(D19–D30). A tábla tehát két olyan szakasz-azonosítóra hivatkozott,
+amelyek nem léteznek, és kész munkát jelölt „később"-nek.
+
+Mindhárom érintett sor javítva: az `1h` állapota „ez a szelet" helyett
+„kész", a másik kettő az új azonosítóval és a saját `D`-tartományával áll.
+Az `1j` és az `1k` sora **változatlan** — azok tényleg hátravannak.
+
+A javítás **inline**, nem addendum: döntés nem változott, csak a tábla
+állítása avult el a megvalósítás mellett.
