@@ -951,3 +951,92 @@ egységesítés `deferred`-tétel lett.
 
 Mindkettő **inline javítás**, nem addendum: a döntések nem változtak, csak
 két állításuk vált pontatlanná a megvalósítás közben.
+
+---
+
+## Addendum 3 — A bója megkerülési ideje a sor jobb szélén (a D26 feloldása)
+
+A D26 azt mondta ki, hogy a befejezett bója-sor **azonos** a nem indulttal:
+nincs `MEGKERÜLVE hh:mm:ss` második sor és nincs pipa. A megkerülési idő
+akkor `deferred`-tétel lett, azzal az indoklással, hogy az adat már megvan
+(`Mark.roundedAt` a domainben), tehát a bevezetése tisztán megjelenítési
+munka. Ez az addendum bevezeti — de nem abban az alakban, amit a D26
+elvetett.
+
+### Mit tart meg a D26-ból és mit old fel
+
+Megmarad: **nincs második sor**, nincs pipa, nincs `MEGKERÜLVE` felirat, és
+a koordináta-sor változatlanul a helyén áll. A befejezett és a nem indult
+bója-sor szerkezete tehát továbbra is azonos.
+
+Feloldódik: a már megkerült bója sorának **jobb szélén** megjelenik a
+megkerülés ideje, `HH:mm:ss` alakban, felirat nélkül.
+
+Kiterjed: az idő **nem csak befejezett versenyen** áll ki, hanem a
+folyamatban lévőn is. A `roundedAt` a „Bója megvan" gombra töltődik, tehát
+futó versenyen a már letudott bójáknál is megvan; ezzel a detail-nézet menet
+közben is olvasható haladás-kijelzővé válik.
+
+### Miért a jobb szél, és miért nem a bal
+
+A bal sáv foglalt: ott a két jegyre töltött mono sorszám áll. Ha az idő is
+oda kerülne, a hely-fenntartás **kötelező** lenne — különben az idő nélküli
+soroknál a nevek bal éle sorról sorra ugrálna, ami pontosan az, amit a D23 a
+két jegyre töltéssel megelőzött. A fenntartott slot viszont a nem indult
+képernyőn üresen tátongana, vagy egy negyedik állapot-kaput kívánna.
+
+A jobb szélen a kérdés fel sem merül: a név-oszlop `Expanded`, tehát idő
+nélkül egyszerűen szélesebb lesz, és a **bal él nem mozdul**. Az idő jobb
+éle a sor 20 dp-s jobb paddingjénél áll, vagyis pontosan szemben a sorszám
+bal élével.
+
+### Nem kell új paraméter a hívótól
+
+A `DetailMarkRow` **nem kap** `showRoundingTime`-szerű kapcsolót: a
+`mark.roundedAt != null` önmagában kapuz. Nem indult versenyen egyetlen
+bójának sincs ideje — a státusz csak előre megy —, tehát a képernyő-szintű
+kapu redundáns lenne. A D27 elve sértetlen marad: a sor a **bóját** ismeri,
+nem a versenyt. A `RaceDetailScreen` emiatt nem változik.
+
+### Tipográfia, tónus, geometria
+
+Az idő a `numeralMicroStyle` (14, mono) fokozatot kapja, ezzel annak
+**harmadik fogyasztója** lesz; új fokozat nem születik, a létra 15 marad.
+
+A színe `onSurfaceVariant`, **nem** `TextTones.low`. Így három tónus-szint
+áll a soron: a név `onSurface`, az idő `onSurfaceVariant`, a sorszám és a
+koordináta `TextTones.low`. Az idő a soron a második legfontosabb adat, a
+legtompább szintet nem érdemli.
+
+A név és az idő közötti köz **16 dp**; a név `maxLines: 1` + ellipszise már
+megvan, tehát hosszú névnél az idő nyer. A sor magassága **változatlan
+68,3 dp**: egy 14 pt-os egysoros szöveg alacsonyabb, mint a 35,3 dp-s
+név+koordináta oszlop, és az idő függőlegesen középre igazodik.
+
+### Az időzóna: `toLocal()` kell
+
+Ugyanaz az időpillanat két különböző zászlóval érkezik. Élő versenyen a
+rounding-detektor tick-ideje **UTC-jelölt** (a GNSS-óra `toUtc()`-ol),
+DB-ből visszatöltve viszont a Drift epoch-oszlopából **lokális** példány
+épül. Az epoch abszolút, tehát a pillanat mindkét úton helyes — de a
+formázás a `DateTime` mezőit olvassa, nem a pillanatot, ezért zászló nélkül
+a folyamatban lévő verseny nyáron két órával korábbi időt mutatna.
+
+A formázást ezért a `shared` `formatLocalClock`-ja adja, ugyanaz, amelyik a
+GPS-műszeridőt a státuszsoron: `toLocal()`, DST-aware, `HH:mm:ss`. Egy
+igazságforrás, és **nem születik új ARB-kulcs** — a 24 órás fali óra nem
+locale-függő adat.
+
+### Hiányzó idő
+
+Ha a `roundedAt` null, a sor **üresen hagyja** a helyet: nincs `—`, nincs
+placeholder. Ugyanaz az elv, mint a D29 hiányzó mérésénél, ahol a
+mértékegység is elmarad — egy gondolatjel azt sugallná, hogy a megkerülés
+megtörtént, csak az ideje ismeretlen.
+
+### Következmények (Addendum 3)
+
+A `docs/deferred.md` „A bója megkerülési ideje a detail-soron" tétele
+lezárul és törlődik. Domain- és data-változás nincs, ARB-kulcs nem születik,
+a képernyő nem változik. A szakasz egyetlen kód-szeletet kíván: a
+`DetailMarkRow` bővítését és a sor-tesztjeinek kiegészítését.
