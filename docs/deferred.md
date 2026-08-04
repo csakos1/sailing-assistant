@@ -524,14 +524,6 @@ szakasz a migráció haladtával bővül.
 - **Miért nem most**: a design-dokumentumban nincs sheet-makett — ugyanaz a
   gát, ami a `SavedMarkPicker`-t is tartja (D8).
 
-### A `race_detail_screen` státusz-megjelenítése
-- **Mi**: a detailen marad a `RaceStatusChip`; a lajstrom viszont már
-  szögletes jelölőt és verzál mono feliratot használ.
-- **Mikor**: az 1i szakasszal.
-- **Miért nem most**: a chipnek két élő fogyasztója van, és egyiket sem ez
-  a szelet migrálja — használatban lévő widgetet nem törlünk.
-- **Hivatkozás**: ADR 0044 D12.
-
 ### A 2b és 2c lista-irányok
 - **Mi**: a design-dokumentum két további irányt is megrajzolt (2b aktív
   műszerfej élő mini-adatokkal, 2c napló-tábla mono dátum-sínnel).
@@ -546,16 +538,6 @@ szakasz a migráció haladtával bővül.
   sem hívta (nem volt alcíme), a kulcs leírása viszont alcímnek szánta.
   Külön koncern, külön commit.
 
-### A `numeralMicroStyle` egyetlen fogyasztóra fogyott
-- **Mi**: a fokozatot a lajstrom sorszámának törlése óta már csak a
-  `PredictedTwaCell` `±N°` hibasávja hívja.
-- **Mikor**: ha a RaceDetail és a további képernyők sem veszik elő —
-  akkor eldönthető, hogy összevonjuk-e egy szomszédos fokozattal.
-- **Miért nem most**: a létra tagjait nem a fogyasztók száma indokolja,
-  hanem a szerep; a hibasáv él és jól van, a törlés viszont a
-  tipográfia-szerződés átírása lenne.
-- **Hivatkozás**: ADR 0044 Addendum 2; ADR 0042 (a `±N°` hibasáv).
-
 ### A verzál AppBar-cím csak a home-képernyőn áll
 - **Mi**: a home-cím `VERSENYEK` verzál 26; a mélyebb képernyők a
   `screenTitleStyle` 19-esével, rendes kis-nagybetűvel címeznek.
@@ -568,6 +550,106 @@ szakasz a migráció haladtával bővül.
 - **Hivatkozás**: ADR 0044 Addendum 2.
 
 ---
+
+### A bója megkerülési ideje a detail-soron
+
+**Mi:** a `DetailMarkRow` második sora befejezett versenyen a megkerülés
+idejét mutassa a koordináta helyett (vagy mellett), a design-lap
+`MEGKERÜLVE 15:42:08` alakjában.
+
+**Mikor:** a következő detail-körben; a felhasználó kifejezetten kérte,
+hogy ez ne vesszen el.
+
+**Miért:** az ADR 0044 D26 a 3a szakaszban elhagyta, hogy a befejezett sor
+ugyanaz a widget legyen, mint a nem indult. Az adat viszont **már megvan**:
+a `Mark.roundedAt` a domainben ül, tehát ez tisztán megjelenítési munka.
+
+**Hivatkozás:** ADR 0044 D26.
+
+### A pálya-hossz a státusz-csíkon
+
+**Mi:** a design-lap `8,4 KM` mezője a nem indult és a folyamatban lévő
+detail csíkján, a bója-szám mellett.
+
+**Mikor:** ha a domain amúgy is kap egy szár-távolság use case-t.
+
+**Miért:** a bója-számmal ellentétben ez nem a `Race`-ből olvasható ki: a
+szomszédos bóják közti haversine-összeg új domain-számítás, saját
+tesztekkel. Egy megjelenítési szeletbe nem fér bele.
+
+**Hivatkozás:** ADR 0044 3a, halasztott tételek.
+
+### A menetidő a befejezett csíkon
+
+**Mi:** a design-lap `04:48:12` mezője a befejezett verseny csíkján, a
+dátum mellett vagy helyett.
+
+**Mikor:** ha a lajstrom aktív sorára is kell eltelt idő — az már külön
+`deferred`-tétel, és a kettő egy formázót használna.
+
+**Miért:** új formázó kellene (`Duration` → `óó:pp:mm`), és a csík jobb
+oldalán ma a dátum áll; a kettő együtt szűk helyre kerülne.
+
+**Hivatkozás:** ADR 0044 D21.
+
+### A setup és a detail koordináta-alakja eltér
+
+**Mi:** a `RaceSetupScreen` DDM-alakban veszi fel a koordinátát, a
+detail-sor viszont tizedes fokban mutatja (`46.9000, 18.0500`).
+
+**Mikor:** ha a felhasználót zavarja a vízen, vagy ha a DDM-előtöltés
+tétele amúgy is elővétetik.
+
+**Miért:** az ADR 0044 D25 szándékosan nem nyúlt a formátumhoz: a váltás
+önálló döntés, saját kockázattal és saját tesztekkel, és nincs köze
+ahhoz, hogy a sor hogyan néz ki.
+
+**Hivatkozás:** ADR 0044 D25.
+
+### A 60 dp-s sáv-váz közös widgetbe emelése (pontosított feltétel)
+
+**Mi:** a `ListActionBar` és a `DetailActionBar` közös vázának kiemelése.
+
+**Mikor:** ha megjelenik a **harmadik egysoros** fogyasztó.
+
+**Miért:** a korábbi tétel feltétele csak „harmadik fogyasztót" mondott, és
+a detail sávja formálisan az lett volna — de az **kétsoros**, és van
+kitöltött sora, tehát a közös keret vékonyabb lenne, mint a különbség. A
+`FormActionBar` pedig egészen más alak (52 dp, r14, két gomb egy sorban).
+
+**Hivatkozás:** ADR 0044 D30.
+
+### A track-stat formázók egységesítése
+
+**Mi:** a `formatKnots` / `formatDistance` (string, tizedespont) és a
+`measureKnots` / `measureDistance` (érték/egység pár, tizedesvessző)
+párhuzamosan él.
+
+**Mikor:** ha a megosztható track-kép (ADR 0036) számképét amúgy is
+hozzányúljuk.
+
+**Miért:** a régieket ma már csak a `track_export_content.dart` használja.
+Az ADR 0036 felülete lezárt, és az **on-device verifikációja még hátra
+van** — egy kép számképét nem írjuk át olyankor, amikor a felület
+állapotát még nem igazoltuk.
+
+**Hivatkozás:** ADR 0044 D29.
+
+### A post-race szekció kettéválasztása
+
+**Mi:** a `PostRaceAnalysisSection` ma egy widget: track-kártya + stat-sor
+(release) **és** a debug-only next-TWA elemzés. A 3a a szekciót a
+pálya-lista fölé tette, tehát a debug-elemzés is oda került.
+
+**Mikor:** ha a debug-elemzés a lista alatt kényelmesebb, vagy ha a
+track-fejléc önállóan is kellene máshol.
+
+**Miért:** a szétválasztás új widget-határt húz egy 520 soros fájlban, és
+a 3a szeletnek nem volt tárgya. Debug-buildben zavaró lehet, release-ben
+nem látszik.
+
+**Hivatkozás:** ADR 0044 3a.
+
 
 ## Adatréteg
 
