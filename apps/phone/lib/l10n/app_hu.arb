@@ -334,6 +334,29 @@
       }
     }
   },
+  "logMonth": "{month}",
+  "@logMonth": {
+    "description": "A hónap neve a Versenynapló hónap-fejlécén.",
+    "placeholders": {
+      "month": {
+        "type": "DateTime",
+        "format": "MMMM"
+      }
+    }
+  },
+  "logRaceCountCaps": "{count} VERSENY",
+  "@logRaceCountCaps": {
+    "description": "Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "logYearSheetTitle": "Év",
+  "@logYearSheetTitle": {
+    "description": "Az év-választó lap fejléc-felirata; a widget verzálosítja."
+  },
   "liveCorrectionRight": "jobbra",
   "@liveCorrectionRight": {
     "description": "Kísérőszöveg a korrekció-cellában: jobbra kell fordulni"

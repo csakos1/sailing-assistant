@@ -550,6 +550,24 @@ abstract class AppLocalizations {
   /// **'{count} bója'**
   String listMarkCount(int count);
 
+  /// A hónap neve a Versenynapló hónap-fejlécén.
+  ///
+  /// In hu, this message translates to:
+  /// **'{month}'**
+  String logMonth(DateTime month);
+
+  /// Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} VERSENY'**
+  String logRaceCountCaps(int count);
+
+  /// Az év-választó lap fejléc-felirata; a widget verzálosítja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Év'**
+  String get logYearSheetTitle;
+
   /// Kísérőszöveg a korrekció-cellában: jobbra kell fordulni
   ///
   /// In hu, this message translates to:

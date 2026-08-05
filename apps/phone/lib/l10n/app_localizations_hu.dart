@@ -256,6 +256,22 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
+  String logMonth(DateTime month) {
+    final intl.DateFormat monthDateFormat = intl.DateFormat.MMMM(localeName);
+    final String monthString = monthDateFormat.format(month);
+
+    return '$monthString';
+  }
+
+  @override
+  String logRaceCountCaps(int count) {
+    return '$count VERSENY';
+  }
+
+  @override
+  String get logYearSheetTitle => 'Év';
+
+  @override
   String get liveCorrectionRight => 'jobbra';
 
   @override
