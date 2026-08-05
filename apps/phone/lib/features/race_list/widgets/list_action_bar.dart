@@ -44,7 +44,7 @@ class ListActionBar extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onFinished,
                   icon: const Icon(Icons.history, size: 16),
-                  label: Text(l10n.listFinishedRacesTitle),
+                  label: Text(l10n.logTitle),
                   style: TextButton.styleFrom(
                     backgroundColor: scheme.surfaceContainer,
                     foregroundColor: scheme.onSurface,

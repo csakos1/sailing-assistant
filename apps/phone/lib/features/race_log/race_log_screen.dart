@@ -94,9 +94,7 @@ class RaceLogScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 64,
-        // A kulcs az S10-ben nevet valt logTitle-re; addig a mai felirat
-        // marad, hogy a branch minden szeleten zold legyen.
-        title: Text(l10n.listFinishedRacesTitle, style: screenTitleStyle),
+        title: Text(l10n.logTitle, style: screenTitleStyle),
         actions: [
           if (selected != null)
             Padding(

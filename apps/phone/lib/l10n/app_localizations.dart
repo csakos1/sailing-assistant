@@ -514,11 +514,11 @@ abstract class AppLocalizations {
   /// **'Új verseny'**
   String get listAddRace;
 
-  /// A befejezett versenyek modal címsora.
+  /// A Versenynapló képernyő címe és a lista akció-sávjának bal gombja.
   ///
   /// In hu, this message translates to:
-  /// **'Befejezett versenyek'**
-  String get listFinishedRacesTitle;
+  /// **'Versenynapló'**
+  String get logTitle;
 
   /// A lajstrom-sor státusz-felirata futó versenynél.
   ///

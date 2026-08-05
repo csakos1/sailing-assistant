@@ -5,11 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
-import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
+import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/rounding_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -32,6 +33,11 @@ void main() {
       ProviderScope(
         overrides: [
           raceRepositoryProvider.overrideWithValue(_FakeRaceRepository(races)),
+          // A naplo stat-csikja a minta-olvasot hasznalja; enelkul a
+          // navigacios teszt a valos adatbazist epitene fel.
+          roundingSampleReaderProvider.overrideWith((ref) {
+            return (raceId) async => const <RoundingSample>[];
+          }),
         ],
         child: MaterialApp(
           theme: foretackTheme,
@@ -132,7 +138,7 @@ void main() {
     // ASSERT - az ures fo lista mellett a befejezett-gomb kattinthato.
     expect(find.text(l10n.listEmpty), findsOneWidget);
     final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+      find.widgetWithText(TextButton, l10n.logTitle),
     );
     expect(button.onPressed, isNotNull);
   });
@@ -149,12 +155,12 @@ void main() {
     // ASSERT - a gomb ott van, de nem kattinthato: az akcio-sav
     // felezese nem ugralhat attol, hogy van-e befejezett verseny.
     final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+      find.widgetWithText(TextButton, l10n.logTitle),
     );
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('a befejezett-gombra koppintva a modal nyílik', (
+  testWidgets('a befejezett-gombra koppintva a napló nyílik', (
     tester,
   ) async {
     // ARRANGE
@@ -165,8 +171,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
 
-    // ASSERT — a sheet nyílt meg, benne a befejezett verseny neve.
-    expect(find.byType(FinishedRacesSheet), findsOneWidget);
+    // ASSERT — a napló-képernyő nyílt meg, benne a verseny neve.
+    expect(find.byType(RaceLogScreen), findsOneWidget);
     expect(find.text('Charlie'), findsOneWidget);
   });
 }

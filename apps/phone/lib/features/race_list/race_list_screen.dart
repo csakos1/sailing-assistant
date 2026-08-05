@@ -8,9 +8,9 @@ import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/engine/engine_debug_screen.dart';
 import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
-import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
 import 'package:phone/features/race_list/widgets/list_action_bar.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
+import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_list_provider.dart';
@@ -51,13 +51,9 @@ class RaceListScreen extends ConsumerWidget {
   /// meglévő detail-útvonalon nyitja meg (a sheet a `Race`-szel popol). A
   /// fogantyú-csíkot a sheet maga rajzolja (nincs `showDragHandle`).
   Future<void> _openFinished(BuildContext context) async {
-    final picked = await showModalBottomSheet<Race>(
-      context: context,
-      builder: (_) => const FinishedRacesSheet(),
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const RaceLogScreen()),
     );
-    if (picked != null && context.mounted) {
-      _openDetail(context, picked);
-    }
   }
 
   void _openDebug(BuildContext context) {

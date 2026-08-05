@@ -38,7 +38,7 @@ void main() {
 
     // ASSERT - a gomb ott van, csak nem kattinthato.
     final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+      find.widgetWithText(TextButton, l10n.logTitle),
     );
     expect(button.onPressed, isNull);
   });
@@ -51,7 +51,7 @@ void main() {
 
     // ACT
     await tester.tap(
-      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+      find.widgetWithText(TextButton, l10n.logTitle),
     );
     await tester.pump();
 
@@ -80,7 +80,7 @@ void main() {
 
     // ASSERT - a felezes akkor is all, ha a ket felirat kulonbozo hosszu.
     final left = tester.getSize(
-      find.widgetWithText(TextButton, l10n.listFinishedRacesTitle),
+      find.widgetWithText(TextButton, l10n.logTitle),
     );
     final right = tester.getSize(
       find.widgetWithText(FilledButton, l10n.listAddRace),

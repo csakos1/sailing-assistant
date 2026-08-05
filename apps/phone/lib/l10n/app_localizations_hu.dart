@@ -234,7 +234,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get listAddRace => 'Új verseny';
 
   @override
-  String get listFinishedRacesTitle => 'Befejezett versenyek';
+  String get logTitle => 'Versenynapló';
 
   @override
   String get listStatusActive => 'FOLYAMATBAN';

@@ -300,9 +300,9 @@
   "@listAddRace": {
     "description": "Az alsó akció-sáv gombja, ami a setup képernyőt nyitja."
   },
-  "listFinishedRacesTitle": "Befejezett versenyek",
-  "@listFinishedRacesTitle": {
-    "description": "A befejezett versenyek modal címsora."
+  "logTitle": "Versenynapló",
+  "@logTitle": {
+    "description": "A Versenynapló képernyő címe és a lista akció-sávjának bal gombja."
   },
   "listStatusActive": "FOLYAMATBAN",
   "@listStatusActive": {
