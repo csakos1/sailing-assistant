@@ -357,6 +357,18 @@
   "@logYearSheetTitle": {
     "description": "Az év-választó lap fejléc-felirata; a widget verzálosítja."
   },
+  "logStatTimeCaps": "VÍZEN TÖLTÖTT",
+  "@logStatTimeCaps": {
+    "description": "A napló stat-csík első cellája: vízen töltött idő."
+  },
+  "logStatDistanceCaps": "ÖSSZ. TÁV",
+  "@logStatDistanceCaps": {
+    "description": "A napló stat-csík második cellája: az év össztávja."
+  },
+  "logStatRecordCaps": "REKORD",
+  "@logStatRecordCaps": {
+    "description": "A napló stat-csík harmadik cellája: sebesség-rekord."
+  },
   "liveCorrectionRight": "jobbra",
   "@liveCorrectionRight": {
     "description": "Kísérőszöveg a korrekció-cellában: jobbra kell fordulni"

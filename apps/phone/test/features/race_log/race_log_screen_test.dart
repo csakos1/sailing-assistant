@@ -6,10 +6,12 @@ import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_log/widgets/race_log_month_header.dart';
 import 'package:phone/features/race_log/widgets/race_log_row.dart';
+import 'package:phone/features/race_log/widgets/race_log_stats_strip.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
+import 'package:phone/providers/rounding_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -18,15 +20,16 @@ void main() {
     position: Coordinate(latitude: 46.9, longitude: 18.05),
   );
 
+  // Minden fixtura-verseny pontosan negy oras, hogy a vizen toltott ido
+  // varhato erteke szamolhato legyen.
   Race finishedRace({
     required String id,
     required int year,
     required int month,
-    required int day,
   }) {
     return Race.create(id: id, name: id, marks: const [mark])
-        .start(at: DateTime(year, month, day, 10))
-        .finish(at: DateTime(year, month, day, 14));
+        .start(at: DateTime(year, month, 2, 10))
+        .finish(at: DateTime(year, month, 2, 14));
   }
 
   RaceLogYear logYear({
@@ -41,20 +44,29 @@ void main() {
             month: entry.key,
             races: [
               for (final id in entry.value)
-                finishedRace(id: id, year: year, month: entry.key, day: 2),
+                finishedRace(id: id, year: year, month: entry.key),
             ],
           ),
       ],
     );
   }
 
+  // A minta-olvasot MINDIG felul kell irni: enelkul a stat-csik providere
+  // a valos Drift adatbazist epitene fel a teszt-kornyezetben.
   Future<void> pumpScreen(
     WidgetTester tester, {
     required AsyncValue<List<RaceLogYear>> log,
+    Map<String, List<RoundingSample>> samples = const {},
   }) {
     return tester.pumpWidget(
       ProviderScope(
-        overrides: [raceLogProvider.overrideWith((ref) => log)],
+        overrides: [
+          raceLogProvider.overrideWith((ref) => log),
+          roundingSampleReaderProvider.overrideWith((ref) {
+            return (raceId) async =>
+                samples[raceId] ?? const <RoundingSample>[];
+          }),
+        ],
         child: MaterialApp(
           theme: foretackTheme,
           locale: const Locale('hu'),
@@ -78,14 +90,13 @@ void main() {
     });
 
     testWidgets('draws nothing for an empty log', (tester) async {
-      // Ures naplot a belepo gomb letiltasa zar ki (D31); ha megis
-      // ide jutunk, nem uzenunk felreveszetot.
       await pumpScreen(
         tester,
         log: const AsyncValue<List<RaceLogYear>>.data(<RaceLogYear>[]),
       );
 
       expect(find.byType(RaceLogYearBar), findsNothing);
+      expect(find.byType(RaceLogStatsStrip), findsNothing);
       expect(find.byType(RaceLogRow), findsNothing);
     });
   });
@@ -160,6 +171,92 @@ void main() {
       );
 
       expect(find.text('2026'), findsOneWidget);
+    });
+  });
+
+  group('RaceLogScreen stats strip', () {
+    testWidgets('shows the elapsed time straight away', (tester) async {
+      // Harom negy oras verseny = 12 ora, meg a track-osszesitok elott.
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Egy', 'Ketto', 'Harom'],
+            },
+          ),
+        ]),
+      );
+
+      expect(find.byType(RaceLogStatsStrip), findsOneWidget);
+      expect(find.text('12,0'), findsOneWidget);
+    });
+
+    testWidgets('holds the track cells at the gap marker until they land', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Egy'],
+            },
+          ),
+        ]),
+      );
+
+      // Elso kepkocka: a ket track-cella meg nem szamolt.
+      expect(find.text('—'), findsNWidgets(2));
+
+      await tester.pumpAndSettle();
+
+      // Minta nelkul a ket ertek marad hianyjel, de mar szamolt allapotban.
+      expect(find.text('—'), findsNWidgets(2));
+    });
+
+    testWidgets('fills in the distance and the record once computed', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Egy'],
+            },
+          ),
+        ]),
+        samples: {
+          'Egy': [
+            RoundingSample(
+              tickTime: DateTime.utc(2026),
+              raceStatus: 'finished',
+              twdQuality: 'live',
+              sogMps: 6.2,
+              latDeg: 46.90,
+              lonDeg: 18.05,
+            ),
+            RoundingSample(
+              tickTime: DateTime.utc(2026),
+              raceStatus: 'finished',
+              twdQuality: 'live',
+              sogMps: 4,
+              latDeg: 46.95,
+              lonDeg: 18.05,
+            ),
+          ],
+        },
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('12,1'), findsOneWidget);
+      expect(find.text('kn'), findsOneWidget);
+      expect(find.text('—'), findsNothing);
     });
   });
 

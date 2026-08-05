@@ -568,6 +568,24 @@ abstract class AppLocalizations {
   /// **'Év'**
   String get logYearSheetTitle;
 
+  /// A napló stat-csík első cellája: vízen töltött idő.
+  ///
+  /// In hu, this message translates to:
+  /// **'VÍZEN TÖLTÖTT'**
+  String get logStatTimeCaps;
+
+  /// A napló stat-csík második cellája: az év össztávja.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÖSSZ. TÁV'**
+  String get logStatDistanceCaps;
+
+  /// A napló stat-csík harmadik cellája: sebesség-rekord.
+  ///
+  /// In hu, this message translates to:
+  /// **'REKORD'**
+  String get logStatRecordCaps;
+
   /// Kísérőszöveg a korrekció-cellában: jobbra kell fordulni
   ///
   /// In hu, this message translates to:

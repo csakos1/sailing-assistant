@@ -6,12 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
+import 'package:phone/features/race_detail/track_stats_formatters.dart';
+import 'package:phone/features/race_log/race_log_formatters.dart';
 import 'package:phone/features/race_log/widgets/race_log_month_header.dart';
 import 'package:phone/features/race_log/widgets/race_log_row.dart';
+import 'package:phone/features/race_log/widgets/race_log_stats_strip.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
+import 'package:phone/providers/race_log_stats_provider.dart';
 import 'package:phone/providers/race_log_year_provider.dart';
 
 /// A befejezett versenyek naplója (ADR 0044 4d).
@@ -21,14 +25,23 @@ import 'package:phone/providers/race_log_year_provider.dart';
 /// a 44 dp-s év-sáv — a két mély képernyő felső harmada így egymásra fed
 /// (D20/D21).
 ///
-/// A tartalom három rétegű: az AppBar jobb szélén a **kiválasztott év**
-/// verseny-száma, alatta a mindig látható év-sáv, majd hónapokra bontott
-/// lista. A képernyőn nincs év-független szám: amit a felhasználó lát, az a
-/// sáv által mutatott évhez tartozik (D38).
+/// A tartalom négy rétegű: az AppBar jobb szélén a **kiválasztott év**
+/// verseny-száma, alatta a mindig látható év-sáv, majd az összesítő
+/// stat-csík, végül a hónapokra bontott lista. A képernyőn nincs
+/// év-független szám: amit a felhasználó lát, az a sáv által mutatott évhez
+/// tartozik (D38).
 ///
-/// Nincs új lekérdezés (D41): a napló a lajstroméval azonos reaktív
-/// projekcióból épül, a csoportosítást a `BuildRaceLog` domain use case
-/// végzi.
+/// A csík három értéke **nem egyszerre érkezik** (D42). A vízen töltött idő
+/// szinkron, a naplóval együtt már megvan; az össztáv és a rekord a
+/// track-mintákból számol, és a saját `AsyncValue`-ja mögül úszik be. Amíg
+/// nincs kész, a két cella a hiányjelet mutatja — a betöltés és a hiányzó
+/// mérés így egyformán néz ki, ami tudatos egyszerűsítés: cellánkénti
+/// spinner zajosabb lenne. Ha a mérés hosszúnak mutatja a beúszást, ezen
+/// érdemes változtatni.
+///
+/// Nincs új lekérdezés a lista felé (D41): a napló a lajstroméval azonos
+/// reaktív projekcióból épül, a csoportosítást a `BuildRaceLog` domain use
+/// case végzi.
 ///
 /// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat. A `TextTones` ugyanígy: a `foretackTheme`
@@ -75,6 +88,8 @@ class RaceLogScreen extends ConsumerWidget {
     final tones = Theme.of(context).extension<TextTones>()!;
     final log = ref.watch(raceLogProvider);
     final selected = ref.watch(raceLogSelectedYearProvider);
+    final timeOnWater = ref.watch(raceLogTimeOnWaterProvider);
+    final totals = ref.watch(raceLogTrackTotalsProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -117,6 +132,22 @@ class RaceLogScreen extends ConsumerWidget {
                       selectedYear: selected.year,
                     ),
                   ),
+                ),
+                RaceLogStatsStrip(
+                  cells: [
+                    (
+                      label: l10n.logStatTimeCaps,
+                      measured: measureHours(timeOnWater),
+                    ),
+                    (
+                      label: l10n.logStatDistanceCaps,
+                      measured: measureDistance(totals?.distanceMeters),
+                    ),
+                    (
+                      label: l10n.logStatRecordCaps,
+                      measured: measureKnots(totals?.maxSpeedMps),
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: ListView(

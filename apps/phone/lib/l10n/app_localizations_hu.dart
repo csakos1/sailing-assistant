@@ -272,6 +272,15 @@ class AppLocalizationsHu extends AppLocalizations {
   String get logYearSheetTitle => 'Év';
 
   @override
+  String get logStatTimeCaps => 'VÍZEN TÖLTÖTT';
+
+  @override
+  String get logStatDistanceCaps => 'ÖSSZ. TÁV';
+
+  @override
+  String get logStatRecordCaps => 'REKORD';
+
+  @override
   String get liveCorrectionRight => 'jobbra';
 
   @override
