@@ -2401,23 +2401,21 @@ entity + a `MarkLibraryRepository` interfész áll (ISP-külön a
 picker v1-ben read-only, additív `RaceForm`-elem (név + forrás-verseny-név,
 koordináta nélkül), tap → előtöltött bója-sor (L8).
 
-**Verseny-lista státusz-particionálás (ADR 0033).** A főképernyő
-(`RaceListScreen`) listája státusz szerint particionál: a fő `ListView`
-csak a `notStarted` és `active` versenyeket mutatja, **active elöl** (a futó
-verseny a legrelevánsabb), a `finished` versenyek pedig egy alsó, listába
-illő sor mögé kerülnek (`history` ikon + „Befejezett versenyek (N)” +
-chevron, csak ha N>0). A sor `showModalBottomSheet`-et nyit (a
-`SavedMarkPicker`-minta, ADR 0032), benne a befejezett versenyek csempéi;
-tap → a meglévő `RaceDetailScreen` (a befejezett detail már
-read-only-szerűen degradál — nincs start/finish/élő/szerkesztés akció).
+**Verseny-lista státusz-particionálás (ADR 0033 + Addendum 1).** A
+főképernyő (`RaceListScreen`) listája státusz szerint particionál: a fő
+`ListView` csak a `notStarted` és `active` versenyeket mutatja, **active
+elöl** (a futó verseny a legrelevánsabb), a `finished` versenyek pedig a
+**Versenynaplóba** kerülnek — önálló képernyőre (`RaceLogScreen`, ADR 0044
+4d), amelyet az alsó akció-sáv bal fele nyit (ADR 0044 D14). A gomb N = 0
+esetén nem tűnik el, hanem **letiltva** marad, hogy a sáv felezése ne
+ugráljon. A napló-sorról tap → a meglévő `RaceDetailScreen` (a befejezett
+detail read-only-szerűen degradál — nincs start/finish/élő/szerkesztés
+akció).
 A particionálás kliens-oldali, a `raceListProvider` (`watchRaces()`)
 ugyanazon projekciójából — nincs új repository-metódus vagy séma-változás.
-A státuszt a közös `RaceStatusChip` színnel is jelzi: `active` teal (új
-`inProgressColor` token a `marine_colors.dart`-ban, a téma-seed
-teal-családból — nem a `ConfidenceColors.high`, hogy a predikció-
-konfidencia szemantikájával ne keveredjen), `finished` tompított,
-`notStarted` változatlan. A befejezett-listában a **keresés/törlés
-v2-deferred** (ADR 0033).
+A státuszt a lajstrom-soron a `StatusBadge` jelzi (ADR 0044 D12); az ADR
+0033 D3 teal chipje és a D4 `inProgressColor` tokenje a kódban már nem él.
+A naplóban a keresés/törlés **v2-deferred** (ADR 0033).
 
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
@@ -3336,8 +3334,9 @@ fér ki görgetés nélkül; a befejezetten a fejléc 407,7 dp a track-kártyáv
 **Egy képernyő, négy kapu (D19).** A `RaceDetailScreen` egyetlen widget
 marad; a `RaceStatus` az AppBar-akcióknál, a csík-metánál, az aktív bója
 él-sávjánál és az alsó sávnál kapuz. A `RaceStatusChip` lekerül a
-detailről — a státuszt a csík mondja —, de **nem törlődik**: a
-befejezett-lista sheet továbbra is használja.
+detailről — a státuszt a csík mondja. A widget egyetlen fogyasztója a
+befejezett-lista sheet volt, amely az ADR 0033 Addendum 1-gyel megszűnik;
+a chip sorsáról a 4d törlés-szelete dönt.
 
 **A dátum verzálja futásidőben áll elő (D21).** A csík jobb oldala nem
 indult és folyamatban állapotban a bója-számot mutatja, befejezetten a
@@ -3380,6 +3379,70 @@ nélkül a futó verseny nyáron két órát tévedne. Új ARB-kulcs nincs. Ha a
 `detail_action_bar.dart`; a `track_stats_formatters.dart` publikus felülete
 érték/egység párra bomlik, a `_TrackStatsRow` pedig a
 `post_race_analysis_section.dart`-ban marad és ott alakul át.
+
+**4d — Versenynapló: a befejezettek saját képernyőn (D31–D44).** A
+befejezett versenyek modalja önálló képernyővé válik (`RaceLogScreen`), mert
+a `showModalBottomSheet` a viewport felénél megáll: egy szezon már görgetést
+kíván benne, kettő nem férne el, és az év-szűrő meg az összesítő fejléc két
+állandó sávot kíván, amit egy sheet nem tud kontextus-vesztés nélkül tartani.
+A belépési pont nem változik — az alsó akció-sáv bal fele (D14), letiltva, ha
+nincs befejezett verseny.
+
+**A csoportosítás kulcsa a `finishedAt`, helyi időzónában (D32–D34).** A
+`Race`-nek nincs „verseny napja" mezője, és a naplóban minden verseny
+befejezett, tehát a `finishedAt` az egyetlen mindig kitöltött dátum — és
+tartalmilag is az a helyes, hogy a napló a lezárás napját mutatja. A
+konverzió végig `toLocal()`: UTC-ben egy helyi augusztus 1-jei hajnali
+befejezés júliusra, év fordulóján az előző **évre** esne. Hónapok
+csökkenően, hónapon belül a versenyek is; az év első versenye legalul. A
+választható évek készlete a befejezett versenyekből jön (nincs üres év), az
+alapértelmezés az aktuális év, vagy ha abban még nincs verseny, a legutolsó
+olyan év, amelyben van.
+
+**Év-sáv és felcsúszó választó (D35–D36).** A fejléc alatti 44 dp-es sáv
+akkor is látszik, ha egyetlen év van: a geometria nem ugrál az első
+év-fordulókor, és a sáv kimondja, melyik évet nézzük. A választó alulról
+felcsúszó lap (a `SavedMarkPicker` formanyelve), nem inline lenyíló panel —
+az három-négy évnél a fél képernyőt vinné, és a találati pontok fent
+maradnának. Hogy egy modalt megszüntetünk és közben egy másikat bevezetünk,
+tudatos: a napló tartalma korlátlanul nő, az év-listáé nem.
+
+**A sor geometriája és tipográfiája (D37–D39).** 16 dp padding, fix 28 dp-es
+slot a nullával feltöltött nap-számmal, 16 dp rés, majd a verseny neve — a
+slot közepe 30 dp-nél, a név 60 dp-nél, tehát a szám mértanilag felezi az él
+és a név közét. A sor 56 dp: az egysoros név `listItemTitleStyle`-ja 20 dp,
+plusz a 2a-ból örökölt 18 dp-es köz fent és lent. Új fokozat nem születik: a
+név ugyanaz a `listItemTitleStyle`, mint a lajstrom-soron (a két lista címe
+egymásra fed), a nap-szám `numeralMicroStyle`, a feliratok
+`sectionLabelStyle`, a darabszámok `numeralCaptionStyle` `tones.low`
+tónussal. Az AppBar 64 dp-je és az év-sáv 44 dp-je a 3a-ból jön (D20/D21),
+nem a design-lapból: a két mély képernyő fejléc-sávjának egymásra kell
+fednie.
+
+**A csoportosítás domain use case (D40–D41).** A `List<Race>` → évek/hónapok
+átalakítás tiszta függvény, ezért `BuildRaceLog` néven a `domain`-ben ül,
+`RaceLogYear`/`RaceLogMonth` value objectekkel — a határeset-tesztek
+(időzóna-forduló, azonos napon két verseny, üres bemenet) Flutter nélkül
+futnak. Új lekérdezés nincs: a napló az `raceListProvider` ugyanazon
+projekciójából szűr, mint a lajstrom.
+
+**Az összesítő csík fázis 1-ben nem tárol (D42).** A három érték közül a
+vízen töltött idő olcsó (`finishedAt − startedAt` a `races`-ből), az
+össztáv és a sebesség-rekord viszont a track-mintákból számolódik
+(`SummarizeTrack`). A csík ezért saját `AsyncValue`-provider mögött ül: a
+képernyő azonnal nyílik, a számok beúsznak. Ez egyben mérés is — a tárolásról
+on-device számmal döntünk. Ha kell, külön `race_track_stats` tábla a jelölt,
+nem a `races` új oszlopai: azt a sort a `save()` egy memóriabeli példányból
+felülírja, tehát egy elavult példány mentése kinullázná a számokat (ugyanaz
+a hibaosztály, mint az ADR 0045 negyedik szakadási pontja).
+
+**Fájlok és kulcsok (D43–D44).** Új könyvtár a `features/race_log/` alatt: a
+képernyő és öt widget (sor, hónap-fejléc, év-sáv, év-választó lap,
+stat-csík). A hónapnevek ARB `DateTime`-placeholderből (`MMMM`) jönnek, tehát
+a `pubspec.yaml` nem változik; a verzálosítás a widgeté. A
+`listFinishedRacesTitle` kulcs `logTitle`-re változik, felirata
+„Versenynapló", és a `FinishedRacesSheet` törlődik — a törlés a 4d utolsó
+kód-szelete, hogy a branch addig zöld maradjon.
 
 ## 9. Perzisztencia (Drift / SQLite)
 
