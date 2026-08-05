@@ -43,6 +43,7 @@ sorrendje később bővül.
 | 1h | `RaceSetupScreen` + `RaceEditScreen` | D1–D9 | kész |
 | 2a | `RaceListScreen` | D10–D18 | kész |
 | 3a | `RaceDetailScreen` | D19–D30 | kész |
+| 4d | `RaceLogScreen` (új) | D31–D44 | ez a szelet |
 | 1j | `SafetyMapScreen` | — | később |
 | 1k | `FullScreenTrackMapScreen` | — | később |
 
@@ -1057,3 +1058,272 @@ Az `1j` és az `1k` sora **változatlan** — azok tényleg hátravannak.
 
 A javítás **inline**, nem addendum: döntés nem változott, csak a tábla
 állítása avult el a megvalósítás mellett.
+
+---
+
+## 4d — RaceLogScreen (a befejezett versenyek naplója)
+
+A befejezett versenyek eddig egy bottom sheetben laktak (ADR 0033 D6). Ez a
+szakasz önálló képernyővé emeli őket, `Versenynapló` néven, év-szűrővel és
+hónap-csoportosítással.
+
+Az irányt két dolog kényszerítette ki. Egyrészt a modal magassága: egy
+szezonnyi verseny már ma is görgetést kíván, két szezonnál a lap a képernyő
+nagy részét elfoglalná, és a sheet-forma pont a hosszú listákra rossz.
+Másrészt a napló nem "kiegészítő nézet" többé, hanem a szezon
+összefoglalója: összesített távval, vízen töltött idővel és
+sebesség-rekorddal a fejlécben.
+
+Amit az ADR 0033-ból megtart: a **tap-szemantikát** (D7 — a befejezett
+verseny detailje read-only eredmény-nézet, nincs külön tap-ág) és a
+**reaktivitást** (D8 — nincs új lekérdezés, ugyanaz a projekció).
+Amit megfordít: a **D6**-ot. A megfordítás az ADR 0033 Addendum 1-ében áll.
+
+### A kimért geometria (4d)
+
+```
+  AppBar         64 dp    <   Versenynapló            8 VERSENY
+  Év-sáv         44 dp    2026 v
+  Stat-csík      64 dp    ÖSSZ. TÁV | VÍZEN TÖLTÖTT | REKORD
+  Hónap-fejléc   32 dp    AUGUSZTUS --------------------- 2
+  Napló-sor      56 dp    [02]  Mihálkovics 2026 2.nap        >
+
+  A sor vízszintes rácsa:
+
+  0     16           44    60                            392  412
+  |-----|---slot-----|-res-|------- verseny neve --------|-->--|
+        \___ 28 dp __/
+        a slot közepe 30 dp-nél = a 0 és a 60 felezőpontja
+```
+
+Az AppBar 64 dp-je és az év-sáv 44 dp-je nem a design-lapból jön, hanem a
+**3a-ból**: ugyanaz a mély-képernyő fejléc (D20) és ugyanaz a
+státusz-csík-magasság (D21). A napló ugyanolyan mélységű képernyő, mint a
+detail, tehát a két fejléc-sávnak egymásra kell fednie, amikor a
+felhasználó oda-vissza lép közöttük.
+
+A sor 56 dp-je származtatott: az egysoros név `listItemTitleStyle`
+fokozata (18 / height 1.1) 20 dp-t foglal, a 2a lajstrom-sorból örökölt
+függőleges köz 18 dp fent és lent — 18 + 20 + 18 = 56.
+
+### D31 — Önálló képernyő, nem modal
+
+`RaceLogScreen`, `MaterialPageRoute`-tal pusholva, ugyanúgy, ahogy az app
+minden más képernyője (`race_list_screen.dart:36`). A belépési pont nem
+változik: az alsó akció-sáv bal fele (ADR 0044 D14), amely továbbra is
+**letiltva** marad, ha nincs befejezett verseny.
+
+A modal ellen két dolog szól. A `showModalBottomSheet` alapértelmezetten a
+képernyő felénél megáll, tehát egy szezonnal már görgetni kell benne, két
+szezonnal pedig a lap gyakorlatilag teljes képernyővé nyúlna — akkor
+viszont már nincs indoka, hogy modal legyen. A másik: a fejléc-összesítés
+és az év-szűrő két állandó sávot kíván, ami egy sheeten belül
+kontextus-vesztés nélkül nem fér el.
+
+### D32 — A csoportosítás kulcsa a `finishedAt`, helyi időzónában
+
+A `Race`-nek nincs "verseny napja" mezője, csak `startedAt` és `finishedAt`
+(`race.dart:78-79`). A naplóban minden verseny `finished`, tehát a
+`finishedAt` mindig kitöltött — és tartalmilag is ez a helyes: a napló
+azt rögzíti, mikor **zárult le** a verseny.
+
+A konverzió **`toLocal()`**, minden szinten: évre, hónapra és nap-számra
+egyaránt. A DB UTC-ben tárol, tehát egy helyi idő szerint augusztus 1-jén
+00:30-kor befejezett verseny UTC-ben július 31. 22:30 — konverzió nélkül
+rossz hónapba, év fordulóján rossz **évbe** kerülne. Ez nem kozmetika, ezért
+saját domain-teszt őrzi (v.ö. Addendum 3, ugyanez a hibaosztály).
+
+### D33 — Rendezés: a legújabb elöl
+
+Hónapok csökkenő sorrendben, a hónapon belül a versenyek `finishedAt`
+szerint csökkenően. Az év első versenye így legalul áll. Azonos napon
+befejezett két versenyt az időpont választ szét; ha az is egyezik, a
+sorrend a forrás-lista sorrendje (stabil rendezés).
+
+### D34 — Az évek készlete és az alapértelmezett év
+
+A választható évek készlete **a befejezett versenyekből** származik: csak
+olyan év jelenik meg, amelyben van rögzített verseny. Nincs üres év, és
+nincs év-tartomány-generálás.
+
+Az alapértelmezés az **aktuális év**. Ha abban még nincs befejezett verseny
+(például januárban), akkor a legutolsó olyan év, amelyben van. Ha egyáltalán
+nincs befejezett verseny, a képernyő el sem érhető (a gomb letiltva).
+
+### D35 — Az év-sáv egy évnél is látszik
+
+A sáv akkor sem tűnik el, ha egyetlen év van. Három oka van: a geometria
+nem ugrál az első év-fordulókor; a sáv kimondja, melyik évet nézi a
+felhasználó; és jövőre magától kap tartalmat, kód-változás nélkül. Egyelemű
+menünél a lap egy sort mutat, amely már ki van választva.
+
+### D36 — Az év-választó alulról felcsúszó lap
+
+A sávra koppintva `showModalBottomSheet` nyílik: fogantyú-csík, mono verzál
+"ÉV" fejléc, hairline sorok, a kiválasztott év bal éli teal sávval és teal
+szöveggel, a sor jobb szélén az adott év verseny-száma.
+
+Az elvetett alternatíva az **inline lenyíló panel** volt (a menü helyben
+nyílik, és lejjebb tolja a listát). Kevesebb réteget hoz, de három-négy
+évnél már a fél képernyőt elfoglalja, és a találati pontok a képernyő
+tetején maradnak. A lap a hüvelykujj-zónában nyit, akárhány évre skálázódik,
+és ez a formanyelv már él az appban (`race_form.dart:80`, `SavedMarkPicker`).
+
+Hogy ez a szakasz egy modalt szüntet meg és közben egy másikat vezet be,
+tudatos: a napló tartalma korlátlanul nő, az év-listáé nem.
+
+### D37 — A sor geometriája: 28 dp-s nap-slot, a közepe 30 dp-nél
+
+A sor bal padding-je 16 dp, utána **fix 28 dp széles slot** a nap-számmal
+középre igazítva, majd 16 dp rés, majd a verseny neve. A slot közepe így a
+képernyő élétől 16 + 14 = **30 dp**, a név első betűje pedig
+16 + 28 + 16 = **60 dp** — a kettő felezőpontja ugyancsak 30 dp, tehát a
+szám mértanilag is középen ül az él és a név között.
+
+A slot azért fix szélességű és nem a glifák szélessége, hogy a nevek egy
+oszlopban álljanak. A nap-szám **nullával feltöltött kétjegyű** (`02`),
+ugyanaz a konvenció, mint a `DetailMarkRow` ordináljáé (D24).
+
+A sor jobb szélén `Icons.chevron_right`, `tones.low` tónusban: a napló-sor
+egyetlen tartalma a név, tehát a jobb szél amúgy is üresen maradna, és a
+chevron mondja ki, hogy a sor tovább vezet. A 2a lajstrom-soron azért
+nincs, mert ott azt a helyet a "N BÓJA" felirat foglalja.
+
+### D38 — Két darabszám: az évé a fejlécben, a hónapé a hónap-fejlécen
+
+Az AppBar jobb szélén a **kiválasztott év** verseny-száma áll, a
+hónap-fejléc jobb szélén az adott **hónap** verseny-száma. Mindkettő
+`numeralCaptionStyle`, `tones.low` tónusban — ugyanaz a fokozat és
+tónus, mint a 2a lajstrom-sor bójaszámáé.
+
+A stat-csík minden értéke ugyancsak a kiválasztott évre vonatkozik. A
+képernyőn **nincs év-független szám**: ha valamit lát a felhasználó, az a
+sáv által mutatott évhez tartozik.
+
+### D39 — Tipográfia: meglévő fokozatok, új konstans nincs
+
+| Elem | Fokozat |
+|---|---|
+| Képernyő címe | `screenTitleStyle` (19) |
+| Év-számláló, hónap-számláló | `numeralCaptionStyle` (10.5) |
+| Év az év-sávban | `numeralMicroStyle` (14) |
+| Év a választó lapon | `numeralSmallStyle` (20) |
+| Stat-csík feliratai, hónap-felirat | `sectionLabelStyle` (11) |
+| Stat-csík értékei | `numeralSmallStyle` (20) |
+| Nap-szám | `numeralMicroStyle` (14) |
+| Verseny neve | `listItemTitleStyle` (18) |
+
+A név azért `listItemTitleStyle` és nem saját fokozat (szemben a D24
+`markNameStyle`-jával): ott egy **bója** neve állt volna egy verseny-lista
+fokozatában, ami félrevezetett volna; itt viszont ténylegesen egy verseny
+neve áll egy lista-soron, tehát pont az a fokozat helyes, amit a neve ígér.
+Ez egyben a képernyők közti vizuális egységet is adja: a lajstrom-sor és a
+napló-sor címe egymásra fed.
+
+A választó lapon azért 20-as az évszám és nem 14-es, mert ott a sor egyetlen
+tartalma, 52 dp-s találati területen; a sávban a 14 a helyes, mert ott a
+fejléc alá van rendelve.
+
+### D40 — A csoportosítás domain use case, nem widget-logika
+
+A `List<Race>` → évek/hónapok átalakítás **tiszta függvény**, tehát a
+`domain`-be megy: `BuildRaceLog` use case, `RaceLogYear` és `RaceLogMonth`
+value objectekkel. Flutter nélkül tesztelhető, és a határeset-tesztek
+(időzóna-forduló, azonos napon két verseny, egyetlen év, üres bemenet)
+widget-teszt nélkül futnak.
+
+A widget-réteg így csak megjelenít: kap egy kész, rendezett szerkezetet.
+
+### D41 — Nincs új lekérdezés (az ADR 0033 D8 megerősítése)
+
+A napló az `raceListProvider` (`watchRaces()`) **ugyanazon** reaktív
+projekciójából szűr kliens-oldalon, ahogy a lajstrom. Nincs új
+`RaceRepository`-metódus, és a fázis 1-ben nincs séma-változás és nincs
+`schemaVersion`-bump.
+
+### D42 — A stat-csík fázis 1-ben cache nélkül, aszinkron
+
+A csík három értéke közül a **VÍZEN TÖLTÖTT** olcsó: a `finishedAt` és a
+`startedAt` különbségeinek összege, kizárólag a `races` táblából. Az
+**ÖSSZ. TÁV** és a **REKORD** viszont a track-mintákból származik
+(`SummarizeTrack`, `post_race_analysis_provider.dart:34`), ami versenyenként
+végigmegy a rögzített pillanatképeken.
+
+A fázis 1 ezért **nem tárol**: a csík saját `AsyncValue`-provider mögött ül,
+a képernyő azonnal nyílik, a listával és a hónapokkal együtt, a három szám
+pedig placeholderről úszik be, amint kész. Ez egyben **mérés** is: az
+on-device kör mondja meg, hogy egy évnyi verseny összesítése 300 ms vagy hat
+másodperc.
+
+A tárolásról csak ezután döntünk, valós számmal. Ha kell, a **külön
+`race_track_stats` tábla** a jelölt, nem a `races` tábla új oszlopai: a
+`RaceRepositoryImpl.save()` a `races` sort felülírja egy memóriabeli
+példányból, tehát egy elavult példány mentése kinullázná a számokat —
+pontosan az a hibaosztály, amit az ADR 0045 4. szakasza a negyedik
+szakadási pontként ír le. Egy külön tábla ezt szerkezetileg kizárja.
+
+### D43 — A hónapnevek ARB DateTime-placeholderből
+
+A hónap-felirat nem saját hónapnév-tömb és nem közvetlen `intl`-függés. Az
+ARB-kulcs `DateTime` placeholdert kap `MMMM` formattal; a generált
+`app_localizations_hu.dart` már ma is így dolgozik (357. sor,
+`intl.DateFormat.yMMMd`), tranzitíven a `flutter_localizations`-ön
+keresztül. A verzálosítás a widget dolga, nem az ARB-é.
+
+Következmény: a `pubspec.yaml` nem változik, és egy jövőbeli angol
+fordításnál a hónapnevek maguktól jönnek.
+
+### D44 — A `listFinishedRacesTitle` kulcs `logTitle`-re változik
+
+A mai kulcsot két helyen használjuk: a modal címén és az alsó akció-sáv
+gombján (`finished_races_sheet.dart:45`, `list_action_bar.dart:47`). A modal
+megszűnik, a felirat pedig "Befejezett versenyek"-ről **"Versenynapló"**-ra
+változik mindkét helyen.
+
+A kulcs neve követi a jelentést: új `logTitle`, a régi törölve, és a három
+teszt-hivatkozás (`race_list_screen_test.dart` 135/152,
+`list_action_bar_test.dart` 41/54/83) ugyanabban a szeletben átvezetve. Az
+átnevezés és a törlés egy commitban megy, hogy ne maradjon árva kulcs.
+
+### Következmények (4d)
+
+Új könyvtár: `apps/phone/lib/features/race_log/` a képernyővel és öt
+widgettel (sor, hónap-fejléc, év-sáv, év-választó lap, stat-csík). Új
+domain-elemek: két value object és egy use case. Új providerek: a napló
+projekciója, a kiválasztott év, és a stat-csík aszinkron összesítése.
+
+A `FinishedRacesSheet` **törlődik**, a `race_list_screen.dart` `_openFinished`
+metódusa push-ra vált, és a `list_action_bar.dart` felirata az új kulcsra.
+A törlés az utolsó kód-szelet, hogy a branch minden szeleten zöld maradjon:
+addig a mai modal működik.
+
+Új tipográfia-konstans nincs, új szín-token nincs, séma-változás nincs. Az
+ARB három-négy új kulccsal bővül.
+
+### Megvalósítás (4d szeletek)
+
+| Szelet | Tartalom |
+|---|---|
+| S1 | ez a szakasz (ADR 0044, D31–D44) |
+| S2 | ADR 0033 Addendum 1 — a D6 megfordítása |
+| S3 | `ARCHITECTURE.md` 8.11 sync |
+| S4 | `domain`: value objectek + `BuildRaceLog` + tesztek |
+| S5 | `phone`: napló-provider + kiválasztott-év provider |
+| S6 | napló-sor + hónap-fejléc + tesztek |
+| S7 | év-sáv + év-választó lap + tesztek |
+| S8 | `RaceLogScreen` + ARB + `gen-l10n` |
+| S9 | stat-csík + aszinkron összesítő provider |
+| S10 | a régi sheet törlése, a lajstrom átkötése, kulcs-átnevezés |
+
+Az S9 után **on-device mérés**, és annak a számából dől el a fázis 2
+(track-stat tárolás vagy semmi).
+
+### Halasztott tételek (4d)
+
+- **A track-statisztika perzisztálása** — fázis 2, mérés után (D42).
+- **Keresés és törlés a naplóban** — az ADR 0033 "Halasztva" listájával
+  átfed; ha egyszer sorra kerül, egy döntésben kell rendezni őket.
+- **Évek közti lapozás gesztussal** — a sáv mellett vízszintes swipe. A
+  fázis 1-ben nem kell, és a lista függőleges görgetésével ütközhet.
+- **Üres állapot a naplóban** — ma elérhetetlen (a gomb letiltva), tehát
+  nem tervezzük meg. Ha a belépési pont valaha változik, ez elővehető.
