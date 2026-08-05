@@ -91,9 +91,11 @@ void main() {
       expect(races.map((race) => race.id), ['late', 'middle', 'early']);
     });
 
-    test('breaks ties on the race id so the order is deterministic', () {
-      // ARRANGE — a List.sort nem stabil, ezért két azonos időbélyegű
-      // verseny sorrendjét az id dönti el, futásról futásra ugyanúgy.
+    test('keeps the source order when finish times are equal', () {
+      // ARRANGE — a List.sort nem stabil, ezért az azonos időbélyegű
+      // versenyek forrás-sorrendjét (D33) csak explicit tiebreak őrzi
+      // meg. A bemenet szándékosan nem ábécérendes: ha a rendezés az
+      // id-re csúszna vissza, a várakozás megbukna.
       final sameInstant = DateTime(2026, 6, 6, 12);
 
       // ACT
@@ -105,7 +107,7 @@ void main() {
 
       // ASSERT
       final races = log.single.months.single.races;
-      expect(races.map((race) => race.id), ['a', 'b', 'c']);
+      expect(races.map((race) => race.id), ['c', 'a', 'b']);
     });
 
     test('keeps two races finished on the same day in the same month', () {

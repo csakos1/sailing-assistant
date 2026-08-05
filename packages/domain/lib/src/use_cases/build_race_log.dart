@@ -5,12 +5,19 @@ import 'package:domain/src/value_objects/race_log_year.dart';
 import 'package:meta/meta.dart';
 
 /// Egy befejezett verseny a csoportosítás közben: a helyi idejű
-/// befejezés és maga a verseny.
+/// befejezés, a bemeneti lista-index és maga a verseny.
 ///
-/// A rekord azért kell, hogy a rendezés ne kényszerítsen `!` unwrapot a
-/// nullozható `Race.finishedAt`-en: a null-szűrés egyszer, a bejáráskor
-/// történik, utána a nem-null időbélyeg végig kéznél van.
-typedef _FinishedRace = ({DateTime finishedAtLocal, Race race});
+/// A rekord két dolgot old meg. A nem-null időbélyeg megspórolja a `!`
+/// unwrapot a nullozható `Race.finishedAt`-en: a null-szűrés egyszer, a
+/// bejáráskor történik. Az `inputIndex` pedig a stabil rendezést adja —
+/// a `List.sort` Dartban **nem** stabil, tehát az azonos időbélyegű
+/// versenyek forrás-sorrendjét (D33) csak explicit tiebreakkel lehet
+/// megőrizni.
+typedef _FinishedRace = ({
+  DateTime finishedAtLocal,
+  int inputIndex,
+  Race race,
+});
 
 /// A Versenynapló szerkezetének felépítése a nyers verseny-listából
 /// (ADR 0044 D40).
@@ -26,10 +33,11 @@ typedef _FinishedRace = ({DateTime finishedAtLocal, Race race});
 ///    hónapja szerint (D32). A `toLocal()` nem kozmetika: egy 23:30 UTC-s
 ///    befejezés a felhasználó naptárában már a következő napra esik, és a
 ///    napló a felhasználó naptárát mutatja.
-/// 3. **Rendez**: az évek és a hónapok csökkenően, a hónapon belül a
-///    versenyek befejezés szerint csökkenően. Azonos időbélyegnél az `id`
-///    növekvő sorrendje dönt, mert a `List.sort` nem stabil — enélkül két
-///    egyszerre lezárt verseny sorrendje futásonként változhatna.
+/// 3. **Rendez** (D33): az évek és a hónapok csökkenően, a hónapon belül
+///    a versenyek befejezés szerint csökkenően. Azonos időbélyegnél a
+///    bemeneti lista sorrendje marad érvényben — ez a stabil rendezés,
+///    amit a nem stabil `List.sort` fölött az `inputIndex` tiebreak
+///    biztosít.
 ///
 /// **Pure use case**: nincs állapot, idempotens, Flutter-mentes. A
 /// visszaadott listák módosíthatatlanok.
@@ -45,7 +53,7 @@ class BuildRaceLog {
   List<RaceLogYear> call(List<Race> races) {
     final byYear = <int, Map<int, List<_FinishedRace>>>{};
 
-    for (final race in races) {
+    for (final (index, race) in races.indexed) {
       if (race.status != RaceStatus.finished) continue;
       final finishedAt = race.finishedAt;
       if (finishedAt == null) continue;
@@ -57,6 +65,7 @@ class BuildRaceLog {
       );
       byMonth.putIfAbsent(local.month, () => <_FinishedRace>[]).add((
         finishedAtLocal: local,
+        inputIndex: index,
         race: race,
       ));
     }
@@ -86,14 +95,14 @@ class BuildRaceLog {
         .toList();
   }
 
-  /// A hónap versenyei befejezés szerint csökkenően; azonos időpontnál az
-  /// `id` szerint növekvően, hogy a sorrend determinisztikus legyen.
+  /// A hónap versenyei befejezés szerint csökkenően; azonos időpontnál a
+  /// bemeneti sorrend marad (D33 — stabil rendezés).
   List<Race> _sortedRaces(List<_FinishedRace> entries) {
     final sorted = entries.toList()
       ..sort((a, b) {
         final byFinishedAt = b.finishedAtLocal.compareTo(a.finishedAtLocal);
         if (byFinishedAt != 0) return byFinishedAt;
-        return a.race.id.compareTo(b.race.id);
+        return a.inputIndex.compareTo(b.inputIndex);
       });
 
     return sorted.map((entry) => entry.race).toList();
