@@ -9,6 +9,8 @@ import 'package:phone/providers/rounding_sample_reader_provider.dart';
 /// — a `TrackStats` konvencióját követi, és az UI gondolatjelet rajzol.
 typedef RaceLogTrackTotals = ({double? distanceMeters, double? maxSpeedMps});
 
+const RaceLogTrackTotals _noTotals = (distanceMeters: null, maxSpeedMps: null);
+
 /// A kiválasztott évben vízen töltött idő (ADR 0044 D42).
 ///
 /// **Szinkron és olcsó**: kizárólag a `races` tábla két időbélyegéből
@@ -40,22 +42,42 @@ final AutoDisposeProvider<Duration> raceLogTimeOnWaterProvider =
 ///
 /// **Drága és aszinkron**: versenyenként végigolvassa a rögzített
 /// pillanatképeket, és a kanonikus `SummarizeTrack` use case-szel
-/// összegez. A fázis 1 tudatosan **nem tárol** — a képernyő azonnal
-/// nyílik, ez a provider pedig a saját `AsyncValue`-ja mögött dolgozik.
+/// összegez.
 ///
-/// Ez egyben **mérés** is: az on-device kör mondja meg, hogy egy évnyi
-/// verseny összesítése 300 ms vagy hat másodperc, és csak ezután döntünk
-/// a tárolásról (`race_track_stats` tábla).
+/// ## Megszakíthatóság
 ///
-/// Az össztáv a versenyenkénti nyers úthosszak összege, a rekord pedig a
-/// versenyenkénti maximumok maximuma — utóbbi azért helyes így, mert a
-/// maximum asszociatív, szemben az átlaggal.
+/// A képernyő elhagyásakor a provider eldobódik, **a már futó ciklust
+/// viszont a Riverpod nem szakítja félbe**: egy `Future`-t nem lehet
+/// kívülről lelőni. Megszakítás nélkül minden be-ki lépés újabb teljes
+/// aggregálást indít ugyanazon az izolátumon és ugyanabból a több
+/// gigabájtos adatbázisból — a párhuzamos körök együtt már ANR-t és
+/// folyamat-kilövést okoztak az eszközön.
+///
+/// Ezért a `ref.onDispose` egy zászlót billent, amit a ciklus minden
+/// verseny körül ellenőriz. A vizsgálat helye nem véletlen: a `reader`
+/// `await`-je az egyetlen pont, ahol a vezérlés visszakerül az
+/// eseményhurokhoz, tehát a vissza gomb ott kerül feldolgozásra — az
+/// utána álló ellenőrzés így legrosszabb esetben egyetlen verseny
+/// összegzése után kilép.
+///
+/// Időzítővel nem szabdaljuk tovább a ciklust: az függő timert hagyna a
+/// widget-tesztekben, és a valós késleltetést nem az ütemezés, hanem a
+/// minták mennyisége adja.
+///
+/// ## Ami ettől még nem oldódik meg
+///
+/// Az **első** betöltés továbbra is másodpercekig tart, mert a mintákat
+/// a főizolátum olvassa és összegzi. Ezt csak a tárolás oldja meg
+/// (fázis 2, `race_track_stats`), ami külön döntés és külön addendum.
 final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
     FutureProvider.autoDispose<RaceLogTrackTotals>((
       ref,
     ) async {
       final year = ref.watch(raceLogSelectedYearProvider);
-      if (year == null) return (distanceMeters: null, maxSpeedMps: null);
+      if (year == null) return _noTotals;
+
+      var isCancelled = false;
+      ref.onDispose(() => isCancelled = true);
 
       final reader = ref.watch(roundingSampleReaderProvider);
       const summarize = SummarizeTrack();
@@ -64,7 +86,14 @@ final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
 
       for (final month in year.months) {
         for (final race in month.races) {
-          final stats = summarize(await reader(race.id));
+          if (isCancelled) return _noTotals;
+
+          final samples = await reader(race.id);
+          // A fenti await az egyetlen eseményhurok-határ a cikluson belül:
+          // a felhasználó vissza-koppintása itt jut érvényre.
+          if (isCancelled) return _noTotals;
+
+          final stats = summarize(samples);
 
           final raceDistance = stats.distanceMeters;
           if (raceDistance != null) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -202,6 +204,44 @@ void main() {
       expect(fixture.requested, isEmpty);
       expect(totals.distanceMeters, isNull);
       expect(totals.maxSpeedMps, isNull);
+    });
+
+    test('stops reading once the provider is disposed', () async {
+      // ARRANGE - az elso verseny olvasasa egy kapun var, igy a ciklus
+      // biztosan fut, amikor a kepernyot elhagyjuk.
+      final gate = Completer<List<RoundingSample>>();
+      final requested = <String>[];
+      final container = ProviderContainer(
+        overrides: [
+          raceLogProvider.overrideWith(
+            (ref) => AsyncValue.data([
+              logYear(
+                year: 2026,
+                races: [
+                  finishedRace(id: 'first', year: 2026, hours: 2),
+                  finishedRace(id: 'second', year: 2026, hours: 2),
+                ],
+              ),
+            ]),
+          ),
+          roundingSampleReaderProvider.overrideWith((ref) {
+            return (raceId) {
+              requested.add(raceId);
+              if (raceId == 'first') return gate.future;
+              return Future.value(const <RoundingSample>[]);
+            };
+          }),
+        ],
+      )..read(raceLogTrackTotalsProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // ACT - a kepernyo elhagyasa, majd az elso olvasas befejezese.
+      container.dispose();
+      gate.complete(const <RoundingSample>[]);
+      await Future<void>.delayed(Duration.zero);
+
+      // ASSERT - a masodik versenyt mar nem olvasta be.
+      expect(requested, ['first']);
     });
   });
 }
