@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/app/text_tones.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
 import 'package:phone/features/race_setup/widgets/mark_row_card.dart';
@@ -30,6 +31,13 @@ import 'package:shared/shared.dart';
 /// „Mentés" hat bójánál is elérhető marad görgetés nélkül. A sáv a formon
 /// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
 /// A sor-megjelenítés a [MarkRowCard]-ban van, itt csak az állapot marad.
+///
+/// **Bója nélküli verseny (ADR 0046 D4).** A „BÓJÁK" fejléc-sor jobb
+/// szélén álló kapcsoló kiveszi a bója-blokkot a fából, és a submit
+/// üres listát ad ki. A koordináta-validáció ilyenkor magától kimarad,
+/// mert a `Form.validate()` csak a fában lévő mezőket futtatja — nincs
+/// feltételes validációs ág. A sor-állapot NEM törlődik, hogy a
+/// vissza-kapcsolás a beírt adatokat visszaadja.
 class RaceForm extends StatefulWidget {
   /// [initialRace] null = create (üres űrlap); nem-null = edit.
   const RaceForm({required this.onSubmit, this.initialRace, super.key});
@@ -49,6 +57,10 @@ class _RaceFormState extends State<RaceForm> {
   late final TextEditingController _nameController;
   late final List<_MarkRowControllers> _markRows;
 
+  /// Bója nélküli mód (ADR 0046 D4). Csak a megjelenítést és a submit
+  /// kimenetét kapcsolja — a `_markRows` érintetlen marad alatta.
+  late bool _isMarkless;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +73,9 @@ class _RaceFormState extends State<RaceForm> {
         : [
             for (final mark in race.marks) _MarkRowControllers.fromMark(mark),
           ];
+    // Edit-módban a tényleges állapot dönt; create-nél mindig kikapcsolva
+    // indulunk, hogy a megszokott űrlap változatlan legyen.
+    _isMarkless = race != null && race.marks.isEmpty;
   }
 
   @override
@@ -113,6 +128,13 @@ class _RaceFormState extends State<RaceForm> {
   void _submit() {
     // A Form a fában van, így a currentState garantáltan nem null.
     if (!_formKey.currentState!.validate()) return;
+
+    // Bója nélkül a sorok kikerültek a fából, tehát a validátoraik sem
+    // futottak; a bennük maradt szöveget szándékosan eldobjuk (ADR 0046 D4).
+    if (_isMarkless) {
+      widget.onSubmit(_nameController.text.trim(), const []);
+      return;
+    }
 
     final marks = <Mark>[
       for (var i = 0; i < _markRows.length; i++)
@@ -243,6 +265,8 @@ class _RaceFormState extends State<RaceForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
 
     return Form(
       key: _formKey,
@@ -263,50 +287,78 @@ class _RaceFormState extends State<RaceForm> {
                       : null,
                 ),
                 const SizedBox(height: 14),
-                SectionLabel(text: l10n.setupMarksSection),
-                const SizedBox(height: 6),
-                // A bója-sorok átrendezhetők; a ReorderableListView a külső
-                // ListView-on belül zsugorodik és nem görget külön. A
-                // sor-kulcs a Paddingen ül, mert a reorder a KÖZVETLEN
-                // gyerekeket mozgatja.
-                ReorderableListView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  buildDefaultDragHandles: false,
-                  onReorder: _reorderMarkRow,
+                Row(
                   children: [
-                    for (var i = 0; i < _markRows.length; i++)
-                      Padding(
-                        key: ObjectKey(_markRows[i]),
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _markRowCard(l10n, i),
-                      ),
+                    Expanded(
+                      child: SectionLabel(text: l10n.setupMarksSection),
+                    ),
+                    // Halk, tonális kapcsoló a fejléc-sor jobb szélén: nem
+                    // kér plusz függőleges helyet (ADR 0046 D4).
+                    FilterChip(
+                      label: Text(l10n.setupNoMarksToggle),
+                      selected: _isMarkless,
+                      onSelected: (value) =>
+                          setState(() => _isMarkless = value),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () => unawaited(_pickFromLibrary()),
-                    icon: const Icon(Icons.history, size: 17),
-                    label: Text(l10n.setupPickFromLibrary),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 48),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                if (_isMarkless)
+                  // Üres szakasz felirat nélkül hibásnak látszik, a
+                  // következmény pedig egyébként a vízen derülne ki.
+                  Text(
+                    l10n.setupNoMarksHint,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: tones.low),
+                  )
+                else ...[
+                  // A bója-sorok átrendezhetők; a ReorderableListView a
+                  // külső ListView-on belül zsugorodik és nem görget külön.
+                  // A sor-kulcs a Paddingen ül, mert a reorder a KÖZVETLEN
+                  // gyerekeket mozgatja.
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    onReorder: _reorderMarkRow,
+                    children: [
+                      for (var i = 0; i < _markRows.length; i++)
+                        Padding(
+                          key: ObjectKey(_markRows[i]),
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _markRowCard(l10n, i),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => unawaited(_pickFromLibrary()),
+                      icon: const Icon(Icons.history, size: 17),
+                      label: Text(l10n.setupPickFromLibrary),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(14)),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
+          // Bója nélküli módban nincs mit hozzáadni: a sáv egyetlen,
+          // teljes szélességű Mentés gombra esik (ADR 0046 D4).
           FormActionBar(
-            secondaryLabel: l10n.setupAddMark,
-            secondaryIcon: Icons.add,
-            onSecondary: _addMarkRow,
             primaryLabel: l10n.setupSave,
             onPrimary: _submit,
+            secondaryLabel: _isMarkless ? null : l10n.setupAddMark,
+            secondaryIcon: _isMarkless ? null : Icons.add,
+            onSecondary: _isMarkless ? null : _addMarkRow,
           ),
         ],
       ),

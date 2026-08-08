@@ -235,4 +235,78 @@ void main() {
     // ASSERT — az érvénytelen formátum megállította a mentést.
     expect(submitted, isFalse);
   });
+
+  testWidgets('a kapcsoló kiveszi a bója-blokkot a fából', (tester) async {
+    // ARRANGE — create: név + 1 bója-sor = 4 mező.
+    await pumpForm(tester, onSubmit: (_, _) {});
+    expect(find.byType(TextFormField), findsNWidgets(4));
+
+    // ACT
+    await tester.tap(find.byType(FilterChip));
+    await tester.pumpAndSettle();
+
+    // ASSERT — csak a verseny-név marad; a sorok, a hozzáadás és a
+    // könyvtár-választó is eltűnt.
+    expect(find.byType(TextFormField), findsNWidgets(1));
+    expect(find.byType(ReorderableListView), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byIcon(Icons.history), findsNothing);
+  });
+
+  testWidgets('bekapcsolva üres listát ad ki, validáció nélkül', (
+    tester,
+  ) async {
+    // ARRANGE — a bója-sor mezői kitöltetlenek maradnak.
+    String? emittedName;
+    List<Mark>? emitted;
+    await pumpForm(
+      tester,
+      onSubmit: (name, marks) {
+        emittedName = name;
+        emitted = marks;
+      },
+    );
+    await tester.enterText(find.byType(TextFormField).at(0), 'Túra');
+
+    // ACT
+    await tester.tap(find.byType(FilterChip));
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton(tester));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a kitöltetlen bója-sor nem blokkolta a mentést.
+    expect(emittedName, 'Túra');
+    expect(emitted, isEmpty);
+  });
+
+  testWidgets('vissza-kapcsolva a beírt sorok megmaradnak', (tester) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'V',
+      marks: const [markA, markB],
+    );
+    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+
+    // ACT — ki, majd vissza.
+    await tester.tap(find.byType(FilterChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FilterChip));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a két sor és a bennük lévő adat is visszatért.
+    expect(find.byType(TextFormField), findsNWidgets(7));
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
+  });
+
+  testWidgets('edit-mód üres bójákkal bekapcsolva indul', (tester) async {
+    // ARRANGE & ACT — az ADR 0046 D1 óta ez érvényes Race.
+    final race = Race.create(id: 'r1', name: 'Túra', marks: const []);
+    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+
+    // ASSERT — csak a verseny-név mezője látszik.
+    expect(find.byType(TextFormField), findsNWidgets(1));
+    expect(find.byIcon(Icons.add), findsNothing);
+  });
 }

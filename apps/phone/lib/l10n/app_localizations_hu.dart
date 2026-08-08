@@ -134,6 +134,13 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupMarksSection => 'BÓJÁK';
 
   @override
+  String get setupNoMarksToggle => 'Bóják nélkül';
+
+  @override
+  String get setupNoMarksHint =>
+      'A track és a target speed rögzül; bearing, ETA és predikció nem lesz.';
+
+  @override
   String setupMarkHeader(int number) {
     return '$number. bója';
   }

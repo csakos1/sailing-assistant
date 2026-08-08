@@ -328,6 +328,18 @@ abstract class AppLocalizations {
   /// **'BÓJÁK'**
   String get setupMarksSection;
 
+  /// Kapcsoló: a verseny bóják nélkül indul (ADR 0046).
+  ///
+  /// In hu, this message translates to:
+  /// **'Bóják nélkül'**
+  String get setupNoMarksToggle;
+
+  /// Magyarázat a bója nélküli mód alatt.
+  ///
+  /// In hu, this message translates to:
+  /// **'A track és a target speed rögzül; bearing, ETA és predikció nem lesz.'**
+  String get setupNoMarksHint;
+
   /// Egy bója-sor fejléce a sorszámmal.
   ///
   /// In hu, this message translates to:
