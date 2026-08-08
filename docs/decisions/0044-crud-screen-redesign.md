@@ -1409,7 +1409,7 @@ nem is előlegezi meg azt.
 összesítőt; a mintasor még bővülhet.
 
 **6. A feltöltés szűk projekciót olvas.** A számításhoz nem építjük vissza a teljes pillanatkép-
-objektumot. A `domain` réteg keskeny `TrackPoint` absztrakciót kap a három szükséges mennyiséggel
+objektumot. A `domain` réteg keskeny `TrackSample` absztrakciót kap a három szükséges mennyiséggel
 (sebesség, szélességi fok, hosszúsági fok), a track-összesítő use case ezen keresztül dolgozik, a
 meglévő `RoundingSample` pedig megvalósítja az absztrakciót. Ez interfész-szeletelés (ISP): a use
 case ma tizenhárom mezős típustól függ, holott háromra van szüksége. A meglévő hívási helyek
@@ -1447,7 +1447,13 @@ pillanatképeket, ha az összesítők már kiszámolt formában rendelkezésre �
 - A Drift séma 4-ről 5-re lép; a `packages/data` kódgenerálását újra kell futtatni.
 - A napló összesítő providerei a gyorsítótárból olvasnak, és hiányzó soron feltöltést indítanak.
 - A `SummarizeTrack` bemenete keskenyedik; a meglévő hívási helyek változatlanul működnek.
-- A `RoundingSample` a `TrackPoint` megvalósítójává válik; primitív, Flutter-mentes read-modell
+- A `RoundingSample` a `TrackSample` megvalósítójává válik; primitív, Flutter-mentes read-modell
   jellege és a CLI-fogyasztója változatlan marad.
 - Az `ARCHITECTURE.md` 4d blokkja a stat-csíkot ma "nem tárol" állapotban írja le; ezt külön
   szinkron-commit vezeti át.
+
+### Utolagos pontositas — a nevvalasztas
+
+Az absztrakcio neve a megvalositaskor `TrackSample` lett. A `TrackPoint` nev
+az `apps/phone` track-rajzolo retegeben mar foglalt, es a `domain` barrel
+exportja miatt a ket nev utkozne. A dontes tartalma nem valtozott.
