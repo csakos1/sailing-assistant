@@ -136,4 +136,32 @@ void main() {
     // ASSERT
     expect(taps, 1);
   });
+
+  testWidgets('names the markless mode instead of a zero count', (
+    tester,
+  ) async {
+    // ARRANGE & ACT
+    await pumpRow(
+      tester,
+      Race.create(id: 'r2', name: 'Tura', marks: const []),
+    );
+    final l10n = l10nOf(tester);
+
+    // ASSERT - a nulla nem darabszam, hanem uzemmod.
+    expect(find.text(l10n.listNoMarksCaps), findsOneWidget);
+    expect(find.text(l10n.listMarkCountCaps(0)), findsNothing);
+  });
+
+  testWidgets('names no targeted mark without marks', (tester) async {
+    // ARRANGE & ACT - elinditva sincs mire tartani.
+    final markless = Race.create(
+      id: 'r2',
+      name: 'Tura',
+      marks: const [],
+    ).start(at: clock);
+    await pumpRow(tester, markless);
+
+    // ASSERT
+    expect(find.textContaining('· '), findsNothing);
+  });
 }

@@ -84,7 +84,11 @@ class RaceListRow extends StatelessWidget {
                           ),
                           const SizedBox(width: 14),
                           Text(
-                            l10n.listMarkCountCaps(race.marks.length),
+                            // A nulla itt nem darabszám, hanem üzemmód
+                            // (ADR 0046 D5).
+                            race.marks.isEmpty
+                                ? l10n.listNoMarksCaps
+                                : l10n.listMarkCountCaps(race.marks.length),
                             style: numeralCaptionStyle.copyWith(
                               color: tones.low,
                             ),
@@ -118,9 +122,9 @@ class _StatusLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tones = Theme.of(context).extension<TextTones>()!;
-    // Aktív versenynél az activeMarkIndex a domain-invariáns szerint
-    // tartományon belül van, tehát a getter nem ad null-t — a `?.` így csak
-    // a force-unwrapot kerüli.
+    // Bója nélküli versenyben (ADR 0046 D1) nincs aktív bója: a getter
+    // valódi null-t ad, tehát a `?.` itt nem kényelmi — ez az egyetlen
+    // helyes út. Bójás versenynél az invariáns tartja tartományon belül.
     final markName = isActive ? race.activeMarkOrNull?.name : null;
 
     return Row(

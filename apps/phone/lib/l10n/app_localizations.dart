@@ -556,6 +556,12 @@ abstract class AppLocalizations {
   /// **'{count} BÓJA'**
   String listMarkCountCaps(int count);
 
+  /// A bója nélküli verseny meta-felirata, verzál alakban.
+  ///
+  /// In hu, this message translates to:
+  /// **'BÓJA NÉLKÜL'**
+  String get listNoMarksCaps;
+
   /// Egy versenysor alcíme: a bóyák száma.
   ///
   /// In hu, this message translates to:

@@ -258,6 +258,9 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
+  String get listNoMarksCaps => 'BÓJA NÉLKÜL';
+
+  @override
   String listMarkCount(int count) {
     return '$count bója';
   }

@@ -13,7 +13,8 @@ import 'package:phone/widgets/status_badge.dart';
 /// tehát a keret elvinne egy pixelt a 44 dp-s tartalom-magasságból.
 ///
 /// A meta-mező állapotfüggő: nem indult és folyamatban versenynél a bóják
-/// száma, befejezettnél a befejezés dátuma. A verzált itt a hívó adja
+/// száma — bója nélküli versenynél a mód neve (ADR 0046 D5) —,
+/// befejezettnél a befejezés dátuma. A verzált itt a hívó adja
 /// (`toUpperCase()`), nem az ARB-érték — egy futásidőben formázott dátumot
 /// az ARB nem tud előre nagybetűsíteni (ADR 0044 D21, kivétel a D5/D16
 /// alól).
@@ -69,6 +70,11 @@ class DetailStatusStrip extends StatelessWidget {
     final finishedAt = race.finishedAt;
     if (race.status == RaceStatus.finished && finishedAt != null) {
       return l10n.detailFinishedDate(finishedAt).toUpperCase();
+    }
+    // A nulla itt nem darabszám, hanem üzemmód (ADR 0046 D5). A dátum-ág
+    // ezért is előbb áll: befejezett versenynél a dátum a beszédesebb.
+    if (race.marks.isEmpty) {
+      return l10n.listNoMarksCaps;
     }
     return l10n.listMarkCountCaps(race.marks.length);
   }

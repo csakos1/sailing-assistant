@@ -333,6 +333,10 @@
       }
     }
   },
+  "listNoMarksCaps": "BÓJA NÉLKÜL",
+  "@listNoMarksCaps": {
+    "description": "A bója nélküli verseny meta-felirata, verzál alakban."
+  },
   "listMarkCount": "{count} bója",
   "@listMarkCount": {
     "description": "Egy versenysor alcíme: a bóyák száma.",

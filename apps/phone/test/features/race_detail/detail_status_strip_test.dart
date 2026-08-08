@@ -123,4 +123,35 @@ void main() {
     );
     expect(meta.style?.color, tones.low);
   });
+
+  testWidgets('names the markless mode instead of a zero count', (
+    tester,
+  ) async {
+    // ARRANGE & ACT
+    await pumpStrip(
+      tester,
+      Race.create(id: 'r2', name: 'Tura', marks: const []),
+    );
+
+    // ASSERT - a nulla nem darabszam, hanem uzemmod.
+    final l10n = l10nOf(tester);
+    expect(metaText(tester), l10n.listNoMarksCaps);
+    expect(metaText(tester), isNot(l10n.listMarkCountCaps(0)));
+  });
+
+  testWidgets('keeps the finish date for a markless race', (tester) async {
+    // ARRANGE - a datum-ag elsobbseget elvez a boja-felirat felett.
+    final markless = Race.create(
+      id: 'r2',
+      name: 'Tura',
+      marks: const [],
+    ).start(at: started).finish(at: ended);
+
+    // ACT
+    await pumpStrip(tester, markless);
+
+    // ASSERT
+    expect(metaText(tester), contains('2026'));
+    expect(metaText(tester), isNot(l10nOf(tester).listNoMarksCaps));
+  });
 }
