@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/race_log_provider.dart';
 import 'package:phone/providers/race_log_stats_provider.dart';
-import 'package:phone/providers/rounding_sample_reader_provider.dart';
+import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -49,16 +49,16 @@ void main() {
   // aggregalas (csak a kivalasztott ev) ellenorizheto legyen.
   ({ProviderContainer container, List<String> requested}) containerFor({
     required List<RaceLogYear> years,
-    required Map<String, List<RoundingSample>> samples,
+    required Map<String, List<TrackSample>> samples,
   }) {
     final requested = <String>[];
     final container = ProviderContainer(
       overrides: [
         raceLogProvider.overrideWith((ref) => AsyncValue.data(years)),
-        roundingSampleReaderProvider.overrideWith((ref) {
+        trackSampleReaderProvider.overrideWith((ref) {
           return (raceId) async {
             requested.add(raceId);
-            return samples[raceId] ?? const <RoundingSample>[];
+            return samples[raceId] ?? const <TrackSample>[];
           };
         }),
       ],
@@ -209,7 +209,7 @@ void main() {
     test('stops reading once the provider is disposed', () async {
       // ARRANGE - az elso verseny olvasasa egy kapun var, igy a ciklus
       // biztosan fut, amikor a kepernyot elhagyjuk.
-      final gate = Completer<List<RoundingSample>>();
+      final gate = Completer<List<TrackSample>>();
       final requested = <String>[];
       final container = ProviderContainer(
         overrides: [
@@ -224,11 +224,11 @@ void main() {
               ),
             ]),
           ),
-          roundingSampleReaderProvider.overrideWith((ref) {
+          trackSampleReaderProvider.overrideWith((ref) {
             return (raceId) {
               requested.add(raceId);
               if (raceId == 'first') return gate.future;
-              return Future.value(const <RoundingSample>[]);
+              return Future.value(const <TrackSample>[]);
             };
           }),
         ],
@@ -237,7 +237,7 @@ void main() {
 
       // ACT - a kepernyo elhagyasa, majd az elso olvasas befejezese.
       container.dispose();
-      gate.complete(const <RoundingSample>[]);
+      gate.complete(const <TrackSample>[]);
       await Future<void>.delayed(Duration.zero);
 
       // ASSERT - a masodik versenyt mar nem olvasta be.

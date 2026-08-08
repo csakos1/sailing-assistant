@@ -10,7 +10,7 @@ import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
-import 'package:phone/providers/rounding_sample_reader_provider.dart';
+import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -35,8 +35,8 @@ void main() {
           raceRepositoryProvider.overrideWithValue(_FakeRaceRepository(races)),
           // A naplo stat-csikja a minta-olvasot hasznalja; enelkul a
           // navigacios teszt a valos adatbazist epitene fel.
-          roundingSampleReaderProvider.overrideWith((ref) {
-            return (raceId) async => const <RoundingSample>[];
+          trackSampleReaderProvider.overrideWith((ref) {
+            return (raceId) async => const <TrackSample>[];
           }),
         ],
         child: MaterialApp(

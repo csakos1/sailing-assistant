@@ -11,7 +11,7 @@ import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
-import 'package:phone/providers/rounding_sample_reader_provider.dart';
+import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -56,15 +56,14 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester, {
     required AsyncValue<List<RaceLogYear>> log,
-    Map<String, List<RoundingSample>> samples = const {},
+    Map<String, List<TrackSample>> samples = const {},
   }) {
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
           raceLogProvider.overrideWith((ref) => log),
-          roundingSampleReaderProvider.overrideWith((ref) {
-            return (raceId) async =>
-                samples[raceId] ?? const <RoundingSample>[];
+          trackSampleReaderProvider.overrideWith((ref) {
+            return (raceId) async => samples[raceId] ?? const <TrackSample>[];
           }),
         ],
         child: MaterialApp(

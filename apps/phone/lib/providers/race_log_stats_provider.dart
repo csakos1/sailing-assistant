@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/race_log_year_provider.dart';
-import 'package:phone/providers/rounding_sample_reader_provider.dart';
+import 'package:phone/providers/track_sample_reader_provider.dart';
 
 /// A track-mintákból számolt év-összesítők (ADR 0044 D42).
 ///
@@ -40,9 +40,21 @@ final AutoDisposeProvider<Duration> raceLogTimeOnWaterProvider =
 
 /// A kiválasztott év össztávja és sebesség-rekordja (ADR 0044 D42).
 ///
-/// **Drága és aszinkron**: versenyenként végigolvassa a rögzített
-/// pillanatképeket, és a kanonikus `SummarizeTrack` use case-szel
-/// összegez.
+/// **Aszinkron**: versenyenként végigolvassa a rögzített pillanatképeket, és
+/// a kanonikus `SummarizeTrack` use case-szel összegez.
+///
+/// ## Miért a projekciós olvasó
+///
+/// A `trackSampleReaderProvider` a `snapshot_logs` sorokból csak három
+/// mennyiséget vetít ki, az SQLite `json1` kiterjesztésével. A korábbi
+/// `roundingSampleReaderProvider` soronként visszaépítette a teljes
+/// `RaceSnapshot` objektum-gráfot — 1 Hz-en versenyenként több mint tízezer
+/// dokumentumot —, és ez a főizolátumon ANR-t, ismételt belépésnél
+/// folyamat-kilövést okozott az eszközön (ADR 0044 Addendum 4).
+///
+/// A detail-képernyő elemzése továbbra is a teljes read-modellt olvassa: ott
+/// mind a tizenhárom mező kell, és egyetlen versenyre, felhasználói kérésre
+/// fut.
 ///
 /// ## Megszakíthatóság
 ///
@@ -50,8 +62,7 @@ final AutoDisposeProvider<Duration> raceLogTimeOnWaterProvider =
 /// viszont a Riverpod nem szakítja félbe**: egy `Future`-t nem lehet
 /// kívülről lelőni. Megszakítás nélkül minden be-ki lépés újabb teljes
 /// aggregálást indít ugyanazon az izolátumon és ugyanabból a több
-/// gigabájtos adatbázisból — a párhuzamos körök együtt már ANR-t és
-/// folyamat-kilövést okoztak az eszközön.
+/// gigabájtos adatbázisból.
 ///
 /// Ezért a `ref.onDispose` egy zászlót billent, amit a ciklus minden
 /// verseny körül ellenőriz. A vizsgálat helye nem véletlen: a `reader`
@@ -66,9 +77,10 @@ final AutoDisposeProvider<Duration> raceLogTimeOnWaterProvider =
 ///
 /// ## Ami ettől még nem oldódik meg
 ///
-/// Az **első** betöltés továbbra is másodpercekig tart, mert a mintákat
-/// a főizolátum olvassa és összegzi. Ezt csak a tárolás oldja meg
-/// (fázis 2, `race_track_stats`), ami külön döntés és külön addendum.
+/// A JSON-t az SQLite továbbra is soronként végigolvassa, tehát az **első**
+/// betöltés költsége a minták számával nő. Ezt a per-verseny gyorsítótár
+/// szünteti meg (`race_track_stats`, ADR 0044 Addendum 4), ami külön
+/// séma-lépés.
 final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
     FutureProvider.autoDispose<RaceLogTrackTotals>((
       ref,
@@ -79,7 +91,7 @@ final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
       var isCancelled = false;
       ref.onDispose(() => isCancelled = true);
 
-      final reader = ref.watch(roundingSampleReaderProvider);
+      final reader = ref.watch(trackSampleReaderProvider);
       const summarize = SummarizeTrack();
       double? distanceMeters;
       double? maxSpeedMps;
