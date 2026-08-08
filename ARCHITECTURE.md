@@ -1099,8 +1099,9 @@ A többi repository a saját fázisával együtt készül:
 (`safety_mark_repository.dart`) az állandó navigációs jelölők
 katalógusát adja. A v1 implementáció `const` lista a data-rétegben
 (`safety/safety_mark_catalogue.dart`), tehát **nincs Drift-tábla és nincs
-migráció** — a `schemaVersion` marad 4. Az `async` szignatúra azért marad,
-hogy a későbbi letölthető csomag vagy DB-tábla ne törje az LSP-t (DIP).
+migráció** — a `schemaVersion`-t nem mozdítja. Az `async` szignatúra azért
+marad, hogy a későbbi letölthető csomag vagy DB-tábla ne törje az LSP-t
+(DIP).
 
 ### 5.4 Sealed classes hibakezeléshez
 
@@ -3426,15 +3427,32 @@ fednie.
 futnak. Új lekérdezés nincs: a napló az `raceListProvider` ugyanazon
 projekciójából szűr, mint a lajstrom.
 
-**Az összesítő csík fázis 1-ben nem tárol (D42).** A három érték közül a
-vízen töltött idő olcsó (`finishedAt − startedAt` a `races`-ből), az
-össztáv és a sebesség-rekord viszont a track-mintákból számolódik
-(`SummarizeTrack`). A csík ezért saját `AsyncValue`-provider mögött ül: a
-képernyő azonnal nyílik, a számok beúsznak. Ez egyben mérés is — a tárolásról
-on-device számmal döntünk. Ha kell, külön `race_track_stats` tábla a jelölt,
-nem a `races` új oszlopai: azt a sort a `save()` egy memóriabeli példányból
-felülírja, tehát egy elavult példány mentése kinullázná a számokat (ugyanaz
-a hibaosztály, mint az ADR 0045 negyedik szakadási pontja).
+**Az összesítő csík a track-statisztikát gyorsítótárazza (D42, ADR 0044
+Addendum 4).** A három érték közül a vízen töltött idő olcsó
+(`finishedAt − startedAt` a `races`-ből), az össztáv és a sebesség-rekord
+viszont a track-mintákból számolódik (`SummarizeTrack`). A csík ezért saját
+`AsyncValue`-provider mögött ül: a képernyő azonnal nyílik, a számok
+beúsznak. Az ide tervezett mérés megtörtént, és a tárolás mellett döntött —
+a számok és az indoklás az ADR 0044 Addendum 4-ben állnak.
+
+**A minta-olvasás projekcióval megy.** A `snapshot_logs` soronként a teljes
+`RaceSnapshot`-ot tárolja JSON-ban, a napló viszont ebből három számot
+használ. A `TrackSample` domain-interfész (`sogMps` / `latDeg` / `lonDeg`)
+ezt a hármat rögzíti, a `SummarizeTrack` bemenete erre szűkült, és a
+`TrackSampleReaderImpl` az SQLite `json1` `json_extract`-jával vetíti ki
+őket — a `RaceSnapshot` objektum-gráf visszaépítése nélkül. A
+`RoundingSampleReader` megmarad a detail-képernyőnek: annak az elemzésnek
+mind a tizenhárom mező kell. Két szűk kontraktus, nem egy kibővített (ISP).
+
+**A gyorsítótár a `race_track_stats` tábla, versenyenkénti szemcsével.** Egy
+befejezett verseny track-statisztikája megváltoztathatatlan tény, a
+felolvasása viszont I/O-korlátos: a soronként ~8,3 KB-os JSON-blobokat az
+SQLite hidegen másodpercekig húzza fel. A sorokat **lusta feltöltés** írja
+olvasáskor, nem a motor — így a meglévő versenyek is visszatöltődnek, és a
+megoldás független marad az ADR 0045-től. Nem a `races` új oszlopai: azt a
+sort a `save()` egy memóriabeli példányból felülírja, tehát egy elavult
+példány mentése kinullázná a számokat (ugyanaz a hibaosztály, mint az ADR
+0045 negyedik szakadási pontja).
 
 **Fájlok és kulcsok (D43–D44).** Új könyvtár a `features/race_log/` alatt: a
 képernyő és öt widget (sor, hónap-fejléc, év-sáv, év-választó lap,
@@ -3525,6 +3543,22 @@ class SavedMarks extends Table {
   TextColumn get sourceRaceName => text()();        // denormalizált címke
   DateTimeColumn get savedAt => dateTime()();
 }
+
+// Versenyenkenti track-osszesito gyorsitotar (ADR 0044 Addendum 4). A sorokat
+// lusta feltoltes irja olvasaskor, NEM a motor - igy a mar meglevo versenyek is
+// visszatoltodnek. Row-class: RaceTrackStatsRow.
+@DataClassName('RaceTrackStatsRow')
+class RaceTrackStats extends Table {
+  TextColumn get raceId => text().references(Races, #id, onDelete: KeyAction.cascade)();
+  RealColumn get distanceMeters => real().nullable()();
+  RealColumn get maxSpeedMps => real().nullable()();
+  RealColumn get avgSpeedMps => real().nullable()();  // tarolva, ma nem jelenik meg
+  IntColumn get sampleCount => integer()();           // diagnosztika
+  DateTimeColumn get computedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {raceId};
+}
 ```
 
 > **v1 → v2 migráció (Fázis 5f, ADR 0011)**: a `Settings` KV-tábla hozzáadása.
@@ -3544,6 +3578,14 @@ class SavedMarks extends Table {
 > `(name, latitudeE7, longitudeE7, sourceRaceName)` unique index. FK NÉLKÜL —
 > a könyvtár túléli a verseny törlését/átnevezését (L1); a pontosan azonos
 > négyes újra-mentése `DoNothing` (L3).
+
+> **v4 → v5 migráció (ADR 0044 Addendum 4)**: a `RaceTrackStats`
+> gyorsítótár-tábla a napló összesítőihez. `schemaVersion` 4 → 5,
+> `onUpgrade`-ben `if (from < 5) m.createTable(raceTrackStats)` (CSAK az új
+> tábla). FK-cascade a `Races`-re, `raceId` elsődleges kulccsal. Az írás
+> `insertOnConflictUpdate`: a feltöltés a képernyő elhagyásakor bármikor
+> megszakadhat, és a következő megnyitás újraindítja — félkész vagy
+> duplikált sort nem hagyhat.
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
