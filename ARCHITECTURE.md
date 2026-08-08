@@ -640,17 +640,28 @@ class Race extends Equatable {
 A `status × activeMarkIndex × (startedAt, finishedAt)` négyes egy
 állandó invariánsnak engedelmeskedik:
 
-| status     | activeMarkIndex      | startedAt | finishedAt |
-|------------|----------------------|-----------|------------|
-| notStarted | == 0                 | null      | null       |
-| active     | 0 ≤ i < marks.length | nem null  | null       |
-| finished   | == marks.length      | nem null  | nem null   |
+| status     | activeMarkIndex (`marks` nem üres) | `marks` üres | startedAt | finishedAt |
+|------------|------------------------------------|--------------|-----------|------------|
+| notStarted | == 0                               | == 0         | null      | null       |
+| active     | 0 ≤ i < marks.length               | == 0         | nem null  | null       |
+| finished   | == marks.length                    | == 0         | nem null  | nem null   |
 
 Az invariánst egy static `_invariantHolds` segédfüggvény őrzi Dart 3
 exhaustive switch-csel — új `RaceStatus` érték hozzáadásakor a fordító
 itt jelez először. A `copyWith` simple-form, de **nem** szolgál
 state-átmenetre — azokra a `start` / `roundCurrentMark` / `finish` named
 factory-k vannak.
+
+**Üres `marks` lista (ADR 0046 D1).** A `marks` lehet üres — ez
+érvényes és szándékos állapot (bója nélküli verseny: nincs kihirdetett
+pálya, de a track-rögzítés, a polár-alapú target speed és a VMG-réteg
+így is működik), nem hiányzó adat. Ilyenkor az `activeMarkIndex` a
+teljes életcikluson át 0 marad, ami a mező jelentéséből
+(„hányadik bójánál tartunk”) egyenesen következik. Az invariánsnak
+egyetlen ága szorult nyitásra, az `active`: a `0 ≤ i < marks.length`
+feltétel üres listán sosem teljesülne, ezért nulla bójánál
+`activeMarkIndex == 0` a követelmény. A `notStarted` és a `finished` ág
+változatlan — üres listával mindkettő eleve teljesül.
 
 A célzott bóyát az `activeMarkOrNull` getter adja: `marks[activeMarkIndex]`,
 ha az index tartományon belül van (notStarted → első bóya, active →
@@ -660,6 +671,14 @@ marks.length`). Tisztán bounds-alapú, így a `markPredictionProvider` (§8.6)
 aktív bóyát.
 
 A **következő** bóyát a `nextMarkOrNull` getter adja: `marks[activeMarkIndex + 1]`, ha az a tartományon belül van, egyébként `null` (utolsó láb). A 7.8 `ComputeMarkPrediction` a köv. szár fix irányát (§7.8) ebből számolja — `bearing(activeMark → nextMark)` —, amihez a predikciót méri; `nextMark == null` (utolsó láb) esetén a predikció is `null` (ADR 0021).
+
+Üres `marks` listánál mindkét getter `null`-t ad, már a verseny
+kezdetétől — a bounds-vizsgálat változtatás nélkül helyes (`0 < 0`,
+illetve `1 < 0`). Ez nem új állapot: minden verseny utolsó szárán a
+`nextMarkOrNull`, `finished`-ben pedig az `activeMarkOrNull` is `null`. A
+bója nélküli verseny e két, már megtervezett és tesztelt állapot
+egyidejű fennállása, ezért a predikció-lánc és a
+`MarkRoundingDetector` változtatás nélkül elnémul (ADR 0046).
 
 #### Mark — `markedAsRounded` monotonicitás
 
@@ -2381,6 +2400,23 @@ create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
 `save` delete-and-rewrite-ja felülír). Az űrlap 1h-elrendezését és a
 mező-geometriáját a §8.11 rögzíti (ADR 0044).
 
+**Bója nélküli verseny az űrlapon (ADR 0046 D4).** A `RaceForm`
+„BÓJÁK” szekció-fejlécének jobb szélén egy halk, tonális kapcsoló
+áll: bekapcsolva együtt tűnik el a bója-sorok listája, a „Bója
+könyvtárból” gomb és az akció-sáv „Bója hozzáadása” gombja, a submit
+pedig üres listát ad. A koordináta-validáció magától kimarad, mert a
+`Form.validate()` csak a fában lévő `FormField`-eket futtatja — nem
+kell feltételes validációs ág. A `_markRows` állapot nem törlődik,
+csak kikerül a fából, tehát visszakapcsolva a beírt sorok megmaradnak;
+edit-módban a kapcsoló induló értéke `initialRace.marks.isEmpty`. A
+kapcsoló alatt egy alacsony tónusú sor közli a következményt (a track
+és a target speed rögzül, a bearing/ETA/predikció nem jelenik meg),
+mert üres szekció felirat nélkül hibásnak látszik. A `FormActionBar`
+secondary hármasa emiatt nullable, és a sáv ilyenkor teljes szélességű
+primary gombra esik. A lajstrom- és a detail-soron a bójaszám helyett
+„BÓJA NÉLKÜL” felirat áll (ADR 0046 D5), mert a nulla itt nem
+darabszám, hanem üzemmód.
+
 **Koordináta-bevitel (ADR 0029 Addendum 1).** A bója lat/lon mezői a
 tizedes-fok mellett DDM (`46° 56.793' N`) és DMS (`46° 56' 47.6" N`)
 formátumot is fogadnak, égtáj-betűvel vagy előjellel, paste-barát toleráns
@@ -2991,7 +3027,10 @@ szerializálva megy az engine-be a plugin-csatornán (`sendDataToTask` →
 `onReceiveData`), és az engine ezzel indul a szintetikus `_interimRace`
 helyett. A `fromJson` a teljes state-trojkát (`status`, `activeMarkIndex`,
 `startedAt`, `finishedAt`) a direkt `Race(...)` ctor-ral építi vissza (nem
-`Race.create`, ami mindig `notStarted`).
+`Race.create`, ami mindig `notStarted`). Üres `marks` lista is átkel: a
+`'marks': []` oda-vissza rendben megy, és a direkt ctor a nyitott
+invariánssal (ADR 0046 D1) fogadja — enélkül a bója nélküli verseny
+pont az izolátum-határon, futásidőben hasalt volna el.
 
 **Két Race-tulajdonos, parancs-protokoll.** A session alatt két fél tart
 Race-állapotot, ortogonális felelősséggel: a UI a `status`-t (a `race_detail`
@@ -3025,6 +3064,20 @@ telefonon a `LiveRaceScreen` „Bója megvan" gombja küldi (csak `active`,
 megerősítő dialog) a `sendDataToTask`-on; az óráról a fordított csatorna
 (§10.9) ugyanezt a parancsot a service-izolátumba juttatja. A
 `start`/`finish`/`roundMark` mind `type`-kulcsú.
+
+**Bója nélküli verseny: a megkerülés-parancs őre (ADR 0046 D2).** Az
+`applyRoundMarkCommand()` már ma is no-op nem-`active` státusznál; a
+feltétel kiegészül az üres `marks`-listával. Ez nem kényelmi
+ellenőrzés: a `Race.roundCurrentMark` `wasLast` feltétele
+(`activeMarkIndex == marks.length - 1`) nulla bójánál `0 == -1`, tehát
+hamis, és a parancs az `activeMarkIndex`-et 1-re léptetné egy olyan
+versenyben, ahol a `finished` invariáns (`== marks.length`) soha többé
+nem teljesülhetne. A konstruktor assertje ezt debugban elkapná, de
+**release buildben az assert nem fut** — a védelem ezért a motorban van,
+a `Race.roundCurrentMark` assertje pedig dokumentál, nem véd. Az óra
+C-lapján a gomb letiltása sem helyettesíti az őrt: a payload-szerződés
+additív és visszafelé kompatibilis (ADR 0015), tehát egy régi óra-build
+küldhet parancsot új telefonnak.
 
 **Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
 belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
