@@ -30,6 +30,8 @@ export 'src/repositories/mark_library_repository.dart';
 export 'src/repositories/nmea_stream.dart';
 export 'src/repositories/polar_repository.dart';
 export 'src/repositories/race_repository.dart';
+export 'src/repositories/race_track_stats_reader.dart';
+export 'src/repositories/race_track_stats_writer.dart';
 export 'src/repositories/rounding_sample_reader.dart';
 export 'src/repositories/safety_mark_repository.dart';
 export 'src/repositories/settings_repository.dart';
