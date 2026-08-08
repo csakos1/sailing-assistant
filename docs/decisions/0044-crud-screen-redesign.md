@@ -1457,3 +1457,46 @@ pillanatképeket, ha az összesítők már kiszámolt formában rendelkezésre �
 Az absztrakcio neve a megvalositaskor `TrackSample` lett. A `TrackPoint` nev
 az `apps/phone` track-rajzolo retegeben mar foglalt, es a `domain` barrel
 exportja miatt a ket nev utkozne. A dontes tartalma nem valtozott.
+
+### Utólagos pontosítás — a mérés, és az izolátum-kérdés lezárása
+
+Az "Amit ez az addendum NEM dönt el" szakasz a háttér-izolátum kérdését
+eszközön mért adathoz kötötte, azzal a kritériummal, hogy ha a feltöltés
+versenyenként a másodperces nagyságrend alatt marad, izolátum nem indokolt.
+A mérés a `feature/ui-redesign` branchen elkészült: **izolátum nem lesz, és
+a témának nem lesz külön addenduma.**
+
+**A mérés.** Az on-device `logcat` a napló tízszeri megnyitása és azonnali
+elhagyása alatt egyetlen `ANR`, `Skipped ... frames`, `Davey!` vagy
+`Choreographer` sort sem adott; a vissza-gesztustól a `moveTaskToBack`-ig
+208 ms telt el. A UI-izolátum tehát nem blokkol. A telefonról lehúzott,
+1,48 GB-os adatbázison futtatott `sqlite3` mérés ezt egészíti ki:
+
+| Lekérdezés | `real` | `user` (CPU) |
+|---|---|---|
+| `COUNT(*) FROM snapshot_logs` (178 589 sor), hideg page cache | 6,46 s | 0,07 s |
+| mind a tíz verseny, 533 424 `json_extract`, meleg page cache | 0,42 s | 0,37 s |
+| egy verseny (13 201 sor), meleg page cache | 0,08 s | 0,04 s |
+
+**A költség természete.** I/O-korlátos, nem CPU-korlátos. A `json_extract`
+teljes munkája fél másodperc alatt lefut, ha az adat a memóriában van, míg
+ugyanannak a táblának a puszta bejárása hidegen 6,46 másodperc — a
+soronként ~8,3 KB-os JSON-blobok felolvasása 1,48 GB-ról. A telefonon minden
+megnyitás hideg, mert az Android nem tart 1,48 GB-ot page cache-ben.
+
+**A kritérium teljesül.** A hideg bejárás sorszámra arányosítva a tíz
+versenyből kilencnél a másodperces nagyságrend alatt marad. Egyetlen kilógó
+futam van — 85 964 sor, a tábla fele —, amely e fölé esik. Ez azonban
+versenyenként **egyszeri** költség, amit a nyolcadik döntés
+betöltés-jelzése fed le, nem pedig ismétlődő teher, ami új infrastruktúrát
+indokolna.
+
+**Amit a mérés kizár.** (1) A versenyenkénti részeredményt adó, inkrementális
+összesítő tárgytalan: nincs hosszú főszál-blokk, amit fel lehetne darabolni.
+(2) A `computeWithDatabase` tárgytalan: a drift saját dokumentációja szerint
+**nem nyit második SQLite-kapcsolatot**, hanem a meglévőt használja újra —
+tehát Dart-CPU-t mozgat át, nem I/O-t párhuzamosít, CPU-problémánk pedig
+nincs.
+
+Marad tehát a nyolc döntés eredeti iránya: a felolvasást nem gyorsítani
+kell, hanem megszüntetni — tíz materializált sor 1,48 GB helyett.
