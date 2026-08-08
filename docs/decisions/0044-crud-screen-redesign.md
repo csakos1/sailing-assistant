@@ -1327,3 +1327,127 @@ Az S9 után **on-device mérés**, és annak a számából dől el a fázis 2
   fázis 1-ben nem kell, és a lista függőleges görgetésével ütközhet.
 - **Üres állapot a naplóban** — ma elérhetetlen (a gomb letiltva), tehát
   nem tervezzük meg. Ha a belépési pont valaha változik, ez elővehető.
+
+## Addendum 4 — A versenynapló összesítőinek teljesítménye
+
+**Státusz:** Elfogadva. Kiegészíti a **D42**-t, és **visszavonja** a fázis 1 tárolás-mentességét.
+`D`-számot nem kap: a törzs döntés-készlete lezárt, ez utólagos pontosítás mért adat alapján.
+
+### Kontextus
+
+A **D42** kikötötte, hogy a naplóban megjelenő két drága összesítő — ÖSSZ. TÁV és REKORD —
+tárolásáról csak valós, eszközön mért adat birtokában döntünk. A fázis 1 elkészülte után a mérés
+megtörtént: Pixel 9 Pro XL, tíz befejezett verseny, 1,48 GB-os adatbázis.
+
+| Jelenség | Mért érték |
+| --- | --- |
+| Az összesítők betöltése | 5–10 s |
+| A főszál megszakítatlan blokkolása | > 5 s (`Waited 5000ms for MotionEvent`) |
+| ANR időtartama | 8 310 ms, illetve 12 113 ms |
+| Kihagyott képkockák | 299 |
+| Ismételt be- és kilépés a naplóba | folyamat-kilövés |
+
+A képernyő megnyitásakor a track-összesítő provider az adott év **minden** versenyére meghívja a
+`RoundingSampleReaderImpl`-t. Az 1 Hz-es telemetria miatt ez versenyenként nagyjából 14 400 sor,
+tíz versenyre mintegy 140 000 rögzített pillanatkép.
+
+### A gyökérok
+
+A blokk **három**, egymástól független szinkron költségből áll, mindhárom a UI-izolátumon:
+
+1. **A lekérdezés eredményének materializálása.** A használt Drift-kapcsolat a hívó izolátumon
+   hajtja végre az SQL-t; az `async` szignatúra nem jelent háttérszálat. Versenyenként ~14 MB
+   JSON-szöveg épül Dart-sztringgé.
+2. **Soronkénti `jsonDecode`.** 14 400 teljes dokumentum elemzése versenyenként.
+3. **Soronkénti `RaceSnapshot.fromJson`.** A teljes objektum-gráf visszaépítése azért, hogy
+   utána mindössze három mennyiség — sebesség, szélességi és hosszúsági fok — kerüljön
+   kiolvasásra belőle.
+
+**Amit a mérés megcáfolt:** az index hiánya nem tényező. A `snapshot_log_race_time` index
+létezik, a lekérdezés maga nem szűk keresztmetszet.
+
+**A tanulság a felhasználás oldalán:** a `RoundingSampleReaderImpl` doc-kommentje kimondja, hogy
+post-race, on-demand, a detail-képernyőről, azaz **egy** versenyre tervezték. A napló tízszer
+hívta meg, képernyő-nyitáskor. Nem a komponens hibás; a felhasználás lépett ki a tervezési
+burkából.
+
+### A döntés lényege
+
+Egy **befejezett** verseny track-statisztikája megváltoztathatatlan tény. Ma ezt az örökre
+rögzült értéket minden képernyő-nyitáskor újraszámoljuk a nyers mintákból. Ez nem szálkezelési,
+hanem **gyorsítótárazási** probléma: a művelet költsége ma `O(szezon × mintaszám)`, a helyes
+költsége `O(1)`.
+
+### Döntések
+
+**1. A fázis 1 tárolás-mentessége visszavonva.** A korábbi állapot — a napló nem vezet be új
+táblát — mért adat alapján megdőlt. Ezt nyíltan rögzítjük; a törzs vonatkozó mondata és a 4d
+"Halasztott tételek" listájának első pontja ettől az addendumtól kezdve nem érvényes.
+
+**2. Új tábla: `race_track_stats`.** Per-verseny összesítő. Oszlopai: a verseny azonosítója
+elsődleges kulcsként és idegen kulcsként a versenyek táblájára (kaszkád törléssel), a megtett
+távolság, a mért csúcssebesség, az **átlagsebesség**, a feldolgozott mintaszám és a kiszámítás
+időbélyege. A Drift `schemaVersion` 4-ről 5-re nő, a migráció kizárólag táblát hoz létre;
+**adatot nem mozgat és nem tölt vissza**, mert az elfogadhatatlanul hosszú indulást okozna.
+
+**Az átlagsebesség azért kerül bele**, mert a `SummarizeTrack` amúgy is kiszámítja ugyanabban a
+bejárásban, és a tábla így a `TrackStats` teljes materializációja lesz. Enélkül egy későbbi
+felhasználás — például a detail-képernyő post-race elemzése — újabb séma-migrációt kényszerítene
+egyetlen oszlopért. A napló ma nem jeleníti meg; ez tudatos, olcsó előrelátás, nem funkció.
+
+**3. A gyorsítótár szemcséje a VERSENY, nem az év.** Indoklás: a felhasználó minden teljesített
+futam után megnyitja a naplót. Év-szemcse esetén minden új verseny érvénytelenítené a teljes évet,
+és a gyorsítótár épp abban az esetben nem érne semmit, amelyikben a leggyakrabban használjuk. A
+napló év-összesítője a per-verseny sorok aggregátuma.
+
+**4. A sorokat lusta feltöltés írja, olvasáskor.** A hiányzó sor a napló megnyitásakor számolódik
+ki és íródik be, majd soha többé. Ez egyszerre oldja meg a meglévő tíz verseny visszatöltését és a
+jövőbeli versenyeket. **A motor NEM ír a táblába**, tehát ez a döntés nem függ az ADR 0045-től és
+nem is előlegezi meg azt.
+
+**5. Sor csak befejezett versenyre keletkezik.** Futó vagy el nem indított verseny nem kap
+összesítőt; a mintasor még bővülhet.
+
+**6. A feltöltés szűk projekciót olvas.** A számításhoz nem építjük vissza a teljes pillanatkép-
+objektumot. A `domain` réteg keskeny `TrackPoint` absztrakciót kap a három szükséges mennyiséggel
+(sebesség, szélességi fok, hosszúsági fok), a track-összesítő use case ezen keresztül dolgozik, a
+meglévő `RoundingSample` pedig megvalósítja az absztrakciót. Ez interfész-szeletelés (ISP): a use
+case ma tizenhárom mezős típustól függ, holott háromra van szüksége. A meglévő hívási helyek
+változatlanul fordulnak, mert a Dart listái kovariánsak.
+
+**7. Geometria nem kerül SQL-be.** Mezőkivonat és tiszta aggregátum a persistence rétegben
+megengedett; a szomszédos pontok közti haversine-szakaszok összegzése **domain-logika**, és a
+`domain`-ben marad, a `CalculateDistanceToMark` kanonikus kompozíciójával. Ez akkor is áll, ha
+SQL-ben technikailag megoldható lenne.
+
+**8. A hiányjel mint betöltés-jelző visszavonva.** Amíg a feltöltés fut, a két cella látható
+"számolás folyamatban" állapotot mutat. A korábbi egyszerűsítés — a hiányjel egyszerre jelentette
+a "nincs adat" és a "még számolunk" állapotot — több másodperces várakozásnál félrevezető: a
+felhasználó joggal hiszi, hogy nincs mit mutatni.
+
+### Amit ez az addendum NEM dönt el
+
+**A projekció mechanizmusa.** A 6. pont a *szűkítést* rögzíti, a *hogyanját* nem. Két út
+kínálkozik — a mezők kivonása az SQL-ben, illetve a dekódolt map célzott olvasása a
+DTO-építés kihagyásával —, és a snapshot-JSON beágyazott szerkezete miatt az elsőnek az
+útvonalait előbb igazolni kell. A választás eszközön mért adat alapján történik, a `RoundingSample`
+JSON-kulcs-szerződésének (ADR 0025 D3) megsértése nélkül.
+
+**A háttér-izolátum kérdése.** A `data` csomagban ma nincs másodlagos olvasó kapcsolat, tehát
+bevezetése új infrastruktúra. A döntés a szűk projekció **eszközön mért** eredménye után születik
+meg: ha a feltöltés versenyenként a másodperces nagyságrend alatt marad, izolátum nem indokolt. Ha
+nem, külön addendum rögzíti.
+
+**A nyers telemetria megőrzési politikája** — mennyi ideig tartjuk meg a másodperces
+pillanatképeket, ha az összesítők már kiszámolt formában rendelkezésre állnak — önálló kérdés,
+önálló ADR-t érdemel, és ez az addendum nem foglal állást benne.
+
+### Következmények
+
+- A Drift séma 4-ről 5-re lép; a `packages/data` kódgenerálását újra kell futtatni.
+- A napló összesítő providerei a gyorsítótárból olvasnak, és hiányzó soron feltöltést indítanak.
+- A `SummarizeTrack` bemenete keskenyedik; a meglévő hívási helyek változatlanul működnek.
+- A `RoundingSample` a `TrackPoint` megvalósítójává válik; primitív, Flutter-mentes read-modell
+  jellege és a CLI-fogyasztója változatlan marad.
+- Az `ARCHITECTURE.md` 4d blokkja a stat-csíkot ma "nem tárol" állapotban írja le; ezt külön
+  szinkron-commit vezeti át.
