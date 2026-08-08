@@ -536,6 +536,23 @@ void main() {
       await emitNorthOfThenTick(mark1, 200, tickTime);
       expect(snapshots.last.prediction?.mark, mark1);
     });
+
+    test('no-op bója nélküli versenyben (ADR 0046 D2)', () async {
+      // ARRANGE — elindított, de üres pályájú verseny.
+      final markless = Race.create(id: 'rm0', name: 'Túra', marks: const []);
+      await engine.start(markless.start(at: eventTime));
+
+      // ACT & ASSERT — a `returnsNormally` itt a teherhordó állítás: őr
+      // nélkül a `Race.roundCurrentMark` dokumentáló assertje dobna. Az
+      // indexlépés magától NEM figyelhető meg, mert üres listán az
+      // `activeMarkOrNull` így is, úgy is `null`.
+      expect(engine.applyRoundMarkCommand, returnsNormally);
+      await emitNorthOfThenTick(mark1, 200, tickTime);
+
+      // ASSERT — a motor tovább tickel, és nincs mit célozni.
+      expect(snapshots, isNotEmpty);
+      expect(snapshots.last.prediction, isNull);
+    });
   });
 
   group('TWD-minőség a snapshotban (ADR 0020 D7)', () {
