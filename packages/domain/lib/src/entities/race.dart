@@ -18,6 +18,14 @@ import 'package:meta/meta.dart';
 /// | active     | 0 ≤ i < marks.length     | nem null  | null       |
 /// | finished   | == marks.length          | nem null  | nem null   |
 ///
+/// A [marks] lehet **üres** — bója nélküli verseny, ahol nincs
+/// kihirdetett pálya, de a track-rögzítés és a polár-alapú
+/// target speed így is működik (ADR 0046 D1). Ilyenkor az
+/// `activeMarkIndex` a teljes életcikluson át 0 marad: a `notStarted`
+/// és a `finished` sor így magától teljesül, az `active` sorban pedig
+/// a `0 ≤ i < marks.length` helyett `activeMarkIndex == 0` a
+/// követelmény. Az üres lista érvényes állapot, nem hiányzó adat.
+///
 /// State-átmenetekhez a `start`, `roundCurrentMark`, `finish` named
 /// factory-k állnak rendelkezésre; közvetlen [Race] konstruálás csak teljes
 /// state-trojkával (tipikusan perzisztenciából való betöltéskor).
@@ -36,10 +44,6 @@ class Race extends Equatable {
   }) : marks = List.unmodifiable(marks),
        assert(id != '', 'A race id-je nem lehet üres.'),
        assert(name != '', 'A race neve nem lehet üres.'),
-       assert(
-         marks.isNotEmpty,
-         'A race-nek legalább egy bóyája kell legyen.',
-       ),
        assert(
          _invariantHolds(
            status: status,
@@ -129,6 +133,12 @@ class Race extends Equatable {
       status == RaceStatus.active,
       'roundCurrentMark csak active race-ben hívható; jelenleg: $status.',
     );
+    // Dokumentáló assert (ADR 0046 D2): üres pályán nincs mit körözni.
+    // A tényleges védelem a motorban van, mert ez release buildben nem fut.
+    assert(
+      marks.isNotEmpty,
+      'roundCurrentMark bója nélküli race-ben nem hívható.',
+    );
 
     // Új immutable lista a frissített Markkal — csak az aktuális indexet
     // cseréljük.
@@ -212,10 +222,13 @@ class Race extends Equatable {
       RaceStatus.notStarted =>
         activeMarkIndex == 0 && startedAt == null && finishedAt == null,
       RaceStatus.active =>
-        activeMarkIndex >= 0 &&
-            activeMarkIndex < marksLength &&
-            startedAt != null &&
-            finishedAt == null,
+        startedAt != null &&
+            finishedAt == null &&
+            // Üres pályán (ADR 0046 D1) nincs mire mutatni, ezért ott a 0
+            // az egyetlen érvényes index; egyébként valódi bójára kell.
+            (marksLength == 0
+                ? activeMarkIndex == 0
+                : activeMarkIndex >= 0 && activeMarkIndex < marksLength),
       RaceStatus.finished =>
         activeMarkIndex == marksLength &&
             startedAt != null &&
