@@ -7,6 +7,7 @@ Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onSecondary,
   VoidCallback? onPrimary,
+  bool withSecondary = true,
 }) => tester.pumpWidget(
   MaterialApp(
     theme: foretackTheme,
@@ -14,9 +15,9 @@ Future<void> _pump(
       body: Align(
         alignment: Alignment.bottomCenter,
         child: FormActionBar(
-          secondaryLabel: 'Boja hozzaadasa',
-          secondaryIcon: Icons.add,
-          onSecondary: onSecondary ?? () {},
+          secondaryLabel: withSecondary ? 'Boja hozzaadasa' : null,
+          secondaryIcon: withSecondary ? Icons.add : null,
+          onSecondary: withSecondary ? (onSecondary ?? () {}) : null,
           primaryLabel: 'Mentes',
           onPrimary: onPrimary ?? () {},
         ),
@@ -92,5 +93,33 @@ void main() {
     );
     final decoration = box.decoration as BoxDecoration;
     expect(decoration.border, isNotNull);
+  });
+
+  // Boja nelkuli versenynel nincs mit hozzaadni, ezert a sav egyetlen
+  // gombra esik (ADR 0046 D4).
+  testWidgets('drops the secondary button when it is omitted', (tester) async {
+    // ARRANGE & ACT
+    await _pump(tester, withSecondary: false);
+
+    // ASSERT
+    expect(find.byType(OutlinedButton), findsNothing);
+    expect(find.text('Boja hozzaadasa'), findsNothing);
+    expect(find.text('Mentes'), findsOneWidget);
+  });
+
+  testWidgets('stretches the primary button when the secondary is gone', (
+    tester,
+  ) async {
+    // ARRANGE
+    await _pump(tester);
+    final paired = tester.getSize(find.byType(FilledButton)).width;
+
+    // ACT
+    await _pump(tester, withSecondary: false);
+
+    // ASSERT - a felszabadulo hely es a 10 dp res is a primary-e.
+    final alone = tester.getSize(find.byType(FilledButton));
+    expect(alone.width, greaterThan(paired));
+    expect(alone.height, 52);
   });
 }
