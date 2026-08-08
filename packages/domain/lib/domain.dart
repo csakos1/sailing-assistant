@@ -70,6 +70,7 @@ export 'src/value_objects/rounding_sample.dart';
 export 'src/value_objects/rounding_summary.dart';
 export 'src/value_objects/speed.dart';
 export 'src/value_objects/telemetry_record.dart';
+export 'src/value_objects/track_sample.dart';
 export 'src/value_objects/track_stats.dart';
 export 'src/warnings/warning.dart';
 export 'src/warnings/warning_severity.dart';

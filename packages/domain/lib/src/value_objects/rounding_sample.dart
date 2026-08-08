@@ -1,10 +1,17 @@
+import 'package:domain/src/value_objects/track_sample.dart';
+
 /// Egy `snapshot_logs` sor olvasott alakja — csak az elemzeshez kello mezok
 /// (ADR 0025 D3). A teljes `RaceSnapshot.toJson` egy reszhalmaza; a
 /// JSON-kulcsok a szerzodes (a `data` reteg kezi szerializaciojaval szinkron).
 /// Primitiv, Flutter-mentes read-modell DTO; mindket fogyaszto (a CLI a
 /// JSONL-bol, az app a `data` `RaceSnapshot`-jaibol) a sajat forrasabol
 /// tolti (ADR 0034 D3).
-class RoundingSample {
+///
+/// A sebesseg es a ket koordinata a `TrackSample` szerzodest is teljesiti
+/// (ADR 0044 Addendum 4), igy a `SummarizeTrack` a keskeny interfeszen at
+/// dolgozhat. A tobbi mezo valtozatlanul a detail-kepernyo elemzeset
+/// szolgalja ki.
+class RoundingSample implements TrackSample {
   /// Olvasott pillanatkep. A kotelezo mezok mindig jelen vannak; az
   /// opcionalisak `null`-ja "nincs adat".
   const RoundingSample({
@@ -51,6 +58,7 @@ class RoundingSample {
   final double? currentTwaDeg;
 
   /// SOG m/s-ben, vagy `null`.
+  @override
   final double? sogMps;
 
   /// COG fokban, vagy `null`.
@@ -59,9 +67,11 @@ class RoundingSample {
   /// A hajo szelessegi foka fokban (a `boatState.position`-bol), vagy
   /// `null`, ha nincs pozicio. A track-rajzhoz es az uthosszhoz
   /// (ADR 0034 Addendum 3).
+  @override
   final double? latDeg;
 
   /// A hajo hosszusagi foka fokban (a `boatState.position`-bol), vagy
   /// `null`, ha nincs pozicio. Lasd `latDeg`.
+  @override
   final double? lonDeg;
 }

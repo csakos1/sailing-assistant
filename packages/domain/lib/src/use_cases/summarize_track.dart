@@ -1,15 +1,15 @@
 import 'package:domain/src/use_cases/calculate_distance_to_mark.dart';
 import 'package:domain/src/value_objects/coordinate.dart';
-import 'package:domain/src/value_objects/rounding_sample.dart';
+import 'package:domain/src/value_objects/track_sample.dart';
 import 'package:domain/src/value_objects/track_stats.dart';
 import 'package:meta/meta.dart';
 
-/// A track-statisztikák kiszámítása a `snapshot_logs`-ból olvasott
-/// `RoundingSample`-mintákból (ADR 0034 Addendum 3).
+/// A track-statisztikák kiszámítása a rögzített pillanatképek
+/// `TrackSample`-mintáiból (ADR 0034 Addendum 3).
 ///
 /// Két statisztika-család:
 ///
-/// - **Sebesség**: a `RoundingSample.sogMps` nem-null mintáiból a maximum
+/// - **Sebesség**: a `TrackSample.sogMps` nem-null mintáiból a maximum
 ///   és a számtani átlag. Ha egyetlen mintának sincs sebessége, mindkettő
 ///   `null`.
 /// - **Úthossz**: a szomszédos érvényes pozíciók (`latDeg`/`lonDeg`
@@ -22,6 +22,11 @@ import 'package:meta/meta.dart';
 /// jitter-szűrés nélküli (v2). A hiányzó pozíciójú minták nem szakítják
 /// meg az úthossz-láncot: kihagyjuk őket, és a következő érvényes
 /// pozíciót az előzőhöz láncoljuk.
+///
+/// A bemenet szándékosan a keskeny `TrackSample` szerződés, nem a teljes
+/// `RoundingSample` read-modell (ISP, ADR 0044 Addendum 4): a számításnak
+/// három mennyiség kell, így egy olcsóbb, projekciós olvasó is
+/// kiszolgálhatja anélkül, hogy a teljes pillanatképet visszaépítené.
 @immutable
 class SummarizeTrack {
   /// Const ctor — a use case stateless, példány-egyenlőség nem releváns;
@@ -29,7 +34,7 @@ class SummarizeTrack {
   const SummarizeTrack();
 
   /// A [samples] listából aggregált [TrackStats]. Részletek a class-doc-ban.
-  TrackStats call(List<RoundingSample> samples) {
+  TrackStats call(List<TrackSample> samples) {
     double? maxSpeedMps;
     var speedSum = 0.0;
     var speedCount = 0;
@@ -54,7 +59,7 @@ class SummarizeTrack {
 
   /// A szomszédos érvényes pozíciók közti haversine-szakaszok összege,
   /// vagy `null`, ha kettőnél kevesebb érvényes pozíció van.
-  double? _totalDistanceMeters(List<RoundingSample> samples) {
+  double? _totalDistanceMeters(List<TrackSample> samples) {
     const calculateDistance = CalculateDistanceToMark();
     Coordinate? previous;
     double? total;
@@ -73,7 +78,7 @@ class SummarizeTrack {
   /// A minta pozíciója [Coordinate]-ként, vagy `null`, ha bármelyik
   /// koordináta hiányzik. A lat/lon a data-olvasóban a már validált
   /// `boatState.position`-ból jött, így a default ctor elég.
-  Coordinate? _positionOf(RoundingSample sample) {
+  Coordinate? _positionOf(TrackSample sample) {
     final lat = sample.latDeg;
     final lon = sample.lonDeg;
     if (lat == null || lon == null) return null;
