@@ -10,6 +10,7 @@ import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_track_stats_provider.dart';
 import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
@@ -38,6 +39,11 @@ void main() {
           trackSampleReaderProvider.overrideWith((ref) {
             return (raceId) async => const <TrackSample>[];
           }),
+          raceTrackStatsReaderProvider.overrideWith(
+            (ref) =>
+                (raceId) async => null,
+          ),
+          raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
         ],
         child: MaterialApp(
           theme: foretackTheme,
@@ -194,3 +200,11 @@ class _FakeRaceRepository implements RaceRepository {
   @override
   Future<Race?> getRace(String id) async => null;
 }
+
+/// A gyorsitotar-iro semmit nem csinalo dublore a teszthez.
+Future<void> _ignoreWrite(
+  String raceId,
+  TrackStats stats, {
+  required int sampleCount,
+  required DateTime computedAt,
+}) async {}

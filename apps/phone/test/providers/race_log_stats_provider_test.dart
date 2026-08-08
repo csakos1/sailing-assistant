@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/race_log_provider.dart';
 import 'package:phone/providers/race_log_stats_provider.dart';
+import 'package:phone/providers/race_track_stats_provider.dart';
 import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
@@ -46,12 +47,36 @@ void main() {
   }
 
   // A fake olvaso a kert race-id-ket is rogziti, hogy a szeletes
-  // aggregalas (csak a kivalasztott ev) ellenorizheto legyen.
-  ({ProviderContainer container, List<String> requested}) containerFor({
+  // aggregalas (csak a kivalasztott ev) ellenorizheto legyen. A
+  // gyorsitotarat egy memoriabeli terkep jatssza: az iro ide teszi be a
+  // kiszamolt statisztikat, az olvaso innen adja vissza.
+  ({
+    ProviderContainer container,
+    List<String> requested,
+    Map<String, TrackStats> cache,
+    List<int> writtenSampleCounts,
+  })
+  containerFor({
     required List<RaceLogYear> years,
     required Map<String, List<TrackSample>> samples,
+    Map<String, TrackStats> cached = const {},
   }) {
     final requested = <String>[];
+    final cache = <String, TrackStats>{...cached};
+    final writtenSampleCounts = <int>[];
+
+    Future<TrackStats?> readCache(String raceId) async => cache[raceId];
+
+    Future<void> writeCache(
+      String raceId,
+      TrackStats stats, {
+      required int sampleCount,
+      required DateTime computedAt,
+    }) async {
+      cache[raceId] = stats;
+      writtenSampleCounts.add(sampleCount);
+    }
+
     final container = ProviderContainer(
       overrides: [
         raceLogProvider.overrideWith((ref) => AsyncValue.data(years)),
@@ -61,10 +86,17 @@ void main() {
             return samples[raceId] ?? const <TrackSample>[];
           };
         }),
+        raceTrackStatsReaderProvider.overrideWith((ref) => readCache),
+        raceTrackStatsWriterProvider.overrideWith((ref) => writeCache),
       ],
     );
     addTearDown(container.dispose);
-    return (container: container, requested: requested);
+    return (
+      container: container,
+      requested: requested,
+      cache: cache,
+      writtenSampleCounts: writtenSampleCounts,
+    );
   }
 
   group('raceLogTimeOnWaterProvider', () {
@@ -206,6 +238,63 @@ void main() {
       expect(totals.maxSpeedMps, isNull);
     });
 
+    test('uses the cached stats instead of reading samples', () async {
+      // ARRANGE - a verseny statisztikaja mar materializalva van, es a
+      // mintak szandekosan mas szamokat adnanak.
+      final fixture = containerFor(
+        years: [
+          logYear(
+            year: 2026,
+            races: [finishedRace(id: 'a', year: 2026, hours: 2)],
+          ),
+        ],
+        samples: {
+          'a': [sample(sogMps: 99, latDeg: 46.90, lonDeg: 18.05)],
+        },
+        cached: const {'a': TrackStats(maxSpeedMps: 7, distanceMeters: 1200)},
+      );
+
+      // ACT
+      final totals = await fixture.container.read(
+        raceLogTrackTotalsProvider.future,
+      );
+
+      // ASSERT - a mintakat el sem olvasta, a tarolt szamokat adta vissza.
+      expect(fixture.requested, isEmpty);
+      expect(totals.maxSpeedMps, 7);
+      expect(totals.distanceMeters, 1200);
+    });
+
+    test('backfills the cache for a race that has no row yet', () async {
+      // ARRANGE - ures gyorsitotar, egy verseny ket mintaval.
+      final fixture = containerFor(
+        years: [
+          logYear(
+            year: 2026,
+            races: [finishedRace(id: 'a', year: 2026, hours: 2)],
+          ),
+        ],
+        samples: {
+          'a': [
+            sample(sogMps: 4, latDeg: 46.90, lonDeg: 18.05),
+            sample(sogMps: 6, latDeg: 46.91, lonDeg: 18.05),
+          ],
+        },
+      );
+
+      // ACT
+      final totals = await fixture.container.read(
+        raceLogTrackTotalsProvider.future,
+      );
+
+      // ASSERT - a mintakat beolvasta, es az eredmenyt ki is irta a
+      // gyorsitotarba, a bejart mintak szamaval egyutt.
+      expect(fixture.requested, ['a']);
+      expect(fixture.cache['a']?.maxSpeedMps, 6);
+      expect(fixture.cache['a']?.distanceMeters, totals.distanceMeters);
+      expect(fixture.writtenSampleCounts, [2]);
+    });
+
     test('stops reading once the provider is disposed', () async {
       // ARRANGE - az elso verseny olvasasa egy kapun var, igy a ciklus
       // biztosan fut, amikor a kepernyot elhagyjuk.
@@ -231,6 +320,12 @@ void main() {
               return Future.value(const <TrackSample>[]);
             };
           }),
+          // Ures gyorsitotar: minden verseny a minta-olvasoig jut el.
+          raceTrackStatsReaderProvider.overrideWith(
+            (ref) =>
+                (raceId) async => null,
+          ),
+          raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
         ],
       )..read(raceLogTrackTotalsProvider);
       await Future<void>.delayed(Duration.zero);
@@ -245,3 +340,11 @@ void main() {
     });
   });
 }
+
+/// A gyorsitotar-iro semmit nem csinalo dublore a teszthez.
+Future<void> _ignoreWrite(
+  String raceId,
+  TrackStats stats, {
+  required int sampleCount,
+  required DateTime computedAt,
+}) async {}

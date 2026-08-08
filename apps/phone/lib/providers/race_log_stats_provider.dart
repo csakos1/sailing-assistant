@@ -1,6 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/race_log_year_provider.dart';
+import 'package:phone/providers/race_track_stats_provider.dart';
 import 'package:phone/providers/track_sample_reader_provider.dart';
 
 /// A track-mintákból számolt év-összesítők (ADR 0044 D42).
@@ -40,59 +41,64 @@ final AutoDisposeProvider<Duration> raceLogTimeOnWaterProvider =
 
 /// A kiválasztott év össztávja és sebesség-rekordja (ADR 0044 D42).
 ///
-/// **Aszinkron**: versenyenként végigolvassa a rögzített pillanatképeket, és
-/// a kanonikus `SummarizeTrack` use case-szel összegez.
+/// **Aszinkron**: versenyenként a materializált track-statisztikát olvassa,
+/// és hiányzó soron feltölti — a kanonikus `SummarizeTrack` use case-szel.
 ///
-/// ## Miért a projekciós olvasó
+/// ## A gyorsítótár, és miért lusta a feltöltése
+///
+/// Egy befejezett verseny track-statisztikája megváltoztathatatlan tény,
+/// mégis minden képernyő-nyitáskor újraszámolódott. Az eszközön mért
+/// költség I/O-korlátos: a `snapshot_logs` soronként ~8,3 KB-os
+/// JSON-blobjait az SQLite hidegen másodpercekig húzza fel — a teljes
+/// bejárás tíz versenyre 6,5 másodperc volt (ADR 0044 Addendum 4).
+///
+/// A `race_track_stats` sorait ezért nem a motor írja, hanem ez a ciklus,
+/// olvasás közben: így a már meglévő versenyek is visszatöltődnek, és a
+/// megoldás független marad az ADR 0045-től.
+///
+/// A naplóban definíció szerint csak befejezett versenyek állnak — a
+/// `BuildRaceLog` a `finishedAt` szerint csoportosít —, ezért külön
+/// státusz-szűrés nem kell. **Ha az a use case valaha befejezetlen
+/// versenyt is beengedne, ezt a feltevést itt kell újranézni.**
+///
+/// ## Miért a projekciós olvasó a feltöltéshez
 ///
 /// A `trackSampleReaderProvider` a `snapshot_logs` sorokból csak három
 /// mennyiséget vetít ki, az SQLite `json1` kiterjesztésével. A korábbi
 /// `roundingSampleReaderProvider` soronként visszaépítette a teljes
 /// `RaceSnapshot` objektum-gráfot — 1 Hz-en versenyenként több mint tízezer
-/// dokumentumot —, és ez a főizolátumon ANR-t, ismételt belépésnél
-/// folyamat-kilövést okozott az eszközön (ADR 0044 Addendum 4).
-///
-/// A detail-képernyő elemzése továbbra is a teljes read-modellt olvassa: ott
-/// mind a tizenhárom mező kell, és egyetlen versenyre, felhasználói kérésre
-/// fut.
+/// dokumentumot. A detail-képernyő elemzése továbbra is a teljes
+/// read-modellt olvassa: ott mind a tizenhárom mező kell, és egyetlen
+/// versenyre, felhasználói kérésre fut.
 ///
 /// ## Megszakíthatóság
 ///
 /// A képernyő elhagyásakor a provider eldobódik, **a már futó ciklust
 /// viszont a Riverpod nem szakítja félbe**: egy `Future`-t nem lehet
-/// kívülről lelőni. Megszakítás nélkül minden be-ki lépés újabb teljes
-/// aggregálást indít ugyanazon az izolátumon és ugyanabból a több
-/// gigabájtos adatbázisból.
+/// kívülről lelőni. Ezért a `ref.onDispose` egy zászlót billent, amit a
+/// ciklus az `await`-ek után ellenőriz — ott kerül a vissza-koppintás
+/// feldolgozásra.
 ///
-/// Ezért a `ref.onDispose` egy zászlót billent, amit a ciklus minden
-/// verseny körül ellenőriz. A vizsgálat helye nem véletlen: a `reader`
-/// `await`-je az egyetlen pont, ahol a vezérlés visszakerül az
-/// eseményhurokhoz, tehát a vissza gomb ott kerül feldolgozásra — az
-/// utána álló ellenőrzés így legrosszabb esetben egyetlen verseny
-/// összegzése után kilép.
+/// A minta-olvasás után azonban **szándékosan nem szakítunk meg**: a drága
+/// munkát addigra kifizettük, a belőle következő összegzés és kiírás pedig
+/// ezredmásodperces. Megszakítva a következő megnyitás elölről kezdené
+/// ugyanazt; így viszont a gyorsítótárban marad.
 ///
 /// Időzítővel nem szabdaljuk tovább a ciklust: az függő timert hagyna a
-/// widget-tesztekben, és a valós késleltetést nem az ütemezés, hanem a
-/// minták mennyisége adja.
-///
-/// ## Ami ettől még nem oldódik meg
-///
-/// A JSON-t az SQLite továbbra is soronként végigolvassa, tehát az **első**
-/// betöltés költsége a minták számával nő. Ezt a per-verseny gyorsítótár
-/// szünteti meg (`race_track_stats`, ADR 0044 Addendum 4), ami külön
-/// séma-lépés.
+/// widget-tesztekben, és a valós késleltetést nem az ütemezés adja.
 final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
-    FutureProvider.autoDispose<RaceLogTrackTotals>((
-      ref,
-    ) async {
+    FutureProvider.autoDispose<RaceLogTrackTotals>((ref) async {
       final year = ref.watch(raceLogSelectedYearProvider);
       if (year == null) return _noTotals;
 
       var isCancelled = false;
       ref.onDispose(() => isCancelled = true);
 
-      final reader = ref.watch(trackSampleReaderProvider);
+      final readCachedStats = ref.watch(raceTrackStatsReaderProvider);
+      final writeCachedStats = ref.watch(raceTrackStatsWriterProvider);
+      final readSamples = ref.watch(trackSampleReaderProvider);
       const summarize = SummarizeTrack();
+
       double? distanceMeters;
       double? maxSpeedMps;
 
@@ -100,12 +106,27 @@ final AutoDisposeFutureProvider<RaceLogTrackTotals> raceLogTrackTotalsProvider =
         for (final race in month.races) {
           if (isCancelled) return _noTotals;
 
-          final samples = await reader(race.id);
-          // A fenti await az egyetlen eseményhurok-határ a cikluson belül:
-          // a felhasználó vissza-koppintása itt jut érvényre.
+          final cached = await readCachedStats(race.id);
           if (isCancelled) return _noTotals;
 
-          final stats = summarize(samples);
+          final TrackStats stats;
+          if (cached != null) {
+            stats = cached;
+          } else {
+            final samples = await readSamples(race.id);
+            // A drága olvasás után nem lépünk ki: a maradék munka olcsó,
+            // és a kiírás nélkül a következő nyitás újraolvasna.
+            stats = summarize(samples);
+            await writeCachedStats(
+              race.id,
+              stats,
+              sampleCount: samples.length,
+              // A computedAt tisztán diagnosztika: a feltöltés kapuja a sor
+              // léte, nem a kora. Ezért nem kell hozzá óra-seam.
+              computedAt: DateTime.now(),
+            );
+            if (isCancelled) return _noTotals;
+          }
 
           final raceDistance = stats.distanceMeters;
           if (raceDistance != null) {

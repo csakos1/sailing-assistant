@@ -11,6 +11,7 @@ import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
+import 'package:phone/providers/race_track_stats_provider.dart';
 import 'package:phone/providers/track_sample_reader_provider.dart';
 
 void main() {
@@ -65,6 +66,13 @@ void main() {
           trackSampleReaderProvider.overrideWith((ref) {
             return (raceId) async => samples[raceId] ?? const <TrackSample>[];
           }),
+          // A stat-csik a gyorsitotarat is olvassa; ures cache mellett a
+          // minta-olvasohoz jut, iras utan viszont nem all fel valos DB.
+          raceTrackStatsReaderProvider.overrideWith(
+            (ref) =>
+                (raceId) async => null,
+          ),
+          raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
         ],
         child: MaterialApp(
           theme: foretackTheme,
@@ -296,3 +304,11 @@ void main() {
     });
   });
 }
+
+/// A gyorsitotar-iro semmit nem csinalo dublore a teszthez.
+Future<void> _ignoreWrite(
+  String raceId,
+  TrackStats stats, {
+  required int sampleCount,
+  required DateTime computedAt,
+}) async {}
