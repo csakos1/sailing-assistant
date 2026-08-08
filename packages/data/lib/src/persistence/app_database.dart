@@ -1,4 +1,5 @@
 import 'package:data/src/persistence/tables/marks_table.dart';
+import 'package:data/src/persistence/tables/race_track_stats_table.dart';
 import 'package:data/src/persistence/tables/races_table.dart';
 import 'package:data/src/persistence/tables/saved_marks_table.dart';
 import 'package:data/src/persistence/tables/settings_table.dart';
@@ -17,7 +18,15 @@ part 'app_database.g.dart';
 /// ne jankolják a UI-t. Teszthez az executor injektálható
 /// (`NativeDatabase.memory()`), production-ben a `driftDatabase` adja.
 @DriftDatabase(
-  tables: [Races, Marks, TelemetryRecords, Settings, SnapshotLogs, SavedMarks],
+  tables: [
+    Races,
+    Marks,
+    TelemetryRecords,
+    Settings,
+    SnapshotLogs,
+    SavedMarks,
+    RaceTrackStats,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// A UI-izolátum elsődleges kapcsolata: production-ben drift_flutter named DB
@@ -39,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _assumeMigrated;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +81,11 @@ class AppDatabase extends _$AppDatabase {
       // tábla; a createTable a @TableIndex unique indexet is létrehozza.
       if (from < 4) {
         await m.createTable(savedMarks);
+      }
+      // v4 → v5 (ADR 0044 Addendum 4): a track-összesítő
+      // gyorsítótár táblája. CSAK az új tábla.
+      if (from < 5) {
+        await m.createTable(raceTrackStats);
       }
     },
     beforeOpen: (_) async {

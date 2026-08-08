@@ -63,4 +63,23 @@ void main() {
     expect(await migrated.select(migrated.snapshotLogs).get(), isEmpty);
     expect(await migrated.select(migrated.races).get(), isEmpty);
   });
+
+  test('v4 → v5: az onUpgrade létrehozza a RaceTrackStats táblát', () async {
+    // ARRANGE — v4 DB szimulációja: friss DB egy fájlon, majd CSAK a
+    // race_track_stats táblát dobjuk el, és user_version=4-re állítunk.
+    // A v4→v5 különbség kizárólag ez az egy tábla.
+    final fresh = AppDatabase(NativeDatabase(dbFile));
+    await fresh.customStatement('DROP TABLE race_track_stats');
+    await fresh.customStatement('PRAGMA user_version = 4');
+    await fresh.close();
+
+    // ACT — újranyitás: user_version (4) < schemaVersion (5) → onUpgrade.
+    final migrated = AppDatabase(NativeDatabase(dbFile));
+    addTearDown(migrated.close);
+
+    // ASSERT — a tábla létrejött (üres select nem dob), és a meglévő
+    // táblák érintetlenek.
+    expect(await migrated.select(migrated.raceTrackStats).get(), isEmpty);
+    expect(await migrated.select(migrated.races).get(), isEmpty);
+  });
 }
