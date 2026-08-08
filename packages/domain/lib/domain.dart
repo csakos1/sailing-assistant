@@ -34,6 +34,7 @@ export 'src/repositories/rounding_sample_reader.dart';
 export 'src/repositories/safety_mark_repository.dart';
 export 'src/repositories/settings_repository.dart';
 export 'src/repositories/telemetry_logger.dart';
+export 'src/repositories/track_sample_reader.dart';
 export 'src/use_cases/analyze_roundings.dart';
 export 'src/use_cases/build_race_log.dart';
 export 'src/use_cases/calculate_bearing_to_mark.dart';
