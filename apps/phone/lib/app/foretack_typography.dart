@@ -177,3 +177,18 @@ const TextStyle railNumberStyle = TextStyle(
   fontSize: 11,
   fontWeight: FontWeight.w600,
 );
+
+/// A koordinata-ertek a boja-sor mezoiben (ADR 0044 D45, 8.11).
+///
+/// Muszer-csalad, nem a szam-csalad: ez BEIRT ertek, nem mert szam,
+/// es a muszer-ido fokozataval beszel egy nyelvet. A 13,5 a
+/// makettbol jon, ahol a ket koordinata-mezo szamjegyei egymas alatt
+/// allnak - fix szelesseg nelkul a ket sor nem sorjazna.
+///
+/// A suly a szomszed instrumentClockStyle w600-anal konnyebb: az egy
+/// statusz-felirat, ez pedig szerkesztheto beviteli szoveg.
+const TextStyle coordinateValueStyle = TextStyle(
+  fontFamily: instrumentFontFamily,
+  fontSize: 13.5,
+  fontWeight: FontWeight.w500,
+);

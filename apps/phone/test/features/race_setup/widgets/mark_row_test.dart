@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/app/theme.dart';
-import 'package:phone/features/race_setup/widgets/mark_row_card.dart';
+import 'package:phone/features/race_setup/widgets/mark_row.dart';
 
-// A kartya a szuloje szelessegebol dolgozik, ezert kotott dobozba tesszuk;
+// A sor a szuloje szelessegebol dolgozik, ezert kotott dobozba tesszuk;
 // a mezoket kulcsolt placeholderek helyettesitik, hogy a szelessegukbol
 // merni lehessen a beloszabalyt.
 Future<void> _pump(
@@ -16,7 +16,7 @@ Future<void> _pump(
     home: Scaffold(
       body: SizedBox(
         width: 380,
-        child: MarkRowCard(
+        child: MarkRow(
           number: number,
           dragHandle: const Icon(Icons.drag_indicator),
           nameField: const SizedBox(key: ValueKey('name'), height: 48),
@@ -67,8 +67,8 @@ void main() {
     expect(find.byIcon(Icons.close), findsNothing);
   });
 
-  // Regresszio-or: a rejtett torles-gomb helye fennmarad, kulonben a kartya
-  // belso szelessege sorrol sorra ugralna.
+  // Regresszio-or: a rejtett torles-gomb helye fennmarad, kulonben a mezok
+  // szelessege sorrol sorra ugralna.
   testWidgets('keeps the field width when the remove button is hidden', (
     tester,
   ) async {
@@ -98,5 +98,30 @@ void main() {
     final latitude = tester.getSize(find.byKey(const ValueKey('lat'))).width;
     final longitude = tester.getSize(find.byKey(const ValueKey('lon'))).width;
     expect(latitude, longitude);
+  });
+
+  // A 44 dp-s sin a sorszamnak es a drag-handle-nek van fenntartva; a
+  // mezo-oszlop csak utana kezdodik (ADR 0044 D45).
+  testWidgets('reserves the 44 dp rail on the left', (tester) async {
+    // ARRANGE & ACT
+    await _pump(tester, onRemove: () {});
+
+    // ASSERT - 44 dp sin + 10 dp mezo-padding.
+    final rowLeft = tester.getTopLeft(find.byType(MarkRow)).dx;
+    final nameLeft = tester.getTopLeft(find.byKey(const ValueKey('name'))).dx;
+    expect(nameLeft - rowLeft, 54);
+  });
+
+  // A rajz 44, a tapintasi doboz 48 (ADR 0044 D49): nedves kezzel, mozgo
+  // hajon a tapintasi meretet nem aldozzuk fel egy vizualis aranyert.
+  testWidgets('keeps a 48 dp touch box on the remove button', (tester) async {
+    // ARRANGE & ACT
+    await _pump(tester, onRemove: () {});
+
+    // ASSERT
+    expect(
+      tester.getSize(find.byType(IconButton)),
+      const Size(48, 48),
+    );
   });
 }

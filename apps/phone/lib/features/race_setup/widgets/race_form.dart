@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
-import 'package:phone/features/race_setup/widgets/mark_row_card.dart';
+import 'package:phone/features/race_setup/widgets/mark_row.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/widgets/section_label.dart';
@@ -30,7 +31,7 @@ import 'package:shared/shared.dart';
 /// **Elrendezés (ADR 0044 D1).** Görgetett törzs + rögzített akció-sáv: a
 /// „Mentés" hat bójánál is elérhető marad görgetés nélkül. A sáv a formon
 /// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
-/// A sor-megjelenítés a [MarkRowCard]-ban van, itt csak az állapot marad.
+/// A sor-megjelenítés a [MarkRow]-ban van, itt csak az állapot marad.
 ///
 /// **Bója nélküli verseny (ADR 0046 D4).** A „BÓJÁK" fejléc-sor jobb
 /// szélén álló kapcsoló kiveszi a bója-blokkot a fából, és a submit
@@ -182,15 +183,16 @@ class _RaceFormState extends State<RaceForm> {
 
   /// A kártyán belüli mezők dekorációja (ADR 0044 D3).
   ///
-  /// A téma alapját a kitöltés szűkíti: `surface`, mert a kártya
-  /// háttere már `surfaceContainer` — azonos színnel a mező eltűnne —, és a
+  /// A téma alapját a kitöltés szűkíti: a mező `surfaceContainer`,
+  /// mert a bója-sor háttere `surface`, és azonos színnel a mező
+  /// eltűnne. Ez a korábbi elrendezés inverze (ADR 0044 D45). A
   /// radius a token-rétegben nullázódott (ADR 0044 D47).
-  InputDecoration _cardFieldDecoration(String label) {
+  InputDecoration _rowFieldDecoration(String label) {
     final scheme = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
       isDense: true,
-      fillColor: scheme.surface,
+      fillColor: scheme.surfaceContainer,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       border: foretackFieldBorder(scheme.outline),
       enabledBorder: foretackFieldBorder(scheme.outline),
@@ -207,11 +209,12 @@ class _RaceFormState extends State<RaceForm> {
   ) {
     return TextFormField(
       controller: controller,
-      decoration: _cardFieldDecoration(
+      decoration: _rowFieldDecoration(
         axis == GeoAxis.latitude
             ? l10n.setupLatitudeLabel
             : l10n.setupLongitudeLabel,
       ),
+      style: coordinateValueStyle,
       keyboardType: const TextInputType.numberWithOptions(
         signed: true,
         decimal: true,
@@ -220,9 +223,12 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
-  Widget _markRowCard(AppLocalizations l10n, int index) {
+  Widget _markRow(AppLocalizations l10n, int index) {
     final row = _markRows[index];
-    return MarkRowCard(
+    return MarkRow(
+      // A reorder a KÖZVETLEN gyerekeket mozgatja, ezért a
+      // sor-kulcs ide került, a korábbi Paddingről.
+      key: ObjectKey(row),
       number: index + 1,
       // Explicit drag-handle: a sor-szintű long-press ütközne a
       // szövegmezőkkel, ezért csak innen indul a húzás.
@@ -235,7 +241,7 @@ class _RaceFormState extends State<RaceForm> {
       ),
       nameField: TextFormField(
         controller: row.nameController,
-        decoration: _cardFieldDecoration(l10n.setupMarkNameLabel),
+        decoration: _rowFieldDecoration(l10n.setupMarkNameLabel),
         textInputAction: TextInputAction.next,
         validator: (value) => _validateName(l10n, value),
       ),
@@ -308,8 +314,8 @@ class _RaceFormState extends State<RaceForm> {
                 else ...[
                   // A bója-sorok átrendezhetők; a ReorderableListView a
                   // külső ListView-on belül zsugorodik és nem görget külön.
-                  // A sor-kulcs a Paddingen ül, mert a reorder a KÖZVETLEN
-                  // gyerekeket mozgatja.
+                  // A sorokat hairline választja el (ADR 0044 D45), ezért
+                  // köztük nincs rés, és a sor-kulcs a MarkRow-n ül.
                   ReorderableListView(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -317,11 +323,7 @@ class _RaceFormState extends State<RaceForm> {
                     onReorder: _reorderMarkRow,
                     children: [
                       for (var i = 0; i < _markRows.length; i++)
-                        Padding(
-                          key: ObjectKey(_markRows[i]),
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _markRowCard(l10n, i),
-                        ),
+                        _markRow(l10n, i),
                     ],
                   ),
                   const SizedBox(height: 6),
