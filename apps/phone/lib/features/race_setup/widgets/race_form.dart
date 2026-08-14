@@ -6,6 +6,7 @@ import 'package:phone/app/foretack_typography.dart';
 import 'package:phone/app/text_tones.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
+import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
 import 'package:phone/features/race_setup/widgets/mark_row.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -326,33 +327,30 @@ class _RaceFormState extends State<RaceForm> {
                         _markRow(l10n, i),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.tonalIcon(
-                      onPressed: () => unawaited(_pickFromLibrary()),
-                      icon: const Icon(Icons.history, size: 17),
-                      label: Text(l10n.setupPickFromLibrary),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(14)),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ],
             ),
           ),
-          // Bója nélküli módban nincs mit hozzáadni: a sáv egyetlen,
-          // teljes szélességű Mentés gombra esik (ADR 0046 D4).
+          // Bója nélküli módban nincs mit hozzáadni: a lista üres,
+          // és a sáv egyetlen, teljes szélességű Mentés gombra esik
+          // (ADR 0046 D4).
           FormActionBar(
             primaryLabel: l10n.setupSave,
             onPrimary: _submit,
-            secondaryLabel: _isMarkless ? null : l10n.setupAddMark,
-            secondaryIcon: _isMarkless ? null : Icons.add,
-            onSecondary: _isMarkless ? null : _addMarkRow,
+            secondaryActions: _isMarkless
+                ? const []
+                : [
+                    FormBarAction(
+                      label: l10n.setupAddMark,
+                      icon: Icons.add,
+                      onTap: _addMarkRow,
+                    ),
+                    FormBarAction(
+                      label: l10n.setupPickFromLibrary,
+                      icon: Icons.history,
+                      onTap: () => unawaited(_pickFromLibrary()),
+                    ),
+                  ],
           ),
         ],
       ),
