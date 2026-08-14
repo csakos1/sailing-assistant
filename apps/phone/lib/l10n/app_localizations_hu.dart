@@ -134,7 +134,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupMarksSection => 'BÓJÁK';
 
   @override
-  String get setupNoMarksToggle => 'Bóják nélkül';
+  String get setupNoMarksToggle => 'Bója nélküli verseny';
 
   @override
   String get setupNoMarksHint =>

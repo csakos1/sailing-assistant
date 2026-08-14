@@ -171,7 +171,7 @@
   "@setupMarksSection": {
     "description": "A bója-lista szakasz-címkéje az űrlapon (verzál)."
   },
-  "setupNoMarksToggle": "Bóják nélkül",
+  "setupNoMarksToggle": "Bója nélküli verseny",
   "@setupNoMarksToggle": {
     "description": "Kapcsoló: a verseny bóják nélkül indul (ADR 0046)."
   },

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/foretack_switch.dart';
 
 void main() {
   const markA = Mark(
@@ -38,8 +39,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  // A savban ket kitoltott gomb ul (a mentes es a konyvtar-valaszto
-  // tonal valtozata), ezert a mentest a feliratarol cimezzuk.
+  // A savban ma egyetlen kitoltott gomb ul, de a mentest tovabbra is
+  // a feliratarol cimezzuk, hogy egy uj gomb ne tegye ketertelmuve.
   Finder saveButton(WidgetTester tester) => find.widgetWithText(
     FilledButton,
     AppLocalizations.of(tester.element(find.byType(RaceForm)))!.setupSave,
@@ -242,7 +243,7 @@ void main() {
     expect(find.byType(TextFormField), findsNWidgets(4));
 
     // ACT
-    await tester.tap(find.byType(FilterChip));
+    await tester.tap(find.byType(ForetackSwitch));
     await tester.pumpAndSettle();
 
     // ASSERT — csak a verseny-név marad; a sorok, a hozzáadás és a
@@ -269,7 +270,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(0), 'Túra');
 
     // ACT
-    await tester.tap(find.byType(FilterChip));
+    await tester.tap(find.byType(ForetackSwitch));
     await tester.pumpAndSettle();
     await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
@@ -289,9 +290,9 @@ void main() {
     await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
 
     // ACT — ki, majd vissza.
-    await tester.tap(find.byType(FilterChip));
+    await tester.tap(find.byType(ForetackSwitch));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FilterChip));
+    await tester.tap(find.byType(ForetackSwitch));
     await tester.pumpAndSettle();
 
     // ASSERT — a két sor és a bennük lévő adat is visszatért.

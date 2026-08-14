@@ -10,6 +10,7 @@ import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
 import 'package:phone/features/race_setup/widgets/mark_row.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/foretack_switch.dart';
 import 'package:phone/widgets/section_label.dart';
 import 'package:shared/shared.dart';
 
@@ -34,8 +35,8 @@ import 'package:shared/shared.dart';
 /// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
 /// A sor-megjelenítés a [MarkRow]-ban van, itt csak az állapot marad.
 ///
-/// **Bója nélküli verseny (ADR 0046 D4).** A „BÓJÁK" fejléc-sor jobb
-/// szélén álló kapcsoló kiveszi a bója-blokkot a fából, és a submit
+/// **Bója nélküli verseny (ADR 0046 D4, Addendum 1 D7).** A verseny-név
+/// alatti fix kapcsoló-sor kiveszi a bója-blokkot a fából, és a submit
 /// üres listát ad ki. A koordináta-validáció ilyenkor magától kimarad,
 /// mert a `Form.validate()` csak a fában lévő mezőket futtatja — nincs
 /// feltételes validációs ág. A sor-állapot NEM törlődik, hogy a
@@ -261,11 +262,61 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
+  /// A bója nélküli mód kapcsoló-sora (ADR 0046 Addendum 1 D7).
+  ///
+  /// Fix helyen ül, a verseny-név alatt és a bója-blokk fölött: a bója
+  /// nélküliség a VERSENYRE vonatkozó tulajdonság, nem a bója-listára,
+  /// ezért a névvel egy szinten áll. Bekapcsolva a blokk eltűnik alatta,
+  /// a sor maga nem mozdul.
+  ///
+  /// A magyarázó sor **kikapcsolva is látszik**: a következmény (nincs
+  /// bearing, ETA és predikció) különben a vízen derülne ki.
+  Widget _marklessRow(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = theme.extension<TextTones>()!;
+    final line = BorderSide(color: theme.colorScheme.outlineVariant);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: line, bottom: line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.setupNoMarksToggle,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.setupNoMarksHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: tones.low,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            ForetackSwitch(
+              value: _isMarkless,
+              onChanged: (value) => setState(() => _isMarkless = value),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
-    final tones = Theme.of(context).extension<TextTones>()!;
 
     return Form(
       key: _formKey,
@@ -273,46 +324,32 @@ class _RaceFormState extends State<RaceForm> {
         children: [
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              // Teljes szélességű törzs: a bója-sorok és a kapcsoló-sor
+              // hairline-jai a képernyő széléig futnak (ADR 0044 D45).
+              padding: const EdgeInsets.only(top: 8),
               children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.setupRaceNameLabel,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                  child: TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.setupRaceNameLabel,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? l10n.setupRaceNameRequired
+                        : null,
                   ),
-                  textInputAction: TextInputAction.next,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? l10n.setupRaceNameRequired
-                      : null,
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SectionLabel(text: l10n.setupMarksSection),
-                    ),
-                    // Halk, tonális kapcsoló a fejléc-sor jobb szélén: nem
-                    // kér plusz függőleges helyet (ADR 0046 D4).
-                    FilterChip(
-                      label: Text(l10n.setupNoMarksToggle),
-                      selected: _isMarkless,
-                      onSelected: (value) =>
-                          setState(() => _isMarkless = value),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                if (_isMarkless)
-                  // Üres szakasz felirat nélkül hibásnak látszik, a
-                  // következmény pedig egyébként a vízen derülne ki.
-                  Text(
-                    l10n.setupNoMarksHint,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: tones.low),
-                  )
-                else ...[
+                _marklessRow(l10n),
+                if (!_isMarkless) ...[
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SectionLabel(text: l10n.setupMarksSection),
+                  ),
+                  const SizedBox(height: 6),
                   // A bója-sorok átrendezhetők; a ReorderableListView a
                   // külső ListView-on belül zsugorodik és nem görget külön.
                   // A sorokat hairline választja el (ADR 0044 D45), ezért

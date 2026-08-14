@@ -9,8 +9,8 @@ import 'package:phone/providers/id_provider.dart';
 import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 
-// A savban ket kitoltott gomb ul (a mentes es a konyvtar-valaszto
-// tonal valtozata), ezert a mentest a feliratarol cimezzuk.
+// A savban ma egyetlen kitoltott gomb ul, de a mentest tovabbra is
+// a feliratarol cimezzuk, hogy egy uj gomb ne tegye ketertelmuve.
 Finder _saveButton(WidgetTester tester) => find.widgetWithText(
   FilledButton,
   AppLocalizations.of(tester.element(find.byType(RaceSetupScreen)))!.setupSave,

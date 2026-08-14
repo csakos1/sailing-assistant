@@ -331,7 +331,7 @@ abstract class AppLocalizations {
   /// Kapcsoló: a verseny bóják nélkül indul (ADR 0046).
   ///
   /// In hu, this message translates to:
-  /// **'Bóják nélkül'**
+  /// **'Bója nélküli verseny'**
   String get setupNoMarksToggle;
 
   /// Magyarázat a bója nélküli mód alatt.
