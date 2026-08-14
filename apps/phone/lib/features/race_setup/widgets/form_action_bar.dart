@@ -99,7 +99,9 @@ class _SecondaryRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return ColoredBox(
-      color: scheme.surfaceContainer,
+      // Egy fokkal a törzs fölött: a `surfaceContainer` bitre azonos a
+      // bója-sorok mezőinek kitöltésével, és eszközön egybeolvadt vele.
+      color: scheme.surfaceContainerHigh,
       child: SizedBox(
         height: _secondaryHeight,
         // A kötött magasság miatt a stretch itt biztonságos: az osztó

@@ -262,6 +262,20 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
+  /// A bója-blokk tetejét lezáró hairline (ADR 0044 D45).
+  ///
+  /// A sorok **csak alul** rajzolnak határt, hogy két
+  /// szomszédos sor között ne fusson dupla vonal; így viszont a blokk
+  /// teteje nyitva maradna, és a lista felül bevégzetlennek látszana.
+  Widget _blockTopLine() {
+    return SizedBox(
+      height: 1,
+      child: ColoredBox(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
+    );
+  }
+
   /// A „BÓJÁK” fejléc a darabszámmal (ADR 0044 D45).
   ///
   /// A szám ugyanazt a mono fokozatot viseli, amit a bója-sor
@@ -371,6 +385,7 @@ class _RaceFormState extends State<RaceForm> {
                   const SizedBox(height: 14),
                   _marksHeader(l10n),
                   const SizedBox(height: 6),
+                  _blockTopLine(),
                   // A bója-sorok átrendezhetők; a ReorderableListView a
                   // külső ListView-on belül zsugorodik és nem görget külön.
                   // A sorokat hairline választja el (ADR 0044 D45), ezért
