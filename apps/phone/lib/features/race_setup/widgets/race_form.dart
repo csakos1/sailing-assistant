@@ -182,9 +182,9 @@ class _RaceFormState extends State<RaceForm> {
 
   /// A kártyán belüli mezők dekorációja (ADR 0044 D3).
   ///
-  /// A téma alapját két ponton szűkíti: a kitöltés `surface`, mert a kártya
+  /// A téma alapját a kitöltés szűkíti: `surface`, mert a kártya
   /// háttere már `surfaceContainer` — azonos színnel a mező eltűnne —, és a
-  /// radius 10, hogy a mező ne versenyezzen a kártya 14-es sarkával.
+  /// radius a token-rétegben nullázódott (ADR 0044 D47).
   InputDecoration _cardFieldDecoration(String label) {
     final scheme = Theme.of(context).colorScheme;
     return InputDecoration(
@@ -192,19 +192,11 @@ class _RaceFormState extends State<RaceForm> {
       isDense: true,
       fillColor: scheme.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      border: foretackFieldBorder(scheme.outline, radius: 10),
-      enabledBorder: foretackFieldBorder(scheme.outline, radius: 10),
-      focusedBorder: foretackFieldBorder(
-        scheme.primary,
-        width: 1.5,
-        radius: 10,
-      ),
-      errorBorder: foretackFieldBorder(scheme.error, width: 1.5, radius: 10),
-      focusedErrorBorder: foretackFieldBorder(
-        scheme.error,
-        width: 1.5,
-        radius: 10,
-      ),
+      border: foretackFieldBorder(scheme.outline),
+      enabledBorder: foretackFieldBorder(scheme.outline),
+      focusedBorder: foretackFieldBorder(scheme.primary, width: 1.5),
+      errorBorder: foretackFieldBorder(scheme.error, width: 1.5),
+      focusedErrorBorder: foretackFieldBorder(scheme.error, width: 1.5),
     );
   }
 

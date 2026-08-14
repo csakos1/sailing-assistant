@@ -83,15 +83,15 @@ ThemeData _buildForetackTheme() {
 ///
 /// A radius minden állapotban azonos, csak a vonal színe és vastagsága
 /// vált — így a fókusz és a hiba nem mozdítja el a mező geometriáját.
-/// A [radius] alapértéke a 12 dp-s űrlap-mező; a bója-kártyán belüli
-/// mezők 10-et kérnek, hogy ne versenyezzenek a kártya 14-es
-/// sarkával (ADR 0044 D3). Publikus, mert a kártya-dekoráció a
+/// A [radius] alapértéke **0**: a szögletesség nem képernyő-lokális
+/// stílus, hanem a 2a/3a/5d közös nyelve, ezért a token-rétegben dől
+/// el (ADR 0044 D47). Publikus, mert a kártya-dekoráció a
 /// `race_form.dart`-ban épül, és a létra másolása két helyre
 /// szétcsúszást hívna elő.
 OutlineInputBorder foretackFieldBorder(
   Color color, {
   double width = 1,
-  double radius = 12,
+  double radius = 0,
 }) {
   return OutlineInputBorder(
     borderRadius: BorderRadius.all(Radius.circular(radius)),

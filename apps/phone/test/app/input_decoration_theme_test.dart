@@ -20,7 +20,7 @@ void main() {
     expect(decoration.fillColor, scheme.surfaceContainer);
   });
 
-  test('rounds every border state to 12 dp', () {
+  test('squares every border state', () {
     final radii = [
       decoration.border,
       decoration.enabledBorder,
@@ -29,7 +29,9 @@ void main() {
       decoration.focusedErrorBorder,
     ].map((border) => _outline(border).borderRadius);
 
-    expect(radii, everyElement(BorderRadius.circular(12)));
+    // ADR 0044 D47: a szogletesseg a token-retegben dol el, nem a
+    // hivohelyeken - ezert a temaban orizzuk.
+    expect(radii, everyElement(BorderRadius.zero));
   });
 
   test('uses the outline tone at rest and the accent on focus', () {

@@ -156,3 +156,24 @@ const TextStyle statusLabelStyle = TextStyle(
   fontWeight: FontWeight.w600,
   letterSpacing: 0.88,
 );
+
+/// Mono sorszam a boja-sor 44 dp-s sinjen, es ugyanez a fokozat a
+/// "BOJAK" fejlec darabszaman (ADR 0044 D47, geometria: 8.11).
+///
+/// Sajat fokozat, nem a `statusLabelStyle` ujrahasznalasa: az egy
+/// lista-sor VERZAL statusz-feliratat igeri a nevevel, es egy
+/// sorszam-sinen ugyanugy felrevezetne, ahogy a `listItemTitleStyle`
+/// tenne egy boja-soron.
+///
+/// `letterSpacing` szandekosan NINCS: a rokon fokozatok 0.86-0.88-a a
+/// VERZAL feliratok ritkitasa, szamjegynel viszont a Martian Mono fix
+/// szelessege eleve tart, es a plusz terkoz a ketjegyu sorszamot
+/// kimozditana a sin optikai kozepebol.
+///
+/// A `railLabelStyle`-lal NEM keverendo: az az 1c elo nezet
+/// sav-feliratae, ez pedig a setup-urlap boja-sinje.
+const TextStyle railNumberStyle = TextStyle(
+  fontFamily: numeralFontFamily,
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+);
