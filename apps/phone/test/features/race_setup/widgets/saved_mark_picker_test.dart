@@ -162,4 +162,21 @@ void main() {
     // ASSERT — enélkül nem lenne mivel visszalépni a teljes listára.
     expect(find.byType(TextField), findsOneWidget);
   });
+
+  // Regresszio-or: szures utan a lap NEM zsugorodik a talalatok
+  // meretere, kulonben a billentyuzet ala kerulne.
+  testWidgets('a lap magassága nem függ a találatok számától', (
+    tester,
+  ) async {
+    // ARRANGE
+    await pumpPicker(tester, marks);
+    final full = tester.getSize(find.byType(SavedMarkPicker)).height;
+
+    // ACT
+    await search(tester, 'vk');
+
+    // ASSERT
+    final filtered = tester.getSize(find.byType(SavedMarkPicker));
+    expect(filtered.height, full);
+  });
 }

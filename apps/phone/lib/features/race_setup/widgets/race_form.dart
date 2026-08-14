@@ -103,7 +103,14 @@ class _RaceFormState extends State<RaceForm> {
       showDragHandle: true,
       // A design-rendszer minden felülete r0 (ADR 0044 D47).
       shape: const RoundedRectangleBorder(),
-      builder: (_) => const SavedMarkPicker(),
+      // A modal sheet magától NEM tér ki a billentyűzet elől, a
+      // kereső-mező (D52) pedig különben alá csúszna.
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        child: const SavedMarkPicker(),
+      ),
     );
     if (!mounted || picked == null) return;
     _addPickedMarkRow(picked);

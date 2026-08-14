@@ -7,11 +7,13 @@ import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/mark_library_provider.dart';
 import 'package:phone/widgets/section_label.dart';
 
-/// A lap legnagyobb magassága a képernyőhöz mérve (ADR 0044 D51).
+/// A lap magassága a maradék képernyőhöz mérve (ADR 0044 D51).
 ///
-/// A korlát a widgeté, nem a hívóé: rövid könyvtárnál a lap alacsony
-/// marad, hosszúnál viszont nem nő teljes képernyőssé.
-const double _maxHeightFactor = 0.74;
+/// A magasság **fix, nem felső korlát**: szűréskor a lap különben
+/// összemenne a találatok méretére, és a billentyűzet alá csúszna. A
+/// viszonyítás a billentyűzettel csökkentett magassághoz történik, hogy nyitott
+/// billentyűzetnél se lógjon ki.
+const double _heightFactor = 0.74;
 
 /// A sor-belső margók.
 const EdgeInsets _rowPadding = EdgeInsets.symmetric(
@@ -83,10 +85,14 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
     // mérete olyan számot mutatna, aminek a lapon nincs megfelelője.
     final count = visible.isEmpty ? null : visible.length;
 
+    // A billentyűzet fölé a lapot a hívó emeli (a sheet builder-e), a
+    // magasságot viszont itt kell a maradék képernyőhöz mérni.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final height =
+        (MediaQuery.sizeOf(context).height - keyboard) * _heightFactor;
+
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * _maxHeightFactor,
-      ),
+      constraints: BoxConstraints.tightFor(height: height),
       child: SafeArea(
         top: false,
         child: Column(
@@ -121,7 +127,7 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
                 ],
               ),
             ),
-            Flexible(
+            Expanded(
               child: marks.when(
                 loading: () => const _PickerSpinner(),
                 error: (_, _) =>
@@ -138,7 +144,6 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
                     );
                   }
                   return ListView.builder(
-                    shrinkWrap: true,
                     itemCount: visible.length,
                     itemBuilder: (context, index) {
                       final mark = visible[index];
