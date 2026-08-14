@@ -262,6 +262,30 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
+  /// A „BÓJÁK” fejléc a darabszámmal (ADR 0044 D45).
+  ///
+  /// A szám ugyanazt a mono fokozatot viseli, amit a bója-sor
+  /// sorszám-sínje, mert ugyanarról a listáról beszél. Összekötő csík
+  /// **nincs**: sem a lista-, sem a detail-képernyő szakasz-címkéi nem
+  /// viselnek ilyet, és egy harmadik elválasztó-nyelv itt nem indokolt.
+  Widget _marksHeader(AppLocalizations l10n) {
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(child: SectionLabel(text: l10n.setupMarksSection)),
+          Text(
+            '${_markRows.length}',
+            style: railNumberStyle.copyWith(color: tones.low),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// A bója nélküli mód kapcsoló-sora (ADR 0046 Addendum 1 D7).
   ///
   /// Fix helyen ül, a verseny-név alatt és a bója-blokk fölött: a bója
@@ -345,10 +369,7 @@ class _RaceFormState extends State<RaceForm> {
                 _marklessRow(l10n),
                 if (!_isMarkless) ...[
                   const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SectionLabel(text: l10n.setupMarksSection),
-                  ),
+                  _marksHeader(l10n),
                   const SizedBox(height: 6),
                   // A bója-sorok átrendezhetők; a ReorderableListView a
                   // külső ListView-on belül zsugorodik és nem görget külön.
