@@ -2397,25 +2397,28 @@ egy validált `(name, marks)` párt ad `onSubmit`-en. A `RaceDetailScreen`
 `ReorderableListView`-ben ülnek, külön drag-handle-lel; a `sequence`
 pozíció-alapú, ezért a reorder a domaint és a data-t nem érinti. A mentés
 create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
-`save` delete-and-rewrite-ja felülír). Az űrlap 1h-elrendezését és a
-mező-geometriáját a §8.11 rögzíti (ADR 0044).
+`save` delete-and-rewrite-ja felülír). Az űrlap 5d-elrendezését és a
+mező-geometriáját a §8.11 rögzíti (ADR 0044 + Addendum 5).
 
-**Bója nélküli verseny az űrlapon (ADR 0046 D4).** A `RaceForm`
-„BÓJÁK” szekció-fejlécének jobb szélén egy halk, tonális kapcsoló
-áll: bekapcsolva együtt tűnik el a bója-sorok listája, a „Bója
-könyvtárból” gomb és az akció-sáv „Bója hozzáadása” gombja, a submit
-pedig üres listát ad. A koordináta-validáció magától kimarad, mert a
-`Form.validate()` csak a fában lévő `FormField`-eket futtatja — nem
-kell feltételes validációs ág. A `_markRows` állapot nem törlődik,
-csak kikerül a fából, tehát visszakapcsolva a beírt sorok megmaradnak;
-edit-módban a kapcsoló induló értéke `initialRace.marks.isEmpty`. A
-kapcsoló alatt egy alacsony tónusú sor közli a következményt (a track
-és a target speed rögzül, a bearing/ETA/predikció nem jelenik meg),
-mert üres szekció felirat nélkül hibásnak látszik. A `FormActionBar`
-secondary hármasa emiatt nullable, és a sáv ilyenkor teljes szélességű
-primary gombra esik. A lajstrom- és a detail-soron a bójaszám helyett
-„BÓJA NÉLKÜL” felirat áll (ADR 0046 D5), mert a nulla itt nem
-darabszám, hanem üzemmód.
+**Bója nélküli verseny az űrlapon (ADR 0046 D4 + Addendum 1 D7).** A
+`RaceForm` a **verseny-név mező alatt**, fix sorban hordoz egy
+`ForetackSwitch` kapcsolót: bekapcsolva együtt tűnik el a „BÓJÁK"
+fejléc, a bója-sorok listája és a teljes másodlagos akció-sor („Bója
+hozzáadása" + „Korábbi bóják"), a submit pedig üres listát ad. A hely
+azért ez, mert a bója nélküliség a **versenyre** vonatkozó tulajdonság,
+nem a bója-listára; a fejléc jobb szélét ráadásul a darabszám foglalja.
+A koordináta-validáció magától kimarad, mert a `Form.validate()` csak a
+fában lévő `FormField`-eket futtatja — nem kell feltételes validációs ág.
+A `_markRows` állapot nem törlődik, csak kikerül a fából, tehát
+visszakapcsolva a beírt sorok megmaradnak; edit-módban a kapcsoló induló
+értéke `initialRace.marks.isEmpty`. A kapcsoló alatt egy alacsony tónusú
+sor közli a következményt (a track és a target speed rögzül, a
+bearing/ETA/predikció nem jelenik meg). Bekapcsolva a sín `primary`, a
+bütyök `onPrimary` — a Mentés gomb inverze. A `FormActionBar`
+`secondaryActions` listája emiatt üres, és a sáv ilyenkor egyetlen,
+teljes szélességű primary gombra esik. A lajstrom- és a detail-soron a
+bójaszám helyett „BÓJA NÉLKÜL” felirat áll (ADR 0046 D5), mert a nulla
+itt nem darabszám, hanem üzemmód.
 
 **Koordináta-bevitel (ADR 0029 Addendum 1).** A bója lat/lon mezői a
 tizedes-fok mellett DDM (`46° 56.793' N`) és DMS (`46° 56' 47.6" N`)
@@ -2435,8 +2438,13 @@ setup és az edit submit-ágán is, ADR 0029 D4); a hiba nem blokkolja a verseny
 mentését — a verseny a forrás-igazság (L5). A domain oldalon a `SavedMark`
 entity + a `MarkLibraryRepository` interfész áll (ISP-külön a
 `RaceRepository`-tól, L6); a `saved_marks` az órára/payloadba NEM kerül. A
-picker v1-ben read-only, additív `RaceForm`-elem (név + forrás-verseny-név,
-koordináta nélkül), tap → előtöltött bója-sor (L8).
+picker additív `RaceForm`-elem, tap → előtöltött bója-sor (L8). A sor
+három adatot mutat — bója-név, **koordináta** és forrás-verseny —, a lap
+tetején pedig kliens-oldali kereső-mező áll (ADR 0044 Addendum 5
+D51–D52, az L8 két kikötésének feloldása). A koordináta azért kell, mert
+a könyvtár előfordulás-napló: ugyanaz a név más versenyben más
+koordinátával is szerepelhet. Írás felőli **read-only** marad: a
+könyvtár-sor törlése és szerkesztése nincs benne.
 
 **Verseny-lista státusz-particionálás (ADR 0033 + Addendum 1).** A
 főképernyő (`RaceListScreen`) listája státusz szerint particionál: a fő
@@ -3165,7 +3173,7 @@ szakaszban áll össze.
 saját színt: minden érték a `ColorScheme` slotjaiból vagy a `TextTones`
 `ThemeExtension`-ből jön. Ha egy makett a token-lapon kívüli színt rajzol,
 azt meglévő slotra képezzük le, és az eltérést a döntés-rekord kimondja — az
-ADR 0044 eddig négy ilyen színt vezetett vissza a token-lapra. Ha egy
+ADR 0044 eddig hat ilyen színt vezetett vissza a token-lapra. Ha egy
 szemantikai szerep tényleg hiányzik, **app-szintű** token születik (új
 `ColorScheme` slot vagy `ThemeExtension` mező), nem képernyő-lokális
 konstans: a lokális konstans pontosan az a drift, amitől két képernyő fél év
@@ -3184,22 +3192,24 @@ nyitni, és nem duplázódik a két hívóban.
 +------------------------------------------------+
 | <  Verseny szerkesztese                        |  AppBar, screenTitleStyle
 +------------------------------------------------+
-| [ Verseny neve ............................. ] |  52 dp, r12
-|                                                |
-| BOJAK                                          |  sectionLabelStyle + low
-| +--------------------------------------------+ |
-| | 1  [ Boja neve ......................] [x] | |  kartya r14
-| | :: [ Szelesseg .... ] [ Hosszusag ...... ] | |  mezok 48 dp, r10
-| +--------------------------------------------+ |
-| +--------------------------------------------+ |
-| | 2  [ Boja neve ......................] [x] | |
-| | :: [ Szelesseg .... ] [ Hosszusag ...... ] | |
-| +--------------------------------------------+ |
-| ( Korabbi bojak )                              |  48 dp, r14
-|                                                |
+| [ Verseny neve ............................. ] |  52 dp, r0
++------------------------------------------------+
+| Boja nelkuli verseny                     [ o ] |  fix sor, ForetackSwitch
+| Csak track-rogzites, navigacio nelkul          |  tones.low
++------------------------------------------------+
+| BOJAK                                        2 |  sectionLabelStyle + low
++----+-------------------------------------------+
+| 01 | [ Boja neve ...............] [x]          |  mezok 48 dp, r0
+| :: | [ Szelesseg .... ] [ Hosszusag .... ]     |  sin 44 dp
++----+-------------------------------------------+
+| 02 | [ Boja neve ...............] [x]          |
+| :: | [ Szelesseg .... ] [ Hosszusag .... ]     |
++----+-------------------------------------------+
 |          (a torzs innentol gorgetheto)         |
 +------------------------------------------------+
-| [ + Boja hozzaadasa ]  [      Mentes      ]    |  hairline felul, 52 dp
+| [ + Boja hozzaadasa ] | [ Korabbi bojak ]      |  hairline felul, 56 dp
++------------------------------------------------+
+| [                Mentes                      ] |  teljes szelesseg, 60 dp
 +------------------------------------------------+
 ```
 
@@ -3207,40 +3217,55 @@ nyitni, és nem duplázódik a két hívóban.
 
 | Elem | Geometria | Token |
 |---|---|---|
-| Törzs-padding | `8/16/0`, szakasz-gap 14 | — |
+| Törzs-padding | `8/0/0` — a bója-sorok teljes szélességűek | — |
+| Név-blokk | pad `16/20/18`, mező 52 dp, r0 | `surfaceContainer` + `outline` |
 | Szakasz-címke | 11 w600, `+.08em`, verzál | `sectionLabelStyle` + `TextTones.low` |
-| Verseny-név mező | 52 dp, r12, pad 16 | `surfaceContainer` + `outline` |
-| Bója-kártya | r14, 1 px keret, pad `12/12/12/8`, gap 8 | `surfaceContainer` + `outlineVariant` |
-| Drag-handle oszlop | 28 dp, badge + hat pötty | `TextTones.low` |
-| Kártyán belüli mező | 48 dp, r10, pad 14 / 10 | `surface` + `outline` |
+| Bója-darabszám | 11 w600 mono, jobbra zárva | `railNumberStyle` + `TextTones.low` |
+| Kapcsoló-sor | pad `14/20`, hairline felül és alul | `outlineVariant` |
+| `ForetackSwitch` | 52×30 dp sín, 21 dp bütyök, r0 | `outline` → `primary` |
+| Bója-sor | teljes szélesség, hairline alul | `surface` + `outlineVariant` |
+| Sorszám-sín | 44 dp, mono sorszám + hat pötty | `surfaceContainer` + `TextTones.low` |
+| Soron belüli mező | 48 dp, r0, pad 14 / 10 | `surfaceContainer` + `outline` |
 | Koordináta-szöveg | 13,5 IBM Plex Mono | `onSurface` |
-| Törlés-gomb | 48×48 | `TextTones.low` |
-| „Korábbi bóják" | 48 dp, r14, 14 w600 | `secondaryContainer` |
-| Akció-sáv | felül 1 px, pad `14/16/8`, gap 10 | `outlineVariant` |
-| Akció-gombok | 2× `Expanded`, 52 dp, r14, 15 | `outline` / `primary` |
+| Törlés-gomb | 44 dp rajz, 48 dp tapintás | `TextTones.low` |
+| Másodlagos sáv | 2× `Expanded`, 56 dp, osztó hairline | `surfaceContainer` |
+| Mentés-sáv | teljes szélesség, 60 dp, r0 | `primary` |
 
-**A bója-sor kártya, sorszám-badge-dzsel (D2).** A lapos sor helyett kártya:
-a keret adja a sor-határt, amit ma semmi nem jelöl. A bal oldali 28 dp-s
-oszlopban fölül a sorszám ül (a meglévő `setupMarkHeader` ARB-kulcsból),
-alatta a drag-handle. A sorszám azért marad, mert tour-race-en a **sorrend
-maga az adat**: a bóják számozása a versenykiírásból jön, és a badge az
-egyetlen visszajelzés arról, hogy a húzás azt tette, amit akartunk.
+**A bója-sor teljes szélességű, sorszám-sínnel (D2 → Addendum 5 D45).**
+A kártya helyett hairline-nal határolt, teljes szélességű sor, a bal
+szélén 44 dp-s sínnel: fölül a mono sorszám (a meglévő `setupMarkHeader`
+ARB-kulcsból), alatta a drag-handle. A kártya-keret és a mező-keret két
+egymásba ágyazott doboz-szintet rajzolt, és a figyelem a külsőre esett,
+miközben a belső a szerkeszthető; a rács egyetlen szintet ad, a
+sor-határt pedig maga a rács jelöli. A sorszám azért marad, mert
+tour-race-en a **sorrend maga az adat**: a bóják számozása a
+versenykiírásból jön, és a sín az egyetlen visszajelzés arról, hogy a
+húzás azt tette, amit akartunk. A „BÓJÁK" fejléc jobb szélén a bóják
+darabszáma áll mono fokozattal; összekötő csík **nincs**, mert a lista- és
+a detail-képernyő szakasz-címkéi sem viselnek ilyet.
 
-**Mező-alapértelmezés a témában (D3).** A `theme.dart` egy
-`inputDecorationTheme`-mel bővül (`filled`, `surfaceContainer`,
-`OutlineInputBorder` r12, `outline` keret, fókuszban `primary`, hibában
-`error`); a kártyán belüli mezők ezt lokálisan szűkítik `isDense` +
-`surface` kitöltés + r10 alakban, mert a kártya háttere már
-`surfaceContainer`. A **szín-blokk érintetlen**: a makett minden színe
-meglévő slotra képződik, tehát ez az ADR nem nyúl az ADR 0041 tokenjeihez.
+**Mező-alapértelmezés a témában (D3, radius az Addendum 5 D47 szerint).**
+A `theme.dart` `inputDecorationTheme`-je adja az alapot (`filled`,
+`surfaceContainer`, `OutlineInputBorder`, `outline` keret, fókuszban
+`primary`, hibában `error`). A `foretackFieldBorder` alapértelmezett
+radiusa **0**: a szögletesség nem képernyő-lokális stílus, hanem a 2a, a
+3a és az 5d közös nyelve, ezért a token-rétegben dől el — egy
+képernyő-lokális nulla pontosan az a drift, amitől két űrlap fél év múlva
+máshogy néz ki. A bója-soron belüli mezők emiatt már csak `isDense`-ben
+térnek el; a korábbi lokális r10 megszűnt. A **szín-blokk érintetlen**:
+a makett minden színe meglévő slotra képződik.
 
-**Két kimondott eltérés a makettől.** A kártyán belüli mezők és a
-törlés-gomb **48 dp**-esek, nem 44 (D4): megtartottuk a lebegő `labelText`-et,
-és 44 dp-be a tartalom-sor plusz a fölé ülő címke nem fér el vágás nélkül —
-ráadásul a 44 dp a design-lap **saját** „≥ 48 dp" szabályát sértené. A
-verseny-név mező fölül **elmarad** a verzál szakasz-címke (D5), mert
-ugyanazt a szót mondaná el kétszer, amit a lebegő címke már kiír; a „BÓJÁK"
-viszont marad, az csoportot címkéz, nem mezőt.
+**Két kimondott eltérés a maketttől — és a közös okuk.** Az 5d mezői
+címke nélküliek, mi viszont **megtartjuk a lebegő `labelText`-et**, ezért
+a mezők **48 dp**-esek maradnak, nem 44 (D4), és a verseny-név mező fölül
+**elmarad** a verzál szakasz-címke (D5), mert ugyanazt mondaná el
+kétszer. Az ok a bevitel oldaláról jön: a koordináta-mezőpár két azonos
+alakú, egymás melletti számmező, és kitöltve csak a lebegő címke mondja
+meg, melyik a szélesség. A makett ezt a DM-formátum záró É/K betűjével
+oldja meg, a mi formátumunk viszont decimális marad (D25) — az a jel
+nálunk nincs meg, placeholderrel pedig a különbség az első leütés után
+eltűnne. A „BÓJÁK" viszont marad, az csoportot címkéz, nem mezőt. A
+**törlés-gomb** rajza 44 dp, a tapintási területe 48 (Addendum 5 D49).
 
 **A hiba a Material `errorText` slotján megy (D6).** A koordináta-parse hét
 hibaága a `validator`-on át a beépített slotra képződik, `errorMaxLines: 2`
@@ -3249,13 +3274,16 @@ hogy a kétsoros üzenet ne nyújtsa meg a szomszédját. A makett világosabb
 piros hibaszövege **nem** kap tokent — egy árnyalatért nem duplázunk
 szemantikai szerepet (ADR 0042 precedens).
 
-**Fájlok (D7).** A `race_form.dart` marad az űrlap-állapot gazdája
-(kontrollerek, reorder, submit), a megjelenítés kiköltözik:
-`features/race_setup/widgets/mark_row_card.dart` és `.../form_action_bar.dart`,
-plusz a képernyő-független `widgets/section_label.dart` a verzál
-szakasz-címkéhez. A `SavedMarkPicker` sheet ebben a körben **nem változik**
-(D8): a design-dokumentumban nincs hozzá makett, a geometriát pedig nem
-vezetjük le tippből.
+**Fájlok (D7, az Addendum 5 szerint bővítve).** A `race_form.dart` marad
+az űrlap-állapot gazdája (kontrollerek, reorder, submit), a megjelenítés
+kiköltözik: `features/race_setup/widgets/mark_row.dart`,
+`.../form_action_bar.dart` és a mellette álló `.../form_bar_action.dart`,
+plusz a képernyő-független `widgets/section_label.dart` és
+`widgets/foretack_switch.dart`. A `mark_row_card.dart` átnevezéssel lett
+`mark_row.dart`: a „Card" utótag épp azt a kártya-héjat ígérte, amit a
+D45 kivesz. A `SavedMarkPicker` sheet a D8 alól **feloldva** a 4e lapra
+megy (Addendum 5 D51–D52) — a D8 feltétele („nincs hozzá makett")
+megszűnt.
 
 **Lista-képernyő: hairline-lajstrom fix akció-sávval (D10–D18).** A
 design-dokumentum új „2" fejezete a lista-képernyőt az élő képernyő
@@ -3410,8 +3438,9 @@ DDM-alakja önálló döntés lenne, saját tesztekkel (D25).
 folyamatban az `Élő nézet` a kitöltött — a hangsúly mindig azon, amit abban
 az állapotban ténylegesen nyomunk. A befejezett képernyőn nincs alsó sáv: a
 megosztás a teljes képernyős térkép-nézeté, a törlés az AppBaré. A sáv-vázat
-**nem** emeljük közösbe: a `FormActionBar` 52 dp-es kétgombos, a
-`ListActionBar` egysoros, ez pedig kétsoros és van kitöltött sora.
+**nem** emeljük közösbe: a `FormActionBar` űrlap-akciókat sorol fel
+változó darabszámban, a `ListActionBar` egysoros, ez pedig rögzítetten
+kétsoros és van kitöltött sora.
 
 **A megkerülési idő a bója-sor jobb szélén (Addendum 3).** A már megkerült
 bója sorának jobb szélén ott áll a megkerülés ideje `HH:mm:ss` alakban,
