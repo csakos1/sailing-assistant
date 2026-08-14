@@ -287,7 +287,10 @@ class _RaceFormState extends State<RaceForm> {
     final tones = Theme.of(context).extension<TextTones>()!;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      // A fejléc függőlegesen KÖZÉPEN ül a két hairline között: a
+      // sávot a saját, szimmetrikus paddingje adja, nem a szomszédos
+      // SizedBoxok, amelyek külön-külön 14 és 6 dp-t adtak.
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
           Expanded(child: SectionLabel(text: l10n.setupMarksSection)),
@@ -382,9 +385,7 @@ class _RaceFormState extends State<RaceForm> {
                 ),
                 _marklessRow(l10n),
                 if (!_isMarkless) ...[
-                  const SizedBox(height: 14),
                   _marksHeader(l10n),
-                  const SizedBox(height: 6),
                   _blockTopLine(),
                   // A bója-sorok átrendezhetők; a ReorderableListView a
                   // külső ListView-on belül zsugorodik és nem görget külön.
