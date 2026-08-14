@@ -2,11 +2,14 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/theme.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/mark_library_provider.dart';
 
 void main() {
+  // A picker a témából olvassa a TextTones-t, ezért a foretackTheme-et
+  // kötelező megadni — enélkül a kiterjesztés-olvasás azonnal dobna.
   Future<void> pumpPicker(
     WidgetTester tester,
     List<SavedMark> marks,
@@ -16,11 +19,12 @@ void main() {
         overrides: [
           markLibraryProvider.overrideWith((ref) => Stream.value(marks)),
         ],
-        child: const MaterialApp(
-          locale: Locale('hu'),
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: SavedMarkPicker()),
+          home: const Scaffold(body: SavedMarkPicker()),
         ),
       ),
     );
@@ -29,6 +33,21 @@ void main() {
 
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(SavedMarkPicker)))!;
+
+  final marks = [
+    SavedMark(
+      name: 'VK',
+      position: const Coordinate(latitude: 46.946554, longitude: 18.012115),
+      sourceRaceName: 'Kedd esti',
+      savedAt: DateTime.utc(2026, 6, 2),
+    ),
+    SavedMark(
+      name: 'BS',
+      position: const Coordinate(latitude: 46.931763, longitude: 18.045607),
+      sourceRaceName: 'Szerda',
+      savedAt: DateTime.utc(2026, 6),
+    ),
+  ];
 
   testWidgets('üres könyvtárnál az üres-állapot szöveg jelenik meg', (
     tester,
@@ -40,33 +59,45 @@ void main() {
     expect(find.text(l10nOf(tester).setupPickFromLibraryEmpty), findsOneWidget);
   });
 
-  testWidgets('soronként a bója nevét és a forrás-versenyt mutatja', (
+  // Az ADR 0044 D51 óta a koordináta IS látszik: ez az ADR 0032 L8
+  // „koordináta nélkül" kikötésének visszavonása, és a korábbi teszt
+  // épp az ellenkezőjét rögzítette.
+  testWidgets('soronként a nevet, a koordinátát és a forrás-versenyt mutatja', (
     tester,
   ) async {
-    // ARRANGE
-    final marks = [
-      SavedMark(
-        name: 'VK',
-        position: const Coordinate(latitude: 46.946554, longitude: 18.012115),
-        sourceRaceName: 'Kedd esti',
-        savedAt: DateTime.utc(2026, 6, 2),
-      ),
-      SavedMark(
-        name: 'BS',
-        position: const Coordinate(latitude: 46.931763, longitude: 18.045607),
-        sourceRaceName: 'Szerda',
-        savedAt: DateTime.utc(2026, 6),
-      ),
-    ];
-
-    // ACT
+    // ARRANGE & ACT
     await pumpPicker(tester, marks);
 
-    // ASSERT — név + forrás-verseny minden sorban, koordináta nélkül.
+    // ASSERT
     expect(find.text('VK'), findsOneWidget);
-    expect(find.text('Kedd esti'), findsOneWidget);
+    expect(find.text('46.9466 · 18.0121'), findsOneWidget);
     expect(find.text('BS'), findsOneWidget);
-    expect(find.text('Szerda'), findsOneWidget);
-    expect(find.text('46.946554'), findsNothing);
+    expect(find.text('46.9318 · 18.0456'), findsOneWidget);
+  });
+
+  testWidgets('a forrás-verseny verzállal áll a badge-ben', (tester) async {
+    // ARRANGE & ACT
+    await pumpPicker(tester, marks);
+
+    // ASSERT — a nagybetűsítés a megjelenítésé, az adat érintetlen.
+    expect(find.text('KEDD ESTI'), findsOneWidget);
+    expect(find.text('Kedd esti'), findsNothing);
+  });
+
+  testWidgets('a fejléc a könyvtár darabszámát mutatja', (tester) async {
+    // ARRANGE & ACT
+    await pumpPicker(tester, marks);
+
+    // ASSERT
+    expect(find.text(l10nOf(tester).setupPickFromLibraryTitle), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+  });
+
+  testWidgets('üres könyvtárnál nincs darabszám a fejlécben', (tester) async {
+    // ARRANGE & ACT
+    await pumpPicker(tester, const []);
+
+    // ASSERT — a nulla darabszám kiírása zajt adna az üres-állapot mellé.
+    expect(find.text('0'), findsNothing);
   });
 }

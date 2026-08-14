@@ -655,7 +655,7 @@ abstract class AppLocalizations {
   /// A bója-választó (modal sheet) címe.
   ///
   /// In hu, this message translates to:
-  /// **'Korábbi bóják'**
+  /// **'KORÁBBI BÓJÁK'**
   String get setupPickFromLibraryTitle;
 
   /// A bója-választó üres állapota: a könyvtár üres.

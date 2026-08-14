@@ -97,6 +97,12 @@ class _RaceFormState extends State<RaceForm> {
   Future<void> _pickFromLibrary() async {
     final picked = await showModalBottomSheet<SavedMark>(
       context: context,
+      // A 4e lap a képernyő felénél magasabb, ezért scroll-vezérelt
+      // módban nyitjuk; a magasság-korlátot maga a picker adja (D51).
+      isScrollControlled: true,
+      showDragHandle: true,
+      // A design-rendszer minden felülete r0 (ADR 0044 D47).
+      shape: const RoundedRectangleBorder(),
       builder: (_) => const SavedMarkPicker(),
     );
     if (!mounted || picked == null) return;

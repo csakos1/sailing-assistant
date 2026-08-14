@@ -420,7 +420,7 @@
   "@setupPickFromLibrary": {
     "description": "Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból."
   },
-  "setupPickFromLibraryTitle": "Korábbi bóják",
+  "setupPickFromLibraryTitle": "KORÁBBI BÓJÁK",
   "@setupPickFromLibraryTitle": {
     "description": "A bója-választó (modal sheet) címe."
   },

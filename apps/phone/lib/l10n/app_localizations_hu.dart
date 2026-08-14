@@ -319,7 +319,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibrary => 'Korábbi bóják';
 
   @override
-  String get setupPickFromLibraryTitle => 'Korábbi bóják';
+  String get setupPickFromLibraryTitle => 'KORÁBBI BÓJÁK';
 
   @override
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
