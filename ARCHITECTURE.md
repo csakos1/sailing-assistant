@@ -3223,12 +3223,12 @@ nyitni, és nem duplázódik a két hívóban.
 | Bója-darabszám | 11 w600 mono, jobbra zárva | `railNumberStyle` + `TextTones.low` |
 | Kapcsoló-sor | pad `14/20`, hairline felül és alul | `outlineVariant` |
 | `ForetackSwitch` | 52×30 dp sín, 21 dp bütyök, r0 | `outline` → `primary` |
-| Bója-sor | teljes szélesség, hairline alul | `surface` + `outlineVariant` |
+| Bója-sor | teljes szélesség, hairline alul (a blokk tetején is) | `surface` + `outlineVariant` |
 | Sorszám-sín | 44 dp, mono sorszám + hat pötty | `surfaceContainer` + `TextTones.low` |
 | Soron belüli mező | 48 dp, r0, pad 14 / 10 | `surfaceContainer` + `outline` |
 | Koordináta-szöveg | 13,5 IBM Plex Mono | `onSurface` |
 | Törlés-gomb | 44 dp rajz, 48 dp tapintás | `TextTones.low` |
-| Másodlagos sáv | 2× `Expanded`, 56 dp, osztó hairline | `surfaceContainer` |
+| Másodlagos sáv | 2× `Expanded`, 56 dp, osztó hairline | `surfaceContainerHigh` |
 | Mentés-sáv | teljes szélesség, 60 dp, r0 | `primary` |
 
 **A bója-sor teljes szélességű, sorszám-sínnel (D2 → Addendum 5 D45).**
@@ -3243,6 +3243,13 @@ versenykiírásból jön, és a sín az egyetlen visszajelzés arról, hogy a
 húzás azt tette, amit akartunk. A „BÓJÁK" fejléc jobb szélén a bóják
 darabszáma áll mono fokozattal; összekötő csík **nincs**, mert a lista- és
 a detail-képernyő szakasz-címkéi sem viselnek ilyet.
+
+A bója-sorok **csak alul** rajzolnak határt, hogy két szomszédos sor
+között ne fusson dupla vonal; a blokk **tetejét** ezért a fejléc alatt
+futó külön hairline zárja le. A másodlagos akció-sáv `surfaceContainerHigh`-t
+kap, nem `surfaceContainer`-t: az utóbbi **bitre azonos** a bója-sorok
+mezőinek kitöltésével, és eszközön a két felület egybeolvadt. Új token nem
+születik — a meglévő létra egy fokkal följebb lép (§8.11).
 
 **Mező-alapértelmezés a témában (D3, radius az Addendum 5 D47 szerint).**
 A `theme.dart` `inputDecorationTheme`-je adja az alapot (`filled`,
