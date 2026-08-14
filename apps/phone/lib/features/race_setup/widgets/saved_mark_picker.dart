@@ -23,33 +23,65 @@ const EdgeInsets _rowPadding = EdgeInsets.symmetric(
 /// nélküle felfalná a nevet és a koordinátát.
 const double _badgeMaxWidth = 140;
 
-/// A korábbi bóják választója (ADR 0044 D51) — modal bottom sheet tartalma.
+/// A korábbi bóják választója (ADR 0044 D51, D52) — a modal sheet tartalma.
 ///
 /// Read-only: a `markLibraryProvider`-t figyeli (savedAt csökkenőben), és
 /// soronként a bója **nevét, koordinátáját és a forrás-versenyt** mutatja.
-/// Tap → a kiválasztott [SavedMark]-kal popol; üres lista esetén
-/// üres-állapot szöveg. A betöltés/hiba az [AsyncValue] ágain megy (hiba
-/// esetén szintén az üres-állapot — a könyvtár best-effort kényelmi funkció).
+/// Tap → a kiválasztott [SavedMark]-kal popol. A könyvtár-sor törlése és
+/// szerkesztése továbbra sincs benne.
 ///
 /// A koordináta megjelenítése az ADR 0032 L8 „koordináta nélkül"
 /// kikötésének **visszavonása**: a könyvtár előfordulás-napló, tehát
 /// ugyanaz a név más versenyben más koordinátával is szerepelhet, és a
 /// név önmagában nem mindig dönti el, melyik sor kell.
-class SavedMarkPicker extends ConsumerWidget {
+///
+/// A szűrés **kliens-oldali**, a már betöltött listán (D52): új lekérdezés,
+/// index és repository-metódus nem születik, a `markLibraryProvider` pedig
+/// `autoDispose` marad — a keresés lokális állapot, a stream élettartamát
+/// nem érinti.
+class SavedMarkPicker extends ConsumerStatefulWidget {
   /// A választót modal bottom sheetben jelenítjük meg; tap → `pop(SavedMark)`.
   const SavedMarkPicker({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SavedMarkPicker> createState() => _SavedMarkPickerState();
+}
+
+class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Névre szűr, kis-nagybetű nélkül. Ékezet-érzékeny: a D52 névre
+  /// szűrést ír elő, és magyar billentyűn az ékezetes betűk kéznél vannak.
+  List<SavedMark> _filter(List<SavedMark> items) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return items;
+    return [
+      for (final mark in items)
+        if (mark.name.toLowerCase().contains(query)) mark,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final marks = ref.watch(markLibraryProvider);
-    // Mintaillesztés az AsyncValue-n: betöltés, hiba ÉS üres könyvtár
-    // alatt nincs darabszám. A nulla kiírása zaj lenne az üres-állapot
-    // szövege mellett, ami már megmondja ugyanazt, csak mondatban.
-    final count = switch (marks) {
-      AsyncData(:final value) when value.isNotEmpty => value.length,
-      _ => null,
+    // Mintaillesztés az AsyncValue-n: betöltés és hiba alatt üres listával
+    // dolgozunk, a megkülönböztetést lentebb a `when` ágai adják.
+    final all = switch (marks) {
+      AsyncData(:final value) => value,
+      _ => const <SavedMark>[],
     };
+    final visible = _filter(all);
+    // A darabszám a LÁTHATÓ listát követi: szűrés után a teljes könyvtár
+    // mérete olyan számot mutatna, aminek a lapon nincs megfelelője.
+    final count = visible.isEmpty ? null : visible.length;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -61,30 +93,62 @@ class SavedMarkPicker extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PickerHeader(title: l10n.setupPickFromLibraryTitle, count: count),
-            Flexible(
-              child: marks.when(
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _PickerHeader(
+                    title: l10n.setupPickFromLibraryTitle,
+                    count: count,
+                  ),
+                  // Üres könyvtárnál nincs mit szűrni; ha viszont a szűrés
+                  // fut ki nullára, a mező marad, különben nem lenne mivel
+                  // visszalépni a teljes listára.
+                  if (all.isNotEmpty)
+                    _SearchField(
+                      controller: _searchController,
+                      hint: l10n.setupPickFromLibrarySearch,
+                      onChanged: (value) => setState(() => _query = value),
+                    ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: marks.when(
+                loading: () => const _PickerSpinner(),
                 error: (_, _) =>
                     _EmptyState(text: l10n.setupPickFromLibraryEmpty),
-                data: (items) => items.isEmpty
-                    ? _EmptyState(text: l10n.setupPickFromLibraryEmpty)
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final mark = items[index];
-                          return _SavedMarkRow(
-                            mark: mark,
-                            onTap: () => Navigator.of(context).pop(mark),
-                          );
-                        },
-                      ),
+                data: (_) {
+                  if (all.isEmpty) {
+                    return _EmptyState(
+                      text: l10n.setupPickFromLibraryEmpty,
+                    );
+                  }
+                  if (visible.isEmpty) {
+                    return _EmptyState(
+                      text: l10n.setupPickFromLibraryNoMatch,
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: visible.length,
+                    itemBuilder: (context, index) {
+                      final mark = visible[index];
+                      return _SavedMarkRow(
+                        mark: mark,
+                        onTap: () => Navigator.of(context).pop(mark),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
@@ -106,28 +170,51 @@ class _PickerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
-    final tones = theme.extension<TextTones>()!;
+    final tones = Theme.of(context).extension<TextTones>()!;
     final count = this.count;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      child: Row(
+        children: [
+          Expanded(child: SectionLabel(text: title)),
+          if (count != null)
+            Text('$count', style: railNumberStyle.copyWith(color: tones.low)),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-        child: Row(
-          children: [
-            Expanded(child: SectionLabel(text: title)),
-            if (count != null)
-              Text(
-                '$count',
-                style: railNumberStyle.copyWith(color: tones.low),
-              ),
-          ],
+    );
+  }
+}
+
+/// A név szerinti szűrő mezője (ADR 0044 D52).
+class _SearchField extends StatelessWidget {
+  const _SearchField({
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: hint,
+          isDense: true,
+          prefixIcon: const Icon(Icons.search, size: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -222,7 +309,22 @@ class _SourceBadge extends StatelessWidget {
   }
 }
 
-/// Üres könyvtár (vagy hiba) esetén megjelenő szöveg.
+/// A könyvtár betöltése alatt megjelenő jelzés.
+class _PickerSpinner extends StatelessWidget {
+  const _PickerSpinner();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+/// Üres könyvtár, hiba vagy eredménytelen szűrés esetén megjelenő szöveg.
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.text});
 

@@ -325,6 +325,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
 
   @override
+  String get setupPickFromLibrarySearch => 'Keresés név szerint...';
+
+  @override
+  String get setupPickFromLibraryNoMatch => 'Nincs találat erre a névre.';
+
+  @override
   String get detailCourseLabel => 'PÁLYA';
 
   @override

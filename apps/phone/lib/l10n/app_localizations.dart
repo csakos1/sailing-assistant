@@ -664,6 +664,18 @@ abstract class AppLocalizations {
   /// **'Még nincs mentett bója.'**
   String get setupPickFromLibraryEmpty;
 
+  /// A bója-választó kereső-mezőjének helyőrzője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Keresés név szerint...'**
+  String get setupPickFromLibrarySearch;
+
+  /// A bója-választó üres állapota név szerinti szűrés után.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs találat erre a névre.'**
+  String get setupPickFromLibraryNoMatch;
+
   /// A bója-lista verzál szakasz-címkéje a detail-képernyőn.
   ///
   /// In hu, this message translates to:

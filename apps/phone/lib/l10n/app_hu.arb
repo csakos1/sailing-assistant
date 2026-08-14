@@ -428,6 +428,14 @@
   "@setupPickFromLibraryEmpty": {
     "description": "A bója-választó üres állapota: a könyvtár üres."
   },
+  "setupPickFromLibrarySearch": "Keresés név szerint...",
+  "@setupPickFromLibrarySearch": {
+    "description": "A bója-választó kereső-mezőjének helyőrzője."
+  },
+  "setupPickFromLibraryNoMatch": "Nincs találat erre a névre.",
+  "@setupPickFromLibraryNoMatch": {
+    "description": "A bója-választó üres állapota név szerinti szűrés után."
+  },
   "detailCourseLabel": "PÁLYA",
   "@detailCourseLabel": {
     "description": "A bója-lista verzál szakasz-címkéje a detail-képernyőn."

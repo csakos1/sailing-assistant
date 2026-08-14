@@ -34,6 +34,11 @@ void main() {
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(SavedMarkPicker)))!;
 
+  Future<void> search(WidgetTester tester, String query) async {
+    await tester.enterText(find.byType(TextField), query);
+    await tester.pumpAndSettle();
+  }
+
   final marks = [
     SavedMark(
       name: 'VK',
@@ -93,11 +98,68 @@ void main() {
     expect(find.text('2'), findsOneWidget);
   });
 
-  testWidgets('üres könyvtárnál nincs darabszám a fejlécben', (tester) async {
+  testWidgets('üres könyvtárnál nincs darabszám és nincs kereső', (
+    tester,
+  ) async {
     // ARRANGE & ACT
     await pumpPicker(tester, const []);
 
-    // ASSERT — a nulla darabszám kiírása zajt adna az üres-állapot mellé.
+    // ASSERT — a nulla darabszám kiírása zajt adna az üres-állapot mellé,
+    // és üres könyvtárban nincs mit szűrni.
     expect(find.text('0'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('a keresés névre szűri a listát', (tester) async {
+    // ARRANGE
+    await pumpPicker(tester, marks);
+
+    // ACT
+    await search(tester, 'vk');
+
+    // ASSERT — kis-nagybetűtől függetlenül csak az egyező sor marad.
+    expect(find.text('VK'), findsOneWidget);
+    expect(find.text('BS'), findsNothing);
+  });
+
+  testWidgets('a darabszám a szűrt listát követi', (tester) async {
+    // ARRANGE
+    await pumpPicker(tester, marks);
+    expect(find.text('2'), findsOneWidget);
+
+    // ACT
+    await search(tester, 'vk');
+
+    // ASSERT
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('2'), findsNothing);
+  });
+
+  // Szűrés után a "Még nincs mentett bója." hazudna: van mentett bója,
+  // csak nem erre a névre.
+  testWidgets('eredménytelen szűrésnél külön üres-állapot jön', (
+    tester,
+  ) async {
+    // ARRANGE
+    await pumpPicker(tester, marks);
+
+    // ACT
+    await search(tester, 'zzz');
+
+    // ASSERT
+    final l10n = l10nOf(tester);
+    expect(find.text(l10n.setupPickFromLibraryNoMatch), findsOneWidget);
+    expect(find.text(l10n.setupPickFromLibraryEmpty), findsNothing);
+  });
+
+  testWidgets('a kereső megmarad, ha a szűrés nullára fut ki', (tester) async {
+    // ARRANGE
+    await pumpPicker(tester, marks);
+
+    // ACT
+    await search(tester, 'zzz');
+
+    // ASSERT — enélkül nem lenne mivel visszalépni a teljes listára.
+    expect(find.byType(TextField), findsOneWidget);
   });
 }
