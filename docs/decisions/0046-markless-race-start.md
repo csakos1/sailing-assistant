@@ -300,3 +300,47 @@ magabiztosan hazudna a vízen. Elvetve.
 **Az utolsó bója-sor törölhetővé tétele kapcsoló helyett.** Kevesebb
 UI-elem, de a nulla bójás állapot egy véletlen törlésből is előállna,
 és az űrlap nem közölné a következményt. Elvetve a D4 javára.
+
+## Addendum 1 — A kapcsoló a verseny-név alá kerül (a D4 felülírása)
+
+A D4 a „Bóják nélkül" kapcsolót a **„BÓJÁK" szekció-fejléc jobb szélére**
+tette, tonális `FilterChip` alakban, azzal az indokkal, hogy így nem kér
+plusz függőleges helyet. A döntés kódban elkészült, de **fizikai eszközön
+sosem lett kipróbálva** — az ADR 0046 hat verifikációs pontjából az első
+kettő pont erre vonatkozott.
+
+Az ADR 0044 Addendum 5 (5d lap) közben átrendezi az egész űrlapot, és
+ebben az elrendezésben a fejléc-sorbeli chip két okból sem áll meg: a
+fejléc jobb szélét a bóják darabszáma foglalja el (Addendum 5 D45), és a
+kapcsoló egy szekció **fölé** rendelt üzemmód-választó, nem a szekció
+tartalmának szűrője — márpedig a chip a fejlécben pont utóbbit ígéri.
+
+### D7 — Fix kapcsoló-sor a verseny-név alatt
+
+A kapcsoló önálló, teljes szélességű sorként ül a **verseny-név mező
+alatt**, hairline-nal elválasztva, a bója-blokk **fölött**. Balra a
+felirat és alatta a halk magyarázó sor, jobbra maga a kapcsoló.
+
+A hely azért ez, mert a bója nélküliség a versenyre vonatkozó tulajdonság,
+nem a bója-listára: az űrlapon a névvel egy szinten áll, és a
+sorrendjében is a név után, a pálya előtt. Bekapcsolva a „BÓJÁK" fejléc, a
+sorok **és** a másodlagos akció-sor is eltűnik — a kapcsoló maga nem
+mozdul, mert fix helyen ül.
+
+A widget a `FilterChip` helyett saját `ForetackSwitch`: a Material `Switch`
+lekerekített pirulája az egyetlen ilyen alak lenne a szögletes rácsban,
+a chip pedig a fentiek szerint rossz metaforát ad. Geometria: 52×30 dp
+sín, 21 dp bütyök. Kikapcsolva `outline` keret és `TextTones.low` bütyök;
+**bekapcsolva `primary` sín és `onPrimary` bütyök** — pontosan a Mentés
+gomb inverze, hogy az aktív üzemmód a Mentéssel azonos hangsúlyt kapjon.
+A két elem egymástól távol ül, ezért nem versengenek.
+
+A `setupNoMarksToggle` ARB-értéke „Bóják nélkül"-ről **„Bója nélküli
+verseny"**-re változik: chip-feliratnak a rövid alak jó volt, egy sor
+címkéjeként a teljes mondat pontosabb. A `setupNoMarksHint` változatlan.
+
+**Ami nem változik.** A D1 (üres `marks` lista), a D2 (a motor őre), a D3
+(a mark-függő mezők üres állapota), a D5 és a D6 érintetlen. A kapcsoló
+viselkedése is változatlan: a `_markRows` nem törlődik, a submit
+`const []`-et ad, és a koordináta-validáció magától kimarad, mert a
+`Form.validate()` csak a fában lévő mezőket futtatja.

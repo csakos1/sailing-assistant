@@ -1500,3 +1500,187 @@ nincs.
 
 Marad tehát a nyolc döntés eredeti iránya: a felolvasást nem gyorsítani
 kell, hanem megszüntetni — tíz materializált sor 1,48 GB helyett.
+
+## Addendum 5 — A setup-űrlap az 5d lapra, a picker a 4e-re
+
+Az 1h szakasz (D1–D9) a `Foretack_Design_dc.html` **1h** lapjáról vezette
+le a setup- és a szerkesztés-űrlapot: lekerekített bója-kártyák,
+kétgombos akció-sáv, a „Korábbi bóják" gomb a görgetett törzsben. A
+design-dokumentum azóta két új lapot kapott ugyanezekre a felületekre —
+**5d** (RaceSetup átrendezett) és **4e** (Korábbi bóják kereső-sheet) —,
+amelyek a 2a és a 3a nyelvén fogalmazzák újra őket: lekerekítés helyett
+hairline-rács, kártya helyett teljes szélességű sor, mono sorszám-sín,
+osztott másodlagos sáv és teljes szélességű mentés.
+
+Ez nem az 1h finomítása, hanem a leváltása. A D9 (folytatólagos
+`D`-számozás, képernyőnkénti szakaszok) érvényben marad, ezért ez az
+addendum a **D45**-tel folytatja.
+
+| Eredeti döntés | Sorsa ebben az addendumban |
+|---|---|
+| D1 — görgetett törzs + egy akció-sáv | felülírva (D50) |
+| D2 — a bója-sor kártya | felülírva (D45, D49) |
+| D3 — `InputDecorationTheme` a témában | **marad**, a radius változik (D47) |
+| D4 — a mezők 48 dp-esek, nem 44 | **marad** (D46) |
+| D5 — a „VERSENY NEVE" címke kimarad | **marad** (D46) |
+| D6 — a hiba a Material `errorText` slotján | **marad** |
+| D7 — három új fájl | kiegészül (D49, D50) |
+| D8 — a picker ebben a szeletben nem változik | feloldva (D51, D52) |
+
+### D45 — Az 5d váltja az 1h lapot a setup-űrlapon
+
+A bója-sor kártya helyett **teljes szélességű, hairline-nal határolt sor**,
+a bal szélén 44 dp-s sínnel: fölül a mono sorszám, alatta a drag-handle. A
+sor háttere `surface`, a síné és a mezőké `surfaceContainer` — ez a mai
+elrendezés inverze, ahol a kártya volt a világosabb és a mező a sötétebb.
+
+Az indok ugyanaz, ami a 2a-nál és a 3a-nál is döntött: a kártya-keret és a
+mező-keret két egymásba ágyazott doboz-szintet rajzol, és a felhasználó
+figyelme a külsőre esik, miközben a belső a szerkeszthető. A hairline-rács
+egyetlen szintet ad, a sorhatárt pedig a rács maga jelöli.
+
+A „BÓJÁK" fejléc-sor jobb szélén megjelenik a bóják **darabszáma** mono
+fokozattal, a 4d napló-fejléceinek mintájára. A maketten a felirat és a
+szám közt hairline-csík fut; ez **nem kerül át** — a lista- és a
+detail-képernyő szakasz-címkéi sem viselnek ilyet, és egy harmadik
+elválasztó-nyelv itt nem indokolt.
+
+### D46 — A lebegő `labelText` marad, és vele a D4 és a D5 is
+
+Az 5d mezői címke nélküliek: kitöltve csak az érték áll bennük. Ez
+önmagában koherens — enélkül fér bele a makett 44/46 dp-je —, de a
+**címkéket megtartjuk**, ezért a D4 (48 dp) és a D5 (a verseny-név fölött
+nincs verzál szakasz-címke) egyaránt érvényben marad.
+
+Az indok a bevitel oldaláról jön. A koordináta-mezőpár két azonos alakú,
+egymás melletti számmező; kitöltve csak a lebegő címke mondja meg, melyik
+a szélesség és melyik a hosszúság. A makett ezt a DM-formátum záró É/K
+betűjével oldja meg, a mi formátumunk viszont decimális marad (D25), tehát
+az a jel nálunk nincs meg. Placeholderrel a különbség az első leütés után
+eltűnne — pont akkor, amikor a legtöbbet érne.
+
+Ez tehát **két kimondott eltérés az 5d-től**, ugyanabban a szellemben,
+ahogy a D4 tért el az 1h 44 dp-jétől.
+
+### D47 — A mező-radius a token-rétegben nullázódik
+
+A `foretackFieldBorder` alapértelmezett radiusa 12-ről **0**-ra vált, a
+bója-soron belüli mezők lokális 10-ese pedig megszűnik. A szögletesség
+nem képernyő-lokális stílus, hanem a 2a/3a/5d közös nyelve, ezért a
+token-rétegben dől el — egy képernyő-lokális `0` pontosan az a drift,
+amitől két űrlap fél év múlva máshogy néz ki (§8.11).
+
+Ugyanitt születik a sorszám-sín mono fokozata is (`railNumberStyle`). A
+verzál szakasz-címkék családja **nem** vált: a `sectionLabelStyle` marad
+IBM Plex Sans, mert az átállítás négy már leszállított képernyő feliratait
+írná át csendben. Ha a mono verzál mégis app-wide irány, az önálló döntés.
+
+### D48 — A makett két színe meglévő slotra képződik
+
+Az 5d és a 4e tíz színéből nyolc pontosan meglévő token. A maradék kettő
+**nem kap új tokent**, hanem a legközelebbi meglévő szerepre képződik:
+
+| Makett | Szerep | Token |
+|---|---|---|
+| `#0E141B` | mező-kitöltés, sorszám-sín, gomb-sáv | `surfaceContainer` (`#111823`) |
+| `#C7D5E0` | koordináta-szöveg, gomb-feliratok | `onSurfaceVariant` (`#9FB2C2`) |
+
+Egy árnyalatnyi eltérésért nem duplázunk szemantikai szerepet — ugyanaz a
+precedens, ami a D6-nál a világosabb piros hibaszöveget elutasította.
+
+### D49 — `MarkRowCard` → `MarkRow`, 44 dp rajz és 48 dp tapintás
+
+Az osztály és a fájl átnevezésre kerül: a „Card" utótag épp azt a
+kártya-héjat ígéri, amit a D45 kivesz, és egy megtartott név itt fél év
+múlva félrevezetne. Az átnevezés `git mv`-vel megy, hogy a történet
+követhető maradjon.
+
+A törlés-gomb a maketten 44×44, ami a Material 48 dp-s tapintási minimuma
+alatt van. Feloldás: a **rajz** 44 dp, a **tapintási terület** 48 —
+ez a kettő Flutterben szétválasztható, és a nedves kézzel, hajón történő
+használat pont az a helyzet, ahol a tapintási méretet nem áldozzuk fel egy
+vizuális arányért. A rejtett gomb helye továbbra is fennmarad, hogy a
+mezők szélessége ne ugráljon sorról sorra.
+
+### D50 — Kétsoros akció-sáv, `List<FormBarAction>` a nullable hármas helyett
+
+A sáv két sorra bomlik: fölül a **megosztott** másodlagos sor („Bója
+hozzáadása" | „Korábbi bóják"), alatta a **teljes szélességű** Mentés. A
+„Korábbi bóják" ezzel kikerül a görgetett törzsből — ma hat bója alatt
+csak görgetés után érhető el, holott a bója-felvétel két útja egyenrangú.
+
+A `FormActionBar` mai API-ja ehhez kevés: a `secondaryLabel` /
+`secondaryIcon` / `onSecondary` hármas **egy** másodlagos akciót ír le,
+most viszont kettő van. A hármas helyére egy `FormBarAction` érték-osztály
+(felirat, ikon, callback) és egy `List<FormBarAction> secondaryActions`
+lép; az üres lista ugyanazt jelenti, amit ma a három `null`, tehát az
+ADR 0046 D4 viselkedése — bója nélküli módban egyetlen, teljes szélességű
+Mentés — változatlanul megmarad, csak más alakban fejeződik ki.
+
+### D51 — A picker a 4e lapra megy, koordinátával (az ADR 0032 L8 feloldása)
+
+A D8 azért zárta ki a pickert, mert nem volt hozzá makett, és a geometriát
+tippből nem vezetjük le. A 4e ezt a feltételt feloldja.
+
+A sor három adatot mutat: a bója **nevét**, a **koordinátáját** és a
+**forrás-verseny** címkéjét. A koordináta megjelenítése az ADR 0032 L8
+kikötésének visszavonása — az L8 kifejezetten „koordináta nélkül"-t
+mondott. Az indok: a könyvtár előfordulás-napló, tehát ugyanaz a név
+többször is szerepel benne, más-más versennyel és **más-más
+koordinátával**; a név és a forrás-verseny önmagában nem mindig dönti el,
+melyik sor kell. A formátum a `detail_mark_row` meglévő
+`toStringAsFixed(4)` precedensét követi, a 4e `·` elválasztójával.
+
+A sheet `isScrollControlled` módban nyílik: a mai hívás enélkül megy,
+ezért a lap a képernyő feléig nyúlhat, a 4e viszont ennél magasabb.
+
+### D52 — Keresőmező a pickerben, kliens-oldali szűréssel
+
+A 4e a fejléc alá szűrőmezőt tesz. A szűrés a **már betöltött** listán
+történik, névre; új lekérdezés, index vagy repository-metódus nem
+születik. Ez szintén az L8 egy kikötését oldja fel („a keresése nem"), és
+a picker attól még read-only marad: a könyvtár-sor törlése és
+szerkesztése továbbra sincs benne.
+
+A `SavedMarkPicker` ehhez `ConsumerStatefulWidget`-té válik. A
+`markLibraryProvider` `autoDispose` marad — a szűrés lokális állapot, a
+stream élettartamát nem érinti.
+
+### Addendum 5 — következmények
+
+- A setup- és a szerkesztés-képernyő fájlja **nem változik**: az űrlap és
+  az akció-sáv továbbra is a `RaceForm`-on belül ül (D7 elve).
+- A `foretackFieldBorder` alapértékének változása **app-wide** hatás,
+  ezért önálló, visszafordítható commitban megy.
+- Öt teszt-fájl igényel hozzányúlást; közülük a
+  `saved_mark_picker_test.dart` egy állítása **megfordul** — ma azt
+  rögzíti, hogy koordináta nincs a listában.
+- Séma-változás nincs: a `saved_marks` már ma is tárolja a koordinátát és
+  a forrás-verseny nevét. A `schemaVersion` marad 5.
+
+### Addendum 5 — amit nem dönt el
+
+- **A verzál feliratok betűcsaládja.** A makettek monóval szedik, a kód
+  IBM Plex Sansszal; az app-wide váltás önálló döntés (D47).
+- **A többi űrlap-mező sorsa.** A radius-váltás minden mezőre hat, de a
+  setup-űrlapon kívüli megjelenésüket ez az addendum nem tárgyalja.
+- **A picker rendezése és csoportosítása.** A 4f lap forrás-verseny
+  szerinti csoportosítást vázol; ez az addendum a 4e-t választja, a 4f
+  irányát nyitva hagyja.
+- **A bója-sorok görgetési viselkedése hosszú pályán.** A rögzített sáv
+  két sorra nőtt, ami függőleges helyet vesz el; hogy ez billentyűzet
+  mellett szűk-e, eszközön dől el.
+
+### Addendum 5 — szeletek
+
+| # | Szelet |
+|---|---|
+| S1 | Ez az addendum + az ADR 0046 Addendum 1 + az ADR 0032 záró nyom |
+| S2 | `ARCHITECTURE.md` §8.11 és §8.5 szinkron |
+| S3 | `ForetackSwitch` (app-szintű widget) |
+| S4 | Mező-radius 0 + `railNumberStyle` |
+| S5 | `MarkRowCard` → `MarkRow` |
+| S6 | `FormBarAction` + kétsoros `FormActionBar` |
+| S7 | `RaceForm` újraszerelés |
+| S8 | A picker 4e-re |
+| S9 | A picker keresőmezője |
