@@ -3,7 +3,7 @@ import 'dart:math' show pi;
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   // Közös fixtúrák.

@@ -11,7 +11,7 @@ import 'package:shared/shared.dart';
 ///
 /// A domain a [Polar]-t egy absztrakt forráson keresztül kéri, nem
 /// ismeri a konkrét tárolást (bundled asset, fájl-import vagy DB). A v1
-/// implementáció az `AssetPolarRepository` a data-rétegben: a
+/// implementáció az `AssetPolarRepository` a phone-ban (ADR 0047 D1): a
 /// `foretack.pol` fordításidős assetet tölti (ADR 0028 Addendum 2
 /// B1/B2). A későbbi fájl-import út drop-in csere e mögött, az interfész
 /// változatlanul hagyásával (OCP/DIP).

@@ -1,10 +1,14 @@
-import 'package:data/src/polar/foretack_polar_parser.dart';
+import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter/services.dart';
 import 'package:shared/shared.dart';
 
 /// A bundled `foretack.pol` assetet betöltő [PolarRepository] (ADR 0028
 /// Addendum 2 B1/B2).
+///
+/// A phone-ban él, nem a data-ban (ADR 0047 D1): a `rootBundle` a phone
+/// assetjét olvassa, a data pedig tiszta Dart, hogy a szerver is használja.
+/// A pure `.pol`-parser a data-ban maradt.
 ///
 /// A `rootBundle`-ből olvassa az asset szövegét, majd a
 /// [parseForetackPolar] pure parserrel [Polar]-rá alakítja. Az

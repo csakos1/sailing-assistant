@@ -1,7 +1,7 @@
 import 'package:data/src/polar/foretack_polar_parser.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:shared/shared.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('parseForetackPolar', () {

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:data/src/nmea/pipeline/nmea_event_pipeline.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   // Rögzített app-óra: minden esemény ezt kapja, kivéve az RMC GPS-instantját.

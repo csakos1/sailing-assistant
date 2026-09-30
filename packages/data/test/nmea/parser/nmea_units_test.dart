@@ -1,5 +1,5 @@
 import 'package:data/src/nmea/parser/nmea_units.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('nmea_units', () {

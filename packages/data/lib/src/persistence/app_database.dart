@@ -7,16 +7,18 @@ import 'package:data/src/persistence/tables/snapshot_logs_table.dart';
 import 'package:data/src/persistence/tables/telemetry_records_table.dart';
 import 'package:domain/domain.dart';
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 
 part 'app_database.g.dart';
 
 /// A Foretack helyi adatbázisa (Drift / SQLite).
 ///
 /// Egyetlen DB az összes versennyel; FK köti össze a táblákat (a race-lista
-/// egy query). Háttér-isolate-on fut (drift_flutter), hogy a hosszú write-ok
-/// ne jankolják a UI-t. Teszthez az executor injektálható
-/// (`NativeDatabase.memory()`), production-ben a `driftDatabase` adja.
+/// egy query). A [QueryExecutor]-t mindig a hívó adja (ADR 0047 D1), így a
+/// package tiszta Dart marad:
+///  - phone: `driftDatabase(name: 'foretack')` (drift_flutter,
+///    háttér-isolate, hogy a hosszú write-ok ne jankolják a UI-t);
+///  - szerver: `NativeDatabase(File(...))`;
+///  - teszt: `NativeDatabase.memory()`.
 @DriftDatabase(
   tables: [
     Races,
@@ -29,20 +31,16 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  /// A UI-izolátum elsődleges kapcsolata: production-ben drift_flutter named DB
-  /// háttér-isolate-on, teszthez injektált executor. **Ez migrálja a sémát.**
-  AppDatabase([QueryExecutor? executor])
-    : _assumeMigrated = false,
-      super(executor ?? driftDatabase(name: 'foretack'));
+  /// Az elsődleges kapcsolat a hívó által adott [executor]-ral. **Ez
+  /// migrálja a sémát.**
+  AppDatabase(super.executor) : _assumeMigrated = false;
 
   /// A háttér-engine másodlagos kapcsolata ugyanarra a SQLite-fájlra
   /// (ADR 0017 D6), kizárólag a telemetria-írásokhoz, WAL-módban. **Kész sémát
   /// feltételez** — nem migrál; ha mégis migrációra lenne szükség (a UI-first
   /// invariáns sérült), az `onCreate`/`onUpgrade` dob, a néma konkurens
   /// migráció helyett.
-  AppDatabase.secondary([QueryExecutor? executor])
-    : _assumeMigrated = true,
-      super(executor ?? driftDatabase(name: 'foretack'));
+  AppDatabase.secondary(super.executor) : _assumeMigrated = true;
 
   // true → ez a kapcsolat nem migrálhat (másodlagos engine-kapcsolat).
   final bool _assumeMigrated;

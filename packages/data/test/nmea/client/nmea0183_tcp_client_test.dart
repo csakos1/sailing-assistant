@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:data/src/nmea/client/nmea0183_tcp_client.dart';
 import 'package:data/src/nmea/client/nmea_connection.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 /// Teszt-kapcsolat: a byte-folyamot a teszt vezérli. A [drop] szimulál
 /// szakadást (a stream lezárása → `done`), a [close] a kliens teardownját

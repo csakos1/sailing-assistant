@@ -7,7 +7,11 @@
 ///    `RaceRepositoryImpl`, `TelemetryLoggerImpl` — az application-réteg
 ///    providerei számára.
 ///
-/// A parser/pipeline `src/` alatt package-privát marad; a `NmeaStream` /
+/// A package tiszta Dart (ADR 0047 D1): nincs Flutter-függése, így a
+/// webes szerver is használja. A `.pol`-parser azért publikus, mert a
+/// phone `AssetPolarRepository`-ja hívja.
+///
+/// Az NMEA parser/pipeline `src/` alatt package-privát marad; a `NmeaStream` /
 /// `ConnectionStatus` / `RaceRepository` / `TelemetryLogger` absztrakciók a
 /// domainben élnek.
 library;
@@ -28,5 +32,5 @@ export 'package:data/src/persistence/repositories/settings_repository_impl.dart'
 export 'package:data/src/persistence/repositories/snapshot_logger_impl.dart';
 export 'package:data/src/persistence/repositories/telemetry_logger_impl.dart';
 export 'package:data/src/persistence/repositories/track_sample_reader_impl.dart';
-export 'package:data/src/polar/asset_polar_repository.dart';
+export 'package:data/src/polar/foretack_polar_parser.dart';
 export 'package:data/src/safety/safety_mark_catalogue.dart';

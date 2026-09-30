@@ -1,5 +1,5 @@
 import 'package:data/src/nmea/parser/nmea_field_parsers.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('decimalDegreesFromNmea', () {
