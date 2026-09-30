@@ -5288,6 +5288,24 @@ Az import idempotens, az annotációkhoz soha nem nyúl.
 A lehúzás előtt kötelező a force-stop, különben a WAL és a fő fájl
 inkonzisztens párt adhat.
 
+### 20.2b HTTP-szerződés (ADR 0047 Addendum 1)
+
+A web és a szerver közötti szerződés a `race_archive_api` csomagban él
+(pure Dart, `domain`-függéssel). Fő elemei:
+
+- **Kodek:** top-level `encodeX` / `decodeX` függvénypárok. A dekódolás
+  `Result<X, DecodeError>` értéket ad, a hibás mező JSON-útvonalával.
+- **Archivált verseny:** a dróton mindig befejezett, `status` és
+  `activeMarkIndex` mező nélkül.
+- **Formátum:** az időbélyegek UTC epoch ms-ben utaznak, a track-pontok
+  kompakt tömbként (`[lat, lon, sog|null]`).
+- **Végpontok:** `GET /api/races`, `GET /api/races/{id}`,
+  `PUT /api/races/{id}/annotation` (csupa üres mezővel törli az
+  annotációt), `POST /api/imports`.
+- **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
+  `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
+  adja.
+
 ### 20.3 Webes adatmodell
 
 `RaceAnnotation` (D7): `overallPlace`, `overallFleetSize`, `classPlace`,

@@ -386,3 +386,119 @@ A konfigurációs fájlok (`Caddyfile`, systemd unitok, timer,
   böngészőben.
 - A tényleges DB-méret és a feltöltési idő egy teljes szezon lehúzott
   fájljával.
+
+## Addendum 1 — A HTTP-szerződés (`race_archive_api`, S3)
+
+2026-09-30. A D2 a `race_archive_api`-ra bízta a web és a szerver közötti
+szerződést. Ez az addendum rögzíti az alakját, mielőtt az S3 kódja
+landol.
+
+### A1 — A csomag a domaintől függ, a data-tól nem
+
+A szerződés domain-típusokat szállít (`Race`, `Mark`, `TrackStats`,
+`RoundingResult`), mert a web ezekből építi újra ugyanazokat a
+projekciókat, mint a phone (`BuildRaceLog`, `SummarizeRoundings`). A
+kodek a domain-típusokhoz **top-level `encodeX` / `decodeX`
+függvénypárokat** ad, mert a domain-osztályokba nem teszünk
+szerializációt. Az egységesség miatt a saját DTO-k is ugyanígy
+kódolódnak.
+
+Függőségek: `domain`, `shared`, `equatable`, `meta`. `dart:io` és
+Flutter tilos.
+
+### A2 — A dekódolás `Result`, nem kivétel
+
+Minden `decodeX(Object? json)` visszatérési értéke
+`Result<X, DecodeError>`. A `DecodeError` a hibás mező JSON-útvonalát
+(`races[3].race.marks[0].pos.lat`) és az elvárt típust hordozza.
+
+A szerver ezzel utasítja el a hibás kérés-törzset, a web pedig ezzel
+jelzi, ha a szerver válasza nem várt alakú. Mindkét oldalon ez
+untrusted bemenet (a projekt Result-szabálya).
+
+A belső olvasó dobhat, de a kivétel nem hagyja el a csomagot.
+
+### A3 — Az archivált verseny mindig befejezett
+
+Az import csak `finished` versenyt vesz fel (D6), ezért a dróton nincs
+`status` és `activeMarkIndex` mező. A dekóder a
+`Race(status: finished, activeMarkIndex: marks.length)` alakot építi, a
+`startedAt` és a `finishedAt` kötelező.
+
+Így a `Race` invariánsa (ADR 0046 D1) szerkezetileg teljesül. Egy
+hiányzó időbélyeg `DecodeError`, nem debug-assert.
+
+### A4 — Formátum
+
+| Elem | Formátum |
+|---|---|
+| Időbélyeg | UTC epoch milliszekundum (`int`), mint a `race_codec`-ben |
+| Időtartam | milliszekundum (`int`) |
+| Sebesség, távolság, szög | a domain SI-egységei (`mps`, `m`, fok), változatlanul |
+| Track-pont | kompakt tömb: `[lat, lon, sogMps\|null]` |
+| Enum | a Dart `name` |
+
+A track-pont tömb azért kompakt, mert egy Kékszalag ~100 000 pontja
+kulcsnevekkel nagyjából megháromszorozná a méretet (D4).
+
+### A5 — Végpontok
+
+| Metódus és útvonal | Törzs | Válasz |
+|---|---|---|
+| `GET /api/races` | — | `{"races": [RaceListItem]}` |
+| `GET /api/races/{id}` | — | `RaceDetail` |
+| `PUT /api/races/{id}/annotation` | `RaceAnnotationInput` | `RaceAnnotation` |
+| `POST /api/imports` | multipart: `database` (kötelező), `wal` (opcionális) | `ImportReport` |
+
+- A `RaceListItem` tartalma: a verseny, a `TrackStats` és az opcionális
+  `RaceAnnotation`. Ez elég a napló minden eleméhez: az évekhez és
+  hónapokhoz (a web futtatja a `BuildRaceLog`-ot), a stat-csíkhoz és a
+  sorban megjelenő helyezéshez.
+- A `RaceDetail` tartalma: a verseny, a `TrackStats`, a track-pontok, a
+  `RoundingResult`-lista és az opcionális `RaceAnnotation`. A
+  `RoundingSummary`-t a web számolja a `SummarizeRoundings`-szal, mert
+  származtatott adatot nem küldünk kétszer.
+- A `PUT` csupa üres mezővel **törli** az annotációt. Külön `DELETE`
+  nincs.
+- Módosító kérésnél kötelező az `X-Foretack-Client: web` fejléc (D9).
+
+### A6 — Az annotáció normalizálása és validációja
+
+A `validateRaceAnnotationInput` pure függvény. A kimenete
+`Result<RaceAnnotationInput, List<AnnotationViolation>>`, és **minden**
+szabálysértést visszaad, nem csak az elsőt, hogy az űrlap minden
+hibás mezőt egyszerre jelezhessen.
+
+Szabályok:
+- **Helyezés és mezőny:** ha meg van adva, legalább 1 (`ValueNotPositive`).
+- **Helyezés a mezőnyhöz képest:** ha a helyezés és a mezőny is meg van
+  adva, a helyezés nem nagyobb a mezőnynél (`PlaceExceedsFleetSize`, a
+  helyezés mezőjéhez kötve).
+- **Összefoglaló:** a széleiről levágjuk a whitespace-t; ha így üres
+  marad, `null` lesz. Hosszkorlát a validációban nincs, a kérés-törzs
+  méretét a szerver korlátozza (S5).
+
+### A7 — Hibák
+
+A hibaválasz egy boríték: `{"error": {"code": ..., ...}}`. A lehetséges
+hibák a sealed `ApiError` ágai:
+
+| Ág | Mikor |
+|---|---|
+| `MalformedRequest` | a kérés-törzs nem dekódolható (`DecodeError`) |
+| `ValidationFailed` | az annotáció validációja elbukott (a szabálysértések listájával) |
+| `RaceNotFound` | nincs ilyen azonosítójú verseny |
+| `ImportRejected` | az import elutasítva (lásd lent) |
+| `MissingClientHeader` | hiányzik az `X-Foretack-Client` fejléc |
+| `PayloadTooLarge` | túl nagy a kérés-törzs |
+| `InternalError` | váratlan szerverhiba |
+
+Az `ImportRejected` oka egy sealed `ImportRejection`:
+`MainFileMissing`, `NotSqliteDatabase`, `NotForetackDatabase` vagy
+`SchemaTooNew(fileVersion, serverVersion)`.
+
+- A HTTP státuszkódot az `ApiError.httpStatus` adja, így egy helyen él.
+- Az import figyelmeztetései (`ImportWarning`) nem hibák, az
+  `ImportReport`-ban utaznak. Az első ilyen a `walIgnored`: a feltöltött
+  `-wal` fájl fejléce nem érvényes WAL-fejléc. Ez a lehúzáskor
+  keletkező, hibaszöveget tartalmazó fájl esete.
