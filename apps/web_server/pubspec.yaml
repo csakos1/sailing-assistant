@@ -17,12 +17,18 @@ dependencies:
   domain:
     path: ../../packages/domain
   drift: ^2.33.0
+  http_parser: ^4.1.2
   meta: ^1.16.0
+  mime: ^2.0.0
   race_archive_api:
     path: ../../packages/race_archive_api
   shared:
     path: ../../packages/shared
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
   sqlite3: ^3.1.5
 
 dev_dependencies:
+  build_runner: ^2.15.0
+  drift_dev: ^2.33.0
   test: ^1.25.0

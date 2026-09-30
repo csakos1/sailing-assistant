@@ -8,6 +8,7 @@ import 'package:shared/shared.dart';
 import 'package:web_server/src/import/archive_merger.dart';
 import 'package:web_server/src/import/sqlite_headers.dart';
 import 'package:web_server/src/import/uploaded_database_probe.dart';
+import 'package:web_server/src/track_stats/missing_track_stats_backfill.dart';
 
 /// Egy lehúzott telefon-DB importja az archívumba (ADR 0047 D6 +
 /// Addendum 2).
@@ -20,24 +21,31 @@ import 'package:web_server/src/import/uploaded_database_probe.dart';
 ///     `user_version`;
 ///  4. séma-őr: újabb séma → elutasítás, régebbi → a **másolat** migrálása;
 ///  5. beolvasztás az [ArchiveMerger]-rel;
-///  6. az ideiglenes könyvtár törlése, sikertől függetlenül.
+///  6. a hiányzó track-statisztikák pótlása (Addendum 3 C7), még a
+///     mutex-en belül, hogy egy közben érkező import ne lásson félkész
+///     állapotot;
+///  7. az ideiglenes könyvtár törlése, sikertől függetlenül.
 ///
 /// Az eredeti feltöltött fájlokat soha nem módosítja. A hívásokat sorosítja
 /// (D6 9. pont): két párhuzamos import nem fésülődhet össze.
 class RaceImporter {
   /// Importer az [archive]-ba; az ideiglenes könyvtárak a [tempRoot] alá
-  /// kerülnek (alapból a rendszer temp-je).
+  /// kerülnek (alapból a rendszer temp-je). A [backfill] alapból az
+  /// [archive]-on dolgozik.
   RaceImporter({
     required AppDatabase archive,
     Directory? tempRoot,
     UploadedDatabaseProbe probe = const UploadedDatabaseProbe(),
+    MissingTrackStatsBackfill? backfill,
   }) : _archive = archive,
        _tempRoot = tempRoot ?? Directory.systemTemp,
-       _probe = probe;
+       _probe = probe,
+       _backfill = backfill ?? MissingTrackStatsBackfill(archive: archive);
 
   final AppDatabase _archive;
   final Directory _tempRoot;
   final UploadedDatabaseProbe _probe;
+  final MissingTrackStatsBackfill _backfill;
   final _Mutex _mutex = _Mutex();
 
   /// A [database] fő fájl és az opcionális [wal] importja.
@@ -89,6 +97,7 @@ class RaceImporter {
       final report = await ArchiveMerger(
         _archive,
       ).merge(uploadPath: staged.path, warnings: warnings);
+      await _backfill();
       return Ok(report);
     } finally {
       await workDir.delete(recursive: true);
