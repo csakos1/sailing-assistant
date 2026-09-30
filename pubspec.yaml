@@ -15,6 +15,7 @@ workspace:
   - packages/wearable_bridge
   - apps/phone
   - apps/watch
+  - apps/web_server
   - tools/nmea_replay
   - tools/prediction_probe
   - tools/race_analyzer

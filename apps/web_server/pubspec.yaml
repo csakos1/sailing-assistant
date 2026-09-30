@@ -1,0 +1,28 @@
+name: web_server
+description: >-
+  A webes versenyarchívum szervere (ADR 0047): import, archív- és
+  annotáció-DB, REST API. Pure Dart, AOT-binárisként fut a VPS-en.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  args: ^2.6.0
+  data:
+    path: ../../packages/data
+  domain:
+    path: ../../packages/domain
+  drift: ^2.33.0
+  meta: ^1.16.0
+  race_archive_api:
+    path: ../../packages/race_archive_api
+  shared:
+    path: ../../packages/shared
+  sqlite3: ^3.1.5
+
+dev_dependencies:
+  test: ^1.25.0
