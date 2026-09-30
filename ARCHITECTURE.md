@@ -5308,6 +5308,22 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
   `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
   adja.
 
+### 20.2c REST szerver (ADR 0047 Addendum 3)
+
+- **Keret:** `shelf` + `shelf_router`; a multipart importot a
+  `package:mime` streameli, egyenesen az ideiglenes könyvtárba. A teljes
+  fájl soha nincs memóriában.
+- **Korlátok:** annotáció 64 KiB, import 4 GiB (`--max-import-bytes`).
+  A szerver a beolvasott bájtokat számolja, nem a `Content-Length`-et.
+- **Hálózat:** `127.0.0.1:8087`, a gzip/zstd a Caddyben.
+- **Archívum:** `NativeDatabase.createInBackground`, így a több perces
+  import nem blokkolja az event loopot.
+- **Track-statisztika:** a hiányzó `race_track_stats` sorokat az import
+  pótolja, ugyanabban a mutex-ben. A `GET` nem ír; egy mégis hiányzó
+  sort memóriában számol, és figyelmeztetést naplóz.
+- **Annotáció-DB:** Drift `WebDatabase`, egyetlen `race_annotations`
+  táblával, commitolt `.g.dart`-tal.
+
 ### 20.3 Webes adatmodell
 
 `RaceAnnotation` (D7): `overallPlace`, `overallFleetSize`, `classPlace`,

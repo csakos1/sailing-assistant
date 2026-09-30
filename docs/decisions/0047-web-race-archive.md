@@ -578,3 +578,114 @@ szakaszának első pontját. A VPS-en nem kell rendszer-`libsqlite3`. A
 bináris buildelésénél viszont a hooks-t támogató `dart build cli`
 kell a sima `dart compile exe` helyett. Ezt az S8 deploy-szkriptje
 ellenőrzi.
+
+## Addendum 3 — A REST szerver és az annotáció-DB (S5)
+
+2026-09-30. Az S5 implementációja előtt rögzített döntések. A C7 a B4
+track-statisztikára vonatkozó mondatát **felülírja**.
+
+### C1 — HTTP-keret: `shelf` + `shelf_router`
+
+Mindkettő first-party (dart-lang), és vékony: egy handler egy
+`Request → Future<Response>` függvény, ezért szerver és socket nélkül,
+közvetlenül tesztelhető. A `dart_frog` fájlrendszer-alapú routingja és
+codegenje négy végponthoz aránytalan teher lenne.
+
+### C2 — Multipart: `package:mime`, streamelve
+
+A `POST /api/imports` törzsét a `MimeMultipartTransformer` bontja részekre
+(first-party, a `shelf_multipart` harmadik fél). A részek bájtjai
+**közvetlenül az import ideiglenes könyvtárába** íródnak, a memóriába
+soha nem kerül a teljes fájl. Ez kötelező: a valódi szezon-DB 1,7 GB, a
+VPS-en 2 GB RAM van.
+
+- Ismert mezők: `database` (kötelező) és `wal` (opcionális). Ismeretlen
+  mező vagy ismétlődő mező: `MalformedRequest`.
+- Ha a kliens megszakítja a feltöltést (a dialógus „Mégse” gombja), a
+  stream hibával zárul. Az ideiglenes könyvtár ilyenkor is `finally`-ban
+  törlődik, az archívumhoz semmi nem ér.
+
+### C3 — `WebDatabase` Drifttel, commitolt codegennel
+
+- Helye: `apps/web_server/lib/src/annotation/`. Egyetlen tábla,
+  `race_annotations`: `race_id TEXT PK`, a négy `INTEGER NULL` mező,
+  `summary TEXT NULL`, `updated_at`. `schemaVersion = 1`, saját
+  migrációs lánc.
+- Idegen kulcs nincs, mert a versenyek másik fájlban élnek (D5).
+- A `web_server` dev-függősége lesz a `drift_dev` és a `build_runner`, a
+  `.g.dart` commitolva, mint a `data`-ban. A CI így nem futtat codegent.
+- A `PUT` válasza mindig a **visszaolvasott** sorból készül, így a
+  tárolás időfelbontása (Drift: unix másodperc) nem okoz eltérést a
+  `PUT` és egy későbbi `GET` között.
+
+### C4 — Törzsméret-korlátok
+
+| Végpont | Korlát | Indok |
+|---|---|---|
+| `PUT …/annotation` | 64 KiB | Egy többbekezdéses összefoglaló néhány KB. |
+| `POST /api/imports` | 4 GiB, `--max-import-bytes` kapcsolóval | A 2026-os DB 1,7 GB, és a telefonos DB évről évre halmozódik. |
+
+A korlátot a szerver a **ténylegesen beolvasott bájtok** számlálásával
+érvényesíti, nem a `Content-Length` alapján (az hiányozhat vagy
+hazudhat). Túllépéskor `PayloadTooLarge` (413), és a félkész fájlok
+törlődnek. A Caddy `request_body max_size` ugyanezt az értéket kapja
+(S8), a szerver korlátja ettől függetlenül él.
+
+### C5 — Belépési pont és hálózat
+
+`bin/server.dart`, kapcsolók: `--archive`, `--annotations`,
+`--host` (alapértelmezés `127.0.0.1`), `--port` (alapértelmezés `8087`),
+`--max-import-bytes`, `--temp-root`.
+
+Az archívum `NativeDatabase.createInBackground`-dal nyílik: a több perces
+import háttér-isolate-ben fut, és nem blokkolja az event loopot. Az
+`ATTACH` itt is működik, mert a háttér-isolate egyetlen kapcsolatot
+használ. Következmény: import közben az archívumot olvasó kérések a
+kapcsolat sorában várnak. Egyfelhasználós rendszerben ez elfogadható.
+
+### C6 — Tömörítés a Caddyben
+
+A gzip/zstd a Caddy `encode` direktívája (S8), nem shelf-middleware. Egy
+helyen van, és a Caddy a `Accept-Encoding` alkuját is kezeli. Lokális
+`curl`-lel a válasz tömörítetlen, ez szándékos.
+
+### C7 — A hiányzó `race_track_stats` sorokat az import pótolja
+
+A B4 szerint a napló-végpont pótolt volna, olvasáskor, visszaírással.
+Ezt elvetjük: egy `GET` nem írhat az archívumba, és az első
+napló-lekérés versenyenként több tízezer `snapshot_logs` sor bejárása
+miatt lassú lenne.
+
+- A merge után, **ugyanabban a mutex-ben**, egy külön osztály
+  (`MissingTrackStatsBackfill`) minden olyan archivált versenyre, amelynek
+  nincs sora, lefuttatja a `TrackSampleReaderImpl` + `SummarizeTrack`
+  párost, és `RaceTrackStatsRepositoryImpl.write`-tal beírja. Az
+  archívumba csak az importer ír, így ezután minden versenynek van sora.
+- A `RaceImporter` ezt kompozícióval hívja, a merger nem változik.
+- **Védőág:** ha a napló mégis sor nélküli versenyt talál, memóriában
+  kiszámolja, **nem írja vissza**, és figyelmeztetést naplóz. A
+  `RaceListItem.trackStats` a szerződésben kötelező (Addendum 1), ezért
+  a `null` nem opció.
+
+### C8 — Rétegek a szerverben
+
+- **Olvasók:** `RaceListService` (befejezett versenyek + track-stat +
+  annotáció, a join Dartban, D5) és `RaceDetailService`
+  (`RoundingSampleReaderImpl` + `AnalyzeRoundings`, track-pontok a
+  mintákból, `TrackStats`, annotáció).
+- **Író:** `AnnotationRepository` (`get`, `getAll`, `upsert`, `delete`).
+  A csupa `null` input `delete`-re fordul (A5).
+- **Handlerek:** vékonyak. Dekódolás és kódolás a `race_archive_api`
+  kodekjeivel, a hibák `ApiError`-ként, a státuszt az
+  `ApiError.httpStatus` adja.
+- **Middleware-lánc:** naplózás → kivételfogó (`InternalError`, a
+  részletek csak a szerver naplójába kerülnek) → kliensfejléc-őr a
+  `PUT`/`POST` kéréseken (`MissingClientHeader`) → router.
+
+### C9 — Tesztek
+
+Handler-szintű tesztek `shelf` `Request`-ekkel, temp-fájl DB-kkel, a
+phone-DB fixture-rel (S4). Lefedendő: mind a négy végpont boldog útja, a
+404/403/413/422/400 hibautak, az annotáció upsert-je és törlése, a
+multipart-bontás (hiányzó, ismeretlen, ismétlődő mező, megszakított
+stream), és a track-stat pótlás.
