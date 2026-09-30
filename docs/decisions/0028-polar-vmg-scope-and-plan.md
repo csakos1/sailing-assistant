@@ -309,14 +309,17 @@ másolás), az interfész változatlanul marad.
   és a rootBundle-ról; csak az absztrakciót ismeri.
 - **data:** `polar/` — a `.pol`-parser (pure
   `String → Result<Polar, PolarLoadError>`) és az `AssetPolarRepository`
-  (rootBundle-olvasás → parser → memóriában cache-elt eredmény). A data a
+  (rootBundle-olvasás → parser → memóriában cache-elt eredmény).
+  *[Pontosítás, ADR 0047 D1: az `AssetPolarRepository` azóta az
+  `apps/phone/lib/app/` alatt él; a parser maradt a data-ban.]* A data a
   domaintől függ (befelé mutató függőség), ezért a parser a domain
   `PolarLoadError`-ját adja vissza — nincs külön data-hibatípus + mapping.
 - **phone:** a `foretack.pol` asset + a `pubspec.yaml` asset-deklaráció.
   A betöltő provider és minden fogyasztás a 3. szelet.
 
 A `data` package amúgy is Flutter-függő (Drift, `path_provider`), így a
-`rootBundle` ott elérhető; a parser-LOGIKA viszont platform-mentes pure
+`rootBundle` ott elérhető *[pontosítás: ADR 0047 D1 óta már nem az — a
+data tiszta Dart]*; a parser-LOGIKA viszont platform-mentes pure
 függvény, ezért a data unit-tesztje a valós `foretack.pol`-cellákkal
 fixtúraként fedi.
 
@@ -668,3 +671,14 @@ előzi meg a kódot.
 - **Downwind-ergonómia:** a hátszeles steer-irány matematikailag
   konzisztens a felszelivel (azonos képlet), de az óra-leolvasás
   intuitivitása on-water validációt kap (mint a 4b VMG-előjel).
+
+## Utólagos pontosítások
+
+- **Az `AssetPolarRepository` átkerült a phone-ba (ADR 0047 D1).** A B2
+  a data-rétegbe tette, azzal az indokkal, hogy a `data` „amúgy is
+  Flutter-függő". A webes szerver miatt a `data` tiszta Dart lett, így a
+  `rootBundle`-t használó osztály az `apps/phone/lib/app/` alá költözött,
+  a phone többi platform-adapteréhez. A pure `.pol`-parser a data-ban
+  maradt, és a barrel exportálja. Az interfész, a viselkedés és a
+  tesztek változatlanok; csak a hely és az import változott. B2-ben inline
+  jelölve.
