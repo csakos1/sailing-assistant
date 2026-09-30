@@ -1,0 +1,388 @@
+# ADR 0047 — Webes versenyarchívum: Flutter web + Dart szerver a VPS-en
+
+## Státusz
+
+Elfogadva — 2026-09-29. Még nem implementálva: ez a döntésrekord, az
+implementáció a „Szeletek" szakasz sorrendjében követi (docs-first: ADR →
+ARCHITECTURE-sync → kód, külön commitokban).
+
+## Kontextus
+
+A szezon végén a versenyeket egy helyen szeretném látni és rendszerezni.
+A telefon versenynaplója (ADR 0044 4d) és a verseny-részletező (ADR 0034 /
+0035 / 0036) ezt csak részben tudja:
+
+- a telefon képernyője kicsi egy szezon áttekintéséhez és egy hosszabb
+  szöveg írásához;
+- a hivatalos eredmény (abszolút és osztályhelyezés, mezőny) nincs benne a
+  DB-ben, és nem is kerülhet oda a vízen futó app terhére;
+- egy verseny utólagos, hosszabb összefoglalójának nincs helye.
+
+Az igény egy **privát webes felület** a saját domainen, a meglévő Linode
+VPS-en (2 GB RAM, friss Ubuntu, semmi nem fut rajta). Az első körben a
+versenyek **kézzel** jutnak fel: a telefonról lehúzott SQLite-fájlt
+töltöm fel. A felhasználóhoz kötött automatikus szinkron későbbi lépés, de
+az ebben az ADR-ben hozott döntéseknek nem szabad elzárniuk az útját.
+
+A beszélgetésben rögzített felhasználói döntések:
+
+1. A frontend **Flutter web**, mert a UI-nak konzisztensnek kell lennie
+   az appal (ugyanaz a design-rendszer, ADR 0041).
+2. Az import **először nyers DB**, később JSON-export (`race_codec`-alapú).
+3. A munka **most azonnal** indul, első prioritással.
+4. A webes verseny-adat: **minden, ami az appban megjelenik** (lista,
+   statisztika-sáv, részletező, post-race elemzés, track-térkép), plusz
+   **abszolút helyezés, osztályhelyezés, mezőny-méretek és összefoglaló**.
+   A verseny neve és időpontjai a DB-ből jönnek. Statisztikából annyi,
+   amennyi az appban van; a bővítés későbbi addendum.
+5. A térkép **pásztázható és zoomolható** legyen, ne statikus.
+6. Egyszerű autentikáció elég, hogy ne lássa bárki.
+
+### Verifikált tények a repóból (`feature/ui-redesign`, 2026-09-29)
+
+- A verseny-ID **UUID v4** (`apps/phone/lib/providers/id_provider.dart`).
+  Az upsert és a későbbi több-eszközös szinkron így ütközésmentes.
+- A `data` package **csak két ponton** függ a Fluttertől:
+  `app_database.dart` (a `drift_flutter` `driftDatabase` default
+  executora) és `asset_polar_repository.dart` (`flutter/services`
+  asset-betöltés). A séma, a táblák, a migrációk, a readerek és a
+  `race_codec` mind tiszta Dart.
+- A DB **WAL-módban** fut (`PRAGMA journal_mode = WAL`, ADR 0017 D6).
+  Egy csak a fő fájlt másoló `adb exec-out … cat foretack.sqlite` ezért
+  **elveszítheti a még checkpointolatlan írásokat**, tipikusan a legutóbbi
+  verseny telemetriájának egy részét.
+- Minden gyerektábla (`marks`, `telemetry_records`, `snapshot_logs`,
+  `race_track_stats`) `ON DELETE CASCADE`-del hivatkozik a `races`-re, és
+  a `beforeOpen` bekapcsolja a `foreign_keys`-t.
+- A post-race elemzés (`post_race_analysis_provider.dart`) a domain
+  `AnalyzeRoundings` / `SummarizeRoundings` / `SummarizeTrack` use
+  case-eit futtatja a `data` readereinek kimenetén.
+- A `TrackMap` már ma is kap `isInteractive` paramétert. A pásztázható
+  webes térkép tehát nem új widget, csak `isInteractive: true`.
+- A téma és a tokenek (`theme.dart`, `foretack_typography.dart`,
+  `text_tones.dart`, `*_colors.dart`, a bundled fontok) az `apps/phone`
+  alatt élnek. Egy app nem függhet egy másik apptól.
+
+## Döntés
+
+### D1 — A `data` package tiszta Dart lesz
+
+Nem emelünk ki külön `persistence` package-et. A `data`-ból a két
+Flutter-függő pontot visszük ki:
+
+- Az `AssetPolarRepository` az `apps/phone` alá költözik. Az a phone
+  bundled assetjét tölti, tehát oda tartozik. A parser
+  (`foretack_polar_parser.dart`) és a `polar_codec` a `data`-ban marad.
+- Az `AppDatabase` és az `AppDatabase.secondary` executora **kötelező**
+  paraméter lesz. A phone adja át a `driftDatabase(name: 'foretack')`-et
+  (`app_database_provider.dart`, `race_engine_task_handler.dart`).
+
+A `data` pubspec-jéből kikerül a `flutter`, a `drift_flutter` és a
+`path_provider`. A tesztjei `flutter_test` → `test` importra váltanak
+(40 fájl, mechanikus csere).
+
+**Miért ez, és nem egy új `persistence` package:** a szerver így a teljes
+`data`-t használhatja (táblák, migrációk, readerek, `race_codec`)
+re-export-akrobatika és a `data` szétszedése nélkül. A változás két hívási
+pontot és egy fájlmozgatást érint. Mellékhatásként a `data` tesztjei
+gyorsabbak lesznek (`dart test`, Flutter-binding nélkül).
+
+### D2 — Új package-ek és appok
+
+| Útvonal | Típus | Felelősség |
+|---|---|---|
+| `packages/foretack_ui` | Flutter | Téma, tipográfia, színtokenek, bundled fontok és OFL-licencek, valamint a phone és a web közös widgetjei és formatterei, saját ARB-vel |
+| `packages/race_archive_api` | tiszta Dart, **`dart:io` nélkül** | A HTTP-szerződés: DTO-k, JSON-kodekek, végpont-útvonalak, a `RaceAnnotation` érték-objektum és validációja |
+| `apps/web_server` | tiszta Dart (AOT exe) | Import, archív-DB, annotáció-DB, REST API |
+| `apps/web` | Flutter web | Versenynapló, részletező, annotáció-szerkesztő, feltöltés |
+
+Függőségi irányok:
+- `web` → `foretack_ui`, `race_archive_api`, `domain`, `shared`. **Nem** függ
+  a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
+- `web_server` → `data`, `race_archive_api`, `domain`, `shared`.
+- `phone` → `foretack_ui` (a téma és a közös widgetek innen jönnek).
+
+A `race_archive_api` saját kodeket kap, nem a `race_codec`-et használja.
+A `race_codec` a cross-isolate határ kodekje, a `race_archive_api` a
+verziózott HTTP-határé; a kettő külön okból változik (ISP/SRP).
+
+### D3 — A `foretack_ui` kiemelése igény szerint
+
+Az első lépésben csak a téma, a tokenek és a fontok költöznek. Widget akkor
+kerül át, amikor a web ténylegesen használja. A versenynapló várható
+listája: `race_log_row`, `race_log_month_header`, `race_log_stats_strip`,
+`race_log_year_bar`, `race_log_year_sheet`, a `race_log_formatters` és a
+`track_stats_formatters`. A részletezőé: `track_map`, `track_speed_legend`,
+`map_attribution`, `mark_pin`, `detail_status_strip`, `detail_mark_row`,
+`post_race_analysis_section`. Ide kerül a `PostRaceAnalysis` és a
+`TrackPoint` projekció is.
+
+A widgetekhez tartozó ARB-kulcsok a widgettel együtt költöznek a
+`foretack_ui` saját l10n-jébe. A képernyő-specifikus stringek a phone
+ARB-jében maradnak.
+
+Egy widget mozgatása tiszta költöztetés, viselkedés-változás nélkül, a
+phone widget-tesztjeinek zöldön kell maradniuk.
+
+### D4 — A szerver számol, a web renderel
+
+A részletező adatát a szerver állítja elő: a `data` readereivel olvas, és
+**ugyanazokat a domain use case-eket** futtatja, mint a phone
+`post_race_analysis_provider`-e. A web a DTO-ból ugyanazt a
+`PostRaceAnalysis` projekciót építi fel, és a közös widgetekkel rajzolja
+ki. Így a két felület számai definíció szerint egyeznek. A későbbi
+„több stat" is egy helyen, szerveroldalon bővül.
+
+A track-pontok v1-ben **nincsenek ritkítva**, ahogy a phone-on sem.
+A Caddy gzip-el tömörít. Egy 24 órás Kékszalag nagyságrendileg 100 000
+pontot jelent, ami tömörítve néhány MB. Ha ez méréssel problémának
+bizonyul, a ritkítás addendumot kap.
+
+### D5 — Két szerveroldali DB-fájl
+
+- `archive.sqlite` pontosan az `AppDatabase` sémája, ugyanazokkal a
+  migrációkkal. Az importok ebbe mergelődnek.
+- `annotations.sqlite` saját Drift DB (`WebDatabase`), egyetlen
+  `race_annotations` táblával, saját migrációs lánccal.
+
+**Miért kettő:** egy közös DB esetén minden phone-sémaváltozás a webes
+táblák migrációját is érintené, és fordítva. Két fájlnál az archívum
+automatikusan követi az app sémáját, a webes adat pedig független tőle.
+A két DB között a race UUID a kapcsolat. A join Dartban történik, ami
+~70 versenynél nem teljesítménykérdés.
+
+### D6 — Az import szemantikája
+
+1. **Bemenet:** a fő SQLite-fájl és az opcionális `-wal` fájl egy
+   multipart kérésben (`package:mime` `MimeMultipartTransformer`, dart-lang
+   csomag, nem harmadik fél).
+2. **Előkészítés:** a két fájl egy ideiglenes könyvtárba kerül
+   egymás mellé, azonos alapnévvel. Megnyitáskor az SQLite automatikusan
+   bejátssza a WAL-t.
+3. **Séma-őr:** megnyitás előtt a `PRAGMA user_version`-t olvassuk ki.
+   - Ha nagyobb, mint a szerver `schemaVersion`-e, az import **elutasítva**,
+     explicit hibaüzenettel: „frissítsd és deployold a szervert".
+   - Ha kisebb, az `AppDatabase` megnyitása lefuttatja a migrációkat
+     **az ideiglenes másolaton**.
+4. **Szűrés:** csak a `finished` státuszú versenyek jönnek át.
+5. **Merge:** `ATTACH DATABASE`, majd egyetlen tranzakcióban, versenyenként:
+   `DELETE` a `races`-ből (a CASCADE viszi a gyerek-sorokat), utána
+   `INSERT … SELECT` a `races`, `marks`, `telemetry_records`,
+   `snapshot_logs` és `race_track_stats` táblákra. **Explicit
+   oszloplistával**, amely a Drift tábladefinícióból (`$columns`) jön:
+   egy frissen létrehozott és egy v1-ről migrált DB oszlopsorrendje
+   eltérhet.
+6. **Kimarad:** a `settings` és a `saved_marks`, mert ezek phone-oldali
+   konfigurációk.
+7. **Igazságforrás:** a telefon. Egy már archivált verseny újraimportja
+   felülírja a rögzített adatait, de az `annotations.sqlite`-hoz **nem
+   nyúl**. Az import idempotens.
+8. **Eredmény:** az import válaszként visszaadja az újonnan felvett, a
+   frissített és a kihagyott (nem `finished`) versenyek listáját.
+9. **Sorosítás:** az importok egy mutex mögött futnak, egy felhasználónál
+   ez elég.
+
+Egyetlen importer osztály létezik. Ezt hívja a HTTP-végpont és a
+`web_server` CLI-belépési pontja is (teszthez és vészhelyzetre, a VPS-en
+közvetlenül).
+
+**A lehúzás szabálya:** a lehúzás előtt az appot le kell állítani
+(`adb shell am force-stop`), mert egy futó írás közben másolt fő fájl és
+WAL inkonzisztens párt adhat. Force-stop után a pár konzisztens: az SQLite
+crash-safe, a WAL-t a következő megnyitás alkalmazza. Ezt egy
+`tools/pull_race_db.sh` szkript végzi (force-stop, majd a fő fájl és a
+`-wal` lehúzása). A `run-as` továbbra is debug buildet igényel.
+
+### D7 — A webes adatmodell: `RaceAnnotation`
+
+| Mező | Típus | Szabály |
+|---|---|---|
+| `raceId` | UUID szöveg | kulcs |
+| `overallPlace` | `int?` | ≥ 1 |
+| `overallFleetSize` | `int?` | ≥ 1; ha mindkettő adott, `place ≤ fleetSize` |
+| `classPlace` | `int?` | ≥ 1 |
+| `classFleetSize` | `int?` | ≥ 1; ha mindkettő adott, `place ≤ fleetSize` |
+| `summary` | `String?` | sima többsoros szöveg |
+| `updatedAt` | UTC időbélyeg | szerver állítja |
+
+- A validáció **pure** függvény a `race_archive_api`-ban, `Result`
+  visszatéréssel. A szerver és a web űrlapja ugyanazt hívja.
+- A verseny neve és időpontjai **csak olvashatók** a weben, a DB-ből
+  jönnek.
+- Az összefoglaló v1-ben **sima szöveg**. A Markdown-renderelés későbbi
+  addendum; a tárolási formátum ezzel kompatibilis, a szöveg nem vész el.
+- A szezon a `startedAt` évéből adódik, ahogy a phone versenynaplójában.
+
+### D8 — A web felülete v1-ben
+
+Három képernyő, a phone szerkezetét és navigációs mintáját követve.
+
+**1. Versenynapló (kezdőképernyő).**
+- Évsáv és évválasztó, havi fejlécek, statisztika-sáv, verseny-sorok,
+  ugyanazokkal a widgetekkel, mint a phone-on.
+- Az alapértelmezett év a legújabb, amelyben van verseny. Ez a phone
+  `race_log_year_provider` szabálya: szezonban ez az idei év, de egy
+  verseny nélküli év elején sem üres a kezdőképernyő.
+- Ha van helyezés, a sor jobb szélén megjelenik (pl. `3/24`). Ez az
+  egyetlen eltérés a phone sorától, és a `RaceLogRow` opcionális
+  paramétere lesz, nem külön widget.
+- Az AppBarban van a feltöltés gombja (két fájlválasztós dialógus, a fő
+  fájl kötelező, a `-wal` opcionális). A dialógus megmutatja az import
+  eredményét, és utána frissül a lista.
+
+**2. Verseny-részletező** (egy sorra kattintva nyílik), fentről lefelé:
+- státusz-sáv (név, dátum, időtartam) és track-statisztika;
+- **eredmény-blokk**: abszolút és osztályhelyezés, mezőny-méretek;
+- **összefoglaló**: többsoros szöveg;
+- nagy, **interaktív** `TrackMap` (`isInteractive: true`: húzás,
+  egérgörgős és pinch zoom, forgatás nélkül), sebesség-rámpával és
+  jelmagyarázattal;
+- bóják, a `DetailMarkRow` listával;
+- post-race elemzés (`PostRaceAnalysisSection`).
+
+Az eredmény-blokk és az összefoglaló a térkép **fölött** van, mert
+szezonvégi áttekintéskor ez az első kérdés. Amíg nincs kitöltve, egy
+halk „Eredmény még nincs rögzítve" sor áll a helyükön, amely a
+szerkesztőre visz. Így nem kell az AppBar ikonját keresni.
+
+**3. Eredmény-szerkesztő.** A részletező AppBarjának ceruza-ikonja
+nyitja, ugyanazon a helyen és ugyanazzal az ikonnal, mint a phone
+részletezőjén a `RaceEditScreen`-t (ADR 0044). Külön képernyő, nem
+inline szerkesztés.
+- Mezők: abszolút helyezés / mezőny, osztályhelyezés / osztálymezőny,
+  összefoglaló.
+- A név és az időpontok nem szerkeszthetők (D7).
+- Mentéskor a D7 validáció fut. Hiba esetén a mező alatt jelenik meg az
+  üzenet, sikeres mentés után a részletező frissített adattal nyílik
+  vissza.
+- Mentetlen változtatással kilépéskor megerősítő dialógus jön.
+
+**Miért külön szerkesztő, és miért nem inline:** a phone-on már bevált
+minta a ceruza, a külön képernyő és a mentés (ADR 0044). A részletező
+így tiszta olvasási nézet marad. Egy véletlen kattintás nem módosít
+semmit, és a mentés–elvetés határ egyértelmű.
+
+További döntések:
+- A navigáció `MaterialPageRoute`, ahogy a phone-on. URL-alapú
+  deep-linket (`go_router`) v1-ben nem vezetünk be.
+- A tartalom széles képernyőn maximális szélességű oszlopban jelenik
+  meg. Master-detail elrendezés nincs.
+- A tile-forrás ugyanaz, mint a phone-on (`tile.openstreetmap.org`),
+  ugyanazzal az attribúcióval. Egy felhasználó forgalma bőven belefér az
+  OSM tile usage policy-ba.
+
+### D9 — Autentikáció és hozzáférés
+
+- A Caddy `basic_auth`-tal (bcrypt hash, `caddy hash-password`) védi a
+  **teljes** site-ot: a statikus web buildet és az `/api`-t is. A böngésző
+  az első promptnál megjegyzi a hitelesítő adatot, és a same-origin API
+  hívásokhoz automatikusan küldi.
+- A hash **nem** kerül a repóba. A Caddyfile környezeti változóból
+  olvassa.
+- CSRF ellen: minden módosító végpont (`POST` / `PUT`) megköveteli az
+  `X-Foretack-Client: web` fejlécet. Egy idegen origin csak CORS
+  preflighttal küldhetné, amit a szerver nem engedélyez.
+- A szerver kizárólag a `127.0.0.1`-en figyel, kívülről csak a Caddyn
+  át érhető el.
+
+A felhasználóhoz kötött login (a későbbi szinkronnal együtt) külön ADR
+lesz. Ekkor a Caddy `basic_auth` kikerül, a szerver kódja pedig nem függ
+tőle.
+
+### D10 — Üzemeltetés a VPS-en
+
+- **Webszerver és TLS:** natív Caddy, a hivatalos apt-repóból, automatikus
+  HTTPS-sel (Let's Encrypt) a fő domainen. A DNS A (és AAAA) rekord a
+  Linode IP-re mutat.
+- **Szerverfolyamat:** a `web_server` AOT binárisa egy
+  `foretack-archive.service` systemd unit alatt fut, dedikált `foretack`
+  userként.
+- **Tárolás:** a DB-k a `/var/lib/foretack/` alatt, a web build a
+  `/srv/foretack/web/` alatt van.
+- **Build és deploy:** a build **lokálisan**, az Arch x86_64 gépen
+  történik (`flutter build web --release`, `dart compile exe`). Egy
+  `deploy/deploy.sh` rsync-eli fel, majd újraindítja a unitot. A VPS-en
+  nincs Flutter SDK: 2 GB RAM mellett a web build ott nem férne el
+  kényelmesen.
+- **Mentés:** egy systemd timer éjszakánként `sqlite3 .backup`-ot készít
+  mindkét DB-ről, 14 napos megőrzéssel.
+- **Tűzfal:** az `ufw` csak a 22-es, 80-as és 443-as portot engedi.
+- **Nincs Docker:** egyetlen bináris és egy Caddy mellett a konténer
+  csak réteget adna hozzá, értéket nem. Ha a szinkronnal Postgres vagy
+  több szolgáltatás jön, ez újranyitható.
+
+A konfigurációs fájlok (`Caddyfile`, systemd unitok, timer,
+`deploy.sh`) a repó `deploy/` mappájában vannak verziókezelve.
+
+## Szeletek
+
+| # | Commit-scope | Tartalom |
+|---|---|---|
+| S0 | `docs` | ez az ADR, majd az `ARCHITECTURE.md` szinkron (két commit) |
+| S1 | `refactor(data)` | a `data` tiszta Dart lesz (D1); vertikális commit a két phone hívási ponttal |
+| S2 | `refactor(ui)` | `foretack_ui`: téma, tokenek, fontok, licencek; a phone átáll |
+| S3 | `feat(archive-api)` | DTO-k, kodekek, `RaceAnnotation` és validációja (TDD) |
+| S4 | `feat(web-server)` | importer: WAL, séma-őr, ATTACH-merge, CLI (TDD, fixture DB-kkel) |
+| S5 | `feat(web-server)` | REST végpontok, `WebDatabase`, CSRF-fejléc |
+| S6 | `refactor(ui)` | a versenynapló és a részletező widgetjei a `foretack_ui`-ba (D3) |
+| S7 | `feat(web)` | versenynapló, részletező, annotáció-űrlap, feltöltés |
+| S8 | `chore(deploy)` | `deploy/`, `tools/pull_race_db.sh`, CI-bővítés (`analyze`, `test` és web build) |
+
+## Következmények
+
+- **Pozitív:** egyetlen számítási igazság, mert a szerver ugyanazokat a
+  domain use case-eket futtatja, mint a phone. Egyetlen design-rendszer
+  két felületen. Az import idempotens és WAL-biztos. A későbbi szinkron
+  ugyanerre az upsertre épülhet, csak a bemenet változik (JSON-payload a
+  fájl helyett).
+- **Negatív:** a `data` és a `foretack_ui` refactorja a phone-t is
+  érinti, ezért a phone widget-tesztjeinek és egy eszközös smoke-tesztnek
+  zöldnek kell lennie minden refactor-szelet után. Minden phone-séma-bump
+  után a szervert is újra kell deployolni, különben a séma-őr elutasítja
+  az importot. Ez szándékos, látható hiba, nem csendes adatvesztés.
+- **Branch:** a munka a `feature/web-companion` ágon folyik, a
+  `feature/ui-redesign`-ból ágaztatva, mert a design-rendszer csak ott
+  létezik. Merge-sorrend: előbb a redesign megy a `main`-be, utána a web.
+
+## Amit ez az ADR NEM dönt el
+
+- a felhasználóhoz kötött autentikációt és a phone → szerver
+  automatikus szinkront;
+- a JSON-exportot az appból (a felhasználó döntése szerint a nyers DB
+  után jön);
+- a v1-en túli statisztikákat (a felhasználó döntése szerint ezek
+  addendumban bővülnek);
+- a Markdown-összefoglalót, a fotókat, a verseny törlését az archívumból,
+  a deep-linkeket és a master-detail elrendezést;
+- a CI-alapú automatikus deployt.
+
+## Alternatívák — és miért nem
+
+- **NestJS + PostgreSQL + React:** ismerős stack, de a domain-logikát
+  TypeScriptben újra kellene írni, és a két implementáció idővel eltérne.
+  A felhasználó ráadásul kifejezetten UI-konzisztenciát kért.
+- **Jaspr vagy szerveroldali HTML + htmx:** könnyebb bundle, de nem
+  ugyanaz a design-rendszer és widget-készlet.
+- **Új `persistence` package a `data` helyett:** több fájlmozgatást és
+  re-exportot igényelne. A `data` tiszta Dartra hozása ugyanazt adja
+  kisebb változással (D1).
+- **Nyers SQL-olvasás az importerben, a Drift-séma nélkül:** duplikált
+  sémaismeret, és minden phone-migráció csendben eltörhetné.
+- **A feltöltött DB közvetlen használata szerver-DB-ként:** egy
+  újrafeltöltés felülírná a webes annotációkat, és nem lehetne több
+  eszközről merge-elni.
+- **Docker Compose:** lásd D10.
+
+## Verifikálandó az implementáció során
+
+- A `sqlite3` Dart-csomag aktuális verziója a rendszer
+  `libsqlite3`-ját tölti be, vagy build hookkal bundled SQLite-ot hoz.
+  Ettől függ, kell-e `apt install libsqlite3-0` a VPS-en, és hogy a
+  `dart compile exe` kimenete önmagában futtatható-e.
+- A package-ben deklarált fontok a phone-ból és a webből
+  `package: 'foretack_ui'`-jal hivatkozandók. A glif-lefedettséget
+  (ADR 0041 D7) a weben is ellenőrizni kell.
+- A `flutter_map` 7.x web-renderelése és a tile-cache viselkedése
+  böngészőben.
+- A tényleges DB-méret és a feltöltési idő egy teljes szezon lehúzott
+  fájljával.
