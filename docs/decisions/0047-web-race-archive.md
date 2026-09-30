@@ -502,3 +502,79 @@ Az `ImportRejected` oka egy sealed `ImportRejection`:
   `ImportReport`-ban utaznak. Az első ilyen a `walIgnored`: a feltöltött
   `-wal` fájl fejléce nem érvényes WAL-fejléc. Ez a lehúzáskor
   keletkező, hibaszöveget tartalmazó fájl esete.
+
+## Addendum 2 — Az importer részletei (S4)
+
+2026-09-30. A D6 lépéseit az implementáció előtt négy ponton
+pontosítjuk.
+
+### B1 — Az autoincrement azonosítók nem utaznak
+
+A `telemetry_records` és a `snapshot_logs` sorai autoincrement `id`-t
+kapnak, és ezekre semmi nem hivatkozik. Két különböző telefon-DB (egy
+újratelepítés utáni, vagy később egy második eszköz) ugyanazokat az
+`id`-ket adja ki, ezért ezek másolása `UNIQUE` ütközést okozna. A
+másoló oszloplista ezért kihagyja az autoincrement oszlopot
+(`GeneratedColumn.hasAutoIncrement`), és az archívum ad új `id`-t. A
+sorrendet `ORDER BY <régi id>` őrzi.
+
+A többi tábla természetes kulccsal rendelkezik (`races.id` UUID,
+`marks (race_id, sequence)`, `race_track_stats.race_id`), ezeket
+változatlanul másoljuk.
+
+### B2 — Vizsgálat a nyers `sqlite3`-mal, migráció előtt
+
+A feltöltött fájlt az első megnyitáskor **nem** az `AppDatabase`-szel
+nyitjuk meg. Egy újabb sémájú fájlon ugyanis a Drift lefuttatná az
+`onUpgrade`-et (amely egyetlen ágba sem lép be), majd csendben
+visszaírná a `user_version`-t a régebbire. Ezért a vizsgálat a
+`package:sqlite3`-mal, közvetlenül történik, és a vizsgálati lépések
+sorrendje:
+
+1. `wal_checkpoint(TRUNCATE)`, hogy a feltöltött WAL bekerüljön a fő
+   fájlba;
+2. `quick_check`: ha a fájl sérült, az eredmény `NotSqliteDatabase`;
+3. a `races` tábla megléte;
+4. a `user_version` kiolvasása.
+
+Ha a `user_version < 1`, az eredmény `NotForetackDatabase`: egy valódi
+Foretack-DB legalább v1. Az `AppDatabase` csak ezután, és csak a
+régebbi sémájú **másolat** migrálására nyílik meg.
+
+A `sqlite3` közvetlen függőségként `^3.1.5`: ez a Drift 2.33 alsó
+határa, így nem kényszerít a workspace-ben verzióemelést, és nem hat a
+phone-ra.
+
+### B3 — WAL-fejléc: üres, érvényes, érvénytelen
+
+- **Üres** `-wal` (0 bájt): nincs benne keret, figyelmeztetés nélkül
+  kihagyjuk.
+- **Érvényes** (legalább 32 bájt, magic `0x377f0682` vagy `0x377f0683`):
+  a fő fájl mellé másoljuk.
+- **Minden más:** `ImportWarning.walIgnored`, és csak a fő fájl kerül
+  importálásra.
+
+Egy érvényes, de másik állapothoz tartozó WAL-t az SQLite a
+salt- és checksum-ellenőrzés miatt maga dob el, ez nem adatvesztés.
+
+### B4 — Belépési pontok
+
+- **Importer:** a `RaceImporter` egyetlen osztály. A hívásokat egy
+  belső mutex sorosítja (D6 9. pont). Minden importhoz saját ideiglenes
+  könyvtárat hoz létre, és azt `finally`-ban törli.
+- **CLI:** `bin/import_race_db.dart`
+  (`--archive <archive.sqlite> --database <foretack.sqlite> [--wal <…-wal>]`).
+  A tesztekhez és vészhelyzetre, közvetlenül a VPS-en.
+- **Track-statisztika:** az importer a telefon `race_track_stats`
+  cache-ét másolja. A hiányzó sorokat a napló-végpont (S5) pótolja,
+  ugyanúgy, ahogy a phone provider-e: olvas, ha hiányzik, számol és
+  visszaír.
+
+### Verifikált tény
+
+A `sqlite3` 3.x a Dart hooks-mechanizmusával **bundled SQLite-ot** hoz
+(a csomag `UPGRADING_TO_V3.md`-je szerint). Ez eldönti az ADR „Verifikálandó"
+szakaszának első pontját. A VPS-en nem kell rendszer-`libsqlite3`. A
+bináris buildelésénél viszont a hooks-t támogató `dart build cli`
+kell a sima `dart compile exe` helyett. Ezt az S8 deploy-szkriptje
+ellenőrzi.

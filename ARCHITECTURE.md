@@ -5279,8 +5279,10 @@ Az import (D6) lépései:
 2. **Séma-őr:** ha a `user_version` újabb, mint a szerveré, az import
    elutasítva. Ha régebbi, a migráció a másolaton fut.
 3. Csak a `finished` versenyek jönnek át.
-4. Merge versenyenként egy tranzakcióban: `ATTACH`, `DELETE` (CASCADE),
-   majd `INSERT … SELECT` **explicit oszloplistával**.
+4. Merge egy tranzakcióban: `ATTACH`, `DELETE` (CASCADE),
+   majd `INSERT … SELECT` **explicit oszloplistával**, az autoincrement
+   oszlop nélkül (Addendum 2 B1). A vizsgálat (checkpoint, `quick_check`,
+   `user_version`) a migráció előtt, nyers `sqlite3`-mal fut (B2).
 5. Kimarad: `settings`, `saved_marks`.
 
 Az import idempotens, az annotációkhoz soha nem nyúl.
