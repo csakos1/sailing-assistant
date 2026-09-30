@@ -675,6 +675,10 @@ miatt lassú lenne.
   mintákból, `TrackStats`, annotáció).
 - **Író:** `AnnotationRepository` (`get`, `getAll`, `upsert`, `delete`).
   A csupa `null` input `delete`-re fordul (A5).
+  A válasz ekkor is `RaceAnnotation`: üres tartalommal és a törlés
+  idejével, így a web ugyanazzal a dekóderrel kezeli, mint a mentést.
+  A csupa üres voltot a **normalizálás után** nézzük: egy csak
+  whitespace-t tartalmazó összefoglaló is törlést jelent.
 - **Handlerek:** vékonyak. Dekódolás és kódolás a `race_archive_api`
   kodekjeivel, a hibák `ApiError`-ként, a státuszt az
   `ApiError.httpStatus` adja.
