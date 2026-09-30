@@ -28,6 +28,7 @@
 17. [Kódolási konvenciók](#17-kódolási-konvenciók)
 18. [Függőségek a felhasználótól](#18-függőségek-a-felhasználótól)
 19. [Glosszárium](#19-glosszárium)
+20. [Webes versenyarchívum (ADR 0047)](#20-webes-versenyarchívum-adr-0047)
 
 ---
 
@@ -254,6 +255,8 @@ sailing-assistant/                        # GitHub repo root
 │       ├── 0003-polar-deferred-to-v2.md
 │       └── ...
 │
+├── deploy/                               # VPS: Caddyfile, systemd unitok, backup timer, deploy.sh (ADR 0047 D10)
+│
 ├── packages/                             # Shared, reusable Dart packages
 │   ├── domain/                           # PURE DART — no Flutter
 │   │   ├── lib/
@@ -350,6 +353,10 @@ sailing-assistant/                        # GitHub repo root
 │   │   │       └── constants/
 │   │   └── test/
 │   │
+│   ├── foretack_ui/                      # Flutter: design-rendszer + phone/web közös widgetek, saját ARB (ADR 0047 D2–D3)
+│   │
+│   ├── race_archive_api/                 # PURE DART, dart:io nélkül: webes HTTP-szerződés, RaceAnnotation (ADR 0047 D2, D7)
+│   │
 │   └── wearable_bridge/                  # Android-only Flutter plugin (ADR 0018): Wearable Data Layer transport
 │       ├── lib/
 │       │   └── wearable_bridge.dart      # Dart plugin API: push + EventChannel vetel
@@ -402,6 +409,10 @@ sailing-assistant/                        # GitHub repo root
 │   │   ├── pubspec.yaml
 │   │   └── test/
 │   │       └── features/
+│   │
+│   ├── web/                              # Flutter web: versenyarchívum UI (ADR 0047 D8)
+│   │
+│   ├── web_server/                       # Pure Dart AOT: import, archív- és annotáció-DB, REST API (ADR 0047 D4–D6)
 │   │
 │   └── watch/                            # Wear OS Flutter app
 │       ├── lib/
@@ -4127,7 +4138,7 @@ low-konfidencia-ív halványodása) az **ADR 0039** rögzíti.
 
 ## 11. Hibakezelés és warning rendszer
 
-A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz a
+A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz az
 döntött alakot tükrözi. A korábbi vázlat a sealed `ConnectionStatus`, a
 tick/clock-seam és a jelenlegi `BoatState`-mezők előttről való, ezért átírva.
 
@@ -4480,20 +4491,18 @@ name: domain
 
 ```yaml
 name: data
+  # ADR 0047 D1: tiszta Dart — nincs flutter / drift_flutter / path_provider.
+  # Az AppDatabase executorát a hívó adja (phone: driftDatabase, szerver:
+  # NativeDatabase); az AssetPolarRepository az apps/phone alatt él.
   environment:
     sdk: ^3.11.0
-    flutter: ">=3.41.0"
   
   dependencies:
-    flutter:
-      sdk: flutter
     domain:
       path: ../domain
     shared:
       path: ../shared
     drift: ^2.33.0
-    drift_flutter: ^0.3.0
-    path_provider: ^2.1.5
     shared_preferences: ^2.3.0
     geomag: ^0.0.1     # vagy saját WMM impl ha nincs jó csomag
     meta: ^1.16.0
@@ -4501,8 +4510,6 @@ name: data
   dev_dependencies:
     build_runner: ^2.4.0
     drift_dev: ^2.33.0
-    flutter_test:
-      sdk: flutter
     test: ^1.25.0
     very_good_analysis: ^9.0.0
 ```
@@ -4579,6 +4586,17 @@ name: nmea_replay
   dev_dependencies:
     test: ^1.25.0
 ```
+
+### 13.6 Webes csomagok (ADR 0047)
+
+A függőségi irányok:
+- `apps/web` → `foretack_ui`, `race_archive_api`, `domain`, `shared`.
+  **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
+- `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
+- `apps/phone` → `foretack_ui`.
+
+A `race_archive_api`-ban tilos a `dart:io` és a Flutter. A részleteket
+lásd a [§20](#20-webes-versenyarchívum-adr-0047)-ban.
 
 ---
 
@@ -5219,6 +5237,102 @@ A BYE (Balaton Yacht Egyesület) vagy a versenykiírás általában megadja a b�
 | **YDVR** | Yacht Devices Voyage Recorder | NMEA 2000 logoló SD kártyára (`.DAT`) |
 | **YDWG** | Yacht Devices Wifi Gateway | NMEA 2000 → WiFi gateway (TCP/UDP) — v1.5+ második adapter |
 | **i18n** | Internationalization | UI szövegek külső fájlokban, fordíthatóság |
+
+---
+
+## 20. Webes versenyarchívum (ADR 0047)
+
+Privát webes felület a szezon versenyeinek rendszerezésére. A telefon
+rögzített adatait mutatja, kiegészítve a hivatalos eredménnyel és egy
+összefoglalóval. A teljes döntés-készlet a
+`docs/decisions/0047-web-race-archive.md`-ben van; ez a szakasz az
+architektúra-szintű összefoglaló.
+
+### 20.1 Felépítés
+
+```
+Telefon (debug build)          VPS (Ubuntu, Caddy + systemd)
+  foretack.sqlite + -wal  ──►  Caddy :443 ── basic_auth ──┬── /        → /srv/foretack/web (Flutter web)
+  (tools/pull_race_db.sh)                                 └── /api/*   → 127.0.0.1 web_server (AOT)
+                                                                          ├── archive.sqlite     (AppDatabase séma)
+                                                                          └── annotations.sqlite (WebDatabase)
+```
+
+- A **szerver számol, a web renderel** (D4). A szerver a `data`
+  readereivel és ugyanazokkal a domain use case-ekkel
+  (`AnalyzeRoundings`, `SummarizeRoundings`, `SummarizeTrack`) állítja
+  elő a részletezőt, mint a phone. A két felület számai ezért
+  definíció szerint egyeznek.
+- **Két DB-fájl** (D5):
+  - az archívum pontosan az `AppDatabase` sémája és migrációi, így
+    automatikusan követi az appot;
+  - a webes annotációk saját `WebDatabase`-ben, független migrációs
+    lánccal élnek. A kapcsolat a race UUID.
+
+### 20.2 Import
+
+Az import (D6) lépései:
+
+1. A fő fájl és az opcionális `-wal` egy multipart kérésben érkezik, és
+   ideiglenes könyvtárba kerül.
+2. **Séma-őr:** ha a `user_version` újabb, mint a szerveré, az import
+   elutasítva. Ha régebbi, a migráció a másolaton fut.
+3. Csak a `finished` versenyek jönnek át.
+4. Merge versenyenként egy tranzakcióban: `ATTACH`, `DELETE` (CASCADE),
+   majd `INSERT … SELECT` **explicit oszloplistával**.
+5. Kimarad: `settings`, `saved_marks`.
+
+Az import idempotens, az annotációkhoz soha nem nyúl.
+
+A lehúzás előtt kötelező a force-stop, különben a WAL és a fő fájl
+inkonzisztens párt adhat.
+
+### 20.3 Webes adatmodell
+
+`RaceAnnotation` (D7): `overallPlace`, `overallFleetSize`, `classPlace`,
+`classFleetSize`, `summary`, `updatedAt`.
+
+- A validáció pure `Result`-függvény a `race_archive_api`-ban, a szerver
+  és az űrlap közösen használja.
+- A név és az időpontok csak olvashatók, a DB-ből jönnek.
+- Az összefoglaló v1-ben sima szöveg.
+
+### 20.4 UI (v1)
+
+Három képernyő, a phone mintáját követve (D8):
+
+- **Versenynapló** (kezdőképernyő): évválasztó, statisztika-sáv, sorok,
+  a helyezéssel a sor jobb szélén. Az alapértelmezett év a legújabb,
+  amelyben van verseny. A feltöltés az AppBarból nyíló dialógusban
+  történik.
+- **Részletező:** státusz-sáv és statok, eredmény-blokk, összefoglaló,
+  interaktív `TrackMap` (`isInteractive: true`), bóják, post-race
+  elemzés.
+- **Eredmény-szerkesztő:** a részletező AppBarjának ceruza-ikonjából
+  nyílik, külön képernyő mentéssel, ahogy a phone `RaceEditScreen`-je
+  (ADR 0044).
+
+A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
+
+### 20.5 Hozzáférés és üzemeltetés
+
+- **Autentikáció (D9):** Caddy `basic_auth` a teljes site-on, a hash nincs
+  a repóban. A módosító végpontok `X-Foretack-Client: web` fejlécet
+  követelnek (CSRF ellen). A szerver csak a `127.0.0.1`-en figyel.
+- **Üzemeltetés (D10):**
+  - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
+    dedikált userrel;
+  - DB-k a `/var/lib/foretack/` alatt, éjszakai `sqlite3 .backup`
+    timerrel, 14 nap megőrzéssel;
+  - `ufw`: csak 22, 80, 443;
+  - a build lokálisan fut, a `deploy/deploy.sh` rsync-eli fel;
+  - nincs Docker.
+
+### 20.6 Nem része v1-nek
+
+Felhasználóhoz kötött login és automatikus szinkron, JSON-export az
+appból, v1-en túli statisztikák, Markdown, fotók, verseny-törlés,
+automatikus CI-deploy. Mindegyik külön ADR vagy addendum lesz.
 
 ---
 
