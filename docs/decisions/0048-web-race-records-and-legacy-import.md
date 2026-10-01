@@ -175,10 +175,16 @@ nem olvassa.
   mintavételnél a kettő ugyanazt adja, mert az Excel tava is a SOG
   időintegrálja volt.
 
-**A readerek:** a `data` `TrackSampleReader`-e és az új
-`WindSampleReader` opcionális `[from, to]` ablakot kap, és SQL-ben
-szűr a `snapshot_logs.timestamp` oszlopra. Ablak nélkül a mai
-viselkedés marad.
+**A readerek:**
+- **Két új domain kontraktus:** a `WindowedTrackSampleReader` és a
+  `WindSampleReader` (`raceId`, `TimeWindow?`). A `null` ablak a teljes
+  rögzítés.
+- **A meglévő `TrackSampleReader` változatlan.** Egy új paraméter a phone
+  és a tesztek minden fake-jét eltörné (OCP), ezért nem bővül.
+- **Implementáció:** a `TrackSampleReaderImpl` egy `readWindow`
+  metódust kap, a `call` arra delegál. Az új `WindSampleReaderImpl`
+  ugyanígy SQL-ben szűr a `snapshot_logs.timestamp` oszlopra, a határokat
+  is beleértve.
 
 ### D5 — Szél-statisztika
 
@@ -190,13 +196,19 @@ viselkedés marad.
 - **Uralkodó irány:** a nem-null TWD-k körkörös átlaga (egységvektorok
   átlaga). Az egyszerű számtani átlag a 359°→1° átmenetnél hibás lenne,
   ugyanaz a probléma, amit a wind-shift trend `unwrap`-ja kezel.
-- **Megjelenítés:** a 16 égtájas magyar felirat (É, ÉÉK, ÉK, KÉK, K,
-  KDK, DK, DDK, D, DDNy, DNy, NyDNy, Ny, NyÉNy, ÉNy, ÉÉNy), pontosan az
-  Excel jelölései. A fok → égtáj leképezés egy `foretack_ui` formázó. A
-  kézi verseny az égtáj indexét (0–15) tárolja.
+- **Égtáj:** a 16 irány a domain `CompassPoint` enumja. A fok → égtáj
+  leképezés (`CompassPoint.fromDegrees`) is ott él, mert a szerződés
+  (`ManualRaceInput`) és a web is ezt a típust használja. A kézi verseny
+  az indexét (0–15) tárolja.
+- **Megjelenítés:** a magyar felirat (É, ÉÉK, ÉK, KÉK, K, KDK, DK, DDK,
+  D, DDNy, DNy, NyDNy, Ny, NyÉNy, ÉNy, ÉÉNy, pontosan az Excel
+  jelölései) a `foretack_ui` dolga.
 
-A forrás: a `snapshot_logs` JSON-jának `wind` mezője, abból a
-`trueSpeedWater` és a `trueDirectionGround`.
+**A forrás:** a `snapshot_logs` JSON-jának `wind` mezője, abból a
+`trueSpeedWater` és a `trueDirectionGround`. Az irány csak földrajzi
+(`trueNorth`) referenciával számít. Mágneses mintát deklináció nélkül
+nem lehet átváltani, ezért az ilyen minta irány nélkül kerül a számításba,
+a sebessége megmarad.
 
 ### D6 — HTTP-szerződés v2 (felülírja az Addendum 1 A5–A6 érintett részeit)
 
