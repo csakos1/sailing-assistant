@@ -5,7 +5,8 @@
 Elfogadva — 2026-10-01. Még nem implementálva. A „Szeletek" sorrendjében
 következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
-14. körének döntéseit rögzíti.
+14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
+alakját rögzíti.
 
 ## Kontextus
 
@@ -729,3 +730,101 @@ az S7 dolga; az eredmény-blokk számai az E7 szerint `numeralMediumStyle`
   (G1), nem mert az egyetlen akció.
 - **ADR 0047 E7, eredmény-blokk:** üres cella nem jelenik meg (a 13k2
   helyett); a szerkesztő helyezés-mezője pár lett mezőnnyel (G4).
+
+## Addendum 2 — A szerződés v2 a dróton (S5b-2)
+
+2026-10-01. Az S5b-2 előtti egyeztetés és a kódolás közben hozott
+szerződés-döntések. A D6 alakját pontosítja; ahol eltér, ez a mérvadó.
+
+### H1 — A szélirány a dróton égtáj
+
+A `RaceStats` és a `ManualRaceInput` is `CompassPoint`-ként viszi az
+irányt, az enum nevével (`"southWest"`).
+- A szerver a telemetriás versenyek számolt fokát a
+  `CompassPoint.fromDegrees`-szel képezi. A `race_stats` cache a fokot
+  tárolja (D9), a leképezés a válasz építésekor történik.
+- **Miért:** a web csak 16 égtájat mutat, a kézi verseny is égtájat
+  tárol. Egy típus mindkét fajtára egyszerűbb kliens; a fokban küldött
+  kézi érték csak álpontosság lenne.
+
+### H2 — A verseny eredete és a napló napja
+
+A `RaceSummary` a D6 `kind` és `date` mezője helyett egy sealed eredetet
+hordoz:
+- `TelemetryOrigin`: a rögzítés kezdete és vége (UTC);
+- `ManualOrigin`: a naptári nap (`CalendarDate`, dróton `"YYYY-MM-DD"`).
+
+Dróton: `"origin": {"kind": "telemetry", "start": …, "end": …}` vagy
+`{"kind": "manual", "date": "2026-06-13"}`.
+
+A telemetriás verseny **napját a kliens számolja** helyi időben (a
+hivatalos rajtból, ha van, különben a rögzítés kezdetéből, D2), nem a
+szerver.
+- **Miért:** a pure Dart szerver a folyamat időzónáját látja, és a VPS
+  UTC-ben fut. A böngésző Budapesten van, ott a helyi nap helyes. Egy
+  szerver oldali „date" a késő esti befutásokat a következő napra tenné.
+
+### H3 — A statisztika ablaka
+
+`RaceStats.window` sealed: `OfficialWindow(TimeWindow)`,
+`RecordingWindow(TimeWindow)`, `ManualEntry()`. Dróton
+`{"kind": "official" | "recording" | "manual", "start", "end"}`, kézinél
+határok nélkül. A közelítő jelölés (G6) a `RecordingWindow`-ból jön.
+
+- A track-statok (`distanceMeters`, `avgSpeedMps`, `maxSpeedMps`) és a
+  szél (`avgWindMps`, `maxWindMps`, `windPoint`) laposan a `stats`-ban.
+- Kézi versenyen az `avgSpeedMps`-t a szerver számolja (táv ÷ menetidő,
+  D2), így a web itt is csak renderel (ADR 0047 D4).
+- A dekóder ellenőrzi az összhangot: telemetriás eredethez hivatalos vagy
+  rögzítés-ablak, kézihez `manual` tartozik.
+
+### H4 — Helyezés és eredmény
+
+- **`Placing`:** dróton szám vagy `"dnf"` / `"dsq"`, hiányzó helyezésnél
+  `null`. A dekóder bármely egész számot `FinishPlace`-ként elfogad; a
+  ≥ 1 szabály a validáció dolga, hogy a hiba a mező alatt jelenjen meg.
+- **`RaceResult`:** `{raceId, updatedAt, …}` és a `RaceResultInput`
+  mezői laposan, ahogy a v1 annotáció.
+- **A kézi verseny törzse** (`POST` és `PUT`):
+  `{"race": ManualRaceInput, "result": RaceResultInput}`, a
+  `ManualRaceRequest` típus.
+- **`RaceDetail` v2:** `{"summary": RaceSummary, "telemetry": …|null}`; a
+  `telemetry` a `Race`-t, a track-pontokat és a `roundings`-ot hordozza,
+  és pontosan telemetriás eredetnél van jelen.
+
+### H5 — Validáció: közös mező- és szabálysértés-típus
+
+A `ValidationFailed` egy közös sealed `InputViolation` listát hordoz,
+`InputField` mezőkkel. Ez a v1 annotáció és mindkét v2 bemenet mezőit
+lefedi, így új `ApiError` ág nem kell (D6).
+
+| Kód | Mikor | Mező |
+|---|---|---|
+| `valueNotPositive` | helyezés, mezőny, YS < 1 | a hibás mező |
+| `placeExceedsFleetSize` | számszerű helyezés > a saját mezőnye | a helyezés |
+| `finishNotAfterStart` | mindkét idő adott, befutás ≤ rajt | `officialFinish` |
+| `valueNegative` | táv, sebesség, szél < 0 | a hibás mező |
+| `valueEmpty` | a név trimmelve üres | `name` |
+
+- A dátum és az égtáj érvényessége **dekódolási** kérdés: a rossz
+  `"YYYY-MM-DD"` vagy ismeretlen égtáj-név `MalformedRequest`. Ez a D6
+  „égtáj-index 0–15" validációját váltja fel; a 0–15 index csak a
+  tárolás formája (D9).
+- A YS-szám szövegének beolvasása (`75,90` → 7590) az űrlap dolga (S7);
+  a dróton egész szám utazik.
+- A v1 nevek (`AnnotationField`, `AnnotationViolation`) az S5b-3-ig
+  típus-aliasként élnek, hogy a `web_server` változatlanul forduljon. A
+  v1 kódok és mezőnevek változatlanok.
+
+### H6 — Additív átállás
+
+Az S5b-2 a v1 típusokat nem törli, a `web_server` az S5b-3-ig a v1-et
+használja. Egyetlen névütközés van: a v1 `RaceDetail` egy előkészítő
+`refactor` commitban `LegacyRaceDetail` lesz (kodekjeivel együtt). Az
+S5b-3 a `Legacy*` típusokat és az aliasokat törli.
+
+### H7 — Végpont-útvonalak
+
+`raceResultPath(id)` → `/api/races/{id}/result`, `manualRacesPath` →
+`/api/manual-races`, `manualRacePath(id)` → `/api/manual-races/{id}`. A
+`raceAnnotationPath` az S5b-3-ig marad.

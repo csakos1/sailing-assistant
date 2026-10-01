@@ -5318,6 +5318,13 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 - **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
   `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
   adja.
+- **v2 (ADR 0048 D6 + Addendum 2):** `RaceSummary` sealed eredettel
+  (telemetriás: a rögzítés ablaka; kézi: naptári nap), `RaceStats`
+  ablakkal (`official` / `recording` / `manual`) és égtáj-iránnyal,
+  `RaceResult` `Placing` helyezésekkel (szám, `"dnf"`, `"dsq"`), és a
+  kézi verseny végpontjai. A telemetriás verseny napját a kliens
+  számolja helyi időben. A szabálysértések közös `InputViolation`
+  típusban jönnek. Az S5b-3-ig a v1 mellette él.
 
 ### 20.2c REST szerver (ADR 0047 Addendum 3)
 
