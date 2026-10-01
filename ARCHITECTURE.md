@@ -5335,15 +5335,30 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 - **Annotáció-DB:** Drift `WebDatabase`, egyetlen `race_annotations`
   táblával, commitolt `.g.dart`-tal.
 
-### 20.3 Webes adatmodell
+### 20.3 Webes adatmodell (ADR 0048)
 
-`RaceAnnotation` (D7): `overallPlace`, `overallFleetSize`, `classPlace`,
-`classFleetSize`, `summary`, `updatedAt`.
+A web az egyetlen forrás 2021-től: az Excel-napló egyszeri importtal
+kerül fel, és megszűnik.
 
+- **Kétféle verseny.** A **telemetriás** a phone DB-jéből jön (név, idő
+  és track csak olvasható). A **kézi** a `web.sqlite` `manual_races`
+  táblájában él: név, dátum, táv, max. sebesség, átlagos és max. szél,
+  szélirány; szerkeszthető és törölhető.
+- **`RaceResult`** mindkét fajtán:
+  - három helyezés (osztály, abszolút, egytestű), mindegyik szám, DNF vagy
+    DSQ;
+  - mezőny, YS-szám (századokban);
+  - hivatalos rajt és befutás;
+  - díj és összefoglaló.
+
+  A dobogó származtatott.
+- **Ablakos statisztika:** ha a hivatalos idők megvannak, a táv, a
+  sebesség és a szél (`SummarizeWind`, körkörös TWD-átlag, 16 égtáj) a
+  rajt–befutás ablakból számolódik, különben a teljes rögzítésből,
+  közelítőként jelölve. A cache a `race_stats` tábla, az import és az
+  időket változtató mentés frissíti.
 - A validáció pure `Result`-függvény a `race_archive_api`-ban, a szerver
   és az űrlap közösen használja.
-- A név és az időpontok csak olvashatók, a DB-ből jönnek.
-- Az összefoglaló v1-ben sima szöveg.
 
 ### 20.4 UI (v1)
 
@@ -5363,6 +5378,14 @@ Három képernyő, a phone mintáját követve (D8):
   (ADR 0044).
 
 A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
+
+**ADR 0048 bővítések:**
+- **Napló:** Lista / Táblázat váltó (a táblázatban „Összes év" opcióval),
+  és „Új verseny" gomb kézi versenyhez.
+- **Táblázat:** az Excel oszlopai, rögzített fejléc és névoszlop,
+  rendezés; a közelítő értékek `~` jellel.
+- **Szerkesztő:** minden eredmény-mező, kézi versenynél a név, a dátum és
+  a statok is.
 
 A makett (13. kör) részletei az Addendum 4-ben vannak:
 - elrendezés: 880 px-es oszlop, 640 px-es szövegmérték, `WebLayout`

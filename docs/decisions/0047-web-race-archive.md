@@ -6,6 +6,11 @@ Elfogadva — 2026-09-29. Még nem implementálva: ez a döntésrekord, az
 implementáció a „Szeletek" szakasz sorrendjében követi (docs-first: ADR →
 ARCHITECTURE-sync → kód, külön commitokban).
 
+**Részben felülírva** az ADR 0048-ban (2026-10-01): a D7 adatmodell, a
+D8 szerkesztő-mezői, az Addendum 1 A5–A6 annotáció-végpontja, az
+Addendum 3 C3/C5/C7 és az Addendum 4 E7 eredmény-blokkja. A
+részleteket az ADR 0048 „Mit ír felül" szakasza sorolja fel.
+
 ## Kontextus
 
 A szezon végén a versenyeket egy helyen szeretném látni és rendszerezni.
