@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
-import 'package:web_server/src/annotation/web_database.dart';
+import 'package:web_server/src/web_db/web_database.dart';
 
 // Tesztfixturak az archivumhoz: valodi Drift-DB-k ideiglenes fajlokban,
 // valodi RaceSnapshot-JSON-nel, hogy a RoundingSampleReaderImpl is
@@ -28,11 +27,14 @@ Race finishedArchiveRace(String id, {Duration offset = Duration.zero}) {
   ).start(at: start).roundCurrentMark(at: start.add(const Duration(hours: 2)));
 }
 
-/// Egy pillanatkep a [tick]-ben; pozicio nelkul, ha [position] null.
+/// Egy pillanatkep a [tick]-ben; pozicio nelkul, ha [position] null, szel
+/// nelkul, ha [twsMps] null. A szelirany foldrajzi (trueNorth).
 RaceSnapshot archiveSnapshot({
   required DateTime tick,
   Coordinate? position,
   double? sogMps,
+  double? twsMps,
+  double twdDeg = 225,
 }) => RaceSnapshot(
   eventCount: 1,
   boatState: BoatState(
@@ -43,16 +45,27 @@ RaceSnapshot archiveSnapshot({
   connectionStatus: const Connected(),
   tickTime: tick,
   raceStatus: RaceStatus.active,
+  wind: twsMps == null
+      ? null
+      : WindData(
+          apparentAngle: const Angle(degrees: 30),
+          apparentSpeed: Speed(metersPerSecond: twsMps + 1),
+          timestamp: tick,
+          trueSpeedWater: Speed(metersPerSecond: twsMps),
+          trueDirectionGround: Bearing(
+            degrees: twdDeg,
+            reference: BearingReference.trueNorth,
+          ),
+        ),
 );
 
 /// A [race] mentese az [archive]-ba, [positions] darab pozicios es egy
-/// pozicio nelkuli pillanatkeppel. A track-stat sort csak [withStats]
-/// eseten irja.
+/// pozicio nelkuli pillanatkeppel, masodpercenkent a rajttol. Az i-edik
+/// pozicios minta SOG-ja 3 + i, szele 4 + i m/s, 225 fokbol.
 Future<void> seedArchiveRace(
   AppDatabase archive,
   Race race, {
   int positions = 3,
-  bool withStats = true,
 }) async {
   await RaceRepositoryImpl(archive).save(race);
   final logger = SnapshotLoggerImpl(archive);
@@ -64,6 +77,7 @@ Future<void> seedArchiveRace(
         tick: start.add(Duration(seconds: i)),
         position: Coordinate(latitude: 46.9 + i * 0.001, longitude: 17.9),
         sogMps: 3.0 + i,
+        twsMps: 4.0 + i,
       ),
     );
   }
@@ -71,23 +85,9 @@ Future<void> seedArchiveRace(
     race.id,
     archiveSnapshot(tick: start.add(Duration(seconds: positions))),
   );
-  if (withStats) {
-    await archive
-        .into(archive.raceTrackStats)
-        .insert(
-          RaceTrackStatsCompanion.insert(
-            raceId: race.id,
-            distanceMeters: const Value(1234),
-            maxSpeedMps: const Value(5),
-            avgSpeedMps: const Value(4),
-            sampleCount: positions + 1,
-            computedAt: archiveStart,
-          ),
-        );
-  }
 }
 
-/// Egy archivum- es egy annotacio-DB egy ideiglenes konyvtarban.
+/// Egy archivum- es egy webes DB egy ideiglenes konyvtarban.
 final class ArchiveDatabases {
   ArchiveDatabases._(this.directory, this.archive, this.web);
 
@@ -99,7 +99,7 @@ final class ArchiveDatabases {
     return ArchiveDatabases._(
       directory,
       AppDatabase(NativeDatabase(File('${directory.path}/archive.sqlite'))),
-      WebDatabase(NativeDatabase(File('${directory.path}/annotations.sqlite'))),
+      WebDatabase(NativeDatabase(File('${directory.path}/web.sqlite'))),
     );
   }
 

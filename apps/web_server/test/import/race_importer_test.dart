@@ -142,9 +142,10 @@ void main() {
       // ASSERT
       expect(report.added.map((race) => race.id), ['r1']);
       expect(await countRows(archive, 'telemetry_records', 'r1'), 3);
-      // A v4-es telefonnak nincs track-stat tablaja; a sort az import
-      // utani potlas irja (ADR 0047 Addendum 3 C7).
-      expect(await countRows(archive, 'race_track_stats', 'r1'), 1);
+      // A v4-es telefonnak nincs track-stat tablaja. A phone cache-et a
+      // szerver mar nem potolja: a web a sajat race_stats cache-et hasznalja
+      // (ADR 0048 Addendum 3 I1).
+      expect(await countRows(archive, 'race_track_stats', 'r1'), 0);
     });
   });
 

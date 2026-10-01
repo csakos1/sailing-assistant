@@ -4,18 +4,26 @@ import 'package:args/args.dart';
 import 'package:data/data.dart';
 import 'package:drift/native.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:web_server/src/annotation/annotation_repository.dart';
-import 'package:web_server/src/annotation/web_database.dart';
-import 'package:web_server/src/http/annotation_handler.dart';
 import 'package:web_server/src/http/archive_api.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
+import 'package:web_server/src/http/manual_race_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
+import 'package:web_server/src/http/race_result_handler.dart';
 import 'package:web_server/src/import/race_importer.dart';
+import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_detail_service.dart';
-import 'package:web_server/src/race/race_list_service.dart';
-import 'package:web_server/src/track_stats/missing_track_stats_backfill.dart';
+import 'package:web_server/src/race/race_result_service.dart';
+import 'package:web_server/src/race/race_summary_service.dart';
+import 'package:web_server/src/serial_lock.dart';
+import 'package:web_server/src/stats/race_stats_calculator.dart';
+import 'package:web_server/src/stats/race_stats_refresher.dart';
+import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
+import 'package:web_server/src/web_db/manual_race_repository.dart';
+import 'package:web_server/src/web_db/race_result_repository.dart';
+import 'package:web_server/src/web_db/race_stats_repository.dart';
+import 'package:web_server/src/web_db/web_database.dart';
 
 // A webes archívum REST szervere (ADR 0047 Addendum 3 C5). Kompozíciós
 // gyökér: itt, és csak itt, dől el, melyik implementáció áll az
@@ -23,16 +31,16 @@ import 'package:web_server/src/track_stats/missing_track_stats_backfill.dart';
 //
 //   dart run web_server:server \
 //     --archive /var/lib/foretack/archive.sqlite \
-//     --annotations /var/lib/foretack/annotations.sqlite
+//     --web-db /var/lib/foretack/web.sqlite
 
 const _defaultPort = 8087;
 const int _defaultMaxImportBytes = 4 * 1024 * 1024 * 1024;
-const int _annotationBodyLimitBytes = 64 * 1024;
+const int _jsonBodyLimitBytes = 64 * 1024;
 
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
-    ..addOption('annotations', help: 'Az annotációk SQLite-fájlja (kötelező).')
+    ..addOption('web-db', help: 'A webes adatok SQLite-fájlja (kötelező).')
     ..addOption(
       'host',
       help: 'A figyelt cím (D9: csak loopback).',
@@ -51,13 +59,13 @@ Future<void> main(List<String> arguments) async {
 
   final ArgResults options;
   final String archivePath;
-  final String annotationsPath;
+  final String webDatabasePath;
   final int port;
   final int maxImportBytes;
   try {
     options = parser.parse(arguments);
     archivePath = _requiredOption(options, 'archive');
-    annotationsPath = _requiredOption(options, 'annotations');
+    webDatabasePath = _requiredOption(options, 'web-db');
     port = _positiveInt(options, 'port');
     maxImportBytes = _positiveInt(options, 'max-import-bytes');
   } on FormatException catch (error) {
@@ -81,18 +89,37 @@ Future<void> main(List<String> arguments) async {
     NativeDatabase.createInBackground(File(archivePath)),
   );
   final webDatabase = WebDatabase(
-    NativeDatabase.createInBackground(File(annotationsPath)),
+    NativeDatabase.createInBackground(File(webDatabasePath)),
   );
 
   final races = RaceRepositoryImpl(archive);
-  final annotations = AnnotationRepository(webDatabase);
+  final results = RaceResultRepository(webDatabase);
+  final stats = RaceStatsRepository(webDatabase);
+  final manualRaces = ManualRaceRepository(webDatabase);
+  final calculate = RaceStatsCalculator(
+    readTrackSamples: TrackSampleReaderImpl(archive).readWindow,
+    readWindSamples: WindSampleReaderImpl(archive).call,
+  );
+  final resolveStats = TelemetryStatsResolver(calculate: calculate, log: _log);
+  final refresher = RaceStatsRefresher(
+    races: races,
+    results: results,
+    stats: stats,
+    calculate: calculate,
+    log: _log,
+  );
+  // Egy zár az importnak és az eredmény-mentés utáni frissítésnek
+  // (ADR 0048 Addendum 3 I5).
+  final writeLock = SerialLock();
+
   final handler = buildArchiveApiHandler(
     raceList: RaceListHandler(
-      RaceListService(
+      RaceSummaryService(
         races: races,
-        readTrackStats: RaceTrackStatsRepositoryImpl(archive).read,
-        readTrackSamples: TrackSampleReaderImpl(archive).call,
-        annotations: annotations,
+        results: results,
+        stats: stats,
+        manualRaces: manualRaces,
+        resolveStats: resolveStats,
         log: _log,
       ),
     ),
@@ -100,19 +127,36 @@ Future<void> main(List<String> arguments) async {
       RaceDetailService(
         races: races,
         readRoundingSamples: RoundingSampleReaderImpl(archive).call,
-        annotations: annotations,
+        results: results,
+        stats: stats,
+        manualRaces: manualRaces,
+        resolveStats: resolveStats,
+        log: _log,
       ),
     ),
-    annotation: AnnotationHandler(
-      races: races,
-      annotations: annotations,
-      bodyLimitBytes: _annotationBodyLimitBytes,
+    raceResult: RaceResultHandler(
+      service: RaceResultService(
+        races: races,
+        results: results,
+        refresher: refresher,
+        lock: writeLock,
+      ),
+      bodyLimitBytes: _jsonBodyLimitBytes,
+    ),
+    manualRaces: ManualRaceHandler(
+      service: ManualRaceService(
+        manualRaces: manualRaces,
+        results: results,
+        runInTransaction: webDatabase.transaction,
+      ),
+      bodyLimitBytes: _jsonBodyLimitBytes,
     ),
     imports: ImportHandler(
       importer: RaceImporter(
         archive: archive,
         tempRoot: tempRoot,
-        backfill: MissingTrackStatsBackfill(archive: archive, log: _log),
+        lock: writeLock,
+        afterMerge: refresher.afterImport,
       ),
       receiver: ImportUploadReceiver(limitBytes: maxImportBytes),
       tempRoot: tempRoot,

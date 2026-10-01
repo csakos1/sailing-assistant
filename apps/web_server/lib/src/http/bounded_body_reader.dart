@@ -6,7 +6,7 @@ import 'package:shared/shared.dart';
 /// A kérés-törzs beolvasása a memóriába, legfeljebb [limitBytes] bájtig
 /// (ADR 0047 Addendum 3 C4).
 ///
-/// Csak kis törzsekre való (az annotáció 64 KiB); a nagy importot a
+/// Csak kis törzsekre való (a JSON-törzs 64 KiB); a nagy importot a
 /// multipart-fogadó streameli fájlba. A korlát a ténylegesen beolvasott
 /// bájtokra vonatkozik: a `Content-Length` hiányozhat, vagy hazudhat. Ha
 /// a fejléc már eleve túl nagyot jelez, a törzset el sem kezdjük olvasni.

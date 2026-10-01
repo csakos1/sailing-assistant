@@ -14,8 +14,9 @@ import 'package:race_archive_api/race_archive_api.dart';
 ///     `snapshot_logs` és `race_track_stats` táblákra, explicit
 ///     oszloplistával, az autoincrement oszlop nélkül.
 ///
-/// A `settings` és a `saved_marks` kimarad: phone-oldali konfiguráció. Az
-/// annotációkhoz nem nyúl — azok külön DB-ben élnek (D5).
+/// A `settings` és a `saved_marks` kimarad: phone-oldali konfiguráció. A
+/// webes adatokhoz (eredmények, kézi versenyek) nem nyúl — azok külön
+/// DB-ben élnek (D5).
 class ArchiveMerger {
   /// Beolvasztó az `archive` adatbázisba.
   ArchiveMerger(this._archive);

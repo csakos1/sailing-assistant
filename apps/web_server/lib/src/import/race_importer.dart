@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:data/data.dart';
@@ -8,7 +7,16 @@ import 'package:shared/shared.dart';
 import 'package:web_server/src/import/archive_merger.dart';
 import 'package:web_server/src/import/sqlite_headers.dart';
 import 'package:web_server/src/import/uploaded_database_probe.dart';
-import 'package:web_server/src/track_stats/missing_track_stats_backfill.dart';
+import 'package:web_server/src/serial_lock.dart';
+
+/// Egy sikeres beolvasztás utáni lépés, a jelentéssel (ADR 0048
+/// Addendum 3 I4): a szerveren a statisztika-cache frissítése.
+///
+/// A hibáit maga kezeli: a merge ekkor már lezárult, egy követő lépés
+/// kudarca nem fordíthatja elutasításba az importot.
+typedef ImportFollowUp = Future<void> Function(ImportReport report);
+
+Future<void> _noFollowUp(ImportReport report) async {}
 
 /// Egy lehúzott telefon-DB importja az archívumba (ADR 0047 D6 +
 /// Addendum 2).
@@ -21,38 +29,42 @@ import 'package:web_server/src/track_stats/missing_track_stats_backfill.dart';
 ///     `user_version`;
 ///  4. séma-őr: újabb séma → elutasítás, régebbi → a **másolat** migrálása;
 ///  5. beolvasztás az [ArchiveMerger]-rel;
-///  6. a hiányzó track-statisztikák pótlása (Addendum 3 C7), még a
-///     mutex-en belül, hogy egy közben érkező import ne lásson félkész
-///     állapotot;
+///  6. az [ImportFollowUp] (a statisztika-cache frissítése, ADR 0048
+///     Addendum 3 I4), még a zár alatt, hogy egy közben érkező import vagy
+///     eredmény-mentés ne lásson félkész állapotot;
 ///  7. az ideiglenes könyvtár törlése, sikertől függetlenül.
 ///
-/// Az eredeti feltöltött fájlokat soha nem módosítja. A hívásokat sorosítja
-/// (D6 9. pont): két párhuzamos import nem fésülődhet össze.
+/// Az eredeti feltöltött fájlokat soha nem módosítja. A hívásokat a
+/// [SerialLock]-kal sorosítja (D6 9. pont): két párhuzamos import nem
+/// fésülődhet össze.
 class RaceImporter {
   /// Importer az [archive]-ba; az ideiglenes könyvtárak a [tempRoot] alá
-  /// kerülnek (alapból a rendszer temp-je). A [backfill] alapból az
-  /// [archive]-on dolgozik.
+  /// kerülnek (alapból a rendszer temp-je). A [lock]-ot a szerver megosztja
+  /// az eredmény-mentéssel (Addendum 3 I5); az [afterMerge] alapból semmit
+  /// nem csinál.
   RaceImporter({
     required AppDatabase archive,
     Directory? tempRoot,
     UploadedDatabaseProbe probe = const UploadedDatabaseProbe(),
-    MissingTrackStatsBackfill? backfill,
+    SerialLock? lock,
+    ImportFollowUp afterMerge = _noFollowUp,
   }) : _archive = archive,
        _tempRoot = tempRoot ?? Directory.systemTemp,
        _probe = probe,
-       _backfill = backfill ?? MissingTrackStatsBackfill(archive: archive);
+       _lock = lock ?? SerialLock(),
+       _afterMerge = afterMerge;
 
   final AppDatabase _archive;
   final Directory _tempRoot;
   final UploadedDatabaseProbe _probe;
-  final MissingTrackStatsBackfill _backfill;
-  final _Mutex _mutex = _Mutex();
+  final SerialLock _lock;
+  final ImportFollowUp _afterMerge;
 
   /// A [database] fő fájl és az opcionális [wal] importja.
   Future<Result<ImportReport, ImportRejection>> call({
     required File database,
     File? wal,
-  }) => _mutex.run(() => _import(database, wal));
+  }) => _lock.run(() => _import(database, wal));
 
   Future<Result<ImportReport, ImportRejection>> _import(
     File database,
@@ -97,7 +109,7 @@ class RaceImporter {
       final report = await ArchiveMerger(
         _archive,
       ).merge(uploadPath: staged.path, warnings: warnings);
-      await _backfill();
+      await _afterMerge(report);
       return Ok(report);
     } finally {
       await workDir.delete(recursive: true);
@@ -123,25 +135,6 @@ class RaceImporter {
       return await handle.read(length);
     } finally {
       await handle.close();
-    }
-  }
-}
-
-// Egyszerű aszinkron mutex: a feladatok érkezési sorrendben, egymás után
-// futnak. A lánc soha nem hibásodik meg, mert a `done` a `finally`-ban
-// mindig teljesül.
-final class _Mutex {
-  Future<void> _last = Future<void>.value();
-
-  Future<T> run<T>(Future<T> Function() task) async {
-    final previous = _last;
-    final done = Completer<void>();
-    _last = done.future;
-    try {
-      await previous;
-      return await task();
-    } finally {
-      done.complete();
     }
   }
 }
