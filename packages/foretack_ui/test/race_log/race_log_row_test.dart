@@ -87,6 +87,27 @@ void main() {
     });
   });
 
+  group('RaceLogRow.entry', () {
+    testWidgets('shows the given day and name like the race row', (
+      tester,
+    ) async {
+      // ARRANGE + ACT
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: foretackTheme,
+          home: const Scaffold(
+            body: RaceLogRow.entry(day: 7, name: 'Lelle Kupa'),
+          ),
+        ),
+      );
+
+      // ASSERT
+      expect(find.text('07'), findsOneWidget);
+      expect(find.text('Lelle Kupa'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('Lelle Kupa')).dx, 60);
+    });
+  });
+
   group('RaceLogRow interaction', () {
     testWidgets('reports taps to the caller', (tester) async {
       var taps = 0;

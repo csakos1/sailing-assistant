@@ -22,6 +22,7 @@ export 'package:foretack_ui/src/race_log/race_log_formatters.dart';
 export 'package:foretack_ui/src/race_log/race_log_month_header.dart';
 export 'package:foretack_ui/src/race_log/race_log_row.dart';
 export 'package:foretack_ui/src/race_log/race_log_stats_strip.dart';
+export 'package:foretack_ui/src/race_log/race_log_year_selector.dart';
 export 'package:foretack_ui/src/theme/confidence_colors.dart';
 export 'package:foretack_ui/src/theme/font_licenses.dart';
 export 'package:foretack_ui/src/theme/foretack_typography.dart';

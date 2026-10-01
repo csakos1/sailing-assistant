@@ -15,8 +15,10 @@ import 'package:foretack_ui/foretack_ui.dart';
 /// szélességű és nem a glifákra méretezett, hogy az egy- és kétjegyű napok
 /// mellett is egy oszlopban álljanak a nevek.
 ///
-/// A nap-szám a `finishedAt` **helyi idejű** napja (D32), a feltöltés
-/// pedig ugyanaz a konvenció, mint a `DetailMarkRow` ordináljáé (D24).
+/// A phone-on a nap-szám a `finishedAt` **helyi idejű** napja (D32); a web
+/// a saját napját adja át a [RaceLogRow.entry] konstruktorral (ADR 0048
+/// Addendum 4 K3). A feltöltés ugyanaz a konvenció, mint a `DetailMarkRow`
+/// ordináljáé (D24).
 ///
 /// A név `listItemTitleStyle`-t kap, ugyanazt, mint a lajstrom-sor címe:
 /// itt ténylegesen egy verseny neve áll egy lista-soron, tehát a két
@@ -25,11 +27,30 @@ import 'package:foretack_ui/foretack_ui.dart';
 /// A `TextTones` biztonságos: a `foretackTheme` regisztrálja, tehát a fában
 /// mindig jelen van.
 class RaceLogRow extends StatelessWidget {
-  /// Egy napló-sor. Az [onTap] a verseny részleteire vezet.
-  const RaceLogRow({required this.race, this.onTap, super.key});
+  /// Egy napló-sor a [race] befejezett versenyhez. Az [onTap] a verseny
+  /// részleteire vezet.
+  RaceLogRow({required Race race, VoidCallback? onTap, Key? key})
+    : this.entry(
+        day: race.finishedAt?.toLocal().day,
+        name: race.name,
+        onTap: onTap,
+        key: key,
+      );
 
-  /// A megjelenített, befejezett verseny.
-  final Race race;
+  /// Egy napló-sor kész értékekből: a hónap [day]-edik napja és a [name]
+  /// név. A web használja, amelynek a napját nem a `finishedAt` adja.
+  const RaceLogRow.entry({
+    required this.day,
+    required this.name,
+    this.onTap,
+    super.key,
+  });
+
+  /// A hónap napja (1–31); `null`, ha nem ismert.
+  final int? day;
+
+  /// A verseny neve.
+  final String name;
 
   /// Koppintás-kezelő; `null` esetén a sor nem reagál.
   final VoidCallback? onTap;
@@ -65,7 +86,7 @@ class RaceLogRow extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      race.name,
+                      name,
                       style: listItemTitleStyle.copyWith(
                         color: scheme.onSurface,
                       ),
@@ -86,12 +107,8 @@ class RaceLogRow extends StatelessWidget {
     );
   }
 
-  // A naplóban minden verseny befejezett, tehát a `finishedAt` kitöltött.
-  // A gondolatjeles ág csak azért van, hogy egy hívó-oldali tévedés ne
+  // A naplóban minden verseny befejezett, tehát a nap ismert. A
+  // gondolatjeles ág csak azért van, hogy egy hívó-oldali tévedés ne
   // dobjon kivételt a vízen: a slot szélessége akkor sem változik.
-  String get _day {
-    final finishedAt = race.finishedAt;
-    if (finishedAt == null) return '--';
-    return finishedAt.toLocal().day.toString().padLeft(2, '0');
-  }
+  String get _day => day?.toString().padLeft(2, '0') ?? '--';
 }
