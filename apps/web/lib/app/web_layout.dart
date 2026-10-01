@@ -11,4 +11,10 @@ abstract final class WebLayout {
 
   /// A tartalom bal és jobb betéte az oszlopon belül.
   static const double columnInset = 20;
+
+  /// A hosszú szöveg (összefoglaló, űrlap) legnagyobb szélessége.
+  static const double textMaxWidth = 640;
+
+  /// A részletező térkép-kártyájának magassága (E4: 880×560).
+  static const double mapHeight = 560;
 }

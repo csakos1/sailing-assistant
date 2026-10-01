@@ -5,7 +5,8 @@ import 'package:foretack_web/app/web_layout.dart';
 
 /// A web közös AppBarja (ADR 0047 Addendum 4 E3).
 ///
-/// Teljes szélességű, 64 px-es sáv, a címe az oszlopban. A háttere
+/// Teljes szélességű, 64 px-es sáv, a címe (és ha kell, a vissza-gomb) az
+/// oszlopban, nem az ablak bal szélén. A háttere
 /// `surfaceContainer`, ugyanaz, mint az alatta álló évsávé, így a kettő
 /// egy egybefüggő fejlécet ad (13a).
 ///
@@ -13,11 +14,15 @@ import 'package:foretack_web/app/web_layout.dart';
 /// kapcsolva: ez telefonos jelzés, a weben a fejléc színe görgetéskor sem
 /// változik.
 class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
-  /// AppBar a [title] címmel.
-  const WebAppBar({required this.title, super.key});
+  /// AppBar a [title] címmel; a [showBack] vissza-gombot tesz elé.
+  const WebAppBar({required this.title, this.showBack = false, super.key});
 
   /// A cím szövege.
   final String title;
+
+  /// Mutasson-e vissza-gombot (egy megnyitott képernyőn, pl. a
+  /// részletezőben).
+  final bool showBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(WebLayout.appBarHeight);
@@ -28,11 +33,28 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
     backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
     scrolledUnderElevation: 0,
     surfaceTintColor: Colors.transparent,
+    automaticallyImplyLeading: false,
     titleSpacing: 0,
     title: WebColumn(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: WebLayout.columnInset),
-        child: Text(title, style: screenTitleStyle),
+        padding: EdgeInsets.only(
+          // A vissza-gomb saját betéttel bír: a bal betét így kisebb.
+          left: showBack ? 8 : WebLayout.columnInset,
+          right: WebLayout.columnInset,
+        ),
+        child: Row(
+          children: [
+            if (showBack) ...[const BackButton(), const SizedBox(width: 4)],
+            Expanded(
+              child: Text(
+                title,
+                style: screenTitleStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );

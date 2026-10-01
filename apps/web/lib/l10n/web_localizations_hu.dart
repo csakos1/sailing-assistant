@@ -54,4 +54,78 @@ class WebLocalizationsHu extends WebLocalizations {
   @override
   String get logEmpty =>
       'Még nincs verseny az archívumban. Tölts fel egy telefonos adatbázist, vagy vegyél fel egy versenyt kézzel.';
+
+  @override
+  String get detailLoadError =>
+      'Nem sikerült betölteni a versenyt. Az adat nem veszett el, csak most nem érhető el.';
+
+  @override
+  String get detailNotFound => 'Ez a verseny már nincs az archívumban.';
+
+  @override
+  String get detailManualCaps => 'KÉZI RÖGZÍTÉS';
+
+  @override
+  String get detailWindAvgCaps => 'ÁTL. SZÉL';
+
+  @override
+  String get detailWindMaxCaps => 'MAX SZÉL';
+
+  @override
+  String get detailWindDirectionCaps => 'SZÉLIRÁNY';
+
+  @override
+  String get detailApproximate =>
+      '~ Közelítő értékek a teljes rögzítésből. A hivatalos rajttal és befutással a versenyablakra pontosodnak.';
+
+  @override
+  String get detailResultCaps => 'EREDMÉNY';
+
+  @override
+  String get detailNoResult => 'Eredmény még nincs rögzítve.';
+
+  @override
+  String get detailClassPlaceCaps => 'OSZTÁLY';
+
+  @override
+  String get detailOverallPlaceCaps => 'ABSZOLÚT';
+
+  @override
+  String get detailMonohullPlaceCaps => 'EGYTESTŰ';
+
+  @override
+  String get detailYsCaps => 'YS-SZÁM';
+
+  @override
+  String get detailOfficialStartCaps => 'HIVATALOS RAJT';
+
+  @override
+  String get detailOfficialFinishCaps => 'HIVATALOS BEFUTÁS';
+
+  @override
+  String get detailElapsedCaps => 'MENETIDŐ';
+
+  @override
+  String get detailNextDayCaps => '+1 NAP';
+
+  @override
+  String get detailPrizeCaps => 'DÍJ';
+
+  @override
+  String get detailMarksCaps => 'BÓJÁK';
+
+  @override
+  String get detailSummaryCaps => 'ÖSSZEFOGLALÓ';
+
+  @override
+  String get detailTrackEmpty => 'Nincs track-adat ehhez a versenyhez.';
+
+  @override
+  String get detailTrackOpenFullscreen => 'Track nagyítása';
+
+  @override
+  String get detailTrackLegendTitle => 'sebesség (kn)';
+
+  @override
+  String get detailTrackLegendUnknown => 'nincs adat';
 }

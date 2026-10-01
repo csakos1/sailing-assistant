@@ -165,6 +165,150 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'Még nincs verseny az archívumban. Tölts fel egy telefonos adatbázist, vagy vegyél fel egy versenyt kézzel.'**
   String get logEmpty;
+
+  /// A részletező hiba-állapota.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült betölteni a versenyt. Az adat nem veszett el, csak most nem érhető el.'**
+  String get detailLoadError;
+
+  /// A részletező, ha a szerver RaceNotFound-ot ad.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a verseny már nincs az archívumban.'**
+  String get detailNotFound;
+
+  /// A kézi verseny státusz-csíkja (14m).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉZI RÖGZÍTÉS'**
+  String get detailManualCaps;
+
+  /// A szél-csík első cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTL. SZÉL'**
+  String get detailWindAvgCaps;
+
+  /// A szél-csík második cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'MAX SZÉL'**
+  String get detailWindMaxCaps;
+
+  /// A szél-csík harmadik cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'SZÉLIRÁNY'**
+  String get detailWindDirectionCaps;
+
+  /// A közelítő-sor (ADR 0048 Addendum 4 K9).
+  ///
+  /// In hu, this message translates to:
+  /// **'~ Közelítő értékek a teljes rögzítésből. A hivatalos rajttal és befutással a versenyablakra pontosodnak.'**
+  String get detailApproximate;
+
+  /// Az eredmény-blokk szakaszcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'EREDMÉNY'**
+  String get detailResultCaps;
+
+  /// Az üres eredmény halk sora (13l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Eredmény még nincs rögzítve.'**
+  String get detailNoResult;
+
+  /// Az osztályhelyezés cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'OSZTÁLY'**
+  String get detailClassPlaceCaps;
+
+  /// Az abszolút helyezés cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'ABSZOLÚT'**
+  String get detailOverallPlaceCaps;
+
+  /// Az egytestű helyezés cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'EGYTESTŰ'**
+  String get detailMonohullPlaceCaps;
+
+  /// A YS-szám cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'YS-SZÁM'**
+  String get detailYsCaps;
+
+  /// A hivatalos rajt cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'HIVATALOS RAJT'**
+  String get detailOfficialStartCaps;
+
+  /// A hivatalos befutás cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'HIVATALOS BEFUTÁS'**
+  String get detailOfficialFinishCaps;
+
+  /// A hivatalos menetidő cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'MENETIDŐ'**
+  String get detailElapsedCaps;
+
+  /// A rajt utáni napon történt befutás jele.
+  ///
+  /// In hu, this message translates to:
+  /// **'+1 NAP'**
+  String get detailNextDayCaps;
+
+  /// A díj címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'DÍJ'**
+  String get detailPrizeCaps;
+
+  /// A bóják szakaszcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'BÓJÁK'**
+  String get detailMarksCaps;
+
+  /// Az összefoglaló szakaszcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÖSSZEFOGLALÓ'**
+  String get detailSummaryCaps;
+
+  /// A térkép üres állapota.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs track-adat ehhez a versenyhez.'**
+  String get detailTrackEmpty;
+
+  /// A térkép-kártya tooltipje: teljes képernyős nézet.
+  ///
+  /// In hu, this message translates to:
+  /// **'Track nagyítása'**
+  String get detailTrackOpenFullscreen;
+
+  /// A sebesség-legenda fejléce a teljes képernyős térképen.
+  ///
+  /// In hu, this message translates to:
+  /// **'sebesség (kn)'**
+  String get detailTrackLegendTitle;
+
+  /// A legenda címkéje az ismeretlen sebességű szakaszhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'nincs adat'**
+  String get detailTrackLegendUnknown;
 }
 
 class _WebLocalizationsDelegate

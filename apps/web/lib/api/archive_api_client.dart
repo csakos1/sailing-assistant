@@ -22,6 +22,13 @@ class ArchiveApiClient {
   Future<Result<List<RaceSummary>, ApiFailure>> fetchRaceSummaries() =>
       _getJson(racesPath, decodeRaceSummaries);
 
+  /// Egy verseny részletezője: `GET /api/races/{id}`.
+  ///
+  /// Egy nem létező versenyre a szerver `RaceNotFound`-ot ad; ez
+  /// `ServerFailure`-ként jön vissza.
+  Future<Result<RaceDetail, ApiFailure>> fetchRaceDetail(String raceId) =>
+      _getJson(racePath(raceId), decodeRaceDetail);
+
   Future<Result<T, ApiFailure>> _getJson<T>(
     String path,
     Result<T, DecodeError> Function(Object? json) decode,

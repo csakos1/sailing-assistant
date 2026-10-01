@@ -66,5 +66,101 @@
   "logEmpty": "Még nincs verseny az archívumban. Tölts fel egy telefonos adatbázist, vagy vegyél fel egy versenyt kézzel.",
   "@logEmpty": {
     "description": "Az üres napló szövege (13b)."
+  },
+  "detailLoadError": "Nem sikerült betölteni a versenyt. Az adat nem veszett el, csak most nem érhető el.",
+  "@detailLoadError": {
+    "description": "A részletező hiba-állapota."
+  },
+  "detailNotFound": "Ez a verseny már nincs az archívumban.",
+  "@detailNotFound": {
+    "description": "A részletező, ha a szerver RaceNotFound-ot ad."
+  },
+  "detailManualCaps": "KÉZI RÖGZÍTÉS",
+  "@detailManualCaps": {
+    "description": "A kézi verseny státusz-csíkja (14m)."
+  },
+  "detailWindAvgCaps": "ÁTL. SZÉL",
+  "@detailWindAvgCaps": {
+    "description": "A szél-csík első cellája."
+  },
+  "detailWindMaxCaps": "MAX SZÉL",
+  "@detailWindMaxCaps": {
+    "description": "A szél-csík második cellája."
+  },
+  "detailWindDirectionCaps": "SZÉLIRÁNY",
+  "@detailWindDirectionCaps": {
+    "description": "A szél-csík harmadik cellája."
+  },
+  "detailApproximate": "~ Közelítő értékek a teljes rögzítésből. A hivatalos rajttal és befutással a versenyablakra pontosodnak.",
+  "@detailApproximate": {
+    "description": "A közelítő-sor (ADR 0048 Addendum 4 K9)."
+  },
+  "detailResultCaps": "EREDMÉNY",
+  "@detailResultCaps": {
+    "description": "Az eredmény-blokk szakaszcíme."
+  },
+  "detailNoResult": "Eredmény még nincs rögzítve.",
+  "@detailNoResult": {
+    "description": "Az üres eredmény halk sora (13l)."
+  },
+  "detailClassPlaceCaps": "OSZTÁLY",
+  "@detailClassPlaceCaps": {
+    "description": "Az osztályhelyezés cellája."
+  },
+  "detailOverallPlaceCaps": "ABSZOLÚT",
+  "@detailOverallPlaceCaps": {
+    "description": "Az abszolút helyezés cellája."
+  },
+  "detailMonohullPlaceCaps": "EGYTESTŰ",
+  "@detailMonohullPlaceCaps": {
+    "description": "Az egytestű helyezés cellája."
+  },
+  "detailYsCaps": "YS-SZÁM",
+  "@detailYsCaps": {
+    "description": "A YS-szám cellája."
+  },
+  "detailOfficialStartCaps": "HIVATALOS RAJT",
+  "@detailOfficialStartCaps": {
+    "description": "A hivatalos rajt cellája."
+  },
+  "detailOfficialFinishCaps": "HIVATALOS BEFUTÁS",
+  "@detailOfficialFinishCaps": {
+    "description": "A hivatalos befutás cellája."
+  },
+  "detailElapsedCaps": "MENETIDŐ",
+  "@detailElapsedCaps": {
+    "description": "A hivatalos menetidő cellája."
+  },
+  "detailNextDayCaps": "+1 NAP",
+  "@detailNextDayCaps": {
+    "description": "A rajt utáni napon történt befutás jele."
+  },
+  "detailPrizeCaps": "DÍJ",
+  "@detailPrizeCaps": {
+    "description": "A díj címkéje."
+  },
+  "detailMarksCaps": "BÓJÁK",
+  "@detailMarksCaps": {
+    "description": "A bóják szakaszcíme."
+  },
+  "detailSummaryCaps": "ÖSSZEFOGLALÓ",
+  "@detailSummaryCaps": {
+    "description": "Az összefoglaló szakaszcíme."
+  },
+  "detailTrackEmpty": "Nincs track-adat ehhez a versenyhez.",
+  "@detailTrackEmpty": {
+    "description": "A térkép üres állapota."
+  },
+  "detailTrackOpenFullscreen": "Track nagyítása",
+  "@detailTrackOpenFullscreen": {
+    "description": "A térkép-kártya tooltipje: teljes képernyős nézet."
+  },
+  "detailTrackLegendTitle": "sebesség (kn)",
+  "@detailTrackLegendTitle": {
+    "description": "A sebesség-legenda fejléce a teljes képernyős térképen."
+  },
+  "detailTrackLegendUnknown": "nincs adat",
+  "@detailTrackLegendUnknown": {
+    "description": "A legenda címkéje az ismeretlen sebességű szakaszhoz."
   }
 }

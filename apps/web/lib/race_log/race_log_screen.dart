@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -5,8 +7,10 @@ import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
+import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:foretack_web/race_log/race_log_view.dart';
+import 'package:race_archive_api/race_archive_api.dart';
 
 /// A webes Versenynapló, Lista nézet (ADR 0047 D8, ADR 0048 Addendum 4
 /// K3–K4).
@@ -41,6 +45,16 @@ class RaceLogScreen extends ConsumerWidget {
     );
   }
 }
+
+/// A részletező megnyitása (ADR 0048 Addendum 4 K7), `MaterialPageRoute`-tal.
+void _openDetail(BuildContext context, RaceSummary summary) => unawaited(
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          RaceDetailScreen(raceId: summary.id, raceName: summary.name),
+    ),
+  ),
+);
 
 class _RaceLogBody extends ConsumerWidget {
   const _RaceLogBody({required this.view});
@@ -109,7 +123,7 @@ class _RaceLogBody extends ConsumerWidget {
               ),
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 56),
-                children: _rows(l10n),
+                children: _rows(context, l10n),
               ),
             ),
           ),
@@ -126,9 +140,7 @@ class _RaceLogBody extends ConsumerWidget {
     return l10n.logYearRange(years.last, years.first);
   }
 
-  // A sorra kattintás az S7b-ig nem nyit semmit: a részletező ott készül
-  // el (K4).
-  List<Widget> _rows(WebLocalizations l10n) => [
+  List<Widget> _rows(BuildContext context, WebLocalizations l10n) => [
     for (final year in view.shownYears) ...[
       if (view.isAllYears) _YearHeading(year: year.year),
       for (final month in year.months) ...[
@@ -137,7 +149,11 @@ class _RaceLogBody extends ConsumerWidget {
           countLabel: l10n.logRaceCountCaps(month.entries.length),
         ),
         for (final entry in month.entries)
-          RaceLogRow.entry(day: entry.day.day, name: entry.summary.name),
+          RaceLogRow.entry(
+            day: entry.day.day,
+            name: entry.summary.name,
+            onTap: () => _openDetail(context, entry.summary),
+          ),
       ],
     ],
   ];
