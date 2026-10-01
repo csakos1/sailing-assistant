@@ -916,3 +916,108 @@ A végső ellenőrzés az eszközös smoke-teszt (Pixel).
 - A phone-ban marad a `font_licenses_test`, és oda kerül az új
   `font_manifest_test`.
 - A phone többi tesztje változatlanul zöld.
+
+## Addendum 5 — A közös widgetek költöztetése (S6)
+
+2026-10-01. Az S6 előtti egyeztetés eredménye. Az F1 az E1 hatodik
+pontját, az F2 az E7 évsáv-tételét **felülírja**, az F3 pedig a D3
+widget-listáját pontosítja.
+
+### F1 — A megkerülés-elemzés a weben sem látszik
+
+A phone a next-TWA elemzést (összegző fej, bójánkénti kártyák) csak
+debug buildben mutatja. A release-ben a post-race rész a track-térkép és
+a három track-stat. A web ugyanezt mutatja, ezért a részletezőn nincs
+külön post-race szekció: a track-statok és a térkép a saját helyükön
+állnak (E1), az E1 hatodik pontja elmarad.
+
+- A `RaceDetail` szerződés nem változik: a `roundings` továbbra is
+  utazik. A szerver amúgy is kiszámolja, így egy későbbi kapcsoló
+  szerződés-változás nélkül bevezethető.
+- A web nem futtatja a `SummarizeRoundings`-ot (az Addendum 1 A5 erre
+  vonatkozó mondata v1-ben nem valósul meg).
+
+### F2 — Évsáv: a weben a 7c, a phone-on a mostani
+
+A web a makett 7c évsávját kapja: a nagy évszám mellett a szomszéd évek
+tompított mono számként, maguk a választók. A phone a D35/D36 szerinti
+sávot és alsó lapot tartja.
+
+- A `RaceLogYearBar` és a `RaceLogYearSheet` **nem költözik**: a web nem
+  használja őket.
+- A 7c az S7-ben új widgetként kerül a `foretack_ui`-ba, hogy a phone a
+  saját újratervezésekor (a web elkészülte után) átvehesse.
+
+**Miért:** a felhasználó a phone-on is a 7c-t akarja. A mostani sáv
+átvitele a webre olyan munka lenne, amelyet a phone átállása egyből
+eldobna.
+
+### F3 — Mi költözik az S6-ban
+
+Tiszta költöztetés `git mv`-vel, viselkedés-változás nélkül:
+
+| Hová (`foretack_ui/lib/src/`) | Mi |
+|---|---|
+| `format/` | `track_stats_formatters` |
+| `race_log/` | `race_log_row`, `race_log_month_header`, `race_log_stats_strip`, `race_log_formatters` |
+| `race/` | `status_badge`, `detail_status_strip`, `detail_mark_row`, `track_stats_row` |
+| `map/` | `track_map`, `track_speed_legend`, `map_attribution`, `mark_pin`, `track_point` |
+
+- **`StatusBadge`:** új a D3 listájához képest, mert a `DetailStatusStrip`
+  függ tőle.
+- **`TrackStatsRow`:** eddig a `PostRaceAnalysisSection` privát
+  `_TrackStatsRow`-ja volt. Változatlan tartalommal saját, publikus
+  widget lesz, mert a webnek a térképtől külön kell (E1).
+- **A phone-ban marad:**
+  - a `PostRaceAnalysisSection` (provider és teljes képernyős útvonal);
+  - a megkerülés-widgetek;
+  - a `PostRaceAnalysis` (F1 után csak a phone használja);
+  - a `FullScreenTrackMapScreen`.
+
+  A phone szekciója a közös `TrackMap`-ből és `TrackStatsRow`-ból rakja
+  össze magát, ugyanúgy, mint eddig.
+- **Függőségek:** a `foretack_ui` új függőségei a `flutter_map`, a
+  `latlong2`, a `shared` (`formatLocalClock`) és a
+  `flutter_localizations`. A phone a `flutter_map`-et és a `latlong2`-t
+  megtartja, mert a biztonsági térkép közvetlenül használja.
+
+### F4 — A `foretack_ui` l10n-je
+
+- **Osztály:** `ForetackUiLocalizations`, `lib/src/l10n/foretack_ui_hu.arb`
+  sablonból, ugyanazzal a beállítással, mint a phone (nem szintetikus
+  package, nullable getter).
+- **Generálás:** a kimenetet a `flutter gen-l10n` állítja elő a
+  package-ben, és commitolva van, ahogy a phone-nál is.
+- **Melyik kulcs költözik:** az, amelyet egy költöző widget közvetlenül
+  olvas. Ha a phone egy saját képernyője is használja, az is a
+  `ForetackUiLocalizations`-ből olvassa, így minden szöveg egy helyen él.
+  Az S6-ban 9 kulcs:
+  - `listStatusNotStarted`, `listStatusActive`, `listStatusFinished`;
+  - `detailFinishedDate`, `listNoMarksCaps`, `listMarkCountCaps`;
+  - `detailTrackMaxSpeedCaps`, `detailTrackAvgSpeedCaps`,
+    `detailTrackDistanceCaps`.
+- **A hívó által átadott szövegek** (pl. a jelmagyarázat címe, a stat-csík
+  feliratai) a phone ARB-jében maradnak. Akkor költöznek, amikor a webnek
+  is kellenek (S7), így a web ARB-jébe nem kerül duplikált magyar szöveg.
+- **A kulcsnevek nem változnak.** A `list…`/`detail…` előtag egy közös
+  csomagban pontatlan, de az átnevezés minden hívási helyet és tesztet
+  érintene, költöztetés közben pedig nem keverünk tartalmi változást.
+- **A phone delegátor-listája egyetlen konstans**
+  (`phoneLocalizationsDelegates`, `lib/app/`). Ezt használja a
+  `MaterialApp` és minden widget-teszt, így egy később költöző widget
+  nem tör el egy tesztet sem.
+
+### F5 — Ami az S7-be kerül
+
+Az S6 nem változtat viselkedést, ezért ezek `feat`-ként az S7-ben jönnek:
+- a `RaceLogRow` helyezés-paramétere (E7);
+- a `ForetackDialog` (E6);
+- a 7c évsáv (F2);
+- a térkép web-vezérlői (E4);
+- a hívó által átadott szövegek költöztetése (F4).
+
+### F6 — Ismert i18n-adósság
+
+A formázók magyar tizedesvesszőt és rögzített mértékegységeket adnak
+(`ó`, `p`, `kn`, `km`). Változatlanul költöznek. Egy angol változathoz
+locale-függő formázás kell, ez nem része v1-nek.

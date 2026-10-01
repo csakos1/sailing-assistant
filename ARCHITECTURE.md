@@ -389,7 +389,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   ├── connection/                         # Gateway kapcsolat státusz/setup
 │   │   │   │   ├── settings/                           # Wind shift ablak, küszöb, stb.
 │   │   │   │   ├── race_detail/                        # Verseny-detail: track-térkép, statok, PNG-export (export/)
-│   │   │   │   │       # (track-térkép: track_map.dart, ADR 0035;
+│   │   │   │   │       # (track-térkép: foretack_ui TrackMap, ADR 0035, 0047 Add. 5;
 │   │   │   │   │       #  domain SummarizeTrack + TrackStats, Add. 3)
 │   │   │   │   ├── safety_map/                         # Élő biztonsági térkép (ADR 0037)
 │   │   │   │   └── debug/                              # Replay log, raw NMEA viewer
@@ -3163,7 +3163,7 @@ referenciájú `Bearing`-et követel meg (A1-D3), és a visszaadott
 hosszúságot ±180 fokra normálja (A1-D4).
 
 A verseny bójái a `MarkPin` megosztott widgettel rajzolódnak, amit a
-`TrackMap`-ből emeltünk ki (`apps/phone/lib/widgets/mark_pin.dart`), így a
+`TrackMap`-ből emeltünk ki (ma: `packages/foretack_ui/lib/src/map/mark_pin.dart`), így a
 post-race és az élő térkép ugyanazt a vizuális nyelvet beszéli. A
 `TrackMap` **nem** bővül: az post-race, egyszer illeszt bounding-boxra,
 statikus tartalmú — egy widget nem szolgálhat ki két életciklust (SRP).
@@ -4603,8 +4603,9 @@ A függőségi irányok:
   **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
 - `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
 - `apps/phone` → `foretack_ui`.
-- `foretack_ui` → `domain` (a `ConfidenceColors` és a `WarningColors` a
-  domain enumjait képzi le; Addendum 4 E9). A `data`-tól nem függ.
+- `foretack_ui` → `domain`, `shared` (a tokenek a domain enumjait, a
+  widgetek a domain entitásait jelenítik meg; Addendum 4 E9, Addendum 5
+  F3). A `data`-tól nem függ, ezért webre is fordul.
 
 A `race_archive_api`-ban tilos a `dart:io` és a Flutter. A részleteket
 lásd a [§20](#20-webes-versenyarchívum-adr-0047)-ban.
@@ -5354,8 +5355,9 @@ Három képernyő, a phone mintáját követve (D8):
   történik.
 - **Részletező**, fentről lefelé: státusz-sáv, track-statok,
   eredmény-blokk (üresen egy halk sor a szerkesztőre), 560 px-es
-  interaktív `TrackMap` (`isInteractive: true`), bóják, post-race
-  elemzés, és **legalul** az összefoglaló (Addendum 4 E1).
+  interaktív `TrackMap` (`isInteractive: true`), bóják, és **legalul**
+  az összefoglaló (Addendum 4 E1). A megkerülés-elemzés a weben sem
+  látszik, ahogy a release appban sem (Addendum 5 F1).
 - **Eredmény-szerkesztő:** a részletező AppBarjának ceruza-ikonjából
   nyílik, külön képernyő mentéssel, ahogy a phone `RaceEditScreen`-je
   (ADR 0044).
@@ -5372,6 +5374,13 @@ A makett (13. kör) részletei az Addendum 4-ben vannak:
 - a feltöltés-dialógus állapotai (E8).
 
 Új szín és új tipográfiai fokozat nincs.
+
+**Közös widgetek (Addendum 5):**
+- A `foretack_ui` adja a napló sorát, hónap-fejlécét és stat-csíkját, a
+  státusz-csíkot, a bója-sort, a `TrackStatsRow`-t, a `TrackMap`-et és
+  a térkép-kiegészítőket.
+- A szövegek a saját l10n-jében élnek (`ForetackUiLocalizations`).
+- A web évsávja a makett 7c-je, a phone sajátja a phone-ban marad (F2).
 
 ### 20.5 Hozzáférés és üzemeltetés
 
