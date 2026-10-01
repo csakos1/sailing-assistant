@@ -1,0 +1,70 @@
+{
+  "@@locale": "hu",
+  "appTitle": "Foretack archívum",
+  "@appTitle": {
+    "description": "A böngészőfül címe."
+  },
+  "logTitle": "Versenynapló",
+  "@logTitle": {
+    "description": "A Versenynapló képernyő címe."
+  },
+  "logMonth": "{month}",
+  "@logMonth": {
+    "description": "A hónap neve a Versenynapló hónap-fejlécén.",
+    "placeholders": {
+      "month": {
+        "type": "DateTime",
+        "format": "MMMM"
+      }
+    }
+  },
+  "logRaceCountCaps": "{count} VERSENY",
+  "@logRaceCountCaps": {
+    "description": "Verseny-darabszám az évsávon és a hónap-fejléceken (verzál).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "logAllYearsCaps": "ÖSSZES",
+  "@logAllYearsCaps": {
+    "description": "Az évsáv opciója, amely minden év versenyét mutatja (14w)."
+  },
+  "logYearRange": "{first}–{last}",
+  "@logYearRange": {
+    "description": "Az évsáv nagy felirata, ha az összes év van kiválasztva.",
+    "placeholders": {
+      "first": {
+        "type": "int"
+      },
+      "last": {
+        "type": "int"
+      }
+    }
+  },
+  "logStatTimeCaps": "VÍZEN TÖLTÖTT",
+  "@logStatTimeCaps": {
+    "description": "A napló stat-csík első cellája: vízen töltött idő."
+  },
+  "logStatDistanceCaps": "ÖSSZ. TÁV",
+  "@logStatDistanceCaps": {
+    "description": "A napló stat-csík második cellája: össztáv."
+  },
+  "logStatRecordCaps": "REKORD",
+  "@logStatRecordCaps": {
+    "description": "A napló stat-csík harmadik cellája: sebesség-rekord."
+  },
+  "logLoadError": "Nem sikerült betölteni a versenyeket. Az adat nem veszett el, csak most nem érhető el.",
+  "@logLoadError": {
+    "description": "A napló hiba-állapota (13d)."
+  },
+  "logRetryCaps": "ÚJRA",
+  "@logRetryCaps": {
+    "description": "A hiba-állapot újrapróbálás gombja."
+  },
+  "logEmpty": "Még nincs verseny az archívumban. Tölts fel egy telefonos adatbázist, vagy vegyél fel egy versenyt kézzel.",
+  "@logEmpty": {
+    "description": "Az üres napló szövege (13b)."
+  }
+}

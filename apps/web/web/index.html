@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <!--
+    A $FLUTTER_BASE_HREF-et a `flutter build web` cseréli le; a webet a
+    domain gyökeréről szolgáljuk ki (ADR 0047 D10).
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Foretack versenyarchívum">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Foretack archívum</title>
+  <style>
+    /* A betöltésig a Flutter-téma háttere, hogy ne villanjon fehér. */
+    html, body { margin: 0; background: #0B0F14; }
+  </style>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# Lokális fejlesztés: a web és az API egy originen, ahogy élesben
+# (ADR 0048 Addendum 4 K5). Basic auth itt nincs.
+#
+# Három terminálban, a repó gyökeréből:
+#
+#   1. A szerver egy lokális archívum-másolaton:
+#        dart run apps/web_server/bin/server.dart \
+#          --archive /tmp/archive-proba.sqlite \
+#          --web-db /tmp/web-proba.sqlite
+#
+#   2. A Flutter web dev-szervere (hot restart: `R` a terminálban):
+#        (cd apps/web && flutter run -d web-server --web-port 8081)
+#
+#   3. Ez a proxy:
+#        caddy run --config tools/dev/Caddyfile
+#
+# Utána a böngészőben: http://localhost:8080
+
+{
+	# Lokálisan nincs szükség a Caddy admin API-jára és tanúsítványra.
+	admin off
+	auto_https off
+}
+
+:8080 {
+	# Az /api/* a REST szerverhez megy (ADR 0047 Addendum 3 C5).
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8087
+	}
+
+	# Minden más a Flutter dev-szerverhez, a hot restart websocketjével
+	# együtt (a reverse_proxy a websocketet is átengedi).
+	handle {
+		reverse_proxy localhost:8081
+	}
+}

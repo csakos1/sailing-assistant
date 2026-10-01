@@ -1,0 +1,36 @@
+name: foretack_web
+description: >-
+  A Foretack webes versenyarchívuma (ADR 0047 D8, ADR 0048 Addendum 4):
+  Flutter web, a web_server REST API-ja fölött.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+resolution: workspace
+
+dependencies:
+  domain:
+    path: ../../packages/domain
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.5.0
+  foretack_ui:
+    path: ../../packages/foretack_ui
+  http: ^1.2.2
+  race_archive_api:
+    path: ../../packages/race_archive_api
+  shared:
+    path: ../../packages/shared
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  generate: true
+  uses-material-design: true
