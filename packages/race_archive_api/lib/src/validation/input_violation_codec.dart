@@ -3,7 +3,7 @@ import 'package:race_archive_api/src/validation/input_field.dart';
 import 'package:race_archive_api/src/validation/input_violation.dart';
 
 // A szabálysértés kodekje (ADR 0048 Addendum 2 H5). Belső fájl: az
-// `ApiError` kodekje hívja. A v1 kódjai és mezőnevei változatlanok.
+// `ApiError` kodekje hívja.
 
 /// [InputViolation] → JSON: `{field, code}`.
 Map<String, Object?> encodeInputViolation(InputViolation violation) =>

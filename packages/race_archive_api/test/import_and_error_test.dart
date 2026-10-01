@@ -53,8 +53,8 @@ void main() {
         DecodeError(path: r'$.overallPlace', expected: 'integer or null'),
       ),
       const ValidationFailed([
-        PlaceExceedsFleetSize(AnnotationField.overallPlace),
-        ValueNotPositive(AnnotationField.classFleetSize),
+        PlaceExceedsFleetSize(InputField.overallPlace),
+        ValueNotPositive(InputField.classFleetSize),
       ]),
       const RaceNotFound('race-404'),
       const ImportRejected(MainFileMissing()),
@@ -108,7 +108,6 @@ void main() {
   group('routes', () {
     test('percent-encode the race id in the path', () {
       expect(racePath('a/b'), '/api/races/a%2Fb');
-      expect(raceAnnotationPath('r1'), '/api/races/r1/annotation');
     });
   });
 }

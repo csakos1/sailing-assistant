@@ -15,7 +15,7 @@ import 'package:shared/shared.dart';
 // ablak `kind` mezővel különböztetett objektum; az időbélyegek UTC epoch
 // ms-ben.
 
-/// A `GET /api/races` v2 válasza: `{"races": [...]}`.
+/// A `GET /api/races` válasza: `{"races": [...]}`.
 Map<String, Object?> encodeRaceSummaries(List<RaceSummary> summaries) =>
     <String, Object?>{
       'races': [for (final summary in summaries) encodeRaceSummary(summary)],

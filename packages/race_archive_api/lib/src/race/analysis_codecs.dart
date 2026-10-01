@@ -5,7 +5,7 @@ import 'package:shared/shared.dart';
 
 // A verseny-részletező elemzési adatainak kodekjei (ADR 0047 Addendum 1
 // A4): TrackStats, RoundingResult, track-pont. Belső fájl — a barrel nem
-// exportálja, a RaceListItem / LegacyRaceDetail kodekje hívja.
+// exportálja, a `RaceSummary` és a `RaceDetail` kodekje hívja.
 
 /// [TrackStats] → JSON. Minden mező opcionális, mint a domainben.
 Map<String, Object?> encodeTrackStats(TrackStats stats) => <String, Object?>{

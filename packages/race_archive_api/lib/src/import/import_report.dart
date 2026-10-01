@@ -69,7 +69,8 @@ final class ImportReport extends Equatable {
   /// Az archívumban eddig nem szereplő, most felvett versenyek.
   final List<ImportedRace> added;
 
-  /// A már archivált, most felülírt versenyek (az annotációjuk megmaradt).
+  /// A már archivált, most felülírt versenyek (a webes eredményük
+  /// megmaradt).
   final List<ImportedRace> updated;
 
   /// A nem befejezett, ezért kihagyott versenyek.

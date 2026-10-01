@@ -8,8 +8,8 @@ import 'package:race_archive_api/src/record/race_summary.dart';
 /// A [summary] mindkét fajtán ugyanaz, mint a napló sora. A [telemetry]
 /// pontosan akkor van jelen, ha a verseny telemetriás.
 ///
-/// Szándékosan nincs `==`: a domain `RoundingResult` nem értékszemantikájú
-/// (a v1 `LegacyRaceDetail` mintája).
+/// Szándékosan nincs `==`: a domain `RoundingResult` nem értékszemantikájú,
+/// így egy mező-szintű egyenlőség félrevezető lenne.
 @immutable
 final class RaceDetail {
   /// Részletező a [summary] versenyhez.

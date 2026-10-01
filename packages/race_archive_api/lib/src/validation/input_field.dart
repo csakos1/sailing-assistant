@@ -1,8 +1,8 @@
 /// A szerkesztők mezői, amelyekhez egy szabálysértés kötődik (ADR 0048
 /// Addendum 2 H5).
 ///
-/// Közös a v1 annotációnak és mindkét v2 bemenetnek (`RaceResultInput`,
-/// `ManualRaceInput`), hogy egyetlen `ValidationFailed` hordozhassa a hibákat.
+/// Közös mindkét bemenetnek (`RaceResultInput`, `ManualRaceInput`), hogy
+/// egyetlen `ValidationFailed` hordozhassa a hibákat.
 /// A nevek a JSON-kulcsok, mert a hiba dróton a mező nevével utazik.
 enum InputField {
   /// Osztályhelyezés.

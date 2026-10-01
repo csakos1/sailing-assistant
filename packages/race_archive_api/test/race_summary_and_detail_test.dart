@@ -161,13 +161,27 @@ void main() {
             position: Coordinate(latitude: 46.91, longitude: 17.88),
             sogMps: 3.4,
           ),
+          ArchiveTrackPoint(
+            position: Coordinate(latitude: 46.92, longitude: 17.89),
+          ),
         ],
         roundings: [
           RoundingResult(
             fromMark: 'Start',
             toMark: 'Tihany',
             roundedAt: firstRounding,
-            actualSampleCount: 12,
+            predictedTwaDeg: 42.5,
+            markTwaDeg: 47,
+            forecastBandDeg: 8,
+            predictedConfidence: 'high',
+            leadTime: const Duration(minutes: 12, seconds: 3),
+            lastReliableLeadTime: const Duration(minutes: 9),
+            actualSampleCount: 120,
+          ),
+          RoundingResult(
+            fromMark: 'Tihany',
+            toMark: 'Fured',
+            roundedAt: raceFinish,
           ),
         ],
       ),
@@ -187,10 +201,63 @@ void main() {
       final telemetry = decoded.telemetry;
       expect(telemetry?.race, original.telemetry?.race);
       expect(telemetry?.trackPoints, original.telemetry?.trackPoints);
-      // A RoundingResult-nak nincs ==: a mezoket a v1 teszt mar lefedi,
-      // itt eleg, hogy a lista atjon.
-      expect(telemetry?.roundings.single.toMark, 'Tihany');
-      expect(telemetry?.roundings.single.actualSampleCount, 12);
+      // A RoundingResult-nak nincs ==, ezert mezonkent: a kodek minden
+      // mezot at kell vigyen.
+      final roundings = telemetry?.roundings ?? const <RoundingResult>[];
+      expect(roundings, hasLength(2));
+      final first = roundings.first;
+      expect(first.fromMark, 'Start');
+      expect(first.toMark, 'Tihany');
+      expect(first.roundedAt, firstRounding);
+      expect(first.predictedTwaDeg, 42.5);
+      expect(first.markTwaDeg, 47);
+      expect(first.forecastBandDeg, 8);
+      expect(first.predictedConfidence, 'high');
+      expect(first.leadTime, const Duration(minutes: 12, seconds: 3));
+      expect(first.lastReliableLeadTime, const Duration(minutes: 9));
+      expect(first.actualSampleCount, 120);
+      final second = roundings.last;
+      expect(second.predictedTwaDeg, isNull);
+      expect(second.leadTime, isNull);
+      expect(second.actualSampleCount, 0);
+    });
+
+    test('encodes track points as compact [lat, lon, sog] arrays', () {
+      final json = encodeRaceDetail(telemetryDetail());
+
+      expect(objectAt(json, 'telemetry')['trackPoints'], [
+        [46.91, 17.88, 3.4],
+        [46.92, 17.89, null],
+      ]);
+    });
+
+    test('rejects a track point of the wrong shape with its index', () {
+      // ARRANGE
+      final json = encodeRaceDetail(telemetryDetail());
+      (objectAt(json, 'telemetry')['trackPoints']! as List<Object?>)[1] = [
+        46.92,
+        17.89,
+      ];
+
+      // ACT
+      final error = errorOf(decodeRaceDetail(overTheWire(json)));
+
+      // ASSERT
+      expect(error.path, r'$.telemetry.trackPoints[1]');
+    });
+
+    test('rejects a negative lead time', () {
+      // ARRANGE
+      final json = encodeRaceDetail(telemetryDetail());
+      final roundings =
+          objectAt(json, 'telemetry')['roundings']! as List<Object?>;
+      (roundings[0]! as Map<String, Object?>)['leadTimeMs'] = -1;
+
+      // ACT
+      final error = errorOf(decodeRaceDetail(overTheWire(json)));
+
+      // ASSERT
+      expect(error.path, r'$.telemetry.roundings[0].leadTimeMs');
     });
 
     test('round-trips a manual race without telemetry', () {

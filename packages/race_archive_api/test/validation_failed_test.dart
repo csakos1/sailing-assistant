@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import 'record_fixtures.dart';
 
 void main() {
-  group('ValidationFailed with v2 violations', () {
+  group('ValidationFailed violations', () {
     test('round-trips every violation kind', () {
       // ARRANGE
       const error = ValidationFailed([
@@ -40,15 +40,6 @@ void main() {
       ]);
     });
 
-    test('keeps the v1 aliases interchangeable with the v2 types', () {
-      // A web_server az S5b-3-ig a v1 neveket hasznalja (Addendum 2 H5).
-      const AnnotationViolation violation = PlaceExceedsFleetSize(
-        AnnotationField.overallPlace,
-      );
-
-      expect(violation.field, InputField.overallPlace);
-    });
-
     test('rejects finishNotAfterStart on another field', () {
       // ARRANGE
       final json = <String, Object?>{
@@ -68,7 +59,7 @@ void main() {
     });
   });
 
-  group('v2 routes', () {
+  group('record routes', () {
     test('build the result and manual race paths with an encoded id', () {
       expect(raceResultPath('a/b'), '/api/races/a%2Fb/result');
       expect(manualRacesPath, '/api/manual-races');

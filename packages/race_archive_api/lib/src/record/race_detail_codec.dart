@@ -7,7 +7,7 @@ import 'package:race_archive_api/src/record/race_origin.dart';
 import 'package:race_archive_api/src/record/summary_codecs.dart';
 import 'package:shared/shared.dart';
 
-/// A `GET /api/races/{id}` v2 válasza (ADR 0048 D6 + Addendum 2 H4).
+/// A `GET /api/races/{id}` válasza (ADR 0048 D6 + Addendum 2 H4).
 Map<String, Object?> encodeRaceDetail(RaceDetail detail) => <String, Object?>{
   'summary': encodeRaceSummary(detail.summary),
   'telemetry': switch (detail.telemetry) {
