@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
@@ -16,7 +17,7 @@ void main() {
       MaterialApp(
         theme: foretackTheme,
         locale: const Locale('hu'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Align(

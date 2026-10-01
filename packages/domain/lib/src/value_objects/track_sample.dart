@@ -11,7 +11,7 @@
 /// helyek — a Dart listáinak kovarianciája miatt — változatlanul fordulnak,
 /// és egy olcsóbb, projekciós olvasó is kiszolgálhatja a számítást.
 ///
-/// **A névről:** nem `TrackPoint`, mert azt a nevet az `apps/phone`
+/// **A névről:** nem `TrackPoint`, mert azt a nevet a `foretack_ui`
 /// track-rajzoló rétege már használja, és a barrel-export ütközne vele.
 ///
 /// **Miért `interface class`:** a típusnak nincs viselkedése, csak

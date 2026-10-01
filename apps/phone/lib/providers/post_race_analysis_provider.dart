@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/post_race_analysis.dart';
-import 'package:phone/features/race_detail/track_point.dart';
 import 'package:phone/providers/rounding_sample_reader_provider.dart';
 
 /// A befejezett verseny on-device post-race elemzése (ADR 0034 D4).

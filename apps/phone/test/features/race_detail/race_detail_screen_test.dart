@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
-import 'package:phone/features/race_detail/widgets/detail_mark_row.dart';
-import 'package:phone/features/race_detail/widgets/detail_status_strip.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -49,7 +48,7 @@ void main() {
         child: MaterialApp(
           theme: foretackTheme,
           locale: const Locale('hu'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: RaceDetailScreen(race: race),
         ),
@@ -174,7 +173,7 @@ void main() {
         child: MaterialApp(
           theme: foretackTheme,
           locale: const Locale('hu'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: RaceDetailScreen(race: original),
         ),
@@ -198,7 +197,7 @@ void main() {
         child: MaterialApp(
           theme: foretackTheme,
           locale: const Locale('hu'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Builder(

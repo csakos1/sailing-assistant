@@ -244,23 +244,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get logTitle => 'Versenynapló';
 
   @override
-  String get listStatusActive => 'FOLYAMATBAN';
-
-  @override
-  String get listStatusNotStarted => 'NEM INDULT';
-
-  @override
-  String get listStatusFinished => 'BEFEJEZETT';
-
-  @override
-  String listMarkCountCaps(int count) {
-    return '$count BÓJA';
-  }
-
-  @override
-  String get listNoMarksCaps => 'BÓJA NÉLKÜL';
-
-  @override
   String listMarkCount(int count) {
     return '$count bója';
   }
@@ -376,15 +359,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailTrackDistance => 'megtett út';
 
   @override
-  String get detailTrackMaxSpeedCaps => 'MAX SEB.';
-
-  @override
-  String get detailTrackAvgSpeedCaps => 'ÁTLAG SEB.';
-
-  @override
-  String get detailTrackDistanceCaps => 'TÁV';
-
-  @override
   String get detailTrackLegendTitle => 'sebesség (kn)';
 
   @override
@@ -392,14 +366,6 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get detailTrackOpenFullscreen => 'Track nagyítása';
-
-  @override
-  String detailFinishedDate(DateTime date) {
-    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
-    final String dateString = dateDateFormat.format(date);
-
-    return '$dateString';
-  }
 
   @override
   String exportImageDate(DateTime date) {

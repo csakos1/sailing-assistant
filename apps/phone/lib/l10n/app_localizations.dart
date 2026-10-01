@@ -532,36 +532,6 @@ abstract class AppLocalizations {
   /// **'Versenynapló'**
   String get logTitle;
 
-  /// A lajstrom-sor státusz-felirata futó versenynél.
-  ///
-  /// In hu, this message translates to:
-  /// **'FOLYAMATBAN'**
-  String get listStatusActive;
-
-  /// A lajstrom-sor státusz-felirata még nem indult versenynél.
-  ///
-  /// In hu, this message translates to:
-  /// **'NEM INDULT'**
-  String get listStatusNotStarted;
-
-  /// A befejezett verseny verzál státusz-felirata a detail-képernyő csíkján.
-  ///
-  /// In hu, this message translates to:
-  /// **'BEFEJEZETT'**
-  String get listStatusFinished;
-
-  /// A lajstrom-sor bója-számlálója, verzál alakban.
-  ///
-  /// In hu, this message translates to:
-  /// **'{count} BÓJA'**
-  String listMarkCountCaps(int count);
-
-  /// A bója nélküli verseny meta-felirata, verzál alakban.
-  ///
-  /// In hu, this message translates to:
-  /// **'BÓJA NÉLKÜL'**
-  String get listNoMarksCaps;
-
   /// Egy versenysor alcíme: a bóyák száma.
   ///
   /// In hu, this message translates to:
@@ -766,24 +736,6 @@ abstract class AppLocalizations {
   /// **'megtett út'**
   String get detailTrackDistance;
 
-  /// Track-stat cella verzál címkéje a detailen: maximális SOG.
-  ///
-  /// In hu, this message translates to:
-  /// **'MAX SEB.'**
-  String get detailTrackMaxSpeedCaps;
-
-  /// Track-stat cella verzál címkéje a detailen: átlagos SOG.
-  ///
-  /// In hu, this message translates to:
-  /// **'ÁTLAG SEB.'**
-  String get detailTrackAvgSpeedCaps;
-
-  /// Track-stat cella verzál címkéje a detailen: megtett út.
-  ///
-  /// In hu, this message translates to:
-  /// **'TÁV'**
-  String get detailTrackDistanceCaps;
-
   /// A track sebesség-legendájának fejléce a nagy nézeten.
   ///
   /// In hu, this message translates to:
@@ -801,12 +753,6 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Track nagyítása'**
   String get detailTrackOpenFullscreen;
-
-  /// A befejezes datuma a detail statusz-csikjan; a verzalt a hivo adja.
-  ///
-  /// In hu, this message translates to:
-  /// **'{date}'**
-  String detailFinishedDate(DateTime date);
 
   /// A megoszthato track-kep fejlecehez a verseny startdatuma.
   ///

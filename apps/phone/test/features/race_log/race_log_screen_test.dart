@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
-import 'package:phone/features/race_log/widgets/race_log_month_header.dart';
-import 'package:phone/features/race_log/widgets/race_log_row.dart';
-import 'package:phone/features/race_log/widgets/race_log_stats_strip.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
 import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -77,7 +75,7 @@ void main() {
         child: MaterialApp(
           theme: foretackTheme,
           locale: const Locale('hu'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const RaceLogScreen(),
         ),

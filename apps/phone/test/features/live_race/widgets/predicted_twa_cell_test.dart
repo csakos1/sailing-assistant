@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/live_race/widgets/confidence_dots.dart';
 import 'package:phone/features/live_race/widgets/predicted_twa_cell.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';
@@ -17,7 +18,7 @@ Future<void> _pump(
 }) => tester.pumpWidget(
   MaterialApp(
     theme: foretackTheme,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: phoneLocalizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: SizedBox(

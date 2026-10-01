@@ -1,8 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/l10n/app_localizations.dart';
-import 'package:phone/widgets/status_badge.dart';
 
 /// Egy verseny sora a lajstromban (ADR 0044 D11 + Addendum 2).
 ///
@@ -15,7 +13,7 @@ import 'package:phone/widgets/status_badge.dart';
 /// Csak `active` és `notStarted` versenyt vár: a befejezettek az ADR 0033
 /// particionálása szerint a modalba kerülnek, nem a lajstromba.
 ///
-/// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
+/// A `ForetackUiLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat. A `TextTones` ugyanígy — a `foretackTheme`
 /// regisztrálja, tehát a fában mindig jelen van.
 class RaceListRow extends StatelessWidget {
@@ -34,7 +32,7 @@ class RaceListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = ForetackUiLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
     final isActive = race.status == RaceStatus.active;

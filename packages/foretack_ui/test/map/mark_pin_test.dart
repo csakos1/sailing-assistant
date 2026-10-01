@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/widgets/mark_pin.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 void main() {
   Future<void> pumpPin(WidgetTester tester, {required bool isActive}) async {

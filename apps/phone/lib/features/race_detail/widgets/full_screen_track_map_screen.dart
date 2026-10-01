@@ -1,12 +1,10 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/export/track_export_content.dart';
 import 'package:phone/features/race_detail/export/track_export_error_message.dart';
 import 'package:phone/features/race_detail/export/track_exporter.dart';
-import 'package:phone/features/race_detail/track_point.dart';
-import 'package:phone/features/race_detail/widgets/track_map.dart';
-import 'package:phone/features/race_detail/widgets/track_speed_legend.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:shared/shared.dart';
 

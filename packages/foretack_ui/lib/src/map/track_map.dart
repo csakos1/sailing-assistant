@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:phone/features/race_detail/track_point.dart';
-import 'package:phone/widgets/map_attribution.dart';
-import 'package:phone/widgets/mark_pin.dart';
 
 /// A vitorlazott track + a palya bojai online OSM-terkep felett (ADR 0035 +
 /// ADR 0034 Addendum 3/4). A track sebesseg szerint szinezett: szakaszonkenti

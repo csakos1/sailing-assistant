@@ -1,8 +1,8 @@
 name: foretack_ui
 description: >-
-  A Foretack közös design-rendszere (ADR 0041, ADR 0047 D2–D3): téma,
-  színtokenek, tipográfia, bundle-ölt fontok és licencek. A phone és a web
-  közösen használja.
+  A Foretack közös design-rendszere és widgetjei (ADR 0041, ADR 0047
+  D2–D3): téma, színtokenek, tipográfia, fontok, a napló és a részletező
+  közös widgetjei, saját l10n-nel. A phone és a web közösen használja.
 publish_to: none
 version: 0.1.0
 
@@ -17,6 +17,12 @@ dependencies:
     path: ../domain
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_map: ^7.0.0
+  latlong2: ^0.9.0
+  shared:
+    path: ../shared
 
 dev_dependencies:
   flutter_test:
@@ -26,6 +32,9 @@ dev_dependencies:
 # fogyasztó appban a családnév `packages/foretack_ui/<család>`, az asset
 # pedig `packages/foretack_ui/assets/...` alakban érhető el.
 flutter:
+  # A `ForetackUiLocalizations` a `l10n.yaml` szerint generálódik, a
+  # kimenet commitolva van (ADR 0047 Addendum 5 F4).
+  generate: true
   assets:
     - assets/fonts/OFL-IBMPlex.txt
     - assets/fonts/OFL-MartianMono.txt

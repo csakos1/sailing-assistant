@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// Egy statisztika-cella két megformázott szövege: halvány címke, alatta

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
@@ -163,7 +164,7 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         theme: foretackTheme,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const LiveRaceScreen(),
       ),

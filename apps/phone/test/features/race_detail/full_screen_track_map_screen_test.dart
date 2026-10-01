@@ -1,9 +1,9 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/features/race_detail/track_point.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/widgets/full_screen_track_map_screen.dart';
-import 'package:phone/features/race_detail/widgets/track_speed_legend.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 void main() {
@@ -47,7 +47,7 @@ void main() {
   }) => tester.pumpWidget(
     MaterialApp(
       locale: const Locale('hu'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: phoneLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: FullScreenTrackMapScreen(
         raceName: 'Kedd esti',

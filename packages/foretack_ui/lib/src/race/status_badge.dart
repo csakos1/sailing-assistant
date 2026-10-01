@@ -1,7 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/l10n/app_localizations.dart';
 
 /// Szögletes státusz-jelölő és a hozzá tartozó verzál felirat (ADR 0044
 /// D15 + D21).
@@ -19,7 +18,7 @@ import 'package:phone/l10n/app_localizations.dart';
 /// Szélességet nem foglal a szükségesnél többet (`MainAxisSize.min`), így
 /// a hívó szabadon teszi sorba vagy csíkba.
 ///
-/// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
+/// A `ForetackUiLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat. A `TextTones` ugyanígy — a `foretackTheme`
 /// regisztrálja, tehát a fában mindig jelen van.
 class StatusBadge extends StatelessWidget {
@@ -31,7 +30,7 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = ForetackUiLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
 

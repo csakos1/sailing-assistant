@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/features/race_log/race_log_formatters.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 void main() {
   group('measureHours', () {

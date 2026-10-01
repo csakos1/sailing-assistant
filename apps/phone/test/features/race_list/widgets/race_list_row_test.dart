@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
@@ -34,7 +35,7 @@ void main() {
       MaterialApp(
         theme: foretackTheme,
         locale: const Locale('hu'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: RaceListRow(race: race, onTap: onTap),
@@ -43,8 +44,8 @@ void main() {
     );
   }
 
-  AppLocalizations l10nOf(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(RaceListRow)))!;
+  ForetackUiLocalizations l10nOf(WidgetTester tester) =>
+      ForetackUiLocalizations.of(tester.element(find.byType(RaceListRow)))!;
 
   Finder coloredBoxWith(Color color) => find.byWidgetPredicate(
     (widget) => widget is ColoredBox && widget.color == color,

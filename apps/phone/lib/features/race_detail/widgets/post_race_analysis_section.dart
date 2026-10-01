@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/post_race_analysis.dart';
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
 import 'package:phone/features/race_detail/widgets/full_screen_track_map_screen.dart';
-import 'package:phone/features/race_detail/widgets/track_map.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/post_race_analysis_provider.dart';
 
@@ -146,7 +144,7 @@ class _AnalysisBody extends StatelessWidget {
               child: IgnorePointer(child: trackMap),
             ),
           ),
-        _TrackStatsRow(stats: data.trackStats, l10n: l10n),
+        TrackStatsRow(stats: data.trackStats),
         // A next-TWA elemzes csak debug-buildben, a track ALATT (A3-D4).
         if (kDebugMode) ...[
           const SizedBox(height: 16),
@@ -162,125 +160,6 @@ class _AnalysisBody extends StatelessWidget {
           ],
         ],
       ],
-    );
-  }
-}
-
-/// Harom track-stat cella egy sorban: max sebesseg, atlag sebesseg, megtett ut.
-///
-/// Hairline-osztott, kartya-hej nelkul (ADR 0044 D29): a cellak kozott 1 px
-/// fuggoleges vonal all, a sor felett es alatt vizszintes. A felso vonal
-/// egyben a track-kartya zaro vonala - a terkepnek nincs sajat kerete.
-class _TrackStatsRow extends StatelessWidget {
-  const _TrackStatsRow({required this.stats, required this.l10n});
-
-  final TrackStats stats;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final horizontal = SizedBox(
-      height: 1,
-      child: ColoredBox(color: scheme.outlineVariant),
-    );
-    final vertical = SizedBox(
-      width: 1,
-      child: ColoredBox(color: scheme.outlineVariant),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        horizontal,
-        // A fuggoleges valasztok teljes magassaga stretch-et kivan, ahhoz
-        // viszont a sor magassagat elore ismerni kell.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _TrackStatCell(
-                  label: l10n.detailTrackMaxSpeedCaps,
-                  measured: measureKnots(stats.maxSpeedMps),
-                ),
-              ),
-              vertical,
-              Expanded(
-                child: _TrackStatCell(
-                  label: l10n.detailTrackAvgSpeedCaps,
-                  measured: measureKnots(stats.avgSpeedMps),
-                ),
-              ),
-              vertical,
-              Expanded(
-                child: _TrackStatCell(
-                  label: l10n.detailTrackDistanceCaps,
-                  measured: measureDistance(stats.distanceMeters),
-                ),
-              ),
-            ],
-          ),
-        ),
-        horizontal,
-      ],
-    );
-  }
-}
-
-/// Egy track-stat cella: verzal felirat, alatta az ertek a mertekegyseggel.
-///
-/// Az erteket es az egyseget ket kulon fokozat rajzolja, alapvonalra
-/// igazitva - ezert kell a MeasuredValue, es nem eleg egy string.
-///
-/// A TextTones biztonsagos: a foretackTheme regisztralja, tehat a faban
-/// mindig jelen van.
-class _TrackStatCell extends StatelessWidget {
-  const _TrackStatCell({required this.label, required this.measured});
-
-  final String label;
-  final MeasuredValue measured;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tones = Theme.of(context).extension<TextTones>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 14),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: railLabelStyle.copyWith(color: tones.low),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                measured.value,
-                style: numeralSmallStyle.copyWith(color: scheme.onSurface),
-              ),
-              // Hianyzo meresnel nincs mertekegyseg, tehat a res sem kell.
-              if (measured.unit.isNotEmpty) ...[
-                const SizedBox(width: 4),
-                Text(
-                  measured.unit,
-                  style: supportTextStyle.copyWith(
-                    fontSize: 12,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

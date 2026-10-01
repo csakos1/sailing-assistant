@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:phone/providers/active_race_provider.dart';
-import 'package:phone/widgets/mark_pin.dart';
 
 /// Az aktív verseny pályájának bójái az élő biztonsági térképen
 /// (ADR 0037 D10, D14).

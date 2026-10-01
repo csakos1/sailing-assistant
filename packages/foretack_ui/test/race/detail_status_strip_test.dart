@@ -2,8 +2,6 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/features/race_detail/widgets/detail_status_strip.dart';
-import 'package:phone/l10n/app_localizations.dart';
 
 void main() {
   const first = Mark(
@@ -33,15 +31,17 @@ void main() {
       MaterialApp(
         theme: foretackTheme,
         locale: const Locale('hu'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: ForetackUiLocalizations.localizationsDelegates,
+        supportedLocales: ForetackUiLocalizations.supportedLocales,
         home: Scaffold(body: DetailStatusStrip(race: race)),
       ),
     );
   }
 
-  AppLocalizations l10nOf(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(DetailStatusStrip)))!;
+  ForetackUiLocalizations l10nOf(WidgetTester tester) =>
+      ForetackUiLocalizations.of(
+        tester.element(find.byType(DetailStatusStrip)),
+      )!;
 
   // A csikon ket Text all, a Row sorrendjeben: a badge felirata, majd a
   // meta-mezo.

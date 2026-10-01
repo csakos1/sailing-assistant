@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
-import 'package:phone/features/race_log/race_log_formatters.dart';
-import 'package:phone/features/race_log/widgets/race_log_stats_strip.dart';
 
 void main() {
   Future<void> pumpStrip(

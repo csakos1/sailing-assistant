@@ -1,4 +1,4 @@
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// A vízen töltött idő a napló stat-csíkjához (ADR 0044 D42).
 ///

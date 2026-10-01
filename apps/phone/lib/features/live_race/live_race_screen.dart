@@ -4,7 +4,9 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:foretack_ui/foretack_ui.dart';
+// A `foretack_ui` track-stat `formatDistance`-e méterben számol, az élő
+// képernyőé a `live_formatters` `Distance`-alapú változata.
+import 'package:foretack_ui/foretack_ui.dart' hide formatDistance;
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';

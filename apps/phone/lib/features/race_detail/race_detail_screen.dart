@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
-import 'package:phone/features/race_detail/widgets/detail_mark_row.dart';
-import 'package:phone/features/race_detail/widgets/detail_status_strip.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';

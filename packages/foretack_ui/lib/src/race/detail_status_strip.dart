@@ -1,8 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/l10n/app_localizations.dart';
-import 'package:phone/widgets/status_badge.dart';
 
 /// A detail-képernyő státusz-csíkja (ADR 0044 D21).
 ///
@@ -18,7 +16,7 @@ import 'package:phone/widgets/status_badge.dart';
 /// az ARB nem tud előre nagybetűsíteni (ADR 0044 D21, kivétel a D5/D16
 /// alól).
 ///
-/// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
+/// A `ForetackUiLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat. A `TextTones` ugyanígy — a `foretackTheme`
 /// regisztrálja, tehát a fában mindig jelen van.
 class DetailStatusStrip extends StatelessWidget {
@@ -30,7 +28,7 @@ class DetailStatusStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = ForetackUiLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
 
@@ -65,7 +63,7 @@ class DetailStatusStrip extends StatelessWidget {
   // A dátum csak akkor áll ki, ha a domain-invariáns is teljesül. Sérült
   // állapotban a bója-számra esünk vissza, nem force-unwrapolunk: a vízen
   // futó app inkább kevésbé informatív feliratot mutasson, mint kivételt.
-  String _meta(AppLocalizations l10n) {
+  String _meta(ForetackUiLocalizations l10n) {
     final finishedAt = race.finishedAt;
     if (race.status == RaceStatus.finished && finishedAt != null) {
       return l10n.detailFinishedDate(finishedAt).toUpperCase();
