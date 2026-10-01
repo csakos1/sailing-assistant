@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
@@ -26,18 +27,7 @@ class RaceLogScreen extends ConsumerWidget {
     final logState = ref.watch(raceLogViewProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: WebLayout.appBarHeight,
-        titleSpacing: 0,
-        title: WebColumn(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: WebLayout.columnInset,
-            ),
-            child: Text(l10n.logTitle, style: screenTitleStyle),
-          ),
-        ),
-      ),
+      appBar: WebAppBar(title: l10n.logTitle),
       body: logState.when(
         // Az ÚJRA után a folyamatjelző látsszon, ne a régi hiba.
         skipLoadingOnRefresh: false,
