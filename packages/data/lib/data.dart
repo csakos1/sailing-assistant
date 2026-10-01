@@ -32,5 +32,6 @@ export 'package:data/src/persistence/repositories/settings_repository_impl.dart'
 export 'package:data/src/persistence/repositories/snapshot_logger_impl.dart';
 export 'package:data/src/persistence/repositories/telemetry_logger_impl.dart';
 export 'package:data/src/persistence/repositories/track_sample_reader_impl.dart';
+export 'package:data/src/persistence/repositories/wind_sample_reader_impl.dart';
 export 'package:data/src/polar/foretack_polar_parser.dart';
 export 'package:data/src/safety/safety_mark_catalogue.dart';

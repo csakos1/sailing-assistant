@@ -24,15 +24,31 @@ class TrackSampleReaderImpl {
 
   /// A `raceId` versenyhez tartozó minták időrendben; üres lista, ha nincs
   /// rögzített `snapshot_logs` ehhez a versenyhez.
-  Future<List<TrackSample>> call(String raceId) async {
+  Future<List<TrackSample>> call(String raceId) => readWindow(raceId, null);
+
+  /// Mint a [call], de csak a [window]-ba eső minták (ADR 0048 D4); a
+  /// határokat is beleértve. `null` ablak a teljes rögzítés.
+  ///
+  /// A szűrés SQL-ben történik a `timestamp` oszlopon, így az ablakon
+  /// kívüli sorok JSON-ja ki sem bomlik. Ez a `WindowedTrackSampleReader`
+  /// kontraktus implementációja; a tear-off-ja adható át.
+  Future<List<TrackSample>> readWindow(
+    String raceId,
+    TimeWindow? window,
+  ) async {
     final logs = _database.snapshotLogs;
     final sogMps = logs.snapshotJson.jsonExtract<double>(_sogPath);
     final latDeg = logs.snapshotJson.jsonExtract<double>(_latPath);
     final lonDeg = logs.snapshotJson.jsonExtract<double>(_lonPath);
 
+    var condition = logs.raceId.equals(raceId);
+    if (window != null) {
+      condition &= logs.timestamp.isBetweenValues(window.start, window.end);
+    }
+
     final query = _database.selectOnly(logs)
       ..addColumns([sogMps, latDeg, lonDeg])
-      ..where(logs.raceId.equals(raceId))
+      ..where(condition)
       ..orderBy([OrderingTerm.asc(logs.timestamp)]);
 
     final rows = await query.get();

@@ -130,6 +130,44 @@ void main() {
     expect([for (final s in samples) s.sogMps], [1.5]);
   });
 
+  test('ablakkal csak az ablakba eso mintakat adja', () async {
+    // ARRANGE - egy minta az ablak elott, ketto a hatarokon, egy utana.
+    for (final (second, sog) in [(1, 1.0), (2, 2.0), (4, 4.0), (5, 5.0)]) {
+      await logger.log(
+        'race-1',
+        snapshotAt(DateTime.utc(2026, 5, 1, 10, 0, second), sogMps: sog),
+      );
+    }
+    final window = TimeWindow(
+      start: DateTime.utc(2026, 5, 1, 10, 0, 2),
+      end: DateTime.utc(2026, 5, 1, 10, 0, 4),
+    );
+
+    // ACT
+    final samples = await reader.readWindow('race-1', window);
+
+    // ASSERT
+    expect([for (final s in samples) s.sogMps], [2.0, 4.0]);
+  });
+
+  test('null ablakkal a teljes rogzitest adja, mint a call', () async {
+    // ARRANGE
+    for (final second in [1, 2, 3]) {
+      await logger.log(
+        'race-1',
+        snapshotAt(DateTime.utc(2026, 5, 1, 10, 0, second), sogMps: 1),
+      );
+    }
+
+    // ACT
+    final windowed = await reader.readWindow('race-1', null);
+    final whole = await reader('race-1');
+
+    // ASSERT
+    expect(windowed, hasLength(3));
+    expect(whole, hasLength(3));
+  });
+
   test('ismeretlen versenyre üres listát ad', () async {
     // ACT
     final samples = await reader('nincs-ilyen');
