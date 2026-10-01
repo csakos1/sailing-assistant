@@ -12,6 +12,7 @@ workspace:
   - packages/data
   - packages/shared
   - packages/race_archive_api
+  - packages/foretack_ui
   - packages/wearable_bridge
   - apps/phone
   - apps/watch

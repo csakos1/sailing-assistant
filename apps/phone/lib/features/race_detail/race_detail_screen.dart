@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/app/foretack_typography.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
 import 'package:phone/features/race_detail/widgets/detail_mark_row.dart';

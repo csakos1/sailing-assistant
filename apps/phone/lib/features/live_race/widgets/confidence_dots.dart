@@ -1,6 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:phone/app/confidence_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// Három-szegmenses pont-indikátor a wind-shift confidence-hez (§8.7):
 /// low `●○○`, medium `●●○`, high `●●●`. Shape + szín együtt (színvak-safe).

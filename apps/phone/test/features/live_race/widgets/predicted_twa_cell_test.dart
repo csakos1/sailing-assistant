@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/theme.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/live_race/widgets/confidence_dots.dart';
 import 'package:phone/features/live_race/widgets/predicted_twa_cell.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';

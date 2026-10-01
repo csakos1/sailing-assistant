@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// A sorszám-sín szélessége (ADR 0044 D45, geometria: ARCHITECTURE 8.11).
 const double _railWidth = 44;

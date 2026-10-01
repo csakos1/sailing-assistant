@@ -13,15 +13,27 @@ library;
 
 import 'package:flutter/widgets.dart';
 
+/// A package-ből bundle-ölt fontok családnév-előtagja (ADR 0047 Addendum 4
+/// E10).
+///
+/// A fontokat a `foretack_ui` deklarálja, ezért a fogyasztó appban a
+/// Flutter a családnevet `packages/foretack_ui/<család>` alakra prefixeli.
+/// A család-konstansok a teljes nevet hordozzák, nem a `package`
+/// paramétert használjuk: azt minden `TextStyle`-nál és a `ThemeData`-nál
+/// külön meg kellene adni, és egy hívó oldali `copyWith(fontFamily: …)`
+/// sem prefixel. Egyetlen kimaradt hely hiba nélkül Robotóra esne vissza;
+/// így a prefix egy helyen él, és a phone `font_manifest_test`-je véd.
+const String _fontPackagePrefix = 'packages/foretack_ui';
+
 /// A mérőszámok betűcsaládja.
-const String numeralFontFamily = 'Martian Mono';
+const String numeralFontFamily = '$_fontPackagePrefix/Martian Mono';
 
 /// A műszer-idő betűcsaládja — szándékosan nem a szám-font, hogy a
 /// státuszsor órája ne keveredjen a mért értékekkel.
-const String instrumentFontFamily = 'IBM Plex Mono';
+const String instrumentFontFamily = '$_fontPackagePrefix/IBM Plex Mono';
 
 /// Az UI-szövegek betűcsaládja; a téma app-szinten ezt állítja be.
-const String uiFontFamily = 'IBM Plex Sans';
+const String uiFontFamily = '$_fontPackagePrefix/IBM Plex Sans';
 
 /// Hero érték — a képernyő egyetlen legnagyobb száma.
 const TextStyle numeralHeroStyle = TextStyle(

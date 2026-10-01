@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// Verzál szakasz-címke egy űrlap- vagy lista-csoport fölé (ADR 0044 D5).
 ///

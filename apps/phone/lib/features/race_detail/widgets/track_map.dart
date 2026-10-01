@@ -1,8 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/race_detail/track_point.dart';
 import 'package:phone/widgets/map_attribution.dart';
 import 'package:phone/widgets/mark_pin.dart';

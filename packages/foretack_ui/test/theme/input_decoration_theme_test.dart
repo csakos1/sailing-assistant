@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/theme.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 // A mezo-alapertelmezes a temaban el (ADR 0044 D3), nem a hivohelyeken:
 // ezek az assertek azt rogzitik, hogy egy sima TextFormField is a

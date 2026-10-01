@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// Egy hónap fejléce a Versenynapló listájában (ADR 0044 D38, D39).
 ///

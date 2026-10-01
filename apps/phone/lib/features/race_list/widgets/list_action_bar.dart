@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// A lajstrom rögzített alsó akció-sávja (ADR 0044 D14).

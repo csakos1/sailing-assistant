@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:phone/app/marine_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// A saját hajó jele az élő biztonsági térképen (ADR 0037 D11).
 ///

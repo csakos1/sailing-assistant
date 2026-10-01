@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/track_stats_formatters.dart';
 
 /// Egy cella a napló stat-csíkján: verzál felirat és a mért érték.

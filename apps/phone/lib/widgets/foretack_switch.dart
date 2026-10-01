@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// A sín rajzolt mérete (ADR 0046 Addendum 1 D7).
 const double _trackWidth = 52;

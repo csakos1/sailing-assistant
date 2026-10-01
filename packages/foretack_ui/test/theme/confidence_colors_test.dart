@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/confidence_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 void main() {
   const colors = ConfidenceColors(

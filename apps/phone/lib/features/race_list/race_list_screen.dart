@@ -4,7 +4,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/app/foretack_typography.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/engine/engine_debug_screen.dart';
 import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';

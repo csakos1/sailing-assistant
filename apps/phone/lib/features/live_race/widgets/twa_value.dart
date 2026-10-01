@@ -11,7 +11,7 @@ import 'package:phone/features/live_race/widgets/side_arrow.dart';
 /// előjelet nem írjuk — azt a nyíl hordozza. A fokjel viszont marad
 /// (ADR 0042 Addendum 1).
 ///
-/// A [style] a hívóé (`app/foretack_typography.dart`), mert ugyanez a widget
+/// A [style] a hívóé (`foretack_ui` tipográfiája), mert ugyanez a widget
 /// szolgálja ki a 76 pt-os hero-t és a 38 pt-os kontextus-cellát is; színt a
 /// stílus nem hordoz, azt a téma `onSurface`-e adja. A nyíl mérete és a rés
 /// a betűmérethez kötött, hogy az arány mindkét helyen ugyanaz legyen.

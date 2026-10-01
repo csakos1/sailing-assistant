@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
 
 /// A másodlagos sor magassága (ADR 0044 D50, geometria: ARCHITECTURE 8.11).

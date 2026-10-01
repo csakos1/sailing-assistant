@@ -1,6 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// A detail-képernyő alsó akció-sávja (ADR 0044 D30).

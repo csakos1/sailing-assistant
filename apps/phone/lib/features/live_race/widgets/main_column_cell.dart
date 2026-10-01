@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/text_tones.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// Egy cella az élő képernyő bal oldali fő oszlopában (ADR 0042 D1).
 ///

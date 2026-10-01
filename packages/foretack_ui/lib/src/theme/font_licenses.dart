@@ -18,7 +18,11 @@ void registerFontLicenses() {
 }
 
 /// Licenc-név → asset-útvonal. A kulcs jelenik meg a licenc-lapon.
+///
+/// Az útvonal a fogyasztó app bundle-jében érvényes alak: egy package
+/// asszetjei ott `packages/<package>/` előtaggal érhetők el (ADR 0047
+/// Addendum 4 E10). Ezért a regisztráció tesztje a phone-ban él, nem itt.
 const Map<String, String> _fontLicenseAssets = {
-  'IBM Plex': 'assets/fonts/OFL-IBMPlex.txt',
-  'Martian Mono': 'assets/fonts/OFL-MartianMono.txt',
+  'IBM Plex': 'packages/foretack_ui/assets/fonts/OFL-IBMPlex.txt',
+  'Martian Mono': 'packages/foretack_ui/assets/fonts/OFL-MartianMono.txt',
 };

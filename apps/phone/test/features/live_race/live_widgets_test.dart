@@ -1,9 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/foretack_typography.dart';
-import 'package:phone/app/marine_colors.dart';
-import 'package:phone/app/theme.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/live_race/widgets/confidence_dots.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
 import 'package:phone/features/live_race/widgets/side_arrow.dart';

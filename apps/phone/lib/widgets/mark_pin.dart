@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:phone/app/marine_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// Egy boja-jelolo: szamozott korong feher kerettel (port-piros), opcionalis
 /// nev-felirattal a korong alatt (ADR 0036 F1-D6).

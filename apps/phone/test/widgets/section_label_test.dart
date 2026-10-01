@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/text_tones.dart';
-import 'package:phone/app/theme.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/widgets/section_label.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
