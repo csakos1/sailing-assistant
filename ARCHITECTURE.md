@@ -5424,6 +5424,17 @@ A makett (13. kör) részletei az Addendum 4-ben vannak:
 A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 Új szín és új tipográfiai fokozat nincs.
 
+**A web felépítése (ADR 0048 Addendum 4):**
+- `apps/web`, a package neve `foretack_web`. Riverpod-állapot, `http`
+  alapú `ArchiveApiClient`, relatív `/api` cím.
+- A napló sora a phone-é: nap és név. A meta-sor és a helyezés-slot
+  elmarad (K3). A stat-csík és a hónap-fejléc is a közös widget; az
+  évsáv a 7c (`RaceLogYearSelector`), „Összes" opcióval.
+- Lokálisan egy Caddy (`tools/dev/Caddyfile`) teszi egy originre a webet
+  és az API-t, ahogy élesben.
+- Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
+  S7e táblázat.
+
 **Közös widgetek (Addendum 5):**
 - A `foretack_ui` adja a napló sorát, hónap-fejlécét és stat-csíkját, a
   státusz-csíkot, a bója-sort, a `TrackStatsRow`-t, a `TrackMap`-et és

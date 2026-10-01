@@ -6,7 +6,8 @@ Elfogadva — 2026-10-01. Még nem implementálva. A „Szeletek" sorrendjében
 következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
-alakját, az Addendum 3 a szerver v2-jét rögzíti.
+alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
+tervét és a napló-képernyő döntéseit rögzíti.
 
 ## Kontextus
 
@@ -960,3 +961,121 @@ v1 típusokat:
 - a típus-aliasokat és a `raceAnnotationPath`-t.
 
 A kettő külön commit: így mindkettő után zöld a CI.
+
+## Addendum 4 — A web (S7) terve és a napló (S7a)
+
+2026-10-01. Az S7 előtti egyeztetés. A K3 a G1 és az ADR 0047 E7
+sor-tételét **felülírja**.
+
+### K1 — Az `apps/web` package
+
+- **Útvonal és név:** az útvonal `apps/web`, a package neve
+  `foretack_web`. A `web` név ütközne a Dart csapat `package:web`
+  csomagjával, amelyre a Flutter web is épül.
+- **Függőségek** (ADR 0047 D2): `foretack_ui`, `race_archive_api`,
+  `domain`, `shared`. A `data`-tól nem függ.
+- **Külső csomagok:**
+  - `flutter_riverpod`, ugyanazzal a verzióval, mint a phone;
+  - `http` a JSON-hívásokhoz. Ez a Dart csapat csomagja; a tesztek a
+    beépített `MockClient`-jét használják.
+- **Rétegek:**
+  - `lib/app/`: az app gyökere, a `WebLayout` (ADR 0047 E3) és a
+    lokalizáció;
+  - `lib/api/`: az `ArchiveApiClient`;
+  - `lib/race_log/`: a napló providerei, a pure csoportosító és a
+    képernyő.
+
+  Képernyőnként egy mappa, mint a phone `features/`-e.
+- **Az API címe relatív** (`/api/…`): élesben és lokálisan is ugyanarról
+  az originről jön, mint a web (K5).
+
+### K2 — Az API-kliens és az állapot
+
+- **`ArchiveApiClient`:**
+  - az injektált `http.Client` fölött dolgozik;
+  - a szerződés dekódereit használja;
+  - `Result<T, ApiFailure>`-t ad, kivételt nem;
+  - az `ApiFailure` sealed: hálózati hiba, a szerver `ApiError`-ja, vagy
+    dekódolhatatlan válasz.
+- **Providerek (Riverpod):**
+  - **`raceSummariesProvider`** a napló sorait tölti. Az ÚJRA gomb
+    (13d) érvényteleníti.
+  - **`logPeriodProvider`** a választott időszakot tartja: a legújabb
+    év (alapállapot, ADR 0047 E2), egy konkrét év, vagy az összes év
+    (14w). Egy már nem létező választott év a legújabbra esik vissza, a
+    phone mintájára (ADR 0044 D34). Közös a Lista és a Táblázat nézettel.
+    Nem `autoDispose`: a munkameneten belül megmarad (G1).
+- **A napló csoportosítása** pure függvény (`groupRaceLog`), a phone
+  `BuildRaceLog`-jának mintájára, de `RaceSummary`-ből. A napot a D2
+  szerint helyi időben számolja: telemetriásnál a hivatalos rajtból,
+  különben a rögzítés kezdetéből, kézinél a dátum mezőből. Az évek, a
+  hónapok és a versenyek is csökkenő sorrendben jönnek.
+
+### K3 — A napló sora: nap és név, mint a phone-on (felhasználói döntés)
+
+A webes sor a phone sorát kapja, változatlanul: a nap és a név, meg a
+chevron.
+- A 13a/14a meta-sora (táv, menetidő, max., `KÉZI`, `~`) **elmarad**.
+- Elmarad a 72 px-es helyezés-slot és az „OSZT. 2." jelölés is.
+
+**Miért:** kevesebb munka, és a lista így egy pillantásra ugyanaz, mint a
+telefonon. A részletek a részletezőben és a Táblázat nézetben látszanak.
+
+**Megvalósítás:** a `foretack_ui` `RaceLogRow`-ja egy második
+konstruktort kap: `RaceLogRow.entry(day:, name:)`. A phone `Race`-alapú
+konstruktora erre irányít át, ezért a phone kódja és rajza változatlan.
+
+### K4 — A napló többi eleme
+
+- **Közös elemek, ahol vannak:** a stat-csík, a hónap-fejléc és a sor a
+  phone `foretack_ui`-widgetje. A makett 14a fejléc-blokkja (az évsorba
+  ágyazott statok) helyett a phone stat-csíkja áll. Ez a K3 elvét viszi
+  tovább: ami a phone-on megvan, azt a web is úgy kapja.
+- **Évsáv:** a makett 7c-je (ADR 0047 Addendum 5 F2), új `foretack_ui`
+  widgetként (`RaceLogYearSelector`):
+  - a kiválasztott év nagy számmal, mellette a többi év tompított
+    választóként;
+  - egy elválasztó után az „ÖSSZES" (14w);
+  - alatta a versenyek száma, verzál címkével.
+
+  A szövegeket a hívó adja, a stat-csík mintájára. A phone ezt az S7
+  után kapja meg (F2).
+- **A stat-csík** a kiválasztott évre vagy az összes évre szól:
+  - **vízen töltött idő:** a hivatalos menetidő, ha van és pozitív, különben
+    telemetriás versenynél a rögzítés hossza; a kézi verseny hivatalos
+    idők nélkül nem számít bele;
+  - **össztáv:** a táv-statok összege;
+  - **rekord:** a max. sebességek maximuma.
+- **Állapotok:**
+  - **betöltés:** a phone mintájára egyetlen folyamatjelző; a 13c
+    vázlat-sorai elmaradnak;
+  - **hiba:** üzenet és ÚJRA gomb (13d);
+  - **üres napló:** egy mondat (13b), a Feltöltés és az Új verseny
+    gombja a saját szeletében jön.
+- **A sorra kattintás** az S7b-ig nem nyit semmit: a részletező ott
+  készül el.
+
+### K5 — Lokális fejlesztés Caddyvel (felhasználói döntés)
+
+A Flutter web dev-szervere és az API két külön origin, ezért a böngésző
+CORS miatt blokkolná a hívásokat. Egy lokális Caddy egy originre teszi
+őket, ugyanúgy, mint élesben:
+- a `/api/*` a `127.0.0.1:8087`-es szerver felé megy;
+- minden más a `flutter run -d web-server` portja felé.
+
+A konfiguráció a `tools/dev/Caddyfile`. A szerverbe így nem kerül
+dev-only CORS-kód. A basic auth lokálisan elmarad.
+
+### K6 — Az S7 szeletei
+
+| Szelet | Tartalom |
+|---|---|
+| S7a | az `apps/web` váza, az API-kliens, a napló Lista nézete, a 7c évsáv, a lokális Caddy |
+| S7b | a részletező: státusz, csíkok, eredmény-blokk, interaktív térkép, bóják, összefoglaló |
+| S7c | a szerkesztők: eredmény, kézi verseny (új, mentés, törlés), `ForetackDialog`, snackbar |
+| S7d | a feltöltés-dialógus XHR-folyamatjelzővel (E8) |
+| S7e | a Táblázat nézet és a Lista / Táblázat váltó |
+
+**A sorrend oka:** a web minél előbb használható legyen. Előbb a
+nézegetés, aztán a szerkesztés, majd a feltöltés jön, és a táblázat a
+végén.
