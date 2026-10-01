@@ -7,6 +7,7 @@
 /// ponton át használja, a `src/` alá közvetlenül nem importál.
 library;
 
+export 'package:foretack_ui/src/format/compass_point_labels.dart';
 export 'package:foretack_ui/src/format/track_stats_formatters.dart';
 export 'package:foretack_ui/src/l10n/foretack_ui_localizations.dart';
 export 'package:foretack_ui/src/map/map_attribution.dart';
