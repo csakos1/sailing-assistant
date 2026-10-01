@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'package:race_archive_api/src/annotation/annotation_codecs.dart';
-import 'package:race_archive_api/src/annotation/annotation_violation.dart';
 import 'package:race_archive_api/src/import/import_rejection.dart';
 import 'package:race_archive_api/src/json/decode_error.dart';
 import 'package:race_archive_api/src/json/json_reader.dart';
+import 'package:race_archive_api/src/validation/input_violation.dart';
+import 'package:race_archive_api/src/validation/input_violation_codec.dart';
 import 'package:shared/shared.dart';
 
 /// A szerver hibaválaszai (ADR 0047 Addendum 1 A7).
@@ -36,13 +36,13 @@ final class MalformedRequest extends ApiError {
   List<Object?> get props => [decodeError];
 }
 
-/// Az eredmény-adatok validációja elbukott.
+/// A bemenet validációja elbukott (ADR 0048 Addendum 2 H5).
 final class ValidationFailed extends ApiError {
   /// Az összes szabálysértés.
   const ValidationFailed(this.violations);
 
   /// A szabálysértések, mezőnként.
-  final List<AnnotationViolation> violations;
+  final List<InputViolation> violations;
 
   @override
   int get httpStatus => 422;
@@ -126,8 +126,7 @@ Map<String, Object?> encodeApiError(ApiError error) => <String, Object?>{
     ValidationFailed(:final violations) => <String, Object?>{
       'code': _validationFailed,
       'violations': [
-        for (final violation in violations)
-          encodeAnnotationViolation(violation),
+        for (final violation in violations) encodeInputViolation(violation),
       ],
     },
     RaceNotFound(:final raceId) => <String, Object?>{
@@ -158,7 +157,7 @@ Result<ApiError, DecodeError> decodeApiError(Object? json) => runDecode(() {
       ),
     ),
     _validationFailed => ValidationFailed(
-      reader.list('violations', readAnnotationViolation),
+      reader.list('violations', readInputViolation),
     ),
     _raceNotFound => RaceNotFound(reader.string('raceId')),
     _importRejected => ImportRejected(

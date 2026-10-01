@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 import 'package:race_archive_api/src/annotation/annotation_violation.dart';
 import 'package:race_archive_api/src/annotation/race_annotation_input.dart';
+import 'package:race_archive_api/src/validation/input_violation.dart';
 import 'package:shared/shared.dart';
 
 /// Az eredmény-adatok validációja és normalizálása (ADR 0047 Addendum 1

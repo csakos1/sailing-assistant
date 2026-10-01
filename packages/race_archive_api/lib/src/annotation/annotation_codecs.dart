@@ -1,4 +1,3 @@
-import 'package:race_archive_api/src/annotation/annotation_violation.dart';
 import 'package:race_archive_api/src/annotation/race_annotation.dart';
 import 'package:race_archive_api/src/annotation/race_annotation_input.dart';
 import 'package:race_archive_api/src/json/decode_error.dart';
@@ -53,28 +52,3 @@ RaceAnnotation readRaceAnnotation(JsonReader reader) => RaceAnnotation(
   content: readRaceAnnotationInput(reader),
   updatedAt: reader.utcMillis('updatedAt'),
 );
-
-/// [AnnotationViolation] → JSON: `{field, code}`.
-Map<String, Object?> encodeAnnotationViolation(
-  AnnotationViolation violation,
-) => <String, Object?>{
-  'field': violation.field.name,
-  'code': switch (violation) {
-    ValueNotPositive() => _valueNotPositiveCode,
-    PlaceExceedsFleetSize() => _placeExceedsFleetSizeCode,
-  },
-};
-
-/// JSON-elem → [AnnotationViolation], a `list` olvasó elem-callbackjeként.
-AnnotationViolation readAnnotationViolation(Object? item, String path) {
-  final reader = JsonReader.at(item, path);
-  final field = reader.enumByName('field', AnnotationField.values);
-  return switch (reader.string('code')) {
-    _valueNotPositiveCode => ValueNotPositive(field),
-    _placeExceedsFleetSizeCode => PlaceExceedsFleetSize(field),
-    _ => JsonReader.failAt(reader.childPath('code'), 'violation code'),
-  };
-}
-
-const String _valueNotPositiveCode = 'valueNotPositive';
-const String _placeExceedsFleetSizeCode = 'placeExceedsFleetSize';

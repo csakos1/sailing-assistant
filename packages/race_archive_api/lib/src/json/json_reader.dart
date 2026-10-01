@@ -175,6 +175,24 @@ final class JsonReader {
     _fail(key, 'one of ${values.map((value) => value.name).join('|')}');
   }
 
+  /// Opcionális enum-érték a `name`-je alapján (`null` vagy hiányzó mező →
+  /// `null`).
+  T? optionalEnumByName<T extends Enum>(String key, List<T> values) {
+    if (_map[key] == null) return null;
+    return enumByName(key, values);
+  }
+
+  /// Opcionális érték, amely egész szám vagy a [symbols] szövegek egyike:
+  /// `int`, `String` vagy `null`. Például a helyezés (`3`, `"dnf"`).
+  Object? optionalIntegerOrSymbol(String key, Set<String> symbols) {
+    final value = _map[key];
+    if (value == null) return null;
+    if (value is String && symbols.contains(value)) return value;
+    final integer = _asInt(value);
+    if (integer != null) return integer;
+    _fail(key, 'integer, ${symbols.map((s) => '"$s"').join(', ')} or null');
+  }
+
   /// Kötelező koordináta (`{lat, lon}`), a domain tartomány-ellenőrzésével.
   Coordinate coordinate(String key) {
     final reader = object(key);

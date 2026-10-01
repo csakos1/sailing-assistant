@@ -25,3 +25,13 @@ String racePath(String raceId) => '$racesPath/${Uri.encodeComponent(raceId)}';
 
 /// Egy verseny eredmény-adatai: `PUT`.
 String raceAnnotationPath(String raceId) => '${racePath(raceId)}/annotation';
+
+/// Egy verseny eredménye (v2): `PUT` (ADR 0048 D6).
+String raceResultPath(String raceId) => '${racePath(raceId)}/result';
+
+/// A kézi versenyek: `POST` létrehoz (ADR 0048 D6).
+const String manualRacesPath = '/api/manual-races';
+
+/// Egy kézi verseny: `PUT` ment, `DELETE` töröl (ADR 0048 D6).
+String manualRacePath(String raceId) =>
+    '$manualRacesPath/${Uri.encodeComponent(raceId)}';
