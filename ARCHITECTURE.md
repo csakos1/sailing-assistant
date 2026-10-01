@@ -4727,7 +4727,8 @@ megbízhatóság-előny).
   a track FELÜL, a next-TWA elemzés ALUL.
 - **Fullscreen track-nézet és megosztható PNG-export (ADR 0036).** A
   track-kártya koppintásra teljes képernyős, nagyítható nézetet nyit
-  (`FullScreenTrackMapScreen`): pan + pinch-zoom + dupla-koppintás,
+  (`FullScreenTrackMapScreen`): pan + pinch-zoom + dupla-koppintás
+  (+ a weben egérgörgős zoom, ADR 0048 K8),
   **rotáció tiltva** (észak-fent rögzítve, hogy a tájolás a kártyával és
   az exporttal azonos maradjon), a térkép alatt sebesség-legenda a
   `colorForTrackSpeed` sávhatáraiból származtatva, a bójákon `Mark.name`

@@ -1110,7 +1110,9 @@ Az ADR 0047 Addendum 4 E4 beágyazott, interaktív térképe helyett a phone
 mintája:
 - **a részletezőben:** 560 px magas, gesztus nélküli `TrackMap`-kártya;
 - **rákattintva:** egy teljes képernyős, húzható és nagyítható térkép
-  nyílik, a bóják nevével és a sebesség-legendával.
+  nyílik, a bóják nevével és a sebesség-legendával. Egérrel a görgő
+  nagyít (`InteractiveFlag.scrollWheelZoom` a közös `TrackMap`-ben; a
+  phone-on hatástalan, mert ott nincs görgő).
 
 **Miért:** kevesebb munka, és a beágyazott térkép soha nem nyeli el az
 oldal görgetését. A +/−, a „teljes track" gomb és a billentyűs vezérlés

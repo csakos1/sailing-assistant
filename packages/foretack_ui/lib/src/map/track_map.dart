@@ -74,12 +74,15 @@ class TrackMap extends StatefulWidget {
   /// A nagy nezeten engedelyezett gesztusok. A [InteractiveFlag.rotate]
   /// szandekosan kimarad (ADR 0036 F1-D4): elforgatott terkepen a vitorlazo
   /// elveszti az eszak-referenciat, es nincs kezenfekvo "vissza eszakra".
+  /// A [InteractiveFlag.scrollWheelZoom] a web egeres nagyitasahoz kell
+  /// (ADR 0048 Addendum 4 K8); a phone-on nincs gorgo, ott hatastalan.
   static const int _interactiveFlags =
       InteractiveFlag.drag |
       InteractiveFlag.flingAnimation |
       InteractiveFlag.pinchMove |
       InteractiveFlag.pinchZoom |
-      InteractiveFlag.doubleTapZoom;
+      InteractiveFlag.doubleTapZoom |
+      InteractiveFlag.scrollWheelZoom;
 
   static LatLng _toLatLng(Coordinate c) => LatLng(c.latitude, c.longitude);
 
