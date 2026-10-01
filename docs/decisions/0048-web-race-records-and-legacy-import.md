@@ -6,7 +6,7 @@ Elfogadva — 2026-10-01. Még nem implementálva. A „Szeletek" sorrendjében
 következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
-alakját rögzíti.
+alakját, az Addendum 3 a szerver v2-jét rögzíti.
 
 ## Kontextus
 
@@ -828,3 +828,135 @@ S5b-3 a `Legacy*` típusokat és az aliasokat törli.
 `raceResultPath(id)` → `/api/races/{id}/result`, `manualRacesPath` →
 `/api/manual-races`, `manualRacePath(id)` → `/api/manual-races/{id}`. A
 `raceAnnotationPath` az S5b-3-ig marad.
+
+## Addendum 3 — A szerver v2-je (S5b-3)
+
+2026-10-01. Az S5b-3 szerver-oldali döntései. A D4, a D6 és a D9
+végrehajtását pontosítja; az ADR 0047 Addendum 3 C3, C5, C7 és C8
+érintett részeit felváltja.
+
+### I1 — Rétegek és fájlok
+
+A C8 rétegezése marad (`http` → szolgáltatás → repository), új
+mappákkal:
+- `web_db/`: a `WebDatabase` v2, a három tábla és a repository-k
+  (`RaceResultRepository`, `ManualRaceRepository`, `RaceStatsRepository`);
+- `stats/`: az ablak feloldása, a számítás, a cache olvasása és frissítése;
+- `race/`: a napló, a részletező, az eredmény és a kézi verseny
+  szolgáltatásai;
+- `http/`: egy handler végpont-csoportonként, a JSON-törzs olvasása
+  közös segédben.
+
+Kivezetve: a v1 annotáció (tábla, repository, handler, végpont) és a
+`MissingTrackStatsBackfill`. A web a phone `race_track_stats`
+cache-ét már nem olvassa (D4), így a pótlásra sincs szükség.
+
+### I2 — A `web.sqlite` v2 oszlopai
+
+A D9 táblái, ezekkel a pontosításokkal:
+- **Időpontok:** a hivatalos rajt és befutás (`official_start`,
+  `official_finish`), valamint a statisztika ablakának határai
+  (`window_start`, `window_end`) **epoch-milliszekundum INTEGER**-ek, nem
+  Drift `dateTime`-ok. A Drift az időt unix másodpercben tárolja, és helyi
+  zónájúként adja vissza (ADR 0047 Addendum 3 C3). A cache érvényessége
+  (I4) a határok pontos egyezésén múlik, ezért ezek nem csonkulhatnak.
+- **Adminisztratív idők** (`created_at`, `updated_at`, `computed_at`):
+  Drift `dateTime`, ahogy a v1-ben. Így a v1 `updated_at` változatlanul
+  átmásolható.
+- **Helyezés:** `*_place INTEGER` és `*_status TEXT`. A státusz csak
+  `'dnf'` vagy `'dsq'` lehet, és a kettő közül legfeljebb az egyik
+  kitöltött; mindkettőt CHECK védi.
+- **Kézi verseny:** `date TEXT` (`YYYY-MM-DD`), `wind_point INTEGER`
+  0–15 közt (CHECK), a táv `distance_m`, a sebesség és a szél m/s-ben.
+- **`race_stats`:** csak telemetriás versenynek van sora. A kézi verseny
+  statjai a beírt értékek, nincs mit cache-elni. Az ablak fajtája
+  `'official'` vagy `'recording'`, az irány fokban (`wind_dir_deg`). Az
+  égtájra képzés a válasz építésekor történik (Addendum 2 H1).
+
+**Migráció v1 → v2:** egy lépésben, a Drift migrációs tranzakciójában:
+1. létrejön a `race_results`;
+2. `INSERT … SELECT` a `race_annotations`-ből, azonos oszlopnevekkel;
+3. a `race_annotations` törlődik;
+4. létrejön a `manual_races` és a `race_stats`.
+
+### I3 — A rögzítés ablaka
+
+A telemetriás verseny rögzítési ablaka a `Race.startedAt` és
+`finishedAt` közé esik; ez a `TelemetryOrigin` és a `RecordingWindow`
+alapja. Egy befejezett, de valamelyik időt nélkülöző sor a
+szerződéssel nem írható le: a napló kihagyja, és a szerver naplóz.
+
+### I4 — A statisztika cache-e
+
+**A várt ablak:** a `OfficialWindow`, ha az eredményben mindkét
+hivatalos idő megvan, és a befutás későbbi a rajtnál; különben a
+`RecordingWindow`. Ezt egy pure függvény dönti el a versenyből és az
+eredményből.
+
+**Érvényesség:** egy `race_stats` sor akkor érvényes, ha az ablak
+fajtája és mindkét határa egyezik a várt ablakkal.
+- **Olvasás (`GET`):** érvényes sorból válaszol. Hiányzó vagy elavult
+  sornál memóriában számol, nem ír vissza, és naplóz (D4).
+- **Írás:**
+  - import után az új és frissített versenyekre, valamint minden olyan
+    befejezett versenyre, amelynek nincs érvényes sora;
+  - eredmény-mentés után, ha a várt ablak megváltozott.
+
+  Egy verseny számítási hibája nem állítja meg a többit: naplózódik, és a
+  következő import újrapróbálja.
+
+### I5 — Egy közös írási zár
+
+Az import (a minták cseréje és a `race_stats` frissítése) és az
+eredmény-mentés utáni újraszámolás **ugyanazt** a `SerialLock`-ot
+használja. Enélkül egy import közben mentett eredmény a régi mintákból
+számolt statot írhatna az új fölé. A kézi verseny írása nem érinti sem
+az archívumot, sem a cache-t, ezért nem zárol; az SQLite úgyis
+sorosítja az írásokat.
+
+### I6 — A kézi verseny statjai és sorrendje
+
+- **Statok:** `ManualEntry` ablak, a beírt táv, max. sebesség és szél.
+  Az átlagsebesség táv ÷ hivatalos menetidő, ha mindkettő megvan és a
+  menetidő pozitív (D2).
+- **A napló sorrendje** a szerveren: a legújabb elöl, a hivatalos rajt
+  szerint, ha van, különben a rögzítés kezdete, illetve a kézi verseny
+  napjának dele (UTC). Ez kényelmi sorrend; a web maga rendez (G2).
+
+### I7 — Végpontok és válaszok
+
+| Végpont | Siker | Hiba |
+|---|---|---|
+| `PUT /api/races/{id}/result` | `200`, `RaceResult` | ismeretlen vagy kézi azonosító → `RaceNotFound` |
+| `POST /api/manual-races` | `201`, `RaceSummary` | — |
+| `PUT /api/manual-races/{id}` | `200`, `RaceSummary` | ismeretlen vagy telemetriás azonosító → `RaceNotFound` |
+| `DELETE /api/manual-races/{id}` | `204`, üres törzs | ugyanígy |
+
+- Minden JSON-törzs korlátja 64 KiB, mint a v1 annotációé (C4).
+- **Csupa üres eredmény** törli a sort. A válasz ekkor is `RaceResult`,
+  üres tartalommal és a törlés idejével, ahogy a v1-ben.
+- **A kézi verseny azonosítója:** UUID v4 a `uuid` csomaggal; a phone
+  már használja, így új külső függőség nem kerül a workspace-be. A
+  generátor injektálható, a tesztek determinisztikusak.
+- A kézi verseny és az eredménye **egy tranzakcióban** íródik (D6).
+  Csupa üres eredménynél a meglévő eredmény-sor törlődik. A kézi verseny
+  törlése az eredményét is törli.
+
+### I8 — Parancssor
+
+- **`server`:** a `--annotations` helyett `--web-db`.
+- **`import_race_db`:** is megkapja a `--web-db`-t, mert az import után a
+  statisztikát frissíti.
+- A kötelező kapcsolókat mindkét belépési pont ugyanúgy ellenőrzi
+  (`_requiredOption`). Ez az `args` `mandatory` jelzőjét váltja fel, amely
+  a hiányt csak olvasáskor, `ArgumentError`-ral jelezte.
+
+### I9 — A v1 szerződés törlése
+
+A szerver átállása után egy külön `refactor(archive-api)` commit törli a
+v1 típusokat:
+- `RaceAnnotation*` és `ValidateRaceAnnotationInput`;
+- `RaceListItem` és `LegacyRaceDetail`;
+- a típus-aliasokat és a `raceAnnotationPath`-t.
+
+A kettő külön commit: így mindkettő után zöld a CI.

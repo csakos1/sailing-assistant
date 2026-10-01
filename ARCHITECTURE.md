@@ -355,7 +355,7 @@ sailing-assistant/                        # GitHub repo root
 │   │
 │   ├── foretack_ui/                      # Flutter: design-rendszer + phone/web közös widgetek, saját ARB (ADR 0047 D2–D3)
 │   │
-│   ├── race_archive_api/                 # PURE DART, dart:io nélkül: webes HTTP-szerződés, RaceAnnotation (ADR 0047 D2, D7)
+│   ├── race_archive_api/                 # PURE DART, dart:io nélkül: webes HTTP-szerződés, RaceSummary/RaceResult (ADR 0047 D2, ADR 0048 D6)
 │   │
 │   └── wearable_bridge/                  # Android-only Flutter plugin (ADR 0018): Wearable Data Layer transport
 │       ├── lib/
@@ -412,7 +412,7 @@ sailing-assistant/                        # GitHub repo root
 │   │
 │   ├── web/                              # Flutter web: versenyarchívum UI (ADR 0047 D8)
 │   │
-│   ├── web_server/                       # Pure Dart AOT: import, archív- és annotáció-DB, REST API (ADR 0047 D4–D6)
+│   ├── web_server/                       # Pure Dart AOT: import, archívum és web.sqlite, REST API (ADR 0047 D4–D6, ADR 0048)
 │   │
 │   └── watch/                            # Wear OS Flutter app
 │       ├── lib/
@@ -5267,7 +5267,7 @@ Telefon (debug build)          VPS (Ubuntu, Caddy + systemd)
   foretack.sqlite + -wal  ──►  Caddy :443 ── basic_auth ──┬── /        → /srv/foretack/web (Flutter web)
   (tools/pull_race_db.sh)                                 └── /api/*   → 127.0.0.1 web_server (AOT)
                                                                           ├── archive.sqlite     (AppDatabase séma)
-                                                                          └── annotations.sqlite (WebDatabase)
+                                                                          └── web.sqlite         (WebDatabase)
 ```
 
 - A **szerver számol, a web renderel** (D4). A szerver a `data`
@@ -5278,8 +5278,9 @@ Telefon (debug build)          VPS (Ubuntu, Caddy + systemd)
 - **Két DB-fájl** (D5):
   - az archívum pontosan az `AppDatabase` sémája és migrációi, így
     automatikusan követi az appot;
-  - a webes annotációk saját `WebDatabase`-ben, független migrációs
-    lánccal élnek. A kapcsolat a race UUID.
+  - a webes adatok (eredmények, kézi versenyek, statisztika-cache) saját
+    `WebDatabase`-ben (`web.sqlite`), független migrációs lánccal élnek.
+    A kapcsolat a race UUID.
 
 ### 20.2 Import
 
@@ -5296,7 +5297,8 @@ Az import (D6) lépései:
    `user_version`) a migráció előtt, nyers `sqlite3`-mal fut (B2).
 5. Kimarad: `settings`, `saved_marks`.
 
-Az import idempotens, az annotációkhoz soha nem nyúl.
+Az import idempotens, az eredményekhez és a kézi versenyekhez soha nem
+nyúl; a merge után frissíti a statisztika-cache-t (ADR 0048 Addendum 3 I4).
 
 A lehúzás előtt kötelező a force-stop, különben a WAL és a fő fájl
 inkonzisztens párt adhat.
@@ -5313,34 +5315,38 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 - **Formátum:** az időbélyegek UTC epoch ms-ben utaznak, a track-pontok
   kompakt tömbként (`[lat, lon, sog|null]`).
 - **Végpontok:** `GET /api/races`, `GET /api/races/{id}`,
-  `PUT /api/races/{id}/annotation` (csupa üres mezővel törli az
-  annotációt), `POST /api/imports`.
+  `PUT /api/races/{id}/result` (csupa üres mezővel törli az eredményt),
+  `POST /api/manual-races`, `PUT` és `DELETE /api/manual-races/{id}`,
+  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7).
 - **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
   `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
   adja.
-- **v2 (ADR 0048 D6 + Addendum 2):** `RaceSummary` sealed eredettel
+- **Rekordok (ADR 0048 D6 + Addendum 2):** `RaceSummary` sealed eredettel
   (telemetriás: a rögzítés ablaka; kézi: naptári nap), `RaceStats`
   ablakkal (`official` / `recording` / `manual`) és égtáj-iránnyal,
   `RaceResult` `Placing` helyezésekkel (szám, `"dnf"`, `"dsq"`), és a
   kézi verseny végpontjai. A telemetriás verseny napját a kliens
   számolja helyi időben. A szabálysértések közös `InputViolation`
-  típusban jönnek. Az S5b-3-ig a v1 mellette él.
+  típusban jönnek. A v1 annotáció-szerződést az S5b-3 törölte.
 
 ### 20.2c REST szerver (ADR 0047 Addendum 3)
 
 - **Keret:** `shelf` + `shelf_router`; a multipart importot a
   `package:mime` streameli, egyenesen az ideiglenes könyvtárba. A teljes
   fájl soha nincs memóriában.
-- **Korlátok:** annotáció 64 KiB, import 4 GiB (`--max-import-bytes`).
+- **Korlátok:** JSON-törzs 64 KiB, import 4 GiB (`--max-import-bytes`).
   A szerver a beolvasott bájtokat számolja, nem a `Content-Length`-et.
 - **Hálózat:** `127.0.0.1:8087`, a gzip/zstd a Caddyben.
 - **Archívum:** `NativeDatabase.createInBackground`, így a több perces
   import nem blokkolja az event loopot.
-- **Track-statisztika:** a hiányzó `race_track_stats` sorokat az import
-  pótolja, ugyanabban a mutex-ben. A `GET` nem ír; egy mégis hiányzó
-  sort memóriában számol, és figyelmeztetést naplóz.
-- **Annotáció-DB:** Drift `WebDatabase`, egyetlen `race_annotations`
-  táblával, commitolt `.g.dart`-tal.
+- **Statisztika (ADR 0048 Addendum 3 I4–I5):** a `race_stats` cache-t
+  az import és az ablakot változtató eredmény-mentés frissíti, egy közös
+  írási zár alatt. Egy sor akkor érvényes, ha az ablaka egyezik a várt
+  ablakkal. A `GET` nem ír; egy hiányzó vagy elavult sort memóriában
+  számol, és naplóz.
+- **Webes DB:** Drift `WebDatabase` v2 (`race_results`, `manual_races`,
+  `race_stats`), a v1 `race_annotations`-ből migrálva, commitolt
+  `.g.dart`-tal. Kapcsoló: `--web-db`.
 
 ### 20.3 Webes adatmodell (ADR 0048)
 
