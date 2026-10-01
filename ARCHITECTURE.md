@@ -2856,7 +2856,11 @@ low-confidence-szűrés nem a domainben). Az 1c elrendezésben a
 pont-indikátor a `TWA KÖV.` felirat sorának jobb szélén ül, nem a szám
 alatt; a `±` hibasáv közvetlenül a hero alá kerül (ADR 0042 D8).
 
-**Téma (marine dark).** A `foretackTheme` (`app/theme.dart`) Material 3
+**Téma (marine dark).** A téma, a színtokenek, a tipográfia és a fontok a
+`packages/foretack_ui`-ban élnek (ADR 0047 Addendum 4 E9), a phone és a
+web közösen használja őket a `package:foretack_ui/foretack_ui.dart`
+barrelen át. Az alábbi fájlnevek a `foretack_ui/lib/src/theme/` alá
+mutatnak. A `foretackTheme` (`theme.dart`) Material 3
 `ColorScheme`-je hordozza a felület-, szöveg- és accent-tokeneket: a
 `fromSeed` alapot explicit `copyWith` rögzíti (`surface`,
 `surfaceContainer`, `surfaceContainerHigh`, `outline`, `outlineVariant`,
@@ -2865,15 +2869,19 @@ alatt; a `±` hibasáv közvetlenül a hero alá kerül (ADR 0042 D8).
 minden képernyőre és minden Material-widgetre érvényes — a `primary`-t
 azért kell explicit megadni, mert a `fromSeed` a magot tonálisan átképzi.
 Amire az M3-nak nincs slotja, az `ThemeExtension`: `ConfidenceColors`
-(`app/confidence_colors.dart`), `WarningColors` (§11) és `TextTones`
-(`app/text_tones.dart`, a label-szint tercier szövegszíne). A
+(`confidence_colors.dart`), `WarningColors` (§11) és `TextTones`
+(`text_tones.dart`, a label-szint tercier szövegszíne). A
 starboard/port oldal-színek, az IALA-sárga, a hajó-kék és a track
-sebesség-rámpa top-level konstansok maradnak (`app/marine_colors.dart`):
+sebesség-rámpa top-level konstansok maradnak (`marine_colors.dart`):
 térkép- és rajz-rétegek fogyasztják, nem téma-váltó felületek. Betűk:
 bundle-ölt asset-fontok — `IBM Plex Sans` az UI-nak, `IBM Plex Mono` a
 GPS-időnek, `Martian Mono` a mérőszámoknak —, a szám-stílusok az
-`app/foretack_typography.dart` konstansaiban; a mono családok eleve fix
+`foretack_typography.dart` konstansaiban; a mono családok eleve fix
 számjegy-szélességűek, így a számok nem ugrálnak az 1 Hz-es frissülésnél.
+A fontokat a `foretack_ui` deklarálja, ezért a fogyasztó appban a
+családnév `packages/foretack_ui/<család>`; a három család-konstans ezt a
+teljes nevet hordozza (E10), és egy phone-teszt a `FontManifest.json`
+ellen ellenőrzi.
 A token→slot táblázat és a típusskála a `docs/design-system.md`
 „Telefon" szakaszában, az indoklás az ADR 0041-ben. App-wide dark marad
 (a meglévő CRUD-screenek öröklik); az elrendezésük migrációja a §8.11-ben.
@@ -4595,6 +4603,8 @@ A függőségi irányok:
   **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
 - `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
 - `apps/phone` → `foretack_ui`.
+- `foretack_ui` → `domain` (a `ConfidenceColors` és a `WarningColors` a
+  domain enumjait képzi le; Addendum 4 E9). A `data`-tól nem függ.
 
 A `race_archive_api`-ban tilos a `dart:io` és a Flutter. A részleteket
 lásd a [§20](#20-webes-versenyarchívum-adr-0047)-ban.
@@ -5342,14 +5352,26 @@ Három képernyő, a phone mintáját követve (D8):
   a helyezéssel a sor jobb szélén. Az alapértelmezett év a legújabb,
   amelyben van verseny. A feltöltés az AppBarból nyíló dialógusban
   történik.
-- **Részletező:** státusz-sáv és statok, eredmény-blokk, összefoglaló,
+- **Részletező**, fentről lefelé: státusz-sáv, track-statok,
+  eredmény-blokk (üresen egy halk sor a szerkesztőre), 560 px-es
   interaktív `TrackMap` (`isInteractive: true`), bóják, post-race
-  elemzés.
+  elemzés, és **legalul** az összefoglaló (Addendum 4 E1).
 - **Eredmény-szerkesztő:** a részletező AppBarjának ceruza-ikonjából
   nyílik, külön képernyő mentéssel, ahogy a phone `RaceEditScreen`-je
   (ADR 0044).
 
 A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
+
+A makett (13. kör) részletei az Addendum 4-ben vannak:
+- elrendezés: 880 px-es oszlop, 640 px-es szövegmérték, `WebLayout`
+  konstansok az `apps/web`-ben (E3);
+- a térkép interakciója (E4);
+- a hover és a fókusz meglévő tokenekből (E5);
+- `ForetackDialog` és snackbar (E6);
+- eltérések a phone komponenseitől (E7);
+- a feltöltés-dialógus állapotai (E8).
+
+Új szín és új tipográfiai fokozat nincs.
 
 ### 20.5 Hozzáférés és üzemeltetés
 

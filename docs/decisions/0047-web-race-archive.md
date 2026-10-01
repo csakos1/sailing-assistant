@@ -693,3 +693,226 @@ phone-DB fixture-rel (S4). Lefedendő: mind a négy végpont boldog útja, a
 404/403/413/422/400 hibautak, az annotáció upsert-je és törlése, a
 multipart-bontás (hiányzó, ismeretlen, ismétlődő mező, megszakított
 stream), és a track-stat pótlás.
+
+## Addendum 4 — A makett döntései (D8-kiegészítés) és a `foretack_ui` alapja (S2)
+
+2026-10-01. A Claude Design makett (`Foretack Design.dc.html`, 13. kör,
+13a–13o képernyők, 13q döntésrekord) és az S2 előtti egyeztetés
+eredménye. Az E1 a D8 „az összefoglaló a térkép fölött" mondatát
+**felülírja**: ahol a makett és a D8 eltér, a makett a mérvadó.
+
+### E1 — A részletező sorrendje: az összefoglaló legalul
+
+Fentről lefelé:
+1. státusz-sáv;
+2. track-statisztika;
+3. **eredmény-blokk**, vagy üres állapotban egy halk „Eredmény még nincs
+   rögzítve" sor, amely a szerkesztőre visz;
+4. 560 px magas interaktív térkép;
+5. bóják;
+6. post-race elemzés;
+7. **összefoglaló**, max. 640 px-es szövegmértékkel, balra zárva.
+
+Az összefoglaló szekció csak akkor jelenik meg, ha van szövege. Az üres
+állapotot az egyetlen eredmény-sor jelzi, hogy ne legyen két üres
+helyőrző egy képernyőn.
+
+**Miért:** az eredmény egy pillantásnyi szám, ez a szezonvégi áttekintés
+első kérdése. A négy bekezdéses összefoglaló olvasnivaló, és a lap alján
+nem tolja le a térképet a hajtás alá.
+
+### E2 — A D8 három kiegészítése megerősítve
+
+- Az alapértelmezett év a legújabb, amelyben van verseny (a phone
+  `race_log_year_provider` szabálya).
+- Az üres eredmény helyén álló sor a szerkesztőre visz (13l).
+- A napló sorában a helyezés a chevron előtt áll (13a), lásd E7.
+
+### E3 — Elrendezés: oszlop és layout-konstansok
+
+- **Oszlop:** max. 880 px, középre zárva. Keskenyebb ablakban kitölti a
+  szélességet, a margót a sorok 20 px-es belső betéte adja. 800 px-en
+  semmi nem tördelődik át, a hosszú név a helyezés-slot előtt törik.
+- **Szövegmérték:** az összefoglaló és a szerkesztő-űrlap max. 640 px.
+- **AppBar:** 64 px, teljes szélességű sáv, a tartalma az oszlopban.
+- A makett „nem-token" méretei (880, 640, 480, 560, 40, 72, 104, valamint
+  a 2 px-es fókuszkeret ±2 px offsettel) **layout-konstansok**. Egy
+  `WebLayout` osztályba kerülnek az **`apps/web`**-ben
+  (`lib/app/web_layout.dart`), mert egyetlen fogyasztójuk a web. Ha egy
+  érték az S6 során közös widgetbe kerül (a 72 px-es helyezés-slot a
+  `RaceLogRow`-ba), az a widget saját konstansa lesz, nem a `WebLayout`-é.
+
+### E4 — Az interaktív térkép
+
+- **Méret:** fix 560 px magas (880×560 ≈ 1,57:1), a magasság ablakmérettől
+  független.
+- **Vezérlők:** jobb felül +/− gombpár és egy „teljes track" gomb, 40 px-es
+  szögletes cellákban, `surface` háttéren 85% átlátszatlansággal.
+- **Görgő:** csak aktív (rákattintott) térképen nagyít. Inaktív térképen a
+  görgetés az oldalt görgeti, és egy halk tipp jelenik meg.
+- **Mozgatás és forgatás:** húzáskor `grab`/`grabbing` kurzor, forgatás
+  tiltva.
+- **Inaktiválás:** Esc vagy a térképen kívülre kattintás.
+- **Billentyűzet:** fókuszált térképen a nyilak mozgatnak, a +/− zoomol,
+  a `0` a teljes trackre áll.
+
+### E5 — Hover és fókusz, meglévő tokenekből
+
+A makett szerint „nincs új szín". Öt hexája viszont nincs a phone
+palettájában. Az ADR 0044 D48 precedense szerint ezek nem kapnak új
+tokent, hanem a legközelebbi meglévő szerepre képződnek:
+
+| Makett | Szerep | Token |
+|---|---|---|
+| `#10161E` | kattintható sor hover-háttere | `surfaceContainer` |
+| `#16202B` | ikon-gomb és dialógus-akciócella háttere | `surfaceContainerHigh` |
+| `#3FB6C9` | teal gomb hover | `primary` + a Material állapot-réteg (nincs saját szín) |
+| `#E0574F` | hibaszöveg, hibakeret | `colorScheme.error` (ADR 0044 D6) |
+| `#0E141B` / `#C7D5E0` | dialógus-doboz / másodlagos szöveg | `surfaceContainer` / `onSurfaceVariant` (D48) |
+
+Pontos egyezések: a fókuszkeret `#9FB2C2` = `onSurfaceVariant`, a
+mező-hover kerete `#66788A` = `TextTones.low`, a keretes gomb hover-kerete
+`#2A3B4E → #9FB2C2` = `outline → onSurfaceVariant`.
+
+- **Fókuszkeret:** csak billentyűzetes fókusznál (a Flutter
+  `FocusHighlightMode.traditional`, a `:focus-visible` megfelelője),
+  2 px, szögletes. Soron és akciócellán befelé (−2 px), önálló gombon és
+  mezőn kifelé (+2 px).
+- **Átmenet:** a hover azonnal vált, áttűnés-animáció nélkül.
+
+A hover a `MouseRegion`/`InkWell` állapotaiból jön, ezért egy közös
+widgetben sem változtat a phone viselkedésén: érintőképernyőn nem sül el.
+
+### E6 — Dialógus és snackbar
+
+- **Dialógus:** a makett 11a dobozát egy közös
+  `ForetackDialog(title, body, actions)` widget valósítja meg. Ez az S6-ban
+  kerül a `foretack_ui`-ba, amikor a web először használja.
+  - Akciócellák: alul, egyenlő szélességűek, a pozitív balra, a
+    destruktív jobbra pirosan.
+  - Billentyűzet: Esc = az első, nem destruktív akció; a kezdő fókusz a
+    biztonságos cellán; a Tab a dobozban marad.
+  - Szélesség: web max. 480 px, app 364 px.
+- A **phone dialógusainak átállítása** külön, későbbi szelet. Az a phone
+  UI-változása (a nyitott dialógus/SnackBar tétel lezárása), és a webet
+  nem blokkolja.
+- **Új dialógus-minták:**
+  - fájl-cella TALLÓZÁS/CSERE akcióval;
+  - folyamatsáv: 2 px a doboz tetején, százalék a címsorban;
+  - eredmény-lista havi fejléces csoportokkal, max. 320 px-es görgethető
+    törzzsel;
+  - egyetlen, teljes szélességű akció.
+- **Snackbar:** mentés után „Eredmény mentve", 4 s, az oszlop aljára zárva.
+  Feltöltés után nincs snackbar, mert az eredmény a dialógusban látszott.
+
+### E7 — Eltérések a phone komponenseitől
+
+- **Napló AppBar:** „Feltöltés" gomb ikonnal és felirattal, 40 px-es
+  keretes gomb. Üres naplóban teal, mert ott ez az egyetlen akció (13b).
+- **Napló sora:** 72 px-es helyezés-slot a chevron előtt: 30 px jobbra
+  zárt helyezés és 42 px balra zárt „/mezőny". Üres slotnál a szélesség
+  megmarad. Ez a `RaceLogRow` opcionális paramétere (D8). A phone nem adja
+  át, ezért nála a sor változatlan.
+- **Részletező:** interaktív térkép, a „Kép megosztása" sáv elmarad.
+- **Eredmény-blokk:** a makett 38/800-as Martian számot és 21/700-as,
+  `TextTones.low` színű mezőnyt ír. Az ADR 0044 D39 elve (meglévő
+  fokozatok, új konstans nincs) szerint ezek a `numeralMediumStyle`
+  (38/w700) és a `numeralSmallStyle` (20/w700) fokozatra képződnek.
+  Csak abszolút eredménynél az osztály-cella üres marad, gondolatjel
+  nélkül (13k2).
+- **Szerkesztő:** a helyezés-mező 104×54 px, az érték `numeralSmallStyle`
+  középre zárva. A mentés-gomb 58 px-es teal gomb ragadós alsó sávban,
+  oszlopszélesen.
+- **Post-race szekció:** az app `PostRaceAnalysisSection`-je változatlanul
+  (D3). A makett szakasz-adatokból rajzolt változata csak illusztráció.
+- **Évsáv — nyitott, az S6 előtt eldöntendő.** A makett a 7c változatot
+  (szomszéd évek mint választók) „változatlanul az appból" átvettnek írja.
+  A phone `RaceLogYearBar`-ja viszont a D35/D36 szerinti 44 dp-s sáv
+  alulról nyíló választó lappal. A D3 szerint a közös widget viselkedés-
+  változás nélkül költözik, ezért döntésig a web a phone sávját kapja.
+
+### E8 — Feltöltés-dialógus és napló-állapotok
+
+- **Feltöltés-dialógus állapotai** (13f–13j):
+  - alap: a Feltöltés tiltott, amíg nincs fő fájl; a mezők kattinthatók és
+    fájl-ejtők;
+  - kiválasztva;
+  - folyamatban: sáv, százalék, tiltott mezők; a Mégse megszakítja az
+    XHR-t;
+  - eredmény: ÚJ / FRISSÜLT / KIMARADT csoportok, a kimaradt dátum
+    nélkül;
+  - séma-hiba: a két verzió adatcellában.
+- **Napló:**
+  - betöltés: 13c, vázlat-sorok;
+  - hiba: 13d, ÚJRA akció és egy mondat arról, hogy az adat nem veszett
+    el.
+- **Mentetlen változtatás:** a 13o dialógus (Folytatom / Elvetés, kezdő
+  fókusz a Folytatom-on). Fül bezárásakor a natív `beforeunload`
+  figyelmeztet.
+
+### E9 — `foretack_ui` (S2): tartalom és függőségek
+
+`packages/foretack_ui`, Flutter-package, `lib/src/theme/` alatt. A phone
+`lib/app/` alól `git mv`-vel, tartalmi változás nélkül költözik ide:
+- `theme.dart` (`foretackTheme`, `foretackFieldBorder`);
+- `foretack_typography.dart`;
+- `text_tones.dart`, `confidence_colors.dart`, `warning_colors.dart`;
+- `marine_colors.dart`;
+- `font_licenses.dart`;
+- a nyolc TTF és a két OFL-szöveg (`assets/fonts/`).
+
+**Mindegyik közös.** A `foretackTheme` regisztrálja a három extensiont,
+tehát nélkülük a téma nem önálló. A `marine_colors` az S6 widgetjeinek
+(`track_map`, `track_speed_legend`, `mark_pin`, post-race) is kell.
+
+- **Függőségek:** `flutter` és `domain`. A `ConfidenceColors` a
+  `WindShiftConfidence`-t, a `WarningColors` a `WarningSeverity`-t képzi
+  le. A `domain` tiszta Dart, a web is függ tőle, így ez nem új irány.
+- **Belépési pont:** egyetlen barrel (`package:foretack_ui/foretack_ui.dart`).
+  A phone csak ezt importálja.
+- **Phone-ban marad** minden képernyő-lokális szín (`track_export_renderer`,
+  `safety_mark_layers`).
+- **ARB:** az S2 nem érinti, mert a téma nem hordoz szöveget. A
+  `foretack_ui` saját l10n-je az első költöző widgettel jön létre (S6, D3).
+
+### E10 — A fontok package-ből
+
+A fontokat a `foretack_ui` `pubspec.yaml`-ja deklarálja. A fogyasztó
+appban a Flutter a családneveket `packages/foretack_ui/<család>` alakra
+prefixeli.
+
+A három család-konstans (`numeralFontFamily`, `instrumentFontFamily`,
+`uiFontFamily`) **a teljes, prefixelt nevet** hordozza, egyetlen helyen
+összerakva. A `package` paramétert nem használjuk:
+- minden `TextStyle`-nál és a `ThemeData`-nál külön meg kellene adni, és
+  egyetlen kimaradt hely csendben Robotóra esne vissza;
+- egy hívó oldali `copyWith(fontFamily: …)` nem prefixel.
+
+A konstans így mindhárom helyen ugyanazt jelenti.
+
+A licenc-regisztráció a fogyasztói útvonalat
+(`packages/foretack_ui/assets/fonts/…`) tölti be.
+
+**Elvetett alternatíva:** a fontok mindkét app `pubspec`-jében, a
+package-asszetre mutatva. Így a családnevek prefix nélküliek maradnának,
+de a font-lista két helyen duplikálódna és elcsúszhatna.
+
+**Kockázat és védelem:** egy elgépelt vagy prefix nélküli családnév
+csendben Robotóra esik vissza, és a widget-tesztek (Ahem font) ezt nem
+látják. Ezért a phone-ban egy teszt ellenőrzi, hogy a három konstans
+mindegyike szerepel a lefordított `FontManifest.json`-ban. A
+licenc-teszt is a phone-ban marad, mert a prefixelt asset-útvonal csak
+fogyasztóból oldódik fel.
+
+A végső ellenőrzés az eszközös smoke-teszt (Pixel).
+
+### E11 — Tesztek
+
+- A token-tesztek a kóddal együtt a `foretack_ui/test/`-be költöznek:
+  `confidence_colors`, `warning_colors`, `text_tones`,
+  `track_speed_color`, `input_decoration_theme`.
+- Új smoke-teszt: a `foretackTheme` mindhárom extensiont regisztrálja, és
+  az UI-családot állítja be.
+- A phone-ban marad a `font_licenses_test`, és oda kerül az új
+  `font_manifest_test`.
+- A phone többi tesztje változatlanul zöld.

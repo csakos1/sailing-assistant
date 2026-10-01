@@ -77,9 +77,10 @@ hogy a narancs szöveg mellett épp ezek a legvilágosabb pontok. A `crit` és a
 ## Telefon (ADR 0041)
 
 A telefon palettája **nem** azonos az óráéval, és nem is abból származik:
-az alábbi értékek az `apps/phone` mai kódjából valók (`theme.dart`,
-`confidence_colors.dart`, `warning_colors.dart`, `marine_colors.dart`),
-kiegészítve a hiányzó felület- és szövegskálával.
+az alábbi értékek a `packages/foretack_ui/lib/src/theme/` kódjából valók
+(`theme.dart`, `confidence_colors.dart`, `warning_colors.dart`,
+`marine_colors.dart`), kiegészítve a hiányzó felület- és szövegskálával.
+A phone és a web közösen használja őket (ADR 0047 Addendum 4 E9).
 
 ### Felületek és szöveg — Material 3 `ColorScheme` slotok
 | Token | Hex | Slot |
@@ -98,7 +99,7 @@ kiegészítve a hiányzó felület- és szövegskálával.
 | `warn-critical` | `#B3261E` | `error` |
 
 A `text-low` (`#66788A`) az egyetlen token, amire nem jut M3 slot — a
-`TextTones` `ThemeExtension` hordozza (`app/text_tones.dart`,
+`TextTones` `ThemeExtension` hordozza (`text_tones.dart`,
 ADR 0041 Addendum 1).
 
 ### Jel- és állapot-színek — változatlanok
@@ -131,7 +132,7 @@ A track sebesség-rámpája (ADR 0034 Addendum 4) szintén változatlan.
 | Sín-felirat | IBM Plex Sans | 9.5 / w600, caps, +0.09em |
 | Segédszöveg | IBM Plex Sans | 12-13 / w500 |
 
-Nyolc bundle-ölt statikus TTF (`apps/phone/assets/fonts/`): Martian Mono
+Nyolc bundle-ölt statikus TTF (`packages/foretack_ui/assets/fonts/`): Martian Mono
 500/600/700/800, IBM Plex Sans 500/600/700, IBM Plex Mono 600. Mindkettő
 OFL 1.1; az IBM Plex Reserved Font Name-es, ezért **változatlanul**
 szállítjuk, a Martian Mono viszont kivágott súly-példányokként.
@@ -146,6 +147,19 @@ A CRUD-képernyők (setup/edit űrlap, lista, detail, térképek) elrendezése �
 a mező-geometriája az `ARCHITECTURE.md` §8.11-ben él; az indoklás az ADR
 0044-ben. Az űrlap-mezők alapértelmezését a téma `InputDecorationTheme`-je
 hordozza, nem a hívóhelyek.
+
+### Web (ADR 0047 Addendum 4)
+
+A web a telefon tokenjeit használja, **új szín és új tipográfiai fokozat
+nélkül**. A makett web-specifikus hexái meglévő szerepre képződnek (E5):
+- sor-hover → `surfaceContainer`;
+- akciócella → `surfaceContainerHigh`;
+- fókuszkeret → `onSurfaceVariant`, 2 px;
+- mező-hover keret → `TextTones.low`;
+- hiba → `error`.
+
+A méretek (880 px-es oszlop, 640 px-es szövegmérték stb.) layout-konstansok
+az `apps/web` `WebLayout` osztályában, nem tokenek.
 
 ## Implementációs megkötések
 - **Tokenek `ThemeExtension`-ként** (a `ConfidenceColors` / `WarningColors`
