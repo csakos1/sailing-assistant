@@ -5432,6 +5432,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   évsáv a 7c (`RaceLogYearSelector`), „Összes" opcióval.
 - Lokálisan egy Caddy (`tools/dev/Caddyfile`) teszi egy originre a webet
   és az API-t, ahogy élesben.
+- A részletező is a közös csíkokból épül (szél-csík, eredmény-blokk). A
+  térkép gesztus nélküli kártya, rákattintva teljes képernyős nézet
+  nyílik, ahogy a phone-on. A közelítő értékeket egy halk sor jelzi
+  (K7–K10).
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 

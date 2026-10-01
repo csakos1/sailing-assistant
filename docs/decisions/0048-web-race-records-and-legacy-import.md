@@ -1079,3 +1079,67 @@ dev-only CORS-kód. A basic auth lokálisan elmarad.
 **A sorrend oka:** a web minél előbb használható legyen. Előbb a
 nézegetés, aztán a szerkesztés, majd a feltöltés jön, és a táblázat a
 végén.
+
+### K7 — A részletező (S7b), a K4 elvével
+
+A részletező is a phone közös elemeiből épül, ahol azok megvannak.
+Fentről lefelé:
+1. **státusz-csík:**
+   - telemetriás versenynél a phone `DetailStatusStrip`-je;
+   - kézinél ugyanilyen geometriájú csík „KÉZI RÖGZÍTÉS" felirattal és
+     a nappal (14m);
+2. **sebesség- és táv-csík:** a `TrackStatsRow`;
+3. **szél-csík** (új, Addendum 1 G3):
+   - a `RaceLogStatsStrip` három cellával: átlagos szél, max. szél,
+     szélirány;
+   - az égtáj magyar rövidítését (É … ÉÉNy) a `foretack_ui`
+     `compassPointLabel`-je adja (D5);
+4. **közelítő-sor** (K9);
+5. **eredmény-blokk** (K10);
+6. **térkép-kártya** (K8), csak telemetriás versenynél;
+7. **bóják:** a `DetailMarkRow` sorai, „BÓJÁK" szakaszcímmel;
+8. **összefoglaló:** max. 640 px-es mérték; csak akkor jelenik meg, ha
+   van szövege.
+
+A sorra kattintva a napló `MaterialPageRoute`-tal nyitja. Az AppBar a
+közös `WebAppBar`, vissza-gombbal az oszlopban.
+
+### K8 — Térkép: kártya és teljes képernyő (felhasználói döntés)
+
+Az ADR 0047 Addendum 4 E4 beágyazott, interaktív térképe helyett a phone
+mintája:
+- **a részletezőben:** 560 px magas, gesztus nélküli `TrackMap`-kártya;
+- **rákattintva:** egy teljes képernyős, húzható és nagyítható térkép
+  nyílik, a bóják nevével és a sebesség-legendával.
+
+**Miért:** kevesebb munka, és a beágyazott térkép soha nem nyeli el az
+oldal görgetését. A +/−, a „teljes track" gomb és a billentyűs vezérlés
+elmarad. A teljes képernyős nézetből nincs PNG-export: az a phone
+megosztásáé.
+
+### K9 — Közelítő értékek: egy halk sor (felhasználói döntés)
+
+Ha a statisztika ablaka a rögzítés (`RecordingWindow`), a csíkok alatt
+egy halk mondat jelzi, hogy a számok közelítők, és a hivatalos idők
+pontosítják őket.
+
+Az Addendum 1 G6 számonkénti `~` jele a részletezőn **elmarad**. Így a
+közös csík-widgetek változatlanok maradnak. A Táblázat nézet (S7e) `~`
+jelét ez nem érinti.
+
+### K10 — Az eredmény-blokk közös csíkokból
+
+„EREDMÉNY" szakaszcím, alatta két csík és a díj. A csíkok ugyanazok a
+`RaceLogStatsStrip`-ek, mint fölöttük, így a blokk ugyanazt a nyelvet
+beszéli, mint a többi szám:
+- **helyezések:** csak a kitöltöttek, mindegyik a saját mezőnyével:
+  - számszerű helyezés mezőnnyel: `3 / 24`;
+  - mezőny nélkül: `1.`;
+  - DNF vagy DSQ: a mezőny mellette marad (G3).
+- **adatok:** YS-szám (`75,90`), hivatalos rajt, hivatalos befutás és
+  menetidő, mind csak akkor, ha megvan. A rajt és a befutás helyi
+  `ÓÓ:PP`; a másnapi befutás `+1 NAP` jelet kap.
+- **díj:** verzál címkével, sima szövegként.
+
+Üres eredménynél a 13l halk sora áll a helyén. A szerkesztőre vivő
+link az S7c-ben jön.
