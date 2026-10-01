@@ -5346,8 +5346,9 @@ kerül fel, és megszűnik.
   szélirány; szerkeszthető és törölhető.
 - **`RaceResult`** mindkét fajtán:
   - három helyezés (osztály, abszolút, egytestű), mindegyik szám, DNF vagy
-    DSQ;
-  - mezőny, YS-szám (századokban);
+    DSQ, és mindegyik a saját mezőnyével (a számszerű helyezés ≤ a saját
+    mezőnye);
+  - YS-szám (századokban);
   - hivatalos rajt és befutás;
   - díj és összefoglaló.
 
@@ -5379,13 +5380,24 @@ Három képernyő, a phone mintáját követve (D8):
 
 A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
 
-**ADR 0048 bővítések:**
-- **Napló:** Lista / Táblázat váltó (a táblázatban „Összes év" opcióval),
-  és „Új verseny" gomb kézi versenyhez.
-- **Táblázat:** az Excel oszlopai, rögzített fejléc és névoszlop,
-  rendezés; a közelítő értékek `~` jellel.
-- **Szerkesztő:** minden eredmény-mező, kézi versenynél a név, a dátum és
-  a statok is.
+**ADR 0048 bővítések** (a makett 14. köre, Addendum 1):
+- **Napló:** Lista / Táblázat váltó és „Új verseny" gomb az AppBarban. A
+  két nézet közös évállapotot használ, az „Összes év" mindkettőben van.
+  A nézet és a rendezés memóriában él, URL-állapot nincs.
+- **Táblázat:** az egyetlen elem, amely kilép a 880 px-es oszlopból
+  (max. 1600 px). 16 oszlop, rögzített fejléc és Dátum + Verseny blokk,
+  rendezés (a rendezett oszlopot csak a fejléc jelöli), váltakozó
+  sorszín; a helyezés-cella `helyezés / mezőny` pár, külön Mezőny oszlop
+  nincs.
+- **Részletező:** szél-csík mindkét fajtánál; hivatalos idő nélkül
+  közelítő-sor; az eredmény-blokk három helyezése a saját mezőnyével.
+  Kézi versenynél nincs térkép és bója.
+- **Szerkesztő:** címke-oszlopos rács, helyezésenként `[helyezés] /
+  [mezőny]` pár DNF/DSQ szegmenssel, maszkos dátum- és idő-mező, kézi
+  versenynél név, dátum, statok és égtáj-rács. A kézi verseny törlése
+  végleges, visszavonás nélkül.
+- **Jelölések:** `~` közelítő (minden ablakfüggő érték), szöveges „KÉZI",
+  dobogó-talapzat a helyezés alatt.
 
 A makett (13. kör) részletei az Addendum 4-ben vannak:
 - elrendezés: 880 px-es oszlop, 640 px-es szövegmérték, `WebLayout`
@@ -5396,6 +5408,7 @@ A makett (13. kör) részletei az Addendum 4-ben vannak:
 - eltérések a phone komponenseitől (E7);
 - a feltöltés-dialógus állapotai (E8).
 
+A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 Új szín és új tipográfiai fokozat nincs.
 
 **Közös widgetek (Addendum 5):**
