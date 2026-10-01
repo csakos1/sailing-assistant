@@ -14,6 +14,6 @@ class RaceDetailHandler {
   Future<Response> call(Request request, String raceId) async {
     final detail = await _raceDetail(raceId);
     if (detail == null) return apiErrorResponse(RaceNotFound(raceId));
-    return jsonResponse(encodeRaceDetail(detail));
+    return jsonResponse(encodeLegacyRaceDetail(detail));
   }
 }

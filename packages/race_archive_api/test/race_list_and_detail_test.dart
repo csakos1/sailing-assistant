@@ -82,7 +82,7 @@ void main() {
   });
 
   group('race detail', () {
-    RaceDetail detail({RaceAnnotation? annotation}) => RaceDetail(
+    LegacyRaceDetail detail({RaceAnnotation? annotation}) => LegacyRaceDetail(
       race: finishedRace(),
       trackStats: stats,
       trackPoints: const [
@@ -122,7 +122,7 @@ void main() {
 
       // ACT
       final decoded = unwrap(
-        decodeRaceDetail(overTheWire(encodeRaceDetail(original))),
+        decodeLegacyRaceDetail(overTheWire(encodeLegacyRaceDetail(original))),
       );
 
       // ASSERT
@@ -151,7 +151,7 @@ void main() {
     });
 
     test('encodes track points as compact [lat, lon, sog] arrays', () {
-      final json = encodeRaceDetail(detail());
+      final json = encodeLegacyRaceDetail(detail());
 
       expect(json['trackPoints'], [
         [46.91, 17.88, 3.4],
@@ -161,23 +161,23 @@ void main() {
 
     test('rejects a track point of the wrong shape with its index', () {
       // ARRANGE
-      final json = encodeRaceDetail(detail());
+      final json = encodeLegacyRaceDetail(detail());
       (json['trackPoints']! as List<Object?>)[1] = [46.92, 17.89];
 
       // ACT
-      final error = errorOf(decodeRaceDetail(overTheWire(json)));
+      final error = errorOf(decodeLegacyRaceDetail(overTheWire(json)));
 
       // ASSERT
       expect(error.path, r'$.trackPoints[1]');
     });
 
     test('rejects a negative lead time', () {
-      final json = encodeRaceDetail(detail());
+      final json = encodeLegacyRaceDetail(detail());
       final roundings = json['roundings']! as List<Object?>;
       (roundings[0]! as Map<String, Object?>)['leadTimeMs'] = -1;
 
       expect(
-        errorOf(decodeRaceDetail(overTheWire(json))).path,
+        errorOf(decodeLegacyRaceDetail(overTheWire(json))).path,
         r'$.roundings[0].leadTimeMs',
       );
     });

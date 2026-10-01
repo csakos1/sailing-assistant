@@ -9,7 +9,10 @@ import 'package:race_archive_api/src/race/archive_track_point.dart';
 import 'package:race_archive_api/src/race/archived_race_codec.dart';
 import 'package:shared/shared.dart';
 
-/// A verseny-részletező adata (ADR 0047 D4 + Addendum 1 A5).
+/// A verseny-részletező v1 adata (ADR 0047 D4 + Addendum 1 A5).
+///
+/// A v2 `RaceDetail` mellett az S5b-3-ig él, amíg a szerver át nem áll
+/// (ADR 0048 Addendum 2 H6); utána törlődik.
 ///
 /// A szerver ugyanazokkal a domain use case-ekkel állítja elő, mint a phone
 /// `post_race_analysis_provider`-e. A `RoundingSummary` nincs benne: a web
@@ -19,9 +22,9 @@ import 'package:shared/shared.dart';
 /// Szándékosan nincs `==`: a domain `RoundingResult` nem értékszemantikájú,
 /// így egy mező-szintű egyenlőség félrevezető lenne.
 @immutable
-final class RaceDetail {
+final class LegacyRaceDetail {
   /// Részletező a [race]-hez.
-  const RaceDetail({
+  const LegacyRaceDetail({
     required this.race,
     required this.trackStats,
     required this.trackPoints,
@@ -45,31 +48,33 @@ final class RaceDetail {
   final RaceAnnotation? annotation;
 }
 
-/// A `GET /api/races/{id}` válasza.
-Map<String, Object?> encodeRaceDetail(RaceDetail detail) => <String, Object?>{
-  'race': encodeArchivedRace(detail.race),
-  'trackStats': encodeTrackStats(detail.trackStats),
-  'trackPoints': [
-    for (final point in detail.trackPoints) encodeTrackPoint(point),
-  ],
-  'roundings': [
-    for (final result in detail.roundings) encodeRoundingResult(result),
-  ],
-  'annotation': switch (detail.annotation) {
-    null => null,
-    final RaceAnnotation annotation => encodeRaceAnnotation(annotation),
-  },
-};
+/// A `GET /api/races/{id}` v1 válasza.
+Map<String, Object?> encodeLegacyRaceDetail(LegacyRaceDetail detail) =>
+    <String, Object?>{
+      'race': encodeArchivedRace(detail.race),
+      'trackStats': encodeTrackStats(detail.trackStats),
+      'trackPoints': [
+        for (final point in detail.trackPoints) encodeTrackPoint(point),
+      ],
+      'roundings': [
+        for (final result in detail.roundings) encodeRoundingResult(result),
+      ],
+      'annotation': switch (detail.annotation) {
+        null => null,
+        final RaceAnnotation annotation => encodeRaceAnnotation(annotation),
+      },
+    };
 
-/// JSON → [RaceDetail].
-Result<RaceDetail, DecodeError> decodeRaceDetail(Object? json) => runDecode(() {
-  final reader = JsonReader.root(json);
-  final annotation = reader.optionalObject('annotation');
-  return RaceDetail(
-    race: readArchivedRace(reader.object('race')),
-    trackStats: readTrackStats(reader.object('trackStats')),
-    trackPoints: reader.list('trackPoints', readTrackPoint),
-    roundings: reader.list('roundings', readRoundingResult),
-    annotation: annotation == null ? null : readRaceAnnotation(annotation),
-  );
-});
+/// JSON → [LegacyRaceDetail].
+Result<LegacyRaceDetail, DecodeError> decodeLegacyRaceDetail(Object? json) =>
+    runDecode(() {
+      final reader = JsonReader.root(json);
+      final annotation = reader.optionalObject('annotation');
+      return LegacyRaceDetail(
+        race: readArchivedRace(reader.object('race')),
+        trackStats: readTrackStats(reader.object('trackStats')),
+        trackPoints: reader.list('trackPoints', readTrackPoint),
+        roundings: reader.list('roundings', readRoundingResult),
+        annotation: annotation == null ? null : readRaceAnnotation(annotation),
+      );
+    });

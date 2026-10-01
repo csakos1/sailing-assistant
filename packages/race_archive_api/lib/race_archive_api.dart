@@ -29,5 +29,5 @@ export 'package:race_archive_api/src/json/decode_error.dart';
 export 'package:race_archive_api/src/race/archive_track_point.dart';
 export 'package:race_archive_api/src/race/archived_race_codec.dart'
     show decodeArchivedRace, encodeArchivedRace;
-export 'package:race_archive_api/src/race/race_detail.dart';
+export 'package:race_archive_api/src/race/legacy_race_detail.dart';
 export 'package:race_archive_api/src/race/race_list_item.dart';

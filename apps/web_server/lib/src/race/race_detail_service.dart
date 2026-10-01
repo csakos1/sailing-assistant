@@ -27,14 +27,14 @@ class RaceDetailService {
 
   /// A [raceId] verseny részletezője, vagy `null`, ha nincs ilyen
   /// befejezett verseny.
-  Future<RaceDetail?> call(String raceId) async {
+  Future<LegacyRaceDetail?> call(String raceId) async {
     final race = await _races.getRace(raceId);
     // Az archívumban csak befejezett verseny van (D6); egy mégis
     // befejezetlen sort a szerződés nem tud leírni (Addendum 1 A3).
     if (race == null || race.status != RaceStatus.finished) return null;
 
     final samples = await _readRoundingSamples(raceId);
-    return RaceDetail(
+    return LegacyRaceDetail(
       race: race,
       trackStats: _summarizeTrack(samples),
       trackPoints: _trackPointsOf(samples),

@@ -188,7 +188,7 @@ void main() {
 
         // ASSERT
         expect(response.statusCode, 200);
-        final detail = switch (decodeRaceDetail(await jsonOf(response))) {
+        final detail = switch (decodeLegacyRaceDetail(await jsonOf(response))) {
           Ok(:final value) => value,
           Err(:final error) => throw StateError('$error'),
         };
