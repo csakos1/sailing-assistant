@@ -9,6 +9,7 @@ import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
+import 'package:foretack_web/race_import/import_dialog.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -30,29 +31,29 @@ class RaceLogScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = WebLocalizations.of(context)!;
     final logState = ref.watch(raceLogViewProvider);
+    final isLogEmpty = logState.valueOrNull?.isEmpty ?? false;
 
     return Scaffold(
       appBar: WebAppBar(
         title: l10n.logTitle,
         actions: [
-          Padding(
-            // A keretes gomb jobb széle az oszlop betétjén áll (G1).
-            padding: const EdgeInsets.only(right: 12),
-            child: OutlinedButton.icon(
-              onPressed: () => unawaited(
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ManualRaceEditorScreen(),
-                  ),
+          OutlinedButton.icon(
+            onPressed: () => unawaited(
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ManualRaceEditorScreen(),
                 ),
               ),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.logNewRace),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                shape: const RoundedRectangleBorder(),
-              ),
             ),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(l10n.logNewRace),
+            style: _appBarButtonStyle,
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            // A jobb szélső gomb az oszlop betétjén áll (G1).
+            padding: const EdgeInsets.only(right: 12),
+            child: _UploadButton(isLogEmpty: isLogEmpty),
           ),
         ],
       ),
@@ -66,6 +67,44 @@ class RaceLogScreen extends ConsumerWidget {
         data: (view) =>
             view.isEmpty ? const _EmptyLog() : _RaceLogBody(view: view),
       ),
+    );
+  }
+}
+
+// Az AppBar keretes gombjai: 40 px magasak, szögletesek (G1, E7).
+final ButtonStyle _appBarButtonStyle = OutlinedButton.styleFrom(
+  minimumSize: const Size(0, 40),
+  shape: const RoundedRectangleBorder(),
+);
+
+/// A Feltöltés gomb (ADR 0048 Addendum 4 K23). Üres naplóban kitöltött,
+/// mert ott ez a fő akció (13b).
+class _UploadButton extends StatelessWidget {
+  const _UploadButton({required this.isLogEmpty});
+
+  final bool isLogEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = Text(WebLocalizations.of(context)!.logUpload);
+    const icon = Icon(Icons.upload, size: 18);
+    void open() => unawaited(showImportDialog(context));
+    if (isLogEmpty) {
+      return FilledButton.icon(
+        onPressed: open,
+        icon: icon,
+        label: label,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 40),
+          shape: const RoundedRectangleBorder(),
+        ),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: open,
+      icon: icon,
+      label: label,
+      style: _appBarButtonStyle,
     );
   }
 }

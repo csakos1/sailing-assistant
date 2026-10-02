@@ -855,6 +855,204 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'Verseny törölve'**
   String get snackRaceDeleted;
+
+  /// A napló AppBarjának gombja: a feltöltés-dialógust nyitja (G1, K23).
+  ///
+  /// In hu, this message translates to:
+  /// **'Feltöltés'**
+  String get logUpload;
+
+  /// A feltöltés-dialógus címe (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Adatbázis feltöltése'**
+  String get importTitle;
+
+  /// A feltöltés-dialógus magyarázata (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'A telefon Foretack-adatbázisa. A befejezett versenyek bekerülnek a naplóba, a már meglévők frissülnek.'**
+  String get importMessage;
+
+  /// A fő fájl cellájának verzál felirata (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'ADATBÁZIS · KÖTELEZŐ'**
+  String get importDatabaseLabelCaps;
+
+  /// A -wal fájl cellájának verzál felirata (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'WAL-FÁJL · OPCIONÁLIS'**
+  String get importWalLabelCaps;
+
+  /// Az üres fájl-cella szövege (13g; a ráhúzás később jön, K19).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs kiválasztva'**
+  String get importNoFile;
+
+  /// Az üres fájl-cella akciója (13g).
+  ///
+  /// In hu, this message translates to:
+  /// **'TALLÓZÁS'**
+  String get importBrowseCaps;
+
+  /// A kiválasztott fájl cellájának akciója (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'CSERE'**
+  String get importReplaceCaps;
+
+  /// Magyarázat a -wal cella alatt (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'A -wal fájl a legutóbbi verseny adatainak egy részét hordozhatja, ezért érdemes azt is feltölteni.'**
+  String get importWalHint;
+
+  /// A feltöltés-dialógus bezáró akciója; feltöltés közben megszakít (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get importCancel;
+
+  /// A feltöltést indító akció (13f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Feltöltés'**
+  String get importStart;
+
+  /// Az akció felirata feltöltés közben, a forgó mellett (13h).
+  ///
+  /// In hu, this message translates to:
+  /// **'Feltöltés…'**
+  String get importUploading;
+
+  /// A feltöltés haladása a címsorban (13h).
+  ///
+  /// In hu, this message translates to:
+  /// **'{percent} %'**
+  String importPercent(int percent);
+
+  /// A címsor felirata, amikor minden bájt kiment, és a szerver dolgozik (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'FELDOLGOZÁS'**
+  String get importProcessingCaps;
+
+  /// A sikeres import címe (13i).
+  ///
+  /// In hu, this message translates to:
+  /// **'Feltöltés kész'**
+  String get importDoneTitle;
+
+  /// A sikeres import magyarázata (13i).
+  ///
+  /// In hu, this message translates to:
+  /// **'A napló a bezáráskor frissül.'**
+  String get importDoneMessage;
+
+  /// Halk mondat a sikeres import alatt, ha a szerver figyelmen kívül hagyta a -wal fájlt (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A WAL-fájl érvénytelen volt, ezért csak a fő fájl adatai kerültek be.'**
+  String get importWalIgnored;
+
+  /// A sikeres import szövege, ha egyik csoportban sincs verseny (K21).
+  ///
+  /// In hu, this message translates to:
+  /// **'A fájlban nem volt verseny.'**
+  String get importNothingFound;
+
+  /// Az eredmény-lista csoportja: újonnan felvett versenyek (13i; a fejléc verzálosít).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új'**
+  String get importGroupAdded;
+
+  /// Az eredmény-lista csoportja: frissült versenyek (13i).
+  ///
+  /// In hu, this message translates to:
+  /// **'Frissült'**
+  String get importGroupUpdated;
+
+  /// Az eredmény-lista csoportja: kihagyott, nem befejezett versenyek (13i).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kimaradt · nem befejezett'**
+  String get importGroupSkipped;
+
+  /// A verseny rövid dátuma az eredmény-lista sorának jobb szélén (13i; a widget verzálosít).
+  ///
+  /// In hu, this message translates to:
+  /// **'{date}'**
+  String importRaceDate(DateTime date);
+
+  /// Az eredmény és a séma-hiba egyetlen akciója (13i, 13j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Bezárás'**
+  String get importClose;
+
+  /// A séma-hiba címe (13j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Az app újabb adatbázis-verziót használ'**
+  String get importSchemaTitle;
+
+  /// A séma-hiba magyarázata (13j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Frissítsd a szervert, és töltsd fel újra a fájlt. A napló nem változott.'**
+  String get importSchemaMessage;
+
+  /// A séma-hiba adatcellájának második címkéje (13j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Szerver'**
+  String get importSchemaServer;
+
+  /// Egy sémaverzió az adatcellában (13j).
+  ///
+  /// In hu, this message translates to:
+  /// **'SÉMA v{version}'**
+  String importSchemaVersionCaps(int version);
+
+  /// Hálózati hiba a feltöltés közben (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A feltöltés megszakadt. Ellenőrizd a kapcsolatot, és próbáld újra.'**
+  String get importFailedNetwork;
+
+  /// A szerver elutasította: a fő fájl nem SQLite (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A kiválasztott fájl nem SQLite-adatbázis.'**
+  String get importFailedNotSqlite;
+
+  /// A szerver elutasította: idegen adatbázis (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A kiválasztott fájl nem a Foretack adatbázisa.'**
+  String get importFailedNotForetack;
+
+  /// A szerver elutasította: hiányzik a fő fájl (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A fő adatbázis-fájl nem érkezett meg. Válaszd ki újra, és próbáld újra.'**
+  String get importFailedMainFileMissing;
+
+  /// A szerver elutasította: túl nagy törzs (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A fájl nagyobb a szerver korlátjánál ({limit}).'**
+  String importFailedTooLarge(String limit);
+
+  /// Bármely más szerverhiba a feltöltés után (K20).
+  ///
+  /// In hu, this message translates to:
+  /// **'A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.'**
+  String get importFailedServer;
 }
 
 class _WebLocalizationsDelegate

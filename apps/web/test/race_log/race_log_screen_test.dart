@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -122,5 +123,36 @@ void main() {
 
     expect(find.textContaining('Még nincs verseny'), findsOneWidget);
     expect(find.byType(RaceLogRow), findsNothing);
+  });
+
+  Finder uploadButtonOf<T extends Widget>() => find.ancestor(
+    of: find.text('Feltöltés'),
+    matching: find.byType(T),
+  );
+
+  testWidgets('fills the upload button in an empty archive', (tester) async {
+    // ACT: ures naplo (13b)
+    await pumpApp(tester, (request) => serving(const []));
+
+    // ASSERT
+    expect(
+      uploadButtonOf<FilledButton>(),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('outlines the upload button next to races', (tester) async {
+    // ACT
+    await pumpApp(tester, (request) => serving(summaries));
+
+    // ASSERT
+    expect(
+      uploadButtonOf<FilledButton>(),
+      findsNothing,
+    );
+    expect(
+      uploadButtonOf<OutlinedButton>(),
+      findsOneWidget,
+    );
   });
 }

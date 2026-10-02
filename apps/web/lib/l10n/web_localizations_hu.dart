@@ -413,4 +413,123 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get snackRaceDeleted => 'Verseny törölve';
+
+  @override
+  String get logUpload => 'Feltöltés';
+
+  @override
+  String get importTitle => 'Adatbázis feltöltése';
+
+  @override
+  String get importMessage =>
+      'A telefon Foretack-adatbázisa. A befejezett versenyek bekerülnek a naplóba, a már meglévők frissülnek.';
+
+  @override
+  String get importDatabaseLabelCaps => 'ADATBÁZIS · KÖTELEZŐ';
+
+  @override
+  String get importWalLabelCaps => 'WAL-FÁJL · OPCIONÁLIS';
+
+  @override
+  String get importNoFile => 'Nincs kiválasztva';
+
+  @override
+  String get importBrowseCaps => 'TALLÓZÁS';
+
+  @override
+  String get importReplaceCaps => 'CSERE';
+
+  @override
+  String get importWalHint =>
+      'A -wal fájl a legutóbbi verseny adatainak egy részét hordozhatja, ezért érdemes azt is feltölteni.';
+
+  @override
+  String get importCancel => 'Mégse';
+
+  @override
+  String get importStart => 'Feltöltés';
+
+  @override
+  String get importUploading => 'Feltöltés…';
+
+  @override
+  String importPercent(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String get importProcessingCaps => 'FELDOLGOZÁS';
+
+  @override
+  String get importDoneTitle => 'Feltöltés kész';
+
+  @override
+  String get importDoneMessage => 'A napló a bezáráskor frissül.';
+
+  @override
+  String get importWalIgnored =>
+      'A WAL-fájl érvénytelen volt, ezért csak a fő fájl adatai kerültek be.';
+
+  @override
+  String get importNothingFound => 'A fájlban nem volt verseny.';
+
+  @override
+  String get importGroupAdded => 'Új';
+
+  @override
+  String get importGroupUpdated => 'Frissült';
+
+  @override
+  String get importGroupSkipped => 'Kimaradt · nem befejezett';
+
+  @override
+  String importRaceDate(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String get importClose => 'Bezárás';
+
+  @override
+  String get importSchemaTitle => 'Az app újabb adatbázis-verziót használ';
+
+  @override
+  String get importSchemaMessage =>
+      'Frissítsd a szervert, és töltsd fel újra a fájlt. A napló nem változott.';
+
+  @override
+  String get importSchemaServer => 'Szerver';
+
+  @override
+  String importSchemaVersionCaps(int version) {
+    return 'SÉMA v$version';
+  }
+
+  @override
+  String get importFailedNetwork =>
+      'A feltöltés megszakadt. Ellenőrizd a kapcsolatot, és próbáld újra.';
+
+  @override
+  String get importFailedNotSqlite =>
+      'A kiválasztott fájl nem SQLite-adatbázis.';
+
+  @override
+  String get importFailedNotForetack =>
+      'A kiválasztott fájl nem a Foretack adatbázisa.';
+
+  @override
+  String get importFailedMainFileMissing =>
+      'A fő adatbázis-fájl nem érkezett meg. Válaszd ki újra, és próbáld újra.';
+
+  @override
+  String importFailedTooLarge(String limit) {
+    return 'A fájl nagyobb a szerver korlátjánál ($limit).';
+  }
+
+  @override
+  String get importFailedServer =>
+      'A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.';
 }
