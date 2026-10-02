@@ -653,6 +653,30 @@ void main() {
       expect(uploadRoot.listSync(), isEmpty);
     });
 
+    test('reads a body streamed as Uint8List chunks, like dart:io', () async {
+      // ARRANGE: a shelf_io a HttpRequest-et adja tovabb, ami futasidoben
+      // Stream<Uint8List>; a Uint8List-torzs ezt nem idezi elo.
+      final bytes = await phoneDatabaseBytes();
+      final body = Stream<Uint8List>.value(
+        _multipartBody([(importDatabaseField, bytes)]),
+      );
+
+      // ACT
+      final response = await send(
+        'POST',
+        importsPath,
+        body: body,
+        headers: {
+          ..._webClient,
+          'content-type': 'multipart/form-data; boundary=$_boundary',
+        },
+      );
+
+      // ASSERT
+      expect(response.statusCode, 200);
+      expect(uploadRoot.listSync(), isEmpty);
+    });
+
     test('computes the stats of the imported race', () async {
       // ARRANGE
       final bytes = await phoneDatabaseBytes();

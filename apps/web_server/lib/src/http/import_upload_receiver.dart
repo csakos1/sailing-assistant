@@ -54,9 +54,13 @@ class ImportUploadReceiver {
     final received = <String, File>{};
     var receivedBytes = 0;
     try {
-      final parts = request.read().transform(
-        MimeMultipartTransformer(boundary),
-      );
+      // `bind`, nem `Stream.transform`: a `dart:io` a törzset futásidőben
+      // `Stream<Uint8List>`-ként adja, és a `transform` paramétere ehhez
+      // `StreamTransformer<Uint8List, …>`-t várna. A
+      // `MimeMultipartTransformer` `List<int>`-es, ezért ott típushiba
+      // lenne. A `bind` paramétere a `Stream<List<int>>`, amelynek a
+      // `Stream<Uint8List>` altípusa.
+      final parts = MimeMultipartTransformer(boundary).bind(request.read());
       await for (final part in parts) {
         final field = _fieldNameOf(part.headers['content-disposition']);
         if (field == null ||
