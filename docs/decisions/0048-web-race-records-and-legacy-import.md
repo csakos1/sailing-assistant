@@ -7,8 +7,8 @@ következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
 alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
-tervét, a napló, a részletező, a szerkesztők és a feltöltés döntéseit
-rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
+tervét, a napló, a részletező, a szerkesztők, a feltöltés és a táblázat
+döntéseit rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
 (görgetés, másodperc, szél-maximum) rögzíti.
 
 ## Kontextus
@@ -1414,6 +1414,133 @@ osztály (`one_member_abstracts`, a domain `*Reader` typedefjeinek mintája).
   - a szerkesztők kerete, ha van mentetlen változtatás (K15);
   - a feltöltés-dialógus, amíg a feltöltés fut.
 - Az appon belüli kilépést továbbra is a 13o dialógus kezeli.
+
+### S7e — A táblázat (2026-10-02)
+
+A K25–K32 a táblázat-szelet egyeztetésének eredménye. A G1, G2 és G6
+szerint épül; ahol eltér, azt a K31 sorolja fel.
+
+### K25 — `TableView` a `two_dimensional_scrollables`-ből (felhasználói döntés)
+
+- Az `apps/web` új függősége a `two_dimensional_scrollables` (`^0.5.5`),
+  a Flutter csapat csomagja (flutter.dev). A 0.5.5 a Flutter 3.41-et
+  követeli meg, ezt használjuk.
+- **Amit ad:** egy görgetési pozíció tengelyenként, rögzített sorok és
+  oszlopok (`pinnedRowCount`, `pinnedColumnCount`), összevont cellák,
+  soronkénti hover (`onEnter`/`onExit`), kattintás (`recognizerFactories`)
+  és háttér, oszloponkénti előtér-vonal, a látható cellák lusta
+  építése.
+- **Az elvetett út:** bal `ListView` és egy vízszintesen görgethető jobb
+  `ListView`, összekötött `ScrollController`-ekkel. Új függőség nélkül
+  menne, de a két blokk gyors görgetésnél elcsúszhat, a hover és a
+  csíkozás kézi szinkront kér, a ragadó fejléchez pedig egy harmadik
+  vezérlő kell.
+- **Kockázat:** a csomag 1.0 előtti, a görgetősávot kézzel kell
+  bekötni (a csomag példája szerint), és összevont cella nem lóghat át a
+  rögzített és a görgetett blokk határán.
+
+### K26 — A nézet és a rendezés a Riverpodban (felhasználói döntés)
+
+- `logViewModeProvider` (`LogViewMode.list` | `LogViewMode.table`) és
+  `raceTableSortProvider` (`RaceTableSort`: oszlop + `SortDirection`). Egyik sem
+  `autoDispose`, így a munkameneten belül megmaradnak (G1): törlés vagy
+  ÚJRA után a napló ugyanott nyílik.
+- Alapállapot: Lista, dátum szerint csökkenő.
+- Az időszak a közös `logPeriodProvider` (14w): a táblázat a Lista
+  nézetének megjelenített éveit mutatja.
+
+### K27 — A táblázat modellje (pure)
+
+- `RaceTableRow`: a napló-bejegyzésből (`LogEntry`) épül, cellánként
+  kész értékkel. Szabályok:
+  - **Rajt, befutás, menetidő:** a hivatalos érték. Ha hiányzik,
+    telemetriás versenynél a rögzítésé, közelítőként (G6, 14j); kézinél
+    üres. A menetidő a hivatalos menetidő, ha pozitív, különben a
+    rögzítés hossza (közelítő).
+  - **Másnapi befutás:** „+1", ha a befutás helyi napja későbbi a
+    rajtnál.
+  - **Táv, sebesség, szél, irány:** a `RaceStats` értékei; közelítő, ha
+    az ablak `RecordingWindow` (H3).
+  - **Helyezések:** a `Placing` és a saját mezőny; DNF/DSQ mellett a
+    mezőny nem látszik (G2).
+- `sortRaceTableRows` és `buildRaceTableItems`: a rendezés és a sorlista
+  (sealed `TableYearItem` | `TableRaceItem`). Évsor csak dátum szerinti
+  rendezésnél, a csíkozás indexe évenként nulláról indul; más
+  rendezésnél folyamatos (G2).
+
+### K28 — A rendezés részletei
+
+Amit a G2 nem döntött el, és Claude választott (visszavonható):
+- **Rajt és befutás** a helyi napszak szerint rendez (melyik verseny
+  indult korábban a napon), nem a pillanat szerint. Az utóbbi a dátum
+  oszlop megismétlése lenne.
+- **YS** mennyiség: első kattintásra csökkenő.
+- **Irány** az égtáj sorrendje szerint (É, ÉÉK, …), első kattintásra
+  növekvő.
+- **Név és díj** kis- és nagybetűtől függetlenül, a Dart
+  karakterkód-sorrendjével. A magyar ábécérend (pl. az „Á" az „A" után)
+  később pótolható.
+- **A végén:** a helyezés-oszlopban a DNF, utána a DSQ, utána az üres;
+  máshol az üres. A sorrendjük iránytól független.
+- **Döntetlen:** dátum szerint csökkenő, azon belül a napló sorrendje.
+
+### K29 — Felépítés
+
+- A táblázat szélessége `min(ablak − 2×20, 1600)`, középre zárva (G2).
+  Az oszlopszélességek a G2 táblázata szerint. A Díj
+  `max(152, táblázat − 1248)`, így kitölti a helyet. A csomag
+  `RemainingSpanExtent`-je itt nem jó: a nem rögzített oszlopoknál a
+  megelőző szélességből kimarad a rögzített blokk, így 320 px-lel túl
+  széles lenne.
+- Két rögzített sor (csoportsor 30, oszlopsor 40) és két rögzített
+  oszlop (Dátum + Verseny). A csoportsor és az évsor összevont cellái a
+  rögzített határnál kettéválnak (K25).
+- A csoportok és a rögzített blokk vonalai oszlop-előtér dekorációk,
+  hogy a csíkozott sor-hátterek ne takarják el őket.
+- Sor: háttér a csíkozás színe, hoverben `surfaceContainerHigh` mindkét
+  blokkon (soronkénti `onEnter`/`onExit`). Kattintásra a részletező
+  nyílik, a kurzor kéz.
+- A fejléc-cella `InkWell`: kattintás vagy Enter rendez. A rendezés
+  iránya a cella szemantikai címkéjében szerepel („csökkenő"), mert a
+  Flutter szemantikájában nincs `aria-sort` megfelelő; a koppintás-akció
+  a szemantikában is ott van, felolvasóval is rendez.
+- A rögzített blokk függőleges éle az oszlopsoron és a versenysorokon
+  látszik; a csoportsor és az évsor összevont cellái a bal oszlop
+  dekorációját kapják, ott a vonal elmarad.
+- **Görgetés (Addendum 5 L1 a táblázatra):** a táblázaton kívüli
+  sávokban is görget a görgő. A külső terület `pointerSignalResolver`-rel
+  a táblázat függőleges pozíciójára irányítja az eseményt; a táblázaton
+  belül a táblázat saját görgetője kapja meg előbb.
+- A vízszintes görgetősáv 8 px, mindig látszik, ha van mit görgetni; a
+  függőleges a táblázat jobb szélén áll.
+
+### K30 — Később (felhasználói döntés)
+
+- A sorok billentyűzetes kezelése (↑/↓, Enter, 2 px-es fókuszkeret) és
+  a Díj 400 ms-os tooltipje. Addig a Díj egy sorra vágva látszik, a
+  teljes szöveg a részletezőn olvasható.
+
+### K31 — Eltérések a makettől
+
+- **Betöltés:** a Lista folyamatjelzője, a 14f vázlat-sorai elmaradnak.
+  A hiba és az üres napló közös a Listával (14g, 14h).
+- **Tipográfia:** a cellák számai a `numeralCaptionStyle` 11,5 px-re
+  emelve, a feliratok a `statusLabelStyle` kisebb fokozatai (a szerkesztő
+  mezőcímkéinek mintája). Új stílus-konstans nincs (G8).
+- **A tompított mezőny** marad `TextTones.low` (felhasználói döntés, G7).
+- **Idő a táblázatban:** a rajt és a befutás `ÓÓ:PP`, másodperc nélkül.
+  A 72 px-es oszlopba a `~` jellel együtt nem férne el; a részletező
+  másodperccel mutatja (Addendum 5 L2).
+- **A váltó fókusza** a keret színét világosítja, a 14q 2 px-es külső
+  gyűrűje helyett, hogy a gombok ne mozduljanak.
+
+### K32 — A nézet-váltó
+
+- `LogViewToggle` a napló AppBarján, a gombok előtt (G1): 40 px, 1 px-es
+  `outline` keret, a kijelölt cella `outlineVariant` háttér és
+  `onSurface` felirat, a másik `onSurfaceVariant`.
+- Egy Tab-megálló: a ←/→ azonnal vált. A szemantikában a két cella egy
+  kizárólagos csoport, a kijelölt `checked`.
 
 ## Addendum 5 — Javítások a feltöltés után (2026-10-02)
 

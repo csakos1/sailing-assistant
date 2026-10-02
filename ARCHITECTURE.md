@@ -4601,6 +4601,8 @@ name: nmea_replay
 A függőségi irányok:
 - `apps/web` → `foretack_ui`, `race_archive_api`, `domain`, `shared`.
   **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
+  Külső csomagjai: `flutter_riverpod`, `http`, `web` (ADR 0048 K18) és
+  `two_dimensional_scrollables` (K25, a táblázat).
 - `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
 - `apps/phone` → `foretack_ui`.
 - `foretack_ui` → `domain`, `shared` (a tokenek a domain enumjait, a
@@ -5456,6 +5458,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 - A görgethető felület az ablak teljes szélessége, a tartalom az
   oszlopban marad (`WebScrollColumn`). A hivatalos idők másodperccel is
   megadhatók és látszanak (ADR 0048 Addendum 5 L1–L2).
+- A táblázat (K25–K32): a napló második nézete, `[Lista | Táblázat]`
+  váltóval. A `two_dimensional_scrollables` `TableView`-ja adja a
+  rögzített fejlécet és a rögzített Dátum + Verseny oszlopot. A sorok,
+  a rendezés és az évsorok pure modellből jönnek; a nézet és a rendezés
+  Riverpod-állapot.
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 
