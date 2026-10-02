@@ -532,4 +532,92 @@ class WebLocalizationsHu extends WebLocalizations {
   @override
   String get importFailedServer =>
       'A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.';
+
+  @override
+  String get logViewList => 'Lista';
+
+  @override
+  String get logViewTable => 'Táblázat';
+
+  @override
+  String get logViewToggleLabel => 'Napló nézete';
+
+  @override
+  String get tableGroupRaceCaps => 'VERSENY';
+
+  @override
+  String get tableGroupResultCaps => 'EREDMÉNY · HELYEZÉS/MEZŐNY';
+
+  @override
+  String get tableGroupTimeCaps => 'IDŐ ÉS TÁV · KM';
+
+  @override
+  String get tableGroupSpeedCaps => 'SEBESSÉG ÉS SZÉL · KN';
+
+  @override
+  String get tableGroupPrizeCaps => 'DÍJ';
+
+  @override
+  String get tableColumnDateCaps => 'DÁTUM';
+
+  @override
+  String get tableColumnNameCaps => 'VERSENY';
+
+  @override
+  String get tableColumnClassCaps => 'OSZT.';
+
+  @override
+  String get tableColumnOverallCaps => 'ABSZ.';
+
+  @override
+  String get tableColumnMonohullCaps => 'EGYT.';
+
+  @override
+  String get tableColumnYsCaps => 'YS';
+
+  @override
+  String get tableColumnStartCaps => 'RAJT';
+
+  @override
+  String get tableColumnFinishCaps => 'BEFUTÁS';
+
+  @override
+  String get tableColumnElapsedCaps => 'MENETIDŐ';
+
+  @override
+  String get tableColumnDistanceCaps => 'TÁV';
+
+  @override
+  String get tableColumnAvgSpeedCaps => 'ÁTLAG';
+
+  @override
+  String get tableColumnMaxSpeedCaps => 'MAX';
+
+  @override
+  String get tableColumnAvgWindCaps => 'ÁTL. SZÉL';
+
+  @override
+  String get tableColumnMaxWindCaps => 'MAX SZÉL';
+
+  @override
+  String get tableColumnDirectionCaps => 'IRÁNY';
+
+  @override
+  String get tableColumnPrizeCaps => 'DÍJ';
+
+  @override
+  String get tableManualCaps => 'KÉZI';
+
+  @override
+  String get tableNextDay => '+1';
+
+  @override
+  String tableSortedAscending(String column) {
+    return '$column, növekvő sorrend';
+  }
+
+  @override
+  String tableSortedDescending(String column) {
+    return '$column, csökkenő sorrend';
+  }
 }

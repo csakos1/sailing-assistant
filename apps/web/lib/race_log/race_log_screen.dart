@@ -11,16 +11,22 @@ import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
 import 'package:foretack_web/race_import/import_dialog.dart';
+import 'package:foretack_web/race_log/log_view_mode.dart';
+import 'package:foretack_web/race_log/log_view_mode_provider.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:foretack_web/race_log/race_log_view.dart';
+import 'package:foretack_web/race_log/table/race_table.dart';
+import 'package:foretack_web/race_log/table/race_table_items.dart';
+import 'package:foretack_web/race_log/table/race_table_sort_provider.dart';
+import 'package:foretack_web/race_log/widgets/log_view_toggle.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
-/// A webes Versenynapló, Lista nézet (ADR 0047 D8, ADR 0048 Addendum 4
-/// K3–K4).
+/// A webes Versenynapló, Lista és Táblázat nézettel (ADR 0047 D8, ADR
+/// 0048 Addendum 4 K3–K4, K25–K32).
 ///
 /// Fentről lefelé: az AppBar, a 7c évsáv, a phone stat-csíkja, majd a
-/// hónapokra bontott lista a phone sorával (nap és név). Az „összes év"
-/// választásnál a hónapok fölé évfejléc kerül (14w).
+/// hónapokra bontott lista a phone sorával (nap és név), vagy a táblázat.
+/// Az „összes év" választásnál a hónapok fölé évfejléc kerül (14w).
 ///
 /// A `WebLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
@@ -38,6 +44,13 @@ class RaceLogScreen extends ConsumerWidget {
       appBar: WebAppBar(
         title: l10n.logTitle,
         actions: [
+          // A váltó minden állapotban látszik, és megtartja az állását (G1).
+          LogViewToggle(
+            mode: ref.watch(logViewModeProvider),
+            onChanged: (mode) =>
+                ref.read(logViewModeProvider.notifier).mode = mode,
+          ),
+          const SizedBox(width: 8),
           OutlinedButton.icon(
             onPressed: () => unawaited(
               Navigator.of(context).push(
@@ -130,6 +143,8 @@ class _RaceLogBody extends ConsumerWidget {
     final l10n = WebLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final totals = view.totals;
+    final mode = ref.watch(logViewModeProvider);
+    final sort = ref.watch(raceTableSortProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -179,10 +194,18 @@ class _RaceLogBody extends ConsumerWidget {
           ),
         ),
         Expanded(
-          child: WebScrollColumn(
-            bottomPadding: 56,
-            children: _rows(context, l10n),
-          ),
+          child: switch (mode) {
+            LogViewMode.list => WebScrollColumn(
+              bottomPadding: 56,
+              children: _rows(context, l10n),
+            ),
+            LogViewMode.table => RaceTable(
+              items: raceTableItemsOf(view, sort),
+              sort: sort,
+              onSortTap: ref.read(raceTableSortProvider.notifier).tapColumn,
+              onOpen: (summary) => _openDetail(context, summary),
+            ),
+          },
         ),
       ],
     );

@@ -26,6 +26,8 @@ dependencies:
     path: ../../packages/race_archive_api
   shared:
     path: ../../packages/shared
+  # A táblázat rögzített fejléce és oszlopai (ADR 0048 Addendum 4 K25).
+  two_dimensional_scrollables: ^0.5.5
   # A böngésző API-jai: beforeunload, XHR, fájlválasztó (ADR 0048
   # Addendum 4 K18, K24).
   web: ^1.1.0

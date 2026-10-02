@@ -1053,6 +1053,174 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.'**
   String get importFailedServer;
+
+  /// A napló nézet-váltójának első cellája (G1, K32).
+  ///
+  /// In hu, this message translates to:
+  /// **'Lista'**
+  String get logViewList;
+
+  /// A napló nézet-váltójának második cellája (G1, K32).
+  ///
+  /// In hu, this message translates to:
+  /// **'Táblázat'**
+  String get logViewTable;
+
+  /// A nézet-váltó csoportjának szemantikai címkéje (K32).
+  ///
+  /// In hu, this message translates to:
+  /// **'Napló nézete'**
+  String get logViewToggleLabel;
+
+  /// A táblázat csoportsora: dátum és név (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get tableGroupRaceCaps;
+
+  /// A táblázat csoportsora: helyezések és YS (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'EREDMÉNY · HELYEZÉS/MEZŐNY'**
+  String get tableGroupResultCaps;
+
+  /// A táblázat csoportsora: rajt, befutás, menetidő, táv (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'IDŐ ÉS TÁV · KM'**
+  String get tableGroupTimeCaps;
+
+  /// A táblázat csoportsora: sebesség, szél, irány (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'SEBESSÉG ÉS SZÉL · KN'**
+  String get tableGroupSpeedCaps;
+
+  /// A táblázat csoportsora: a díj (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'DÍJ'**
+  String get tableGroupPrizeCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'DÁTUM'**
+  String get tableColumnDateCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get tableColumnNameCaps;
+
+  /// Oszlopfejléc: osztályhelyezés (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'OSZT.'**
+  String get tableColumnClassCaps;
+
+  /// Oszlopfejléc: abszolút helyezés (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'ABSZ.'**
+  String get tableColumnOverallCaps;
+
+  /// Oszlopfejléc: egytestű helyezés (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'EGYT.'**
+  String get tableColumnMonohullCaps;
+
+  /// Oszlopfejléc: YS-szám (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'YS'**
+  String get tableColumnYsCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT'**
+  String get tableColumnStartCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'BEFUTÁS'**
+  String get tableColumnFinishCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'MENETIDŐ'**
+  String get tableColumnElapsedCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁV'**
+  String get tableColumnDistanceCaps;
+
+  /// Oszlopfejléc: átlagsebesség (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG'**
+  String get tableColumnAvgSpeedCaps;
+
+  /// Oszlopfejléc: legnagyobb sebesség (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'MAX'**
+  String get tableColumnMaxSpeedCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTL. SZÉL'**
+  String get tableColumnAvgWindCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'MAX SZÉL'**
+  String get tableColumnMaxWindCaps;
+
+  /// Oszlopfejléc: uralkodó szélirány (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'IRÁNY'**
+  String get tableColumnDirectionCaps;
+
+  /// Oszlopfejléc (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'DÍJ'**
+  String get tableColumnPrizeCaps;
+
+  /// Címke a kézi verseny neve után a táblázatban (G6).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉZI'**
+  String get tableManualCaps;
+
+  /// Jel a másnapi befutás mellett (G2).
+  ///
+  /// In hu, this message translates to:
+  /// **'+1'**
+  String get tableNextDay;
+
+  /// A rendezett oszlop fejlécének szemantikai címkéje (K29).
+  ///
+  /// In hu, this message translates to:
+  /// **'{column}, növekvő sorrend'**
+  String tableSortedAscending(String column);
+
+  /// A rendezett oszlop fejlécének szemantikai címkéje (K29).
+  ///
+  /// In hu, this message translates to:
+  /// **'{column}, csökkenő sorrend'**
+  String tableSortedDescending(String column);
 }
 
 class _WebLocalizationsDelegate

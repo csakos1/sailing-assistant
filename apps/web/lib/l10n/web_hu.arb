@@ -700,5 +700,127 @@
   "importFailedServer": "A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.",
   "@importFailedServer": {
     "description": "Bármely más szerverhiba a feltöltés után (K20)."
+  },
+  "logViewList": "Lista",
+  "@logViewList": {
+    "description": "A napló nézet-váltójának első cellája (G1, K32)."
+  },
+  "logViewTable": "Táblázat",
+  "@logViewTable": {
+    "description": "A napló nézet-váltójának második cellája (G1, K32)."
+  },
+  "logViewToggleLabel": "Napló nézete",
+  "@logViewToggleLabel": {
+    "description": "A nézet-váltó csoportjának szemantikai címkéje (K32)."
+  },
+  "tableGroupRaceCaps": "VERSENY",
+  "@tableGroupRaceCaps": {
+    "description": "A táblázat csoportsora: dátum és név (G2)."
+  },
+  "tableGroupResultCaps": "EREDMÉNY · HELYEZÉS/MEZŐNY",
+  "@tableGroupResultCaps": {
+    "description": "A táblázat csoportsora: helyezések és YS (G2)."
+  },
+  "tableGroupTimeCaps": "IDŐ ÉS TÁV · KM",
+  "@tableGroupTimeCaps": {
+    "description": "A táblázat csoportsora: rajt, befutás, menetidő, táv (G2)."
+  },
+  "tableGroupSpeedCaps": "SEBESSÉG ÉS SZÉL · KN",
+  "@tableGroupSpeedCaps": {
+    "description": "A táblázat csoportsora: sebesség, szél, irány (G2)."
+  },
+  "tableGroupPrizeCaps": "DÍJ",
+  "@tableGroupPrizeCaps": {
+    "description": "A táblázat csoportsora: a díj (G2)."
+  },
+  "tableColumnDateCaps": "DÁTUM",
+  "@tableColumnDateCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnNameCaps": "VERSENY",
+  "@tableColumnNameCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnClassCaps": "OSZT.",
+  "@tableColumnClassCaps": {
+    "description": "Oszlopfejléc: osztályhelyezés (G2)."
+  },
+  "tableColumnOverallCaps": "ABSZ.",
+  "@tableColumnOverallCaps": {
+    "description": "Oszlopfejléc: abszolút helyezés (G2)."
+  },
+  "tableColumnMonohullCaps": "EGYT.",
+  "@tableColumnMonohullCaps": {
+    "description": "Oszlopfejléc: egytestű helyezés (G2)."
+  },
+  "tableColumnYsCaps": "YS",
+  "@tableColumnYsCaps": {
+    "description": "Oszlopfejléc: YS-szám (G2)."
+  },
+  "tableColumnStartCaps": "RAJT",
+  "@tableColumnStartCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnFinishCaps": "BEFUTÁS",
+  "@tableColumnFinishCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnElapsedCaps": "MENETIDŐ",
+  "@tableColumnElapsedCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnDistanceCaps": "TÁV",
+  "@tableColumnDistanceCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnAvgSpeedCaps": "ÁTLAG",
+  "@tableColumnAvgSpeedCaps": {
+    "description": "Oszlopfejléc: átlagsebesség (G2)."
+  },
+  "tableColumnMaxSpeedCaps": "MAX",
+  "@tableColumnMaxSpeedCaps": {
+    "description": "Oszlopfejléc: legnagyobb sebesség (G2)."
+  },
+  "tableColumnAvgWindCaps": "ÁTL. SZÉL",
+  "@tableColumnAvgWindCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnMaxWindCaps": "MAX SZÉL",
+  "@tableColumnMaxWindCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnDirectionCaps": "IRÁNY",
+  "@tableColumnDirectionCaps": {
+    "description": "Oszlopfejléc: uralkodó szélirány (G2)."
+  },
+  "tableColumnPrizeCaps": "DÍJ",
+  "@tableColumnPrizeCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableManualCaps": "KÉZI",
+  "@tableManualCaps": {
+    "description": "Címke a kézi verseny neve után a táblázatban (G6)."
+  },
+  "tableNextDay": "+1",
+  "@tableNextDay": {
+    "description": "Jel a másnapi befutás mellett (G2)."
+  },
+  "tableSortedAscending": "{column}, növekvő sorrend",
+  "@tableSortedAscending": {
+    "description": "A rendezett oszlop fejlécének szemantikai címkéje (K29).",
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "tableSortedDescending": "{column}, csökkenő sorrend",
+  "@tableSortedDescending": {
+    "description": "A rendezett oszlop fejlécének szemantikai címkéje (K29).",
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
   }
 }

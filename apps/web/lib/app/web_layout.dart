@@ -47,4 +47,37 @@ abstract final class WebLayout {
 
   /// A szerkesztő ragadós Mentés gombjának magassága (E7).
   static const double saveButtonHeight = 58;
+
+  /// A táblázat legnagyobb szélessége; afölött középre zárva (G2).
+  static const double tableMaxWidth = 1600;
+
+  /// A táblázat távolsága az ablak két szélétől (G2).
+  static const double tableInset = 20;
+
+  /// A táblázat csoportsorának magassága (G2).
+  static const double tableGroupRowHeight = 30;
+
+  /// A táblázat oszlopfejlécének magassága (G2).
+  static const double tableHeaderRowHeight = 40;
+
+  /// A táblázat évsorának magassága (G2).
+  static const double tableYearRowHeight = 36;
+
+  /// A táblázat egy versenysorának magassága (G2).
+  static const double tableRowHeight = 40;
+
+  /// A cellák vízszintes betéte (G2: 0 10 px).
+  static const double tableCellInset = 10;
+
+  /// A helyezés-cella számának jobbra zárt helye (G2).
+  static const double tablePlaceWidth = 26;
+
+  /// A helyezés-cella perjeles mezőnyének helye (G2).
+  static const double tableFleetWidth = 34;
+
+  /// A vízszintes görgetősáv vastagsága (G2).
+  static const double tableScrollbarThickness = 8;
+
+  /// A dobogó talapzatának vastagsága a táblázatban (G6).
+  static const double tablePodiumThickness = 2;
 }
