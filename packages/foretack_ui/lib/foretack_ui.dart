@@ -9,6 +9,10 @@ library;
 
 export 'package:foretack_ui/src/dialog/foretack_dialog.dart';
 export 'package:foretack_ui/src/dialog/foretack_dialog_action.dart';
+export 'package:foretack_ui/src/dialog/foretack_dialog_action_bar.dart';
+export 'package:foretack_ui/src/dialog/foretack_dialog_action_cell.dart';
+export 'package:foretack_ui/src/dialog/foretack_dialog_detail_cell.dart';
+export 'package:foretack_ui/src/dialog/foretack_dialog_frame.dart';
 export 'package:foretack_ui/src/format/compass_point_labels.dart';
 export 'package:foretack_ui/src/format/track_stats_formatters.dart';
 export 'package:foretack_ui/src/l10n/foretack_ui_localizations.dart';

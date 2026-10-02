@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/src/dialog/foretack_dialog_action.dart';
+import 'package:foretack_ui/src/dialog/foretack_dialog_action_bar.dart';
+import 'package:foretack_ui/src/dialog/foretack_dialog_action_cell.dart';
+import 'package:foretack_ui/src/dialog/foretack_dialog_detail_cell.dart';
+import 'package:foretack_ui/src/dialog/foretack_dialog_frame.dart';
 import 'package:foretack_ui/src/theme/foretack_typography.dart';
 
 /// A Foretack közös dialógus-doboza (ADR 0047 E6, ADR 0048 Addendum 4
@@ -77,31 +81,22 @@ class ForetackDialog<T> extends StatelessWidget {
                 ),
                 if (details.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _DetailCell(details: details),
+                  ForetackDialogDetailCell(details: details),
                 ],
               ],
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: scheme.outlineVariant)),
-            ),
-            child: SizedBox(
-              height: 52,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var index = 0; index < actions.length; index++)
-                    Expanded(
-                      child: _ActionCell<T>(
-                        action: actions[index],
-                        hasDividerBefore: index > 0,
-                        isInitialFocus: index == initialFocus,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+          ForetackDialogActionBar(
+            cells: [
+              for (var index = 0; index < actions.length; index++)
+                ForetackDialogActionCell(
+                  label: actions[index].label,
+                  isDestructive: actions[index].isDestructive,
+                  autofocus: index == initialFocus,
+                  onPressed: () =>
+                      Navigator.of(context).pop(actions[index].value),
+                ),
+            ],
           ),
         ],
       ),
@@ -119,123 +114,14 @@ Future<T?> showForetackDialog<T>({
   List<ForetackDialogDetail> details = const [],
   double maxWidth = ForetackDialog.defaultMaxWidth,
 }) {
-  final scheme = Theme.of(context).colorScheme;
-  return showDialog<T>(
+  return showForetackDialogFrame<T>(
     context: context,
-    // A makett 11a scrimje: a felület sötétjénél is sötétebb, áttetsző.
-    barrierColor: const Color(0xBD04070B),
-    builder: (context) => Dialog(
-      backgroundColor: scheme.surfaceContainer,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(side: BorderSide(color: scheme.outline)),
-      child: ForetackDialog<T>(
-        title: title,
-        message: message,
-        details: details,
-        actions: actions,
-        maxWidth: maxWidth,
-      ),
+    builder: (context) => ForetackDialog<T>(
+      title: title,
+      message: message,
+      details: details,
+      actions: actions,
+      maxWidth: maxWidth,
     ),
   );
-}
-
-class _DetailCell extends StatelessWidget {
-  const _DetailCell({required this.details});
-
-  final List<ForetackDialogDetail> details;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border.all(color: scheme.outline),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < details.length; index++)
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: index == details.length - 1
-                    ? null
-                    : Border(
-                        bottom: BorderSide(color: scheme.outlineVariant),
-                      ),
-              ),
-              child: SizedBox(
-                height: 38,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Text(
-                        details[index].label,
-                        style: supportTextStyle.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          details[index].value,
-                          textAlign: TextAlign.end,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: statusLabelStyle.copyWith(
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionCell<T> extends StatelessWidget {
-  const _ActionCell({
-    required this.action,
-    required this.hasDividerBefore,
-    required this.isInitialFocus,
-  });
-
-  final ForetackDialogAction<T> action;
-  final bool hasDividerBefore;
-  final bool isInitialFocus;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: hasDividerBefore
-            ? Border(left: BorderSide(color: scheme.outlineVariant))
-            : null,
-      ),
-      child: InkWell(
-        autofocus: isInitialFocus,
-        onTap: () => Navigator.of(context).pop(action.value),
-        hoverColor: scheme.surfaceContainerHigh,
-        focusColor: scheme.surfaceContainerHigh,
-        child: Center(
-          child: Text(
-            action.label,
-            style: supportTextStyle.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: action.isDestructive ? scheme.error : scheme.onSurface,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
