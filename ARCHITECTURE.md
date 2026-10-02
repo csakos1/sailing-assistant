@@ -5477,6 +5477,30 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 - A szövegek a saját l10n-jében élnek (`ForetackUiLocalizations`).
 - A web évsávja a makett 7c-je, a phone sajátja a phone-ban marad (F2).
 
+### 20.4b Szezon-statisztika és polár-teljesítmény (ADR 0049)
+
+- **Statisztika-képernyő:** a napló AppBarjából nyílik, a napló közös
+  időszak-állapotával (egy év vagy „Összes év"). Tartalma: versenyszám,
+  vízen töltött idő, táv; helyezés-eloszlás és dobogók a három
+  kategóriában; sebesség és szél; „Összes év" nézetben az évek
+  összevetése. A web számolja a napló listájából, pure modellel (D4).
+- **Polár-teljesítmény:** a % a korrigált STW és a phone polárjának
+  (`foretack.pol`, `LookupTargetSpeed`) célsebességének hányadosa.
+  - Minták: a `race_stats` ablaka, `|TWA| ≥ 25°`, TWS-tüske szűrve.
+  - Mutatók: szél, átlag, medián, P90, P99, legjobb 5 mp, ≥ 90% és
+    ≥ 100% aránya; rang 2 kn-os szélvödrökre standardizálva, a szezon
+    széleloszlásával súlyozva.
+  - Összesítés: a futamok átlaga és az időre súlyozott sor.
+  - Az STW-korrekció dátumhoz kötött szorzó a szerver konfigjából
+    (`--stw-corrections`); csak a polár-statisztikát érinti.
+- **Számítás:** a szerver futamonként hisztogramot (0,5%-os rések) és
+  szélvödör-összegeket cache-el a `web.sqlite` v3-ban, ujjlenyomattal a
+  polárra és a konfigra. A szezon ezekből jön; a `GET` nem ír, és nem
+  számol mintákból.
+- **Megjelenítés:** a polár-táblázat a Statisztika-képernyőn, egy blokk
+  a részletezőn. Diagram és új külső függőség nincs.
+- Szeletek: S5c, S9 statisztika, S10–S12 polár, utána az S8 deploy.
+
 ### 20.5 Hozzáférés és üzemeltetés
 
 - **Autentikáció (D9):** Caddy `basic_auth` a teljes site-on, a hash nincs
@@ -5494,8 +5518,9 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 ### 20.6 Nem része v1-nek
 
 Felhasználóhoz kötött login és automatikus szinkron, JSON-export az
-appból, v1-en túli statisztikák, Markdown, fotók, verseny-törlés,
-automatikus CI-deploy. Mindegyik külön ADR vagy addendum lesz.
+appból, a 20.4b-n túli statisztikák és diagramok, Markdown, fotók,
+verseny-törlés, automatikus CI-deploy. Mindegyik külön ADR vagy
+addendum lesz.
 
 ---
 

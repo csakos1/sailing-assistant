@@ -443,7 +443,8 @@ fájlban élnek (ADR 0047 C3).
 ## Amit ez az ADR NEM dönt el
 
 - az összesítő és évenkénti statisztikát (az Excel Összesítés és
-  Évenként lapja), ez a v1 után jön;
+  Évenként lapja), ez a v1 után jön; **utólagos pontosítás
+  (2026-10-02):** az ADR 0049 dönti el, az S8 deploy előtt;
 - a régi versenyek trackjének importját a `polar.csv` fedélzeti
   naplóból (2021–2026);
 - a telemetriás versenyek törlését;
