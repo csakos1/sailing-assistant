@@ -7,7 +7,8 @@ következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
 alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
-tervét, a napló, a részletező és a szerkesztők döntéseit rögzíti.
+tervét, a napló, a részletező, a szerkesztők és a feltöltés döntéseit
+rögzíti.
 
 ## Kontextus
 
@@ -1278,3 +1279,136 @@ háttér, `outline` keret, árnyék és lekerekítés nélkül, balra egy 8 px-e
 státusznégyzet. Akció nincs, 4 s után eltűnik. A 11b visszaszámláló
 sávja elmarad, mert visszavonás nincs. A kis ablakban a szélesség az
 oszlophoz zsugorodik.
+
+### S7d — A feltöltés (2026-10-02)
+
+A K18–K24 a feltöltés-szelet egyeztetésének eredménye. Az ADR 0047 E8
+állapotait valósítja meg; ahol a makett (13f–13j) nem döntött, ott a
+felhasználó döntött.
+
+### K18 — `package:web` a weben (felhasználói döntés)
+
+- Az `apps/web` új függősége a `web` (`^1.1.0`), a Dart csapat csomagja.
+  A `http` böngészős kliense is erre épül, ezért a feloldásban eddig is
+  benne volt; most közvetlen függőség lesz.
+- **Miért nem a `http` és a `file_picker`:** a `http` `MultipartRequest`-je
+  a teljes törzset Dart-memóriában rakja össze, és feltöltési
+  folyamatjelzést nem ad. A `file_picker` a weben a fájlt bájtokba olvassa.
+  Az 1,7 GB-os szezon-DB-nél mindkettő a böngészőfül összeomlását
+  kockáztatja.
+- **Helyette:** a böngésző `File` objektuma (Blob) közvetlenül a
+  `FormData`-ba kerül. Az `XMLHttpRequest` a lemezről streameli, és az
+  `upload` `progress` eseménye adja a valódi küldési arányt. A Dart-heap
+  nem nő a fájlmérettel.
+- **Feltételes export** (`dart.library.js_interop`): a böngészős
+  implementáció csak a webes buildbe kerül. A VM-en futó tesztek egy
+  csonkot látnak, és a providereket fake-kel írják felül.
+
+### K19 — Fájlválasztás és feltöltés két függvénytípus mögött
+
+Mindkettő egyetlen művelet, ezért függvénytípus, nem egytagú absztrakt
+osztály (`one_member_abstracts`, a domain `*Reader` typedefjeinek mintája).
+
+
+- `ImportFilePicker` = `Future<PickedFile?> Function()`; a `PickedFile`
+  nevet és méretet ad. A böngészőben
+  egy rejtett `<input type="file">` nyílik; a `change` és a `cancel`
+  esemény zárja. Szűrő (`accept`) nincs, mert a `-wal` fájlnak nincs
+  kiterjesztése.
+- `ImportUploader` = `ImportUpload Function({database, wal,
+  onProgress})`, az `ImportUpload`:
+  - `result`: `Result<ImportReport, ApiFailure>`;
+  - `cancel()`: megszakítja az XHR-t. Utána a `result` hálózati hibával
+    zárul, de a hívó ekkor már nem figyel rá.
+- A böngészős feltöltő `POST /api/imports`-ot küld az
+  `importDatabaseField` és az opcionális `importWalField` mezővel, az
+  `X-Foretack-Client: web` fejléccel. A választ ugyanaz a
+  `decodeApiResponse` olvassa, mint az `ArchiveApiClient`-et.
+- A böngészős feltöltő csak a böngészős választó fájljait fogadja. Más
+  `PickedFile` programozói hiba (`ArgumentError`).
+- Providerek: `importFilePickerProvider`, `importUploaderProvider`.
+- **Drag & drop később** (felhasználói döntés). Addig a 13g „vagy húzd
+  ide" fordulata elmarad, a mező „Nincs kiválasztva" szöveget mutat.
+
+### K20 — A dialógus állapotgépe (pure)
+
+- `ImportDialogState` sealed:
+  - `ChoosingFiles(database?, wal?, failure?)`: a Feltöltés csak fő
+    fájllal aktív (13g);
+  - `Uploading(database, wal, sentBytes, totalBytes)` (13h);
+  - `ImportFinished(report)` (13i);
+  - `SchemaRejected(fileName, fileVersion, serverVersion)` (13j).
+- Az átmenetek pure függvények, a widget csak a mellékhatásokat (választó,
+  feltöltő, navigáció) végzi.
+- **Mégse, Esc, háttérkattintás:** minden állapotban zár. Feltöltés
+  közben a bezárás megszakítja az XHR-t (felhasználói döntés). A szerver
+  a félkész fájlokat törli (ADR 0047 C2), a napló nem változik.
+- **100 % után** a szerver még dolgozik (másolat, migráció, merge). Ekkor
+  a százalék helyén FELDOLGOZÁS áll, a sáv teli, a forgó marad, a Mégse
+  ekkor is megszakít (felhasználói döntés).
+- **Hibák:**
+  - újabb séma (`SchemaTooNew`): a 13j állapota, a két verzió
+    adatcellában;
+  - minden más vissza a kiválasztáshoz: a fájlok megmaradnak, és egy
+    piros mondat áll az akciók fölött (felhasználói döntés). Az
+    újrapróba így egy kattintás.
+  - A mondatok: hálózati hiba, nem SQLite-fájl, nem Foretack-adatbázis,
+    hiányzó fő fájl, túl nagy fájl (a korláttal), egyéb szerverhiba.
+- **`walIgnored`:** az eredmény leírása alatt egy halk mondat: a WAL-fájl
+  érvénytelen volt, csak a fő fájl adatai kerültek be (felhasználói
+  döntés).
+
+### K21 — Az eredmény (13i)
+
+- Három csoport: ÚJ, FRISSÜLT, KIMARADT · NEM BEFEJEZETT. A fejléc a
+  napló `RaceLogMonthHeader`-je (a 13i „havi fejléc nyelve"), jobbra a
+  darabszámmal. Az üres csoport elmarad. Ha mindhárom üres, egy mondat
+  mondja, hogy a fájlban nem volt verseny.
+- Egy sor: a nap két jeggyel, a név, jobbra a rövid dátum verzálul
+  (`SZEPT. 26.`). Mindkettő a `finishedAt` helyi napja. A csoporton belül
+  a legújabb áll elöl, mint a naplóban.
+- A kimaradt verseny tompított, a napja „––", a dátuma elmarad. A
+  szerződés `SkippedRace`-e dátumot nem hordoz, és az ADR 0047 E8 is
+  dátum nélkül írja.
+- A törzs legfeljebb 320 px magas és görgethető. Egyetlen, teljes
+  szélességű Bezárás akció van, kezdő fókusszal.
+- A napló a bezáráskor frissül (a `raceSummariesProvider`
+  érvénytelenítése), ha az import sikerült. Snackbar nincs (E6).
+
+### K22 — A dialógus elemei: keret a `foretack_ui`-ban, minták a weben (felhasználói döntés)
+
+- A `ForetackDialog` két meglévő része nyilvános lesz, hogy a feltöltés
+  ugyanazt a dobozt és akciósort használja:
+  - `showForetackDialogFrame` (11a scrim, szögletes doboz, `outline`
+    keret);
+  - `ForetackDialogActionBar` + `ForetackDialogActionCell` (52 px,
+    hairline-ok, tiltott cella 35 %-on, dolgozó cella forgóval,
+    opcionális `focusNode`);
+  - `ForetackDialogDetailCell`, a 11a adatcellája (a 13j két verziója
+    is ebben áll).
+
+  A `ForetackDialog` ezekből áll, a viselkedése változatlan.
+- A feltöltés saját mintái (fájl-cella, 2 px-es sáv, eredmény-lista) és
+  maga a dialógus az `apps/web`-ben élnek (`lib/race_import/`), mert csak
+  a web tölt fel. Ha a phone-nak is kell, akkor emeljük ki.
+- A fájl-cella a szerkesztő mezőinek nyelvét beszéli: keret a tetején
+  verzál felirattal, jobbra TALLÓZÁS, kiválasztott fájlnál CSERE. Az egész
+  cella kattintható.
+
+### K23 — A Feltöltés gomb
+
+- A napló AppBarján az „Új verseny" jobb oldalán áll: 40 px-es keretes
+  gomb ikonnal és felirattal (G1, E7).
+- Üres naplóban kitöltött (teal) gomb, mert ott ez a fő akció (13b).
+
+### K24 — Figyelmeztetés a fül bezárásakor (felhasználói döntés)
+
+- `LeaveWarningRegistry` (pure): a képernyők feltételt jegyeznek be
+  (`hold(shouldWarn)`), és egy elengedő függvényt kapnak vissza.
+- A böngészőben egyetlen `beforeunload` figyelő fut. Ha bármelyik
+  feltétel igaz, `preventDefault`-ot hív, és a böngésző a saját kérdését
+  mutatja. A szövege nem állítható. A VM-en a kötés üres.
+- Feltételt jegyez be:
+  - a szerkesztők kerete, ha van mentetlen változtatás (K15);
+  - a feltöltés-dialógus, amíg a feltöltés fut.
+- Az appon belüli kilépést továbbra is a 13o dialógus kezeli.

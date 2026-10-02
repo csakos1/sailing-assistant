@@ -5444,6 +5444,13 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   `FieldProblem` típusban jönnek. Az írásokat a `RaceRecordEditor`
   végzi, a `ForetackDialog` a `foretack_ui`-ban él, a snackbar 480 px-es
   és az oszlophoz igazított.
+- A feltöltés (K18–K24): `package:web`-alapú fájlválasztó és
+  XHR-feltöltő két függvénytípus mögött (`ImportFilePicker`,
+  `ImportUploader`), feltételes exporttal. A fájl Blobként megy, Dart-
+  memóriába nem kerül; a folyamatjelzés valódi. A dialógus állapotgépe
+  pure, a keretét és az akciósorát a `foretack_ui` adja. Fül bezárásakor
+  `beforeunload` figyelmeztet mentetlen szerkesztésnél és futó
+  feltöltésnél.
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 
