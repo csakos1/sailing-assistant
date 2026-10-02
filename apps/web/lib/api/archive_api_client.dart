@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:foretack_web/api/api_failure.dart';
+import 'package:foretack_web/api/decode_api_response.dart';
 import 'package:http/http.dart' as http;
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
@@ -131,24 +132,12 @@ class ArchiveApiClient {
     http.Response response,
     Result<T, DecodeError> Function(Object? json) decode,
   ) {
-    final status = response.statusCode;
-    final Object? json;
+    final String body;
     try {
-      json = jsonDecode(utf8.decode(response.bodyBytes));
+      body = utf8.decode(response.bodyBytes);
     } on FormatException {
-      return Err(UnreadableResponse(status));
+      return Err(UnreadableResponse(response.statusCode));
     }
-    if (status >= 400) {
-      return switch (decodeApiError(json)) {
-        Ok(:final value) => Err(ServerFailure(value)),
-        Err(:final error) => Err(
-          UnreadableResponse(status, decodeError: error),
-        ),
-      };
-    }
-    return switch (decode(json)) {
-      Ok(:final value) => Ok(value),
-      Err(:final error) => Err(UnreadableResponse(status, decodeError: error)),
-    };
+    return decodeApiResponse(response.statusCode, body, decode);
   }
 }
