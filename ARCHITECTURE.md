@@ -5462,7 +5462,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   váltóval. A `two_dimensional_scrollables` `TableView`-ja adja a
   rögzített fejlécet és a rögzített Dátum + Verseny oszlopot. A sorok,
   a rendezés és az évsorok pure modellből jönnek; a nézet és a rendezés
-  Riverpod-állapot.
+  Riverpod-állapot. Az oszlopok a tartalomhoz mértek (a G2 szélességei
+  minimumok), a mértékegység az oszlopfejlécben áll (ADR 0048
+  Addendum 5 L4–L5). Az AppBar vezérlői egy magasak (36 px), de a
+  szerepük szerint eltérők: tónusos váltó, keret nélküli „Új verseny",
+  teal keretes „Feltöltés" (L6).
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 

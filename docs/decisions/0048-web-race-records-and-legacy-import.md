@@ -9,7 +9,8 @@ következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
 tervét, a napló, a részletező, a szerkesztők, a feltöltés és a táblázat
 döntéseit rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
-(görgetés, másodperc, szél-maximum) rögzíti.
+(görgetés, másodperc, szél-maximum), valamint a táblázat első
+böngészős próbája utáni javításokat (L4–L6) rögzíti.
 
 ## Kontextus
 
@@ -1602,3 +1603,52 @@ L1–L3 a javításukat rögzíti.
   szabállyal számol. Képlet-verzió a cache-be akkor kerül, ha a képlet
   élesítés után változik.
 - A kézi verseny max. szele beírt érték, a szabály nem érinti.
+
+### L4 — Az oszlopok a tartalomhoz méretezve (felhasználói kérés)
+
+- **A hiba:** a G2 szélességei a makett betűképére szóltak. A valódi
+  Martian Mono szélesebb, ezért a dátum, a menetidő, több fejléc
+  (`ÁTLAG`, `MAX SZÉL`) és a `~08:43 +1` levágva jelent meg.
+- **A szabály:** minden oszlop szélessége
+  `max(G2 szélesség, fejléc vagy leghosszabb cella + 2×10 px)`. A fejléc
+  a felirat és a mértékegység közül a szélesebb, plusz a rendezési nyíl
+  helye. A G2 szélességei így minimumok.
+- A név legfeljebb 400 px, a hosszabb név `…`-tal vágódik, hogy a
+  rögzített bal blokk ne nyelje el a képernyőt. A Díj nem mért: a
+  maradékot kapja, és `…`-tal vágódik (a teljes szöveg a részletezőn).
+- A helyezés-cella két helye (szám, perjeles mezőny) is az oszlop
+  leghosszabb értékéhez mért, így a perjelek háromjegyű mezőnynél is egy
+  oszlopba esnek. A pár jobbra zár, mint a számok.
+- A táblázat legfeljebb 1600 px (G2); ha a mért tartalom ennél
+  szélesebb, a táblázat is szélesebb lehet, amíg az ablakba fér.
+- **Egy forrás:** a cellák szövegét egy pure függvény adja
+  (`tableCellValueOf`), ezt rajzolja a cella és ezt méri a mérés, így a
+  kettő nem csúszhat el.
+- **Mérés:** `TextPainter`-rel, a sorok, a szövegnagyítás vagy a
+  betűtípus változásakor. A weben a betűtípus a betöltés után érkezhet,
+  ezért a táblázat a `systemFonts` változására újramér.
+- Az égtáj balra zár, mint a fejléce (G2 szöveg-oszlop).
+
+### L5 — Mértékegység az oszlopfejlécben (felhasználói kérés)
+
+- A mértékegység az oszlopfejléc második sorában, kisbetűvel, tompítva
+  áll: Táv `km`, Átlag, Max, Átl. szél, Max szél `kn`, Rajt és Befutás
+  `ó:p`, Menetidő `ó:p:mp`.
+- A csoportfejlécből a „· KM" és a „· KN" kikerül (G2-t felülírja): a
+  mértékegység egy helyen áll, az oszlop fölött.
+- A felolvasott fejléc-címke a mértékegységet is tartalmazza.
+
+### L6 — Az AppBar vezérlői (felhasználói kérés)
+
+- **A hiba:** a weben a Material gombok kompakt sűrűséget kapnak
+  (32 px), a váltó 40 px volt; a két gomb egyforma keretes volt.
+- **Közös magasság:** a váltó és mindkét gomb 36 px
+  (`WebLayout.appBarControlHeight`), rögzített sűrűséggel, szögletesen,
+  azonos betűvel.
+- **Eltérő szerep, eltérő forma** (Claude választása, visszavonható):
+  - a váltó: `surfaceContainer` sáv `outline` kerettel, a kijelölt
+    cella tónusos teal (`secondaryContainer` / `onSecondaryContainer`);
+  - az „Új verseny": keret nélküli gomb `onSurface` felirattal;
+  - a „Feltöltés": teal keret és felirat (`primary`), üres naplóban
+    kitöltött (K23 marad).
+- A G1 „ugyanolyan keretes gomb" előírását felülírja.
