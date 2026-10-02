@@ -42,6 +42,9 @@ abstract final class WebLayout {
   /// Az időmező szélessége (G4).
   static const double timeFieldWidth = 120;
 
+  /// A szélirány lenyíló listájának szélessége (K12).
+  static const double windPointFieldWidth = 200;
+
   /// A szerkesztő ragadós Mentés gombjának magassága (E7).
   static const double saveButtonHeight = 58;
 }

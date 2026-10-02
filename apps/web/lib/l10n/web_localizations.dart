@@ -651,6 +651,210 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'Eredmény mentve'**
   String get snackResultSaved;
+
+  /// A napló AppBarjának gombja: üres kézi-verseny szerkesztő (G1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új verseny'**
+  String get logNewRace;
+
+  /// Az új kézi verseny szerkesztőjének címe (G4).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új verseny'**
+  String get newRaceTitle;
+
+  /// A kézi verseny szerkesztőjének címe (G4).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny szerkesztése'**
+  String get editManualTitle;
+
+  /// A kézi szerkesztő kuka-gombja (G5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny törlése'**
+  String get editDeleteTooltip;
+
+  /// A kézi szerkesztő státusz-sávja (14r).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉZI VERSENY'**
+  String get editManualCaps;
+
+  /// A kézi szerkesztő státusz-sávjának jobb oldala (14r).
+  ///
+  /// In hu, this message translates to:
+  /// **'TELEMETRIA NÉLKÜL · NINCS TÉRKÉP ÉS BÓJA'**
+  String get editManualNoTelemetryCaps;
+
+  /// A kézi szerkesztő alapadat-szakaszának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get editSectionRaceCaps;
+
+  /// A verseny nevének sor-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Név'**
+  String get editName;
+
+  /// A kötelező mező címke-alatti jele.
+  ///
+  /// In hu, this message translates to:
+  /// **'KÖTELEZŐ'**
+  String get editRequiredCaps;
+
+  /// A név-mező felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'NÉV'**
+  String get editNameFieldCaps;
+
+  /// A név-mező kitöltési mintája.
+  ///
+  /// In hu, this message translates to:
+  /// **'pl. 57. Kékszalag (nyílt)'**
+  String get editNameHint;
+
+  /// A verseny napjának sor-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Dátum'**
+  String get editDate;
+
+  /// A kézi szerkesztő stat-szakaszának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁV ÉS SZÉL'**
+  String get editSectionDistanceWindCaps;
+
+  /// A táv és a max. sebesség sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Táv és sebesség'**
+  String get editDistanceSpeed;
+
+  /// A táv-mező felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁV · KM'**
+  String get editDistanceFieldCaps;
+
+  /// A max. sebesség és a max. szél mezőjének felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'MAX · KN'**
+  String get editMaxKnotsFieldCaps;
+
+  /// A számolt átlagsebesség sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Átlagsebesség'**
+  String get editAvgSpeed;
+
+  /// A hiányzó átlagsebesség magyarázata.
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁVBÓL ÉS MENETIDŐBŐL SZÁMOLVA'**
+  String get editAvgSpeedSourceCaps;
+
+  /// A számolt átlagsebesség értéke csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'{value} kn'**
+  String editKnotsValue(String value);
+
+  /// Az átlagos és a max. szél sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szél'**
+  String get editWind;
+
+  /// Az átlagos szél mezőjének felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG · KN'**
+  String get editAvgKnotsFieldCaps;
+
+  /// A szélirány sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szélirány'**
+  String get editWindDirection;
+
+  /// A szélirány-lista üres eleme (K12).
+  ///
+  /// In hu, this message translates to:
+  /// **'nincs megadva'**
+  String get editWindDirectionNone;
+
+  /// A szélirány-lista felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'HONNAN FÚJ'**
+  String get editWindFromCaps;
+
+  /// A törlés megerősítő dialógusának címe (14t).
+  ///
+  /// In hu, this message translates to:
+  /// **'Törlöd a versenyt?'**
+  String get editDeleteTitle;
+
+  /// A törlés megerősítő dialógusának szövege (14t).
+  ///
+  /// In hu, this message translates to:
+  /// **'A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.'**
+  String get editDeleteMessage;
+
+  /// A törlés-dialógus biztonságos akciója.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get editDeleteCancel;
+
+  /// A törlés-dialógus destruktív akciója.
+  ///
+  /// In hu, this message translates to:
+  /// **'Törlés'**
+  String get editDeleteConfirm;
+
+  /// A törlés-dialógus adatcellájának első sora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny'**
+  String get editDeleteRowRace;
+
+  /// A törlés-dialógus adatcellájának második sora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Dátum'**
+  String get editDeleteRowDate;
+
+  /// A törlés hibája a Mentés gomb fölött.
+  ///
+  /// In hu, this message translates to:
+  /// **'A törlés nem sikerült. Próbáld újra.'**
+  String get editDeleteFailed;
+
+  /// Snackbar a kézi verseny mentése után (K15).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny mentve'**
+  String get snackRaceSaved;
+
+  /// Snackbar az új verseny létrehozása után (G5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny létrehozva'**
+  String get snackRaceCreated;
+
+  /// Snackbar a törlés után (G5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny törölve'**
+  String get snackRaceDeleted;
 }
 
 class _WebLocalizationsDelegate

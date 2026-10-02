@@ -307,4 +307,110 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get snackResultSaved => 'Eredmény mentve';
+
+  @override
+  String get logNewRace => 'Új verseny';
+
+  @override
+  String get newRaceTitle => 'Új verseny';
+
+  @override
+  String get editManualTitle => 'Verseny szerkesztése';
+
+  @override
+  String get editDeleteTooltip => 'Verseny törlése';
+
+  @override
+  String get editManualCaps => 'KÉZI VERSENY';
+
+  @override
+  String get editManualNoTelemetryCaps =>
+      'TELEMETRIA NÉLKÜL · NINCS TÉRKÉP ÉS BÓJA';
+
+  @override
+  String get editSectionRaceCaps => 'VERSENY';
+
+  @override
+  String get editName => 'Név';
+
+  @override
+  String get editRequiredCaps => 'KÖTELEZŐ';
+
+  @override
+  String get editNameFieldCaps => 'NÉV';
+
+  @override
+  String get editNameHint => 'pl. 57. Kékszalag (nyílt)';
+
+  @override
+  String get editDate => 'Dátum';
+
+  @override
+  String get editSectionDistanceWindCaps => 'TÁV ÉS SZÉL';
+
+  @override
+  String get editDistanceSpeed => 'Táv és sebesség';
+
+  @override
+  String get editDistanceFieldCaps => 'TÁV · KM';
+
+  @override
+  String get editMaxKnotsFieldCaps => 'MAX · KN';
+
+  @override
+  String get editAvgSpeed => 'Átlagsebesség';
+
+  @override
+  String get editAvgSpeedSourceCaps => 'TÁVBÓL ÉS MENETIDŐBŐL SZÁMOLVA';
+
+  @override
+  String editKnotsValue(String value) {
+    return '$value kn';
+  }
+
+  @override
+  String get editWind => 'Szél';
+
+  @override
+  String get editAvgKnotsFieldCaps => 'ÁTLAG · KN';
+
+  @override
+  String get editWindDirection => 'Szélirány';
+
+  @override
+  String get editWindDirectionNone => 'nincs megadva';
+
+  @override
+  String get editWindFromCaps => 'HONNAN FÚJ';
+
+  @override
+  String get editDeleteTitle => 'Törlöd a versenyt?';
+
+  @override
+  String get editDeleteMessage =>
+      'A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.';
+
+  @override
+  String get editDeleteCancel => 'Mégse';
+
+  @override
+  String get editDeleteConfirm => 'Törlés';
+
+  @override
+  String get editDeleteRowRace => 'Verseny';
+
+  @override
+  String get editDeleteRowDate => 'Dátum';
+
+  @override
+  String get editDeleteFailed => 'A törlés nem sikerült. Próbáld újra.';
+
+  @override
+  String get snackRaceSaved => 'Verseny mentve';
+
+  @override
+  String get snackRaceCreated => 'Verseny létrehozva';
+
+  @override
+  String get snackRaceDeleted => 'Verseny törölve';
 }

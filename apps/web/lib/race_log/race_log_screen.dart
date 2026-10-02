@@ -8,6 +8,7 @@ import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
+import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -31,7 +32,30 @@ class RaceLogScreen extends ConsumerWidget {
     final logState = ref.watch(raceLogViewProvider);
 
     return Scaffold(
-      appBar: WebAppBar(title: l10n.logTitle),
+      appBar: WebAppBar(
+        title: l10n.logTitle,
+        actions: [
+          Padding(
+            // A keretes gomb jobb széle az oszlop betétjén áll (G1).
+            padding: const EdgeInsets.only(right: 12),
+            child: OutlinedButton.icon(
+              onPressed: () => unawaited(
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ManualRaceEditorScreen(),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.logNewRace),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                shape: const RoundedRectangleBorder(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: logState.when(
         // Az ÚJRA után a folyamatjelző látsszon, ne a régi hiba.
         skipLoadingOnRefresh: false,

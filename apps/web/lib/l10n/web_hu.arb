@@ -406,5 +406,146 @@
   "snackResultSaved": "Eredmény mentve",
   "@snackResultSaved": {
     "description": "Snackbar az eredmény mentése után (ADR 0047 E6)."
+  },
+  "logNewRace": "Új verseny",
+  "@logNewRace": {
+    "description": "A napló AppBarjának gombja: üres kézi-verseny szerkesztő (G1)."
+  },
+  "newRaceTitle": "Új verseny",
+  "@newRaceTitle": {
+    "description": "Az új kézi verseny szerkesztőjének címe (G4)."
+  },
+  "editManualTitle": "Verseny szerkesztése",
+  "@editManualTitle": {
+    "description": "A kézi verseny szerkesztőjének címe (G4)."
+  },
+  "editDeleteTooltip": "Verseny törlése",
+  "@editDeleteTooltip": {
+    "description": "A kézi szerkesztő kuka-gombja (G5)."
+  },
+  "editManualCaps": "KÉZI VERSENY",
+  "@editManualCaps": {
+    "description": "A kézi szerkesztő státusz-sávja (14r)."
+  },
+  "editManualNoTelemetryCaps": "TELEMETRIA NÉLKÜL · NINCS TÉRKÉP ÉS BÓJA",
+  "@editManualNoTelemetryCaps": {
+    "description": "A kézi szerkesztő státusz-sávjának jobb oldala (14r)."
+  },
+  "editSectionRaceCaps": "VERSENY",
+  "@editSectionRaceCaps": {
+    "description": "A kézi szerkesztő alapadat-szakaszának címe."
+  },
+  "editName": "Név",
+  "@editName": {
+    "description": "A verseny nevének sor-címkéje."
+  },
+  "editRequiredCaps": "KÖTELEZŐ",
+  "@editRequiredCaps": {
+    "description": "A kötelező mező címke-alatti jele."
+  },
+  "editNameFieldCaps": "NÉV",
+  "@editNameFieldCaps": {
+    "description": "A név-mező felirata."
+  },
+  "editNameHint": "pl. 57. Kékszalag (nyílt)",
+  "@editNameHint": {
+    "description": "A név-mező kitöltési mintája."
+  },
+  "editDate": "Dátum",
+  "@editDate": {
+    "description": "A verseny napjának sor-címkéje."
+  },
+  "editSectionDistanceWindCaps": "TÁV ÉS SZÉL",
+  "@editSectionDistanceWindCaps": {
+    "description": "A kézi szerkesztő stat-szakaszának címe."
+  },
+  "editDistanceSpeed": "Táv és sebesség",
+  "@editDistanceSpeed": {
+    "description": "A táv és a max. sebesség sorának címkéje."
+  },
+  "editDistanceFieldCaps": "TÁV · KM",
+  "@editDistanceFieldCaps": {
+    "description": "A táv-mező felirata."
+  },
+  "editMaxKnotsFieldCaps": "MAX · KN",
+  "@editMaxKnotsFieldCaps": {
+    "description": "A max. sebesség és a max. szél mezőjének felirata."
+  },
+  "editAvgSpeed": "Átlagsebesség",
+  "@editAvgSpeed": {
+    "description": "A számolt átlagsebesség sorának címkéje."
+  },
+  "editAvgSpeedSourceCaps": "TÁVBÓL ÉS MENETIDŐBŐL SZÁMOLVA",
+  "@editAvgSpeedSourceCaps": {
+    "description": "A hiányzó átlagsebesség magyarázata."
+  },
+  "editKnotsValue": "{value} kn",
+  "@editKnotsValue": {
+    "description": "A számolt átlagsebesség értéke csomóban.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "editWind": "Szél",
+  "@editWind": {
+    "description": "Az átlagos és a max. szél sorának címkéje."
+  },
+  "editAvgKnotsFieldCaps": "ÁTLAG · KN",
+  "@editAvgKnotsFieldCaps": {
+    "description": "Az átlagos szél mezőjének felirata."
+  },
+  "editWindDirection": "Szélirány",
+  "@editWindDirection": {
+    "description": "A szélirány sorának címkéje."
+  },
+  "editWindDirectionNone": "nincs megadva",
+  "@editWindDirectionNone": {
+    "description": "A szélirány-lista üres eleme (K12)."
+  },
+  "editWindFromCaps": "HONNAN FÚJ",
+  "@editWindFromCaps": {
+    "description": "A szélirány-lista felirata."
+  },
+  "editDeleteTitle": "Törlöd a versenyt?",
+  "@editDeleteTitle": {
+    "description": "A törlés megerősítő dialógusának címe (14t)."
+  },
+  "editDeleteMessage": "A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.",
+  "@editDeleteMessage": {
+    "description": "A törlés megerősítő dialógusának szövege (14t)."
+  },
+  "editDeleteCancel": "Mégse",
+  "@editDeleteCancel": {
+    "description": "A törlés-dialógus biztonságos akciója."
+  },
+  "editDeleteConfirm": "Törlés",
+  "@editDeleteConfirm": {
+    "description": "A törlés-dialógus destruktív akciója."
+  },
+  "editDeleteRowRace": "Verseny",
+  "@editDeleteRowRace": {
+    "description": "A törlés-dialógus adatcellájának első sora."
+  },
+  "editDeleteRowDate": "Dátum",
+  "@editDeleteRowDate": {
+    "description": "A törlés-dialógus adatcellájának második sora."
+  },
+  "editDeleteFailed": "A törlés nem sikerült. Próbáld újra.",
+  "@editDeleteFailed": {
+    "description": "A törlés hibája a Mentés gomb fölött."
+  },
+  "snackRaceSaved": "Verseny mentve",
+  "@snackRaceSaved": {
+    "description": "Snackbar a kézi verseny mentése után (K15)."
+  },
+  "snackRaceCreated": "Verseny létrehozva",
+  "@snackRaceCreated": {
+    "description": "Snackbar az új verseny létrehozása után (G5)."
+  },
+  "snackRaceDeleted": "Verseny törölve",
+  "@snackRaceDeleted": {
+    "description": "Snackbar a törlés után (G5)."
   }
 }

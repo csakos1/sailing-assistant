@@ -11,6 +11,7 @@ import 'package:foretack_web/race_detail/detail_section_label.dart';
 import 'package:foretack_web/race_detail/full_screen_track_map_screen.dart';
 import 'package:foretack_web/race_detail/race_detail_providers.dart';
 import 'package:foretack_web/race_detail/result_block.dart';
+import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
 import 'package:foretack_web/race_edit/result_editor_screen.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
@@ -75,22 +76,25 @@ class RaceDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// A verseny szerkesztőjét nyitó művelet (K15), vagy `null`, ha a
-  /// fajtájához még nincs szerkesztő.
-  static VoidCallback? _editorOpener(
+  /// A verseny szerkesztőjét nyitó művelet (K15): telemetriásnál az
+  /// eredmény-, kézinél a verseny-szerkesztő.
+  static VoidCallback _editorOpener(
     BuildContext context,
     RaceSummary summary,
-  ) => switch (summary.origin) {
-    TelemetryOrigin(:final recording) => () => unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) =>
-              ResultEditorScreen(summary: summary, recording: recording),
+  ) =>
+      () => unawaited(
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => switch (summary.origin) {
+              TelemetryOrigin(:final recording) => ResultEditorScreen(
+                summary: summary,
+                recording: recording,
+              ),
+              ManualOrigin() => ManualRaceEditorScreen(summary: summary),
+            },
+          ),
         ),
-      ),
-    ),
-    ManualOrigin() => null,
-  };
+      );
 
   static bool _isNotFound(Object error) =>
       error is ServerFailure && error.error is RaceNotFound;
