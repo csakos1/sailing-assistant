@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:foretack_web/app/leave_warning_scope.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
@@ -15,7 +16,8 @@ import 'package:foretack_web/l10n/web_localizations.dart';
 /// A kilépés (vissza-nyíl, Esc) mentetlen változtatásnál a 13o
 /// dialógusát nyitja; mentetlenség nélkül azonnal visszalép. A sikeres
 /// mentés után a hívó közvetlenül `Navigator.pop`-pal zár, ami a
-/// dialógust megkerüli.
+/// dialógust megkerüli. A böngészőfül bezárásakor ugyanez a feltétel
+/// kéri a böngésző figyelmeztetését (K24).
 class EditorScaffold extends StatelessWidget {
   /// Keret a [title] címmel és a [children] űrlap-elemekkel.
   const EditorScaffold({
@@ -62,62 +64,70 @@ class EditorScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final header = this.header;
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_leave(context));
-      },
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              unawaited(Navigator.of(context).maybePop()),
+    // A fül bezárása az appon kívül esik: ott a böngésző kérdez (K24).
+    return LeaveWarningScope(
+      shouldWarn: hasUnsavedChanges,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_leave(context));
         },
-        // A CallbackShortcuts csak a fókusz alatti billentyűket kapja meg.
-        child: Focus(
-          autofocus: !hasAutofocusField,
-          // Láthatatlan, ezért a Tab nem áll meg rajta.
-          skipTraversal: true,
-          child: Scaffold(
-            appBar: WebAppBar(title: title, showBack: true, actions: actions),
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: WebLayout.columnMaxWidth,
-                      ),
-                      child: ListView(
-                        padding: const EdgeInsets.only(bottom: 48),
-                        children: [
-                          ?header,
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxWidth: WebLayout.textMaxWidth,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: WebLayout.columnInset,
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): () =>
+                unawaited(Navigator.of(context).maybePop()),
+          },
+          // A CallbackShortcuts csak a fókusz alatti billentyűket kapja meg.
+          child: Focus(
+            autofocus: !hasAutofocusField,
+            // Láthatatlan, ezért a Tab nem áll meg rajta.
+            skipTraversal: true,
+            child: Scaffold(
+              appBar: WebAppBar(title: title, showBack: true, actions: actions),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: WebLayout.columnMaxWidth,
+                        ),
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 48),
+                          children: [
+                            ?header,
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: WebLayout.textMaxWidth,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: children,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: WebLayout.columnInset,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: children,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                _SaveBar(isSaving: isSaving, onSave: onSave, error: saveError),
-              ],
+                  _SaveBar(
+                    isSaving: isSaving,
+                    onSave: onSave,
+                    error: saveError,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

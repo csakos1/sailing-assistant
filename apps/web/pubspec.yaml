@@ -26,6 +26,9 @@ dependencies:
     path: ../../packages/race_archive_api
   shared:
     path: ../../packages/shared
+  # A böngésző API-jai: beforeunload, XHR, fájlválasztó (ADR 0048
+  # Addendum 4 K18, K24).
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:
