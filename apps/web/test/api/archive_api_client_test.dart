@@ -111,4 +111,152 @@ void main() {
       expect(failure, isA<NetworkFailure>());
     });
   });
+
+  group('ArchiveApiClient writes', () {
+    test('puts a result as JSON with the client header', () async {
+      // ARRANGE
+      http.Request? sent;
+      final client = clientAnswering((request) async {
+        sent = request;
+        return jsonResponse(
+          encodeRaceResult(
+            RaceResult(
+              raceId: 'r1',
+              content: const RaceResultInput(overallPlace: FinishPlace(3)),
+              updatedAt: DateTime.utc(2026, 10),
+            ),
+          ),
+        );
+      });
+
+      // ACT
+      final result = await client.saveRaceResult(
+        'r1',
+        const RaceResultInput(overallPlace: FinishPlace(3)),
+      );
+
+      // ASSERT
+      expect(result, isA<Ok<RaceResult, ApiFailure>>());
+      expect(sent?.method, 'PUT');
+      expect(sent?.url.path, raceResultPath('r1'));
+      expect(sent?.headers[clientHeaderName], clientHeaderWebValue);
+      expect(sent?.headers['content-type'], startsWith('application/json'));
+      expect(
+        jsonDecode(sent?.body ?? ''),
+        encodeRaceResultInput(
+          const RaceResultInput(overallPlace: FinishPlace(3)),
+        ),
+      );
+    });
+
+    test('posts a new manual race and reads its summary', () async {
+      // ARRANGE
+      http.Request? sent;
+      final created = manualSummary('m9', date: '2025-10-19');
+      final client = clientAnswering((request) async {
+        sent = request;
+        return jsonResponse(encodeRaceSummary(created), status: 201);
+      });
+      final request = ManualRaceRequest(
+        race: ManualRaceInput(
+          name: 'Siofoki Evadzaro',
+          // A `!` biztonsagos: letezo nap.
+          date: CalendarDate.tryParse('2025-10-19')!,
+        ),
+      );
+
+      // ACT
+      final result = await client.createManualRace(request);
+
+      // ASSERT
+      expect(sent?.method, 'POST');
+      expect(sent?.url.path, manualRacesPath);
+      expect(sent?.headers[clientHeaderName], clientHeaderWebValue);
+      expect(switch (result) {
+        Ok(:final value) => value,
+        Err(:final error) => throw StateError('Ok-t vartunk: $error'),
+      }, created);
+    });
+
+    test('puts a manual race to its own path', () async {
+      // ARRANGE
+      http.Request? sent;
+      final client = clientAnswering((request) async {
+        sent = request;
+        return jsonResponse(
+          encodeRaceSummary(manualSummary('m9', date: '2025-10-19')),
+        );
+      });
+
+      // ACT
+      await client.updateManualRace(
+        'm9',
+        ManualRaceRequest(
+          race: ManualRaceInput(
+            name: 'Uj nev',
+            date: CalendarDate.tryParse('2025-10-19')!,
+          ),
+        ),
+      );
+
+      // ASSERT
+      expect(sent?.method, 'PUT');
+      expect(sent?.url.path, manualRacePath('m9'));
+    });
+
+    test('deletes a manual race and accepts the empty 204', () async {
+      // ARRANGE
+      http.Request? sent;
+      final client = clientAnswering((request) async {
+        sent = request;
+        return http.Response('', 204);
+      });
+
+      // ACT
+      final result = await client.deleteManualRace('m9');
+
+      // ASSERT
+      expect(result, isA<Ok<void, ApiFailure>>());
+      expect(sent?.method, 'DELETE');
+      expect(sent?.url.path, manualRacePath('m9'));
+      expect(sent?.headers[clientHeaderName], clientHeaderWebValue);
+    });
+
+    test('maps a validation error of a write to a server failure', () async {
+      final client = clientAnswering(
+        (request) async => jsonResponse(
+          encodeApiError(
+            const ValidationFailed([
+              PlaceExceedsFleetSize(InputField.overallPlace),
+            ]),
+          ),
+          status: 422,
+        ),
+      );
+
+      final failure = failureOf(
+        await client.saveRaceResult('r1', const RaceResultInput()),
+      );
+
+      expect(
+        (failure as ServerFailure).error,
+        const ValidationFailed([
+          PlaceExceedsFleetSize(InputField.overallPlace),
+        ]),
+      );
+    });
+
+    test('maps a missing race on delete to a server failure', () async {
+      final client = clientAnswering(
+        (request) async => jsonResponse(
+          encodeApiError(const RaceNotFound('m9')),
+          status: 404,
+        ),
+      );
+
+      final failure = failureOf(await client.deleteManualRace('m9'));
+
+      expect((failure as ServerFailure).error, const RaceNotFound('m9'));
+    });
+  });
 }

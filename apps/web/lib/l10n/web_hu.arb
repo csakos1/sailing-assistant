@@ -162,5 +162,249 @@
   "detailTrackLegendUnknown": "nincs adat",
   "@detailTrackLegendUnknown": {
     "description": "A legenda címkéje az ismeretlen sebességű szakaszhoz."
+  },
+  "detailEditTooltip": "Szerkesztés",
+  "@detailEditTooltip": {
+    "description": "A részletező AppBarjának ceruza-gombja (ADR 0048 Addendum 4 K15)."
+  },
+  "editResultTitle": "Eredmény szerkesztése",
+  "@editResultTitle": {
+    "description": "A telemetriás verseny eredmény-szerkesztőjének címe (G4)."
+  },
+  "editSave": "Mentés",
+  "@editSave": {
+    "description": "A szerkesztő ragadós alsó sávjának gombja."
+  },
+  "editTelemetryReadOnlyCaps": "A TELEFON ADATA · NEM SZERKESZTHETŐ",
+  "@editTelemetryReadOnlyCaps": {
+    "description": "A telemetriás szerkesztő csak olvasható kontextus-sávja (13m)."
+  },
+  "editRecordingCaps": "{date} · RÖGZÍTÉS {start} – {end}",
+  "@editRecordingCaps": {
+    "description": "A telemetriás kontextus-sáv adatsora: a nap és a rögzítés ideje.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "editSectionResultCaps": "EREDMÉNY",
+  "@editSectionResultCaps": {
+    "description": "A szerkesztő eredmény-szakaszának címe."
+  },
+  "editSectionTimesCaps": "HIVATALOS IDŐ",
+  "@editSectionTimesCaps": {
+    "description": "A szerkesztő idő-szakaszának címe."
+  },
+  "editSectionPrizeSummaryCaps": "DÍJ ÉS ÖSSZEFOGLALÓ",
+  "@editSectionPrizeSummaryCaps": {
+    "description": "A szerkesztő díj- és összefoglaló-szakaszának címe."
+  },
+  "editClassPlace": "Osztály",
+  "@editClassPlace": {
+    "description": "Az osztályhelyezés sorának címkéje."
+  },
+  "editOverallPlace": "Abszolút",
+  "@editOverallPlace": {
+    "description": "Az abszolút helyezés sorának címkéje."
+  },
+  "editMonohullPlace": "Egytestű",
+  "@editMonohullPlace": {
+    "description": "Az egytestű helyezés sorának címkéje."
+  },
+  "editPlaceFieldCaps": "HELYEZÉS",
+  "@editPlaceFieldCaps": {
+    "description": "A helyezés-mező felirata."
+  },
+  "editFleetFieldCaps": "MEZŐNY",
+  "@editFleetFieldCaps": {
+    "description": "A mezőny-mező felirata."
+  },
+  "editPlacingNumberCaps": "SZÁM",
+  "@editPlacingNumberCaps": {
+    "description": "A helyezés-szegmens számszerű cellája."
+  },
+  "editPlacingDnfCaps": "DNF",
+  "@editPlacingDnfCaps": {
+    "description": "A helyezés-szegmens feladás-cellája."
+  },
+  "editPlacingDsqCaps": "DSQ",
+  "@editPlacingDsqCaps": {
+    "description": "A helyezés-szegmens kizárás-cellája."
+  },
+  "editYs": "YS-szám",
+  "@editYs": {
+    "description": "A YS-szám sorának címkéje."
+  },
+  "editYsFieldCaps": "YS",
+  "@editYsFieldCaps": {
+    "description": "A YS-mező felirata."
+  },
+  "editYsHint": "két tizedes, pl. 75,90",
+  "@editYsHint": {
+    "description": "A YS-mező kitöltési mintája."
+  },
+  "editOfficialStart": "Hivatalos rajt",
+  "@editOfficialStart": {
+    "description": "A hivatalos rajt sorának címkéje."
+  },
+  "editOfficialFinish": "Hivatalos befutás",
+  "@editOfficialFinish": {
+    "description": "A hivatalos befutás sorának címkéje."
+  },
+  "editDateFieldCaps": "DÁTUM",
+  "@editDateFieldCaps": {
+    "description": "A dátummező felirata."
+  },
+  "editDateHint": "ÉÉÉÉ.HH.NN",
+  "@editDateHint": {
+    "description": "A dátummező kitöltési mintája."
+  },
+  "editTimeFieldCaps": "IDŐ",
+  "@editTimeFieldCaps": {
+    "description": "Az időmező felirata."
+  },
+  "editTimeHint": "ÓÓ:PP",
+  "@editTimeHint": {
+    "description": "Az időmező kitöltési mintája."
+  },
+  "editSameDayCaps": "AZNAP",
+  "@editSameDayCaps": {
+    "description": "A befutás napja: a rajt napja (K11)."
+  },
+  "editNextDayCaps": "+1 NAP",
+  "@editNextDayCaps": {
+    "description": "A befutás napja: a rajt utáni nap (K11)."
+  },
+  "editSecondDayCaps": "+2 NAP",
+  "@editSecondDayCaps": {
+    "description": "A befutás napja: a rajt utáni második nap (K11)."
+  },
+  "editElapsed": "Menetidő",
+  "@editElapsed": {
+    "description": "A számolt menetidő sorának címkéje."
+  },
+  "editComputedCaps": "SZÁMOLT",
+  "@editComputedCaps": {
+    "description": "A számolt sorok címke-alatti jele."
+  },
+  "editElapsedSourceCaps": "A HIVATALOS RAJTBÓL ÉS BEFUTÁSBÓL",
+  "@editElapsedSourceCaps": {
+    "description": "A hiányzó menetidő magyarázata."
+  },
+  "editPrize": "Díj",
+  "@editPrize": {
+    "description": "A díj mezőjének címe."
+  },
+  "editPrizeFieldCaps": "RÖVID SZÖVEG",
+  "@editPrizeFieldCaps": {
+    "description": "A díj-mező felirata."
+  },
+  "editPrizeHint": "pl. érem, kupa, Hungária pezsgő",
+  "@editPrizeHint": {
+    "description": "A díj-mező kitöltési mintája."
+  },
+  "editSummary": "Összefoglaló",
+  "@editSummary": {
+    "description": "Az összefoglaló mezőjének címe."
+  },
+  "editSummaryFieldCaps": "SIMA SZÖVEG",
+  "@editSummaryFieldCaps": {
+    "description": "Az összefoglaló-mező felirata."
+  },
+  "editSummaryHint": "Hogyan ment a verseny? Szél, taktika, tanulságok…",
+  "@editSummaryHint": {
+    "description": "Az összefoglaló-mező kitöltési mintája."
+  },
+  "editProblemWholeNumber": "Csak pozitív egész szám írható ide.",
+  "@editProblemWholeNumber": {
+    "description": "Hibaüzenet: a helyezés vagy a mezőny nem egész szám."
+  },
+  "editProblemDecimal": "Szám kell, pl. 10,2.",
+  "@editProblemDecimal": {
+    "description": "Hibaüzenet: a mennyiség nem szám."
+  },
+  "editProblemYs": "Két tizedes kell, pl. 75,90.",
+  "@editProblemYs": {
+    "description": "Hibaüzenet: rossz YS-formátum (14p)."
+  },
+  "editProblemDate": "Hibás dátum, pl. 2026.06.13.",
+  "@editProblemDate": {
+    "description": "Hibaüzenet: olvashatatlan vagy nem létező nap."
+  },
+  "editProblemTime": "Hibás idő, pl. 10:00.",
+  "@editProblemTime": {
+    "description": "Hibaüzenet: olvashatatlan idő."
+  },
+  "editProblemPlaceAtLeastOne": "A helyezés legalább 1.",
+  "@editProblemPlaceAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív helyezés (13n)."
+  },
+  "editProblemFleetAtLeastOne": "A mezőny legalább 1.",
+  "@editProblemFleetAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív mezőny."
+  },
+  "editProblemYsAtLeastOne": "A YS-szám nem lehet nulla.",
+  "@editProblemYsAtLeastOne": {
+    "description": "Hibaüzenet: nulla YS-szám."
+  },
+  "editProblemPlaceExceedsFleet": "A helyezés nem lehet nagyobb a mezőnynél ({fleetSize}).",
+  "@editProblemPlaceExceedsFleet": {
+    "description": "Hibaüzenet: a helyezés nagyobb a saját mezőnyénél (14p).",
+    "placeholders": {
+      "fleetSize": {
+        "type": "String"
+      }
+    }
+  },
+  "editProblemFinishNotAfterStart": "A befutás nem későbbi a rajtnál. Másnap értetek be? Válaszd a +1 NAP-ot.",
+  "@editProblemFinishNotAfterStart": {
+    "description": "Hibaüzenet: a befutás nem a rajt után van (14p)."
+  },
+  "editProblemNegative": "Nem lehet negatív.",
+  "@editProblemNegative": {
+    "description": "Hibaüzenet: negatív mennyiség."
+  },
+  "editProblemRequired": "Kötelező mező.",
+  "@editProblemRequired": {
+    "description": "Hibaüzenet: üres kötelező mező."
+  },
+  "editProblemAtLeastOne": "Az érték legalább 1.",
+  "@editProblemAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív érték egyéb mezőben."
+  },
+  "editSaveFailed": "A mentés nem sikerült. A változtatások megmaradtak, próbáld újra.",
+  "@editSaveFailed": {
+    "description": "A mentés hibája a Mentés gomb fölött (K16)."
+  },
+  "editRaceGone": "Ez a verseny már nincs az archívumban.",
+  "@editRaceGone": {
+    "description": "A mentés hibája, ha a szerver RaceNotFound-ot ad."
+  },
+  "editDiscardTitle": "Elveted a változtatásokat?",
+  "@editDiscardTitle": {
+    "description": "A mentetlen változtatás dialógusának címe (13o)."
+  },
+  "editDiscardMessage": "A módosításokat nem mentetted. Ha most kilépsz, elvesznek.",
+  "@editDiscardMessage": {
+    "description": "A mentetlen változtatás dialógusának szövege (13o)."
+  },
+  "editDiscardKeep": "Folytatom",
+  "@editDiscardKeep": {
+    "description": "A 13o biztonságos akciója."
+  },
+  "editDiscardConfirm": "Elvetés",
+  "@editDiscardConfirm": {
+    "description": "A 13o destruktív akciója."
+  },
+  "snackResultSaved": "Eredmény mentve",
+  "@snackResultSaved": {
+    "description": "Snackbar az eredmény mentése után (ADR 0047 E6)."
   }
 }

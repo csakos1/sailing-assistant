@@ -14,8 +14,14 @@ import 'package:foretack_web/app/web_layout.dart';
 /// kapcsolva: ez telefonos jelzés, a weben a fejléc színe görgetéskor sem
 /// változik.
 class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
-  /// AppBar a [title] címmel; a [showBack] vissza-gombot tesz elé.
-  const WebAppBar({required this.title, this.showBack = false, super.key});
+  /// AppBar a [title] címmel; a [showBack] vissza-gombot tesz elé, az
+  /// [actions] a cím után, az oszlop jobb szélén állnak.
+  const WebAppBar({
+    required this.title,
+    this.showBack = false,
+    this.actions = const [],
+    super.key,
+  });
 
   /// A cím szövege.
   final String title;
@@ -23,6 +29,10 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Mutasson-e vissza-gombot (egy megnyitott képernyőn, pl. a
   /// részletezőben).
   final bool showBack;
+
+  /// Az oszlop jobb szélén álló gombok (pl. a részletező ceruzája, ADR
+  /// 0048 Addendum 4 K15).
+  final List<Widget> actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(WebLayout.appBarHeight);
@@ -40,7 +50,8 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
         padding: EdgeInsets.only(
           // A vissza-gomb saját betéttel bír: a bal betét így kisebb.
           left: showBack ? 8 : WebLayout.columnInset,
-          right: WebLayout.columnInset,
+          // Az ikon-gombok saját betéttel bírnak, mint a vissza-gomb.
+          right: actions.isEmpty ? WebLayout.columnInset : 8,
         ),
         child: Row(
           children: [
@@ -53,6 +64,7 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            ...actions,
           ],
         ),
       ),

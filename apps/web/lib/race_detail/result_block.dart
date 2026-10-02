@@ -10,16 +10,20 @@ import 'package:race_archive_api/race_archive_api.dart';
 ///
 /// Két közös csík (helyezések, adatok) és a díj. Csak a kitöltött cellák
 /// jelennek meg; ha egy csíknak nem maradna cellája, a csík elmarad. Üres
-/// eredménynél a 13l halk sora áll a helyén.
+/// eredménynél a 13l halk sora áll a helyén; ha van [onEdit], a sor a
+/// szerkesztőt nyitja (ADR 0048 Addendum 4 K14).
 ///
 /// A `WebLocalizations.of(context)!` és a `TextTones` biztonságos: a
 /// `MaterialApp` és a `foretackTheme` regisztrálja őket.
 class ResultBlock extends StatelessWidget {
   /// Blokk a [result] eredménnyel; `null`, ha nincs rögzítve.
-  const ResultBlock({required this.result, super.key});
+  const ResultBlock({required this.result, this.onEdit, super.key});
 
   /// A verseny eredménye.
   final RaceResult? result;
+
+  /// A szerkesztő megnyitása az üres eredmény sorából.
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -41,16 +45,19 @@ class ResultBlock extends StatelessWidget {
       children: [
         DetailSectionLabel(text: l10n.detailResultCaps),
         if (isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              WebLayout.columnInset,
-              0,
-              WebLayout.columnInset,
-              8,
-            ),
-            child: Text(
-              l10n.detailNoResult,
-              style: supportTextStyle.copyWith(color: tones.low),
+          InkWell(
+            onTap: onEdit,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                WebLayout.columnInset,
+                0,
+                WebLayout.columnInset,
+                8,
+              ),
+              child: Text(
+                l10n.detailNoResult,
+                style: supportTextStyle.copyWith(color: tones.low),
+              ),
             ),
           ),
         if (placings.isNotEmpty) RaceLogStatsStrip(cells: placings),

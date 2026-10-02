@@ -11,6 +11,7 @@ import 'package:foretack_web/race_detail/detail_section_label.dart';
 import 'package:foretack_web/race_detail/full_screen_track_map_screen.dart';
 import 'package:foretack_web/race_detail/race_detail_providers.dart';
 import 'package:foretack_web/race_detail/result_block.dart';
+import 'package:foretack_web/race_edit/result_editor_screen.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 /// Egy verseny részletezője (ADR 0047 D8, ADR 0048 Addendum 4 K7–K10).
@@ -38,9 +39,23 @@ class RaceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = WebLocalizations.of(context)!;
     final detail = ref.watch(raceDetailProvider(raceId));
+    final loaded = detail.valueOrNull?.summary;
+    final openEditor = loaded == null ? null : _editorOpener(context, loaded);
 
     return Scaffold(
-      appBar: WebAppBar(title: raceName, showBack: true),
+      appBar: WebAppBar(
+        // A betöltött név az átnevezés után is friss (K15).
+        title: loaded?.name ?? raceName,
+        showBack: true,
+        actions: [
+          if (openEditor != null)
+            IconButton(
+              tooltip: l10n.detailEditTooltip,
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: openEditor,
+            ),
+        ],
+      ),
       body: detail.when(
         skipLoadingOnRefresh: false,
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -52,19 +67,40 @@ class RaceDetailScreen extends ConsumerWidget {
               ? null
               : () => ref.invalidate(raceDetailProvider(raceId)),
         ),
-        data: (detail) => _DetailBody(detail: detail),
+        data: (detail) => _DetailBody(
+          detail: detail,
+          onEdit: _editorOpener(context, detail.summary),
+        ),
       ),
     );
   }
+
+  /// A verseny szerkesztőjét nyitó művelet (K15), vagy `null`, ha a
+  /// fajtájához még nincs szerkesztő.
+  static VoidCallback? _editorOpener(
+    BuildContext context,
+    RaceSummary summary,
+  ) => switch (summary.origin) {
+    TelemetryOrigin(:final recording) => () => unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ResultEditorScreen(summary: summary, recording: recording),
+        ),
+      ),
+    ),
+    ManualOrigin() => null,
+  };
 
   static bool _isNotFound(Object error) =>
       error is ServerFailure && error.error is RaceNotFound;
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.detail});
+  const _DetailBody({required this.detail, required this.onEdit});
 
   final RaceDetail detail;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +124,7 @@ class _DetailBody extends StatelessWidget {
             TrackStatsRow(stats: stats.track),
             RaceLogStatsStrip(cells: _windCells(l10n, stats)),
             if (stats.window.isApproximate) const _ApproximateNote(),
-            ResultBlock(result: summary.result),
+            ResultBlock(result: summary.result, onEdit: onEdit),
             if (telemetry != null) ...[
               const SizedBox(height: 24),
               _TrackMapCard(name: summary.name, telemetry: telemetry),

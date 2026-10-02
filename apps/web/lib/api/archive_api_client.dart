@@ -29,6 +29,91 @@ class ArchiveApiClient {
   Future<Result<RaceDetail, ApiFailure>> fetchRaceDetail(String raceId) =>
       _getJson(racePath(raceId), decodeRaceDetail);
 
+  /// Egy telemetriás verseny eredményének mentése: `PUT
+  /// /api/races/{id}/result`. A csupa üres bemenet törli az eredményt
+  /// (ADR 0048 D3); a válasz a tárolt eredmény.
+  Future<Result<RaceResult, ApiFailure>> saveRaceResult(
+    String raceId,
+    RaceResultInput input,
+  ) => _sendJson(
+    'PUT',
+    raceResultPath(raceId),
+    encodeRaceResultInput(input),
+    decodeRaceResult,
+  );
+
+  /// Új kézi verseny: `POST /api/manual-races`; a válasz az új napló-sor.
+  Future<Result<RaceSummary, ApiFailure>> createManualRace(
+    ManualRaceRequest request,
+  ) => _sendJson(
+    'POST',
+    manualRacesPath,
+    encodeManualRaceRequest(request),
+    decodeRaceSummary,
+  );
+
+  /// Egy kézi verseny mentése: `PUT /api/manual-races/{id}`; a válasz a
+  /// frissített napló-sor.
+  Future<Result<RaceSummary, ApiFailure>> updateManualRace(
+    String raceId,
+    ManualRaceRequest request,
+  ) => _sendJson(
+    'PUT',
+    manualRacePath(raceId),
+    encodeManualRaceRequest(request),
+    decodeRaceSummary,
+  );
+
+  /// Egy kézi verseny törlése: `DELETE /api/manual-races/{id}`. A siker
+  /// `204`, üres törzzsel, ezért itt nincs mit dekódolni.
+  Future<Result<void, ApiFailure>> deleteManualRace(String raceId) async {
+    final http.Response response;
+    try {
+      response = await _client.delete(
+        _baseUri.resolve(manualRacePath(raceId)),
+        headers: _clientHeader,
+      );
+    } on http.ClientException catch (error) {
+      return Err(NetworkFailure(error.message));
+    }
+    if (response.statusCode < 400) return const Ok(null);
+    return switch (_decodeResponse(response, _noBody)) {
+      Err(:final error) => Err(error),
+      // A `_decodeResponse` 400 fölött sosem ad Ok-t.
+      Ok() => Err(UnreadableResponse(response.statusCode)),
+    };
+  }
+
+  // A CSRF-fejléc minden módosító kérésen (ADR 0047 D9).
+  static const Map<String, String> _clientHeader = {
+    clientHeaderName: clientHeaderWebValue,
+  };
+
+  static const Map<String, String> _jsonWriteHeaders = {
+    ..._clientHeader,
+    'content-type': 'application/json; charset=utf-8',
+  };
+
+  static Result<Object?, DecodeError> _noBody(Object? json) => Ok(json);
+
+  Future<Result<T, ApiFailure>> _sendJson<T>(
+    String method,
+    String path,
+    Map<String, Object?> body,
+    Result<T, DecodeError> Function(Object? json) decode,
+  ) async {
+    final request = http.Request(method, _baseUri.resolve(path))
+      ..headers.addAll(_jsonWriteHeaders)
+      ..bodyBytes = utf8.encode(jsonEncode(body));
+    final http.Response response;
+    try {
+      response = await http.Response.fromStream(await _client.send(request));
+    } on http.ClientException catch (error) {
+      return Err(NetworkFailure(error.message));
+    }
+    return _decodeResponse(response, decode);
+  }
+
   Future<Result<T, ApiFailure>> _getJson<T>(
     String path,
     Result<T, DecodeError> Function(Object? json) decode,
