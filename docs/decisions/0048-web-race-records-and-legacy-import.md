@@ -7,7 +7,7 @@ következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 „Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
 alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
-tervét és a napló-képernyő döntéseit rögzíti.
+tervét, a napló, a részletező és a szerkesztők döntéseit rögzíti.
 
 ## Kontextus
 
@@ -1143,5 +1143,138 @@ beszéli, mint a többi szám:
   `ÓÓ:PP`; a másnapi befutás `+1 NAP` jelet kap.
 - **díj:** verzál címkével, sima szövegként.
 
-Üres eredménynél a 13l halk sora áll a helyén. A szerkesztőre vivő
-link az S7c-ben jön.
+Üres eredménynél a 13l halk sora áll a helyén; az S7c óta ez a sor a
+szerkesztőt nyitja (K14).
+
+### S7c — A szerkesztők (2026-10-01)
+
+A K11–K17 a szerkesztő-szelet egyeztetésének eredménye. A K11 és a K12
+a G4-et **szűkíti** (felhasználói döntés); ami onnan kimarad, az később,
+külön szeletben jöhet.
+
+### K11 — A szerkesztő mezői egyszerűsítve (felhasználói döntés)
+
+Az első körben a G4-ből ez készül el:
+- **helyezés-pár:** `[helyezés] / [mezőny]` + `[SZÁM | DNF | DSQ]`
+  szegmens, helyezésenként egy sor. DNF/DSQ mellett a helyezés-mező
+  tiltott, a mezőny-mező aktív. A „d"-gépelés kiegészítése és a
+  „KORÁBBI: 4" elmarad: a szegmensre váltáskor a beírt szám a mezőben
+  marad, mentéskor DNF/DSQ mellett eldobódik;
+- **dátum:** validált szövegmező, maszk és ↑/↓ léptetés nélkül. Elfogad
+  `2026.06.13`, `2026.6.13.`, `2026-06-13` és `20260613` alakot,
+  kilépéskor `2026.06.13`-ra formáz;
+- **idő:** validált szövegmező, helyi idő. Elfogad `10:00`, `10:00:30`,
+  `1000` és `9` alakot, kilépéskor `ÓÓ:PP`-re (másodperccel
+  `ÓÓ:PP:MM`-re) formáz;
+- **a befutás napja:** saját dátummező helyett egy `[AZNAP | +1 NAP |
+  +2 NAP]` szegmens a befutás-idő mellett. A befutás napja a rajt napja
+  plusz a választott eltolás. A „követi a rajtét" állapot így nem kell,
+  és a Kékszalag másnapi befutása is egy kattintás;
+- **a rajt napja:** telemetriás versenynél saját dátummező, előtöltve a
+  meglévő hivatalos rajt, különben a rögzítés kezdetének helyi napjával.
+  Kézi versenynél a verseny dátuma a rajt napja, külön mező nélkül;
+- **YS:** szövegmező, vesszőt és pontot is elfogad, pontosan két tizedes;
+- **számolt sorok:** a menetidő és (kézinél) az átlagsebesség élőben
+  számolódik a mezőkből, „SZÁMOLT" címkével. Hiányzó adatnál „—" és
+  hogy miből lesz.
+
+**A validáció két lépcsős, mindkettő pure:**
+1. az űrlap szövegeinek olvasása (`TextNotReadable`: rossz szám, YS,
+   dátum vagy idő);
+2. a szerződés közös validátora (`ValidateRaceResultInput`,
+   `ValidateManualRaceRequest`), amelynek szabálysértései
+   `RuleBroken`-ként jönnek.
+
+A kettő közös típusa a web `FieldProblem`-je (sealed), mezőhöz
+(`InputField`) kötve. A mentés gomb után minden hibás mező egyszerre
+jelez, a fókusz az űrlap-sorrend első hibás mezőjére ugrik. A szerver
+`ValidationFailed` válasza ugyanígy jelenik meg.
+
+### K12 — Égtáj: 16 elemű lenyíló (felhasználói döntés)
+
+Kézi versenynél a szélirány egy lenyíló lista a 16 égtájjal
+(`compassPointLabel`) és egy „nincs megadva" elemmel. A G4 5×5-ös rácsa
+elmarad. **Miért:** a lista kevés kód, és egy évi néhány kézi
+versenynél a rács gyorsasága nem számít.
+
+### K13 — `ForetackDialog` a `foretack_ui`-ban (felhasználói döntés)
+
+Az ADR 0047 E6 és a makett 11a dobozának közös widgetje most kerül a
+`foretack_ui`-ba, nem csak a webbe, hogy a phone később átvehesse:
+- `ForetackDialog(title, message, details, actions, maxWidth)` és egy
+  `showForetackDialog<T>` segéd;
+- szögletes doboz `surfaceContainer` háttérrel és `outline` kerettel;
+  alatta a 11a sötét scrimje;
+- a `details` sorai a makett adatcellái: címke balra, mono érték
+  jobbra;
+- az akciósor egyenlő cellákból áll, hairline-nal elválasztva. A
+  destruktív cella piros (`colorScheme.error`). A biztonságos cella
+  kapja a kezdő fókuszt;
+- az Esc a dialógust `null`-lal zárja; a hívó ezt a biztonságos
+  válasznak veszi. A Tab a dobozban marad (a dialógus-útvonal
+  fókusz-hatóköre);
+- szélesség: a web 480 px-et ad át (`WebLayout.dialogWidth`), a phone
+  alapértéke 364 px.
+
+### K14 — A közelítő-sor nem link (felhasználói döntés)
+
+A K9 halk sora sima szöveg marad. A G3 „IDŐK MEGADÁSA" linkje elmarad,
+mert a ceruza ugyanoda visz. Az üres eredmény 13l sora viszont
+kattintható, és a szerkesztőt nyitja (az ADR 0047 UX-folyamata, 11.
+döntés).
+
+### K15 — Belépési pontok és életciklus
+
+- **Ceruza:** a részletező AppBarjának jobb szélén. Telemetriás
+  versenynél az „Eredmény szerkesztése", kézinél a „Verseny
+  szerkesztése" képernyőt nyitja. A `WebAppBar` ehhez opcionális
+  `actions` listát kap (additív bővítés).
+- **„Új verseny":** keretes gomb a napló AppBarjában (G1; a Lista /
+  Táblázat váltó az S7e-ben, a Feltöltés az S7d-ben kerül mellé).
+- **Mentés után:**
+  - eredmény és kézi verseny mentése: vissza a részletezőre,
+    „Eredmény mentve" vagy „Verseny mentve" snackbar;
+  - létrehozás: az új verseny részletezője nyílik a szerkesztő helyén,
+    „Verseny létrehozva" snackbar, és a napló a verseny évére vált;
+  - törlés: kuka a szerkesztő AppBarjában (csak kézinél), a
+    `ForetackDialog` megerősítése után a napló nyílik a törölt verseny
+    évén, „Verseny törölve" snackbar. Ha a szerver szerint a verseny már
+    nincs meg (`RaceNotFound`), az is sikeres törlésnek számít.
+- **A részletező címe** a betöltött adatból jön, ha már megvan, így egy
+  átnevezés azonnal látszik.
+- **Mentetlen változtatás:** a vissza-nyíl és az Esc a 13o dialógusát
+  nyitja (Folytatom / Elvetés). A változás a mezők szövegének
+  összevetése az előtöltött állapottal. A böngészőfül bezárásakor
+  figyelmeztető natív `beforeunload` az S7d-be kerül, mert ahhoz a
+  `package:web` kell, amit az XHR-folyamatjelző úgyis behoz.
+
+### K16 — Írás a szerverre
+
+- Az `ArchiveApiClient` új hívásai:
+  - `saveRaceResult` (`PUT`, 200);
+  - `createManualRace` (`POST`, 201);
+  - `updateManualRace` (`PUT`, 200);
+  - `deleteManualRace` (`DELETE`, 204, üres törzzsel).
+- Minden módosító kérés `X-Foretack-Client: web` fejlécet kap (ADR 0047
+  D9) és JSON-törzset.
+- A `RaceRecordEditor` (alkalmazás-réteg, Riverpod `Provider`) hívja a
+  klienst, és siker után érvényteleníti a napló és a részletező
+  providerét. A képernyő csak a navigációt és a snackbart intézi, HTTP-t
+  nem lát.
+- **Az űrlap-állapot widget-lokális** (`TextEditingController`-ek egy
+  mező-tartó osztályban); a Riverpod a szerver-állapotot tartja. **Miért:**
+  a szöveg-vezérlők életciklusa a widgeté, és egy globális űrlap-provider
+  csak tükrözné őket. A mezők értékéből egy pure, összevethető
+  érték-objektum (`ResultFormValues`, `ManualRaceFormValues`) készül;
+  ezt olvassa a validáció és a mentetlenség-vizsgálat.
+- **Mentési hiba:** a Mentés gomb fölött egy piros sor. A beírt adat
+  megmarad. A `RaceNotFound` saját mondatot kap.
+
+### K17 — Snackbar a weben
+
+A G5 és a 11b alapján: 480 px széles, 52 px magas, a 880 px-es oszlop
+bal betétéhez igazítva, 24 px-re az aljától. `surfaceContainerHigh`
+háttér, `outline` keret, árnyék és lekerekítés nélkül, balra egy 8 px-es
+státusznégyzet. Akció nincs, 4 s után eltűnik. A 11b visszaszámláló
+sávja elmarad, mert visszavonás nincs. A kis ablakban a szélesség az
+oszlophoz zsugorodik.

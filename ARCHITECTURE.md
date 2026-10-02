@@ -5407,8 +5407,9 @@ A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
   közelítő-sor; az eredmény-blokk három helyezése a saját mezőnyével.
   Kézi versenynél nincs térkép és bója.
 - **Szerkesztő:** címke-oszlopos rács, helyezésenként `[helyezés] /
-  [mezőny]` pár DNF/DSQ szegmenssel, maszkos dátum- és idő-mező, kézi
-  versenynél név, dátum, statok és égtáj-rács. A kézi verseny törlése
+  [mezőny]` pár DNF/DSQ szegmenssel, dátum- és idő-mező, kézi
+  versenynél név, dátum, statok és égtáj-választó (az első kör
+  egyszerűsítéseit az Addendum 4 K11–K12 rögzíti). A kézi verseny törlése
   végleges, visszavonás nélkül.
 - **Jelölések:** `~` közelítő (minden ablakfüggő érték), szöveges „KÉZI",
   dobogó-talapzat a helyezés alatt.
@@ -5437,6 +5438,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   térkép gesztus nélküli kártya, rákattintva teljes képernyős nézet
   nyílik, ahogy a phone-on. A közelítő értékeket egy halk sor jelzi
   (K7–K10).
+- A szerkesztők (K11–K17): a G4 egyszerűsítve (validált szövegmezők,
+  `[AZNAP | +1 NAP | +2 NAP]` a befutás napjára, 16 elemű égtáj-lista).
+  A mezők olvasása és a szerződés validátora pure; a hibák közös
+  `FieldProblem` típusban jönnek. Az írásokat a `RaceRecordEditor`
+  végzi, a `ForetackDialog` a `foretack_ui`-ban él, a snackbar 480 px-es
+  és az oszlophoz igazított.
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 
