@@ -22,7 +22,7 @@ void main() {
       expect(stats, const WindStats());
     });
 
-    test('computes the arithmetic mean and the raw maximum', () {
+    test('computes the arithmetic mean of every sample', () {
       final stats = summarize(const [
         _Sample(twsMps: 2),
         _Sample(twsMps: 4),
@@ -30,10 +30,54 @@ void main() {
       ]);
 
       expect(stats.avgWindMps, 5); // (2 + 4 + 9) / 3
-      expect(stats.maxWindMps, 9);
+    });
+
+    test('takes the highest sustained value as the maximum', () {
+      // Given: 1 Hz-es sor, 7 m/s-os harom mintas lokessel.
+      final stats = summarize(const [
+        _Sample(twsMps: 4),
+        _Sample(twsMps: 4),
+        _Sample(twsMps: 7),
+        _Sample(twsMps: 7),
+        _Sample(twsMps: 7),
+        _Sample(twsMps: 4),
+        _Sample(twsMps: 4),
+      ]);
+
+      expect(stats.maxWindMps, 7);
+    });
+
+    test('drops a two-sample instrument spike from the maximum', () {
+      // Given: szelcsend, ket mintan 34 m/s-os tuske (AWS-ugras).
+      final stats = summarize(const [
+        _Sample(twsMps: 1.3),
+        _Sample(twsMps: 1.3),
+        _Sample(twsMps: 1.3),
+        _Sample(twsMps: 34.2),
+        _Sample(twsMps: 34.1),
+        _Sample(twsMps: 1.3),
+        _Sample(twsMps: 1.3),
+        _Sample(twsMps: 1.3),
+      ]);
+
+      // Then: a maximumbol kiesik, az atlagban benne marad.
+      expect(stats.maxWindMps, 1.3);
+      expect(stats.avgWindMps, closeTo(9.5125, 1e-9)); // 76.1 / 8
+    });
+
+    test('uses the lower median when there are fewer than five', () {
+      final stats = summarize(const [
+        _Sample(twsMps: 2),
+        _Sample(twsMps: 4),
+        _Sample(twsMps: 9),
+      ]);
+
+      expect(stats.maxWindMps, 4);
     });
 
     test('ignores samples without wind speed', () {
+      // Given: a null minta kimarad a sorbol, igy a szuro a [3, 5]
+      // sort latja.
       final stats = summarize(const [
         _Sample(twsMps: 3),
         _Sample(),
@@ -41,7 +85,7 @@ void main() {
       ]);
 
       expect(stats.avgWindMps, 4);
-      expect(stats.maxWindMps, 5);
+      expect(stats.maxWindMps, 3);
     });
 
     test('leaves speed null when no sample has one', () {

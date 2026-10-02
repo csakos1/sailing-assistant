@@ -12,8 +12,9 @@ class WindStats {
   /// A valós szélsebesség számtani átlaga m/s-ben.
   final double? avgWindMps;
 
-  /// A legnagyobb valós szélsebesség m/s-ben (nyers, szűrés nélkül, a
-  /// `TrackStats.maxSpeedMps`-szel azonos szabály szerint).
+  /// A legnagyobb valós szélsebesség m/s-ben, tüske-szűrve: az 5 mintás
+  /// csúszó mediánok maximuma (ADR 0048 Addendum 5 L3). A
+  /// `TrackStats.maxSpeedMps` ezzel szemben nyers.
   final double? maxWindMps;
 
   /// Az uralkodó valós szélirány fokban, `[0, 360)` tartományban: a

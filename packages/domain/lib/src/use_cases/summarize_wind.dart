@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:domain/src/_internal/rolling_median_maximum.dart';
 import 'package:domain/src/value_objects/wind_sample.dart';
 import 'package:domain/src/value_objects/wind_stats.dart';
 import 'package:meta/meta.dart';
@@ -7,8 +8,11 @@ import 'package:meta/meta.dart';
 /// A szél-statisztika kiszámítása a rögzített pillanatképek
 /// [WindSample]-mintáiból (ADR 0048 D5).
 ///
-/// - **Sebesség:** a nem-null TWS-ek számtani átlaga és maximuma. A
-///   maximum nyers, mint a `SummarizeTrack` sebesség-maximuma.
+/// - **Átlag:** a nem-null TWS-ek számtani átlaga.
+/// - **Maximum:** a nem-null TWS-ek időrendi sorának 5 mintás csúszó
+///   mediánjaiból a legnagyobb (ADR 0048 Addendum 5 L3). A műszer 1–2
+///   mintás tüskéje (pl. egy AWS-ugrás 0-ról 68 kn-ra) így kiesik, a
+///   legalább 3 mp-es lökés megmarad.
 /// - **Irány:** a nem-null TWD-k **körkörös** átlaga: az egységvektorok
 ///   átlagának iránya. A számtani átlag a 359° → 1° átmenetnél 180°-ot
 ///   adna, ugyanaz a hiba, amit a wind-shift trend `unwrap`-ja kezel.
@@ -16,8 +20,10 @@ import 'package:meta/meta.dart';
 /// Ha az irányok kioltják egymást (az átlagvektor hossza gyakorlatilag
 /// nulla, pl. pontosan ellentétes minták), nincs uralkodó irány: `null`.
 ///
-/// **Pure use case**: nincs állapot, idempotens. A minták sorrendje nem
-/// számít, nincs idő-súlyozás (egyenletes mintavétel, mint a track-nél).
+/// **Pure use case**: nincs állapot, idempotens. A mintáknak időrendben
+/// kell jönniük (a `WindSampleReader` szerződése), mert a maximum szűrése
+/// szomszédos mintákat néz. Az átlag és az irány sorrendfüggetlen; idő-
+/// súlyozás nincs (egyenletes mintavétel, mint a track-nél).
 @immutable
 class SummarizeWind {
   /// Állapotmentes, ezért `const`.
@@ -29,22 +35,20 @@ class SummarizeWind {
   /// van iránya, azt a hívó nem kapja meg „nincs adat"-ként.
   static const double _cancellationEpsilon = 1e-9;
 
+  /// A csúszó medián ablaka: 1 Hz mellett kb. 5 mp, a ≤ 2 mintás tüskét
+  /// szűri ki.
+  static const int _spikeFilterWindow = 5;
+
   /// A [samples] szél-statisztikája; üres listára minden mező `null`.
   WindStats call(List<WindSample> samples) {
-    double? maxWindMps;
-    var speedSum = 0.0;
-    var speedCount = 0;
+    final speeds = <double>[];
     var sinSum = 0.0;
     var cosSum = 0.0;
     var directionCount = 0;
 
     for (final sample in samples) {
       final tws = sample.twsMps;
-      if (tws != null) {
-        speedSum += tws;
-        speedCount++;
-        if (maxWindMps == null || tws > maxWindMps) maxWindMps = tws;
-      }
+      if (tws != null) speeds.add(tws);
       final twd = sample.twdDeg;
       if (twd != null) {
         final radians = twd * math.pi / 180;
@@ -55,8 +59,13 @@ class SummarizeWind {
     }
 
     return WindStats(
-      avgWindMps: speedCount > 0 ? speedSum / speedCount : null,
-      maxWindMps: maxWindMps,
+      avgWindMps: speeds.isEmpty
+          ? null
+          : speeds.reduce((sum, speed) => sum + speed) / speeds.length,
+      maxWindMps: rollingMedianMaximum(
+        speeds,
+        windowSize: _spikeFilterWindow,
+      ),
       directionDeg: _meanDirection(sinSum, cosSum, directionCount),
     );
   }

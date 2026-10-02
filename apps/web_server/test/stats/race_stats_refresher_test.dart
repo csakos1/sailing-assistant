@@ -74,7 +74,8 @@ void main() {
       expect(cached?.track.maxSpeedMps, 5);
       expect(cached?.track.avgSpeedMps, 4);
       expect(cached?.wind.avgWindMps, 5);
-      expect(cached?.wind.maxWindMps, 6);
+      // Harom mintanal a tuske-szuro az also mediant adja (Addendum 5 L3).
+      expect(cached?.wind.maxWindMps, 5);
       expect(cached?.wind.directionDeg, closeTo(225, 1e-9));
       expect(cached?.computedAt, computedAt);
     });
