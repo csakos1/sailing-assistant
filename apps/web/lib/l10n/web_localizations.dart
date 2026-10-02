@@ -454,10 +454,10 @@ abstract class WebLocalizations {
   /// **'IDŐ'**
   String get editTimeFieldCaps;
 
-  /// Az időmező kitöltési mintája.
+  /// Az időmező kitöltési mintája; a másodperc nem kötelező.
   ///
   /// In hu, this message translates to:
-  /// **'ÓÓ:PP'**
+  /// **'ÓÓ:PP(:MM)'**
   String get editTimeHint;
 
   /// A befutás napja: a rajt napja (K11).
@@ -559,7 +559,7 @@ abstract class WebLocalizations {
   /// Hibaüzenet: olvashatatlan idő.
   ///
   /// In hu, this message translates to:
-  /// **'Hibás idő, pl. 10:00.'**
+  /// **'Hibás idő, pl. 10:00 vagy 10:00:30.'**
   String get editProblemTime;
 
   /// Hibaüzenet: nem pozitív helyezés (13n).

@@ -204,7 +204,7 @@ class WebLocalizationsHu extends WebLocalizations {
   String get editTimeFieldCaps => 'IDŐ';
 
   @override
-  String get editTimeHint => 'ÓÓ:PP';
+  String get editTimeHint => 'ÓÓ:PP(:MM)';
 
   @override
   String get editSameDayCaps => 'AZNAP';
@@ -256,7 +256,7 @@ class WebLocalizationsHu extends WebLocalizations {
   String get editProblemDate => 'Hibás dátum, pl. 2026.06.13.';
 
   @override
-  String get editProblemTime => 'Hibás idő, pl. 10:00.';
+  String get editProblemTime => 'Hibás idő, pl. 10:00 vagy 10:00:30.';
 
   @override
   String get editProblemPlaceAtLeastOne => 'A helyezés legalább 1.';

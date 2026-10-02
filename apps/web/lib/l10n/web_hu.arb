@@ -270,9 +270,9 @@
   "@editTimeFieldCaps": {
     "description": "Az időmező felirata."
   },
-  "editTimeHint": "ÓÓ:PP",
+  "editTimeHint": "ÓÓ:PP(:MM)",
   "@editTimeHint": {
-    "description": "Az időmező kitöltési mintája."
+    "description": "Az időmező kitöltési mintája; a másodperc nem kötelező."
   },
   "editSameDayCaps": "AZNAP",
   "@editSameDayCaps": {
@@ -338,7 +338,7 @@
   "@editProblemDate": {
     "description": "Hibaüzenet: olvashatatlan vagy nem létező nap."
   },
-  "editProblemTime": "Hibás idő, pl. 10:00.",
+  "editProblemTime": "Hibás idő, pl. 10:00 vagy 10:00:30.",
   "@editProblemTime": {
     "description": "Hibaüzenet: olvashatatlan idő."
   },

@@ -12,6 +12,11 @@ void main() {
     expect(formatLocalClock(DateTime(2026, 7, 26, 9, 5)), '09:05');
   });
 
+  test('shows the seconds of a local clock time only when not zero', () {
+    expect(formatLocalClock(DateTime(2026, 7, 26, 14, 32, 7)), '14:32:07');
+    expect(formatLocalClock(DateTime(2026, 7, 26, 14, 32, 0, 400)), '14:32');
+  });
+
   test('formats elapsed time past 24 hours in hours', () {
     expect(
       formatElapsed(const Duration(hours: 23, minutes: 35, seconds: 7)),
