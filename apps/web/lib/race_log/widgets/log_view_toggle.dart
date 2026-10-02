@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_log/log_view_mode.dart';
 
@@ -8,8 +9,10 @@ import 'package:foretack_web/race_log/log_view_mode.dart';
 /// G1, Addendum 4 K32).
 ///
 /// Rádiócsoport: egyetlen Tab-megálló, a ←/→ azonnal vált. Szögletes,
-/// 40 px magas, 1 px-es `outline` kerettel; a kijelölt cella
-/// `outlineVariant` háttér és `onSurface` felirat.
+/// az AppBar gombjaival egy magas (Addendum 5 L6), `surfaceContainer`
+/// sávon 1 px-es `outline` kerettel. A kijelölt cella tónusos teal
+/// (`secondaryContainer` háttér, `onSecondaryContainer` felirat), így a
+/// gomboktól eltér, de a téma színeiből épül.
 ///
 /// A `WebLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
@@ -23,9 +26,6 @@ class LogViewToggle extends StatelessWidget {
   /// A választott nézet.
   final ValueChanged<LogViewMode> onChanged;
 
-  /// A váltó magassága (G1).
-  static const double height = 40;
-
   @override
   Widget build(BuildContext context) {
     final l10n = WebLocalizations.of(context)!;
@@ -38,31 +38,33 @@ class LogViewToggle extends StatelessWidget {
         child: Builder(
           builder: (context) {
             final hasFocus = Focus.of(context).hasFocus;
-            return DecoratedBox(
+            return Container(
+              height: WebLayout.appBarControlHeight,
+              // A keret a dobozon belül fut: a cellák a betéten belül
+              // állnak, így nem takarják el.
+              padding: const EdgeInsets.all(1),
               decoration: BoxDecoration(
+                color: scheme.surfaceContainer,
                 border: Border.all(
                   // Fókuszban világosabb keret; a vastagság nem változik,
                   // hogy a gombok ne mozduljanak.
                   color: hasFocus ? scheme.onSurfaceVariant : scheme.outline,
                 ),
               ),
-              child: SizedBox(
-                height: height,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _Segment(
-                      label: l10n.logViewList,
-                      isSelected: mode == LogViewMode.list,
-                      onTap: () => onChanged(LogViewMode.list),
-                    ),
-                    _Segment(
-                      label: l10n.logViewTable,
-                      isSelected: mode == LogViewMode.table,
-                      onTap: () => onChanged(LogViewMode.table),
-                    ),
-                  ],
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _Segment(
+                    label: l10n.logViewList,
+                    isSelected: mode == LogViewMode.list,
+                    onTap: () => onChanged(LogViewMode.list),
+                  ),
+                  _Segment(
+                    label: l10n.logViewTable,
+                    isSelected: mode == LogViewMode.table,
+                    onTap: () => onChanged(LogViewMode.table),
+                  ),
+                ],
               ),
             );
           },
@@ -105,7 +107,7 @@ class _Segment extends StatelessWidget {
       checked: isSelected,
       button: true,
       child: Material(
-        color: isSelected ? scheme.outlineVariant : Colors.transparent,
+        color: isSelected ? scheme.secondaryContainer : Colors.transparent,
         child: InkWell(
           onTap: onTap,
           // A csoport egy Tab-megálló: a cellák nem kapnak fókuszt.
@@ -116,8 +118,9 @@ class _Segment extends StatelessWidget {
               child: Text(
                 label,
                 style: supportTextStyle.copyWith(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? scheme.onSurface
+                      ? scheme.onSecondaryContainer
                       : scheme.onSurfaceVariant,
                 ),
               ),

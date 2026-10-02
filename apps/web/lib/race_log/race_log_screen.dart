@@ -51,7 +51,9 @@ class RaceLogScreen extends ConsumerWidget {
                 ref.read(logViewModeProvider.notifier).mode = mode,
           ),
           const SizedBox(width: 8),
-          OutlinedButton.icon(
+          // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
+          // velük egy magas (Addendum 5 L6).
+          TextButton.icon(
             onPressed: () => unawaited(
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -61,7 +63,9 @@ class RaceLogScreen extends ConsumerWidget {
             ),
             icon: const Icon(Icons.add, size: 18),
             label: Text(l10n.logNewRace),
-            style: _appBarButtonStyle,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+            ).merge(_appBarControlStyle),
           ),
           const SizedBox(width: 8),
           Padding(
@@ -85,10 +89,25 @@ class RaceLogScreen extends ConsumerWidget {
   }
 }
 
-// Az AppBar keretes gombjai: 40 px magasak, szögletesek (G1, E7).
-final ButtonStyle _appBarButtonStyle = OutlinedButton.styleFrom(
-  minimumSize: const Size(0, 40),
-  shape: const RoundedRectangleBorder(),
+// Az AppBar vezérlőinek közös mérete és betűje (Addendum 5 L6). A weben
+// a gombok alapból kompakt sűrűséget kapnak (32 px), ezért a magasság és a
+// sűrűség itt rögzített, hogy a váltóval egy magasak legyenek.
+final ButtonStyle _appBarControlStyle = ButtonStyle(
+  minimumSize: const WidgetStatePropertyAll(
+    Size(0, WebLayout.appBarControlHeight),
+  ),
+  fixedSize: const WidgetStatePropertyAll(
+    Size.fromHeight(WebLayout.appBarControlHeight),
+  ),
+  padding: const WidgetStatePropertyAll(
+    EdgeInsets.symmetric(horizontal: 14),
+  ),
+  visualDensity: VisualDensity.standard,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+  textStyle: WidgetStatePropertyAll(
+    supportTextStyle.copyWith(fontWeight: FontWeight.w600),
+  ),
 );
 
 /// A Feltöltés gomb (ADR 0048 Addendum 4 K23). Üres naplóban kitöltött,
@@ -108,17 +127,20 @@ class _UploadButton extends StatelessWidget {
         onPressed: open,
         icon: icon,
         label: label,
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 40),
-          shape: const RoundedRectangleBorder(),
-        ),
+        style: _appBarControlStyle,
       );
     }
+    // A fő adatforrás: teal keret és felirat, a váltó szürke keretétől
+    // eltérően (Addendum 5 L6).
+    final primary = Theme.of(context).colorScheme.primary;
     return OutlinedButton.icon(
       onPressed: open,
       icon: icon,
       label: label,
-      style: _appBarButtonStyle,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: primary,
+        side: BorderSide(color: primary),
+      ).merge(_appBarControlStyle),
     );
   }
 }

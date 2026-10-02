@@ -80,4 +80,8 @@ abstract final class WebLayout {
 
   /// A dobogó talapzatának vastagsága a táblázatban (G6).
   static const double tablePodiumThickness = 2;
+
+  /// Az AppBar vezérlőinek közös magassága: a nézet-váltó és a gombok
+  /// (Addendum 5 L6).
+  static const double appBarControlHeight = 36;
 }
