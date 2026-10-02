@@ -3,10 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show clampDouble;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
-import 'package:foretack_web/race_detail/detail_formatters.dart';
 import 'package:foretack_web/race_log/table/cells/table_group_label.dart';
 import 'package:foretack_web/race_log/table/cells/table_name_cell.dart';
 import 'package:foretack_web/race_log/table/cells/table_placing_cell.dart';
@@ -14,11 +12,12 @@ import 'package:foretack_web/race_log/table/cells/table_sort_header.dart';
 import 'package:foretack_web/race_log/table/cells/table_value_cell.dart';
 import 'package:foretack_web/race_log/table/cells/table_year_label.dart';
 import 'package:foretack_web/race_log/table/race_table_column.dart';
-import 'package:foretack_web/race_log/table/race_table_formatters.dart';
 import 'package:foretack_web/race_log/table/race_table_items.dart';
 import 'package:foretack_web/race_log/table/race_table_row.dart';
 import 'package:foretack_web/race_log/table/race_table_sort.dart';
+import 'package:foretack_web/race_log/table/race_table_widths.dart';
 import 'package:foretack_web/race_log/table/sort_direction.dart';
+import 'package:foretack_web/race_log/table/table_cell_value.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
@@ -59,27 +58,6 @@ class RaceTable extends StatefulWidget {
 // A két fejlécsor a sorindexek elején.
 const int _headerRowCount = 2;
 
-// Az oszlopok szélessége a G2 táblázata szerint: összesen 1400 px. A Díj
-// legalább ennyi, de kitölti a maradékot (K29).
-const Map<RaceTableColumn, double> _columnWidths = {
-  RaceTableColumn.date: 104,
-  RaceTableColumn.name: 216,
-  RaceTableColumn.classPlace: 80,
-  RaceTableColumn.overallPlace: 80,
-  RaceTableColumn.monohullPlace: 80,
-  RaceTableColumn.ysNumber: 64,
-  RaceTableColumn.start: 72,
-  RaceTableColumn.finish: 88,
-  RaceTableColumn.elapsed: 88,
-  RaceTableColumn.distance: 72,
-  RaceTableColumn.avgSpeed: 56,
-  RaceTableColumn.maxSpeed: 56,
-  RaceTableColumn.avgWind: 64,
-  RaceTableColumn.maxWind: 64,
-  RaceTableColumn.windDirection: 64,
-  RaceTableColumn.prize: 152,
-};
-
 // A csoportsor összevont cellái: első oszlop és szélesség. Az összevont
 // cella nem lóghat át a rögzített határon (K25), ezért a VERSENY csoport
 // pontosan a rögzített blokk.
@@ -92,11 +70,6 @@ const List<_ColumnGroup> _columnGroups = [
   (start: 10, span: 5),
   (start: 15, span: 1),
 ];
-
-// A Díjon kívüli oszlopok szélessége: 1400 − 152.
-final double _otherColumnsWidth = _columnWidths.entries
-    .where((entry) => entry.key != RaceTableColumn.prize)
-    .fold(0, (sum, entry) => sum + entry.value);
 
 // A csoportok első oszlopai, a bal blokk utániak: ezek előtt áll a
 // csoport-elválasztó vonal.
@@ -113,6 +86,20 @@ class _RaceTableState extends State<RaceTable> {
   // A hover alatti törzs-sor indexe az `items`-ben, vagy `null`.
   int? _hoveredItem;
 
+  // A mért oszlopszélességek és a mérés bemenete (Addendum 5 L4). A
+  // mérés szövegenként elrendez, ezért csak akkor fut újra, ha a sorok, a
+  // szövegnagyítás vagy a betöltött betűtípusok változnak.
+  RaceTableWidths? _widths;
+  Object? _widthsKey;
+
+  @override
+  void initState() {
+    super.initState();
+    // A weben a betűtípus a betöltés után érkezhet; addig tartalék
+    // betűvel mérnénk, ezért a font megérkezésekor újramérünk.
+    PaintingBinding.instance.systemFonts.addListener(_remeasure);
+  }
+
   @override
   void didUpdateWidget(RaceTable oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -122,30 +109,61 @@ class _RaceTableState extends State<RaceTable> {
 
   @override
   void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_remeasure);
     _vertical.dispose();
     _horizontal.dispose();
     super.dispose();
+  }
+
+  void _remeasure() {
+    if (mounted) setState(() => _widthsKey = null);
+  }
+
+  RaceTableWidths _widthsFor(WebLocalizations l10n, TextScaler textScaler) {
+    final key = (widget.items, textScaler, l10n.localeName);
+    final cached = _widths;
+    if (cached != null && _widthsKey == key) return cached;
+    final measured = measureRaceTableWidths(
+      items: widget.items,
+      headerLabel: (column) => _columnLabel(l10n, column),
+      unitLabel: (column) => _columnUnit(l10n, column),
+      manualLabel: l10n.tableManualCaps,
+      nextDayMark: l10n.tableNextDay,
+      textScaler: textScaler,
+    );
+    _widths = measured;
+    _widthsKey = key;
+    return measured;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = WebLocalizations.of(context)!;
+    final widths = _widthsFor(l10n, MediaQuery.textScalerOf(context));
+    final columnWidths = widths.columns;
+    final contentWidth = columnWidths.values.fold<double>(
+      0,
+      (sum, width) => sum + width,
+    );
+    // A `!` biztonságos: a mért térkép minden oszlopot tartalmaz.
+    final minimumPrizeWidth = columnWidths[RaceTableColumn.prize]!;
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Legfeljebb 1600 px (G2); ha a tartalom ennél szélesebb, a
+        // táblázat is szélesebb lehet, amíg az ablakba fér.
         final width = clampDouble(
           constraints.maxWidth - 2 * WebLayout.tableInset,
           0,
-          WebLayout.tableMaxWidth,
+          math.max(WebLayout.tableMaxWidth, contentWidth),
         );
         // A Díj kitölti a maradékot (K29). A `RemainingTableSpanExtent` itt
         // nem jó: a nem rögzített oszlopoknál a megelőző szélességből
         // kimarad a rögzített blokk, így 320 px-lel túl széles lenne.
-        // A `!` biztonságos: a térkép minden oszlopot tartalmaz.
         final prizeWidth = math.max(
-          _columnWidths[RaceTableColumn.prize]!,
-          width - _otherColumnsWidth,
+          minimumPrizeWidth,
+          width - (contentWidth - minimumPrizeWidth),
         );
         return Listener(
           // A táblázaton kívüli sávokban is görgessen a görgő (K29).
@@ -178,10 +196,15 @@ class _RaceTableState extends State<RaceTable> {
                       pinnedColumnCount: RaceTableColumn.pinnedCount,
                       columnCount: RaceTableColumn.values.length,
                       rowCount: _headerRowCount + widget.items.length,
-                      columnBuilder: (index) =>
-                          _columnSpan(scheme, index, prizeWidth),
+                      columnBuilder: (index) => _columnSpan(
+                        scheme,
+                        index,
+                        columnWidths,
+                        prizeWidth,
+                      ),
                       rowBuilder: (index) => _rowSpan(scheme, index),
-                      cellBuilder: (_, vicinity) => _cell(l10n, vicinity),
+                      cellBuilder: (_, vicinity) =>
+                          _cell(l10n, widths, vicinity),
                     ),
                   ),
                 ),
@@ -203,7 +226,12 @@ class _RaceTableState extends State<RaceTable> {
     });
   }
 
-  TableSpan _columnSpan(ColorScheme scheme, int index, double prizeWidth) {
+  TableSpan _columnSpan(
+    ColorScheme scheme,
+    int index,
+    Map<RaceTableColumn, double> columnWidths,
+    double prizeWidth,
+  ) {
     final column = RaceTableColumn.values[index];
     final leading = _groupStarts.contains(column)
         ? BorderSide(color: scheme.outlineVariant)
@@ -218,10 +246,10 @@ class _RaceTableState extends State<RaceTable> {
             border: TableSpanBorder(leading: leading, trailing: trailing),
           )
         : null;
-    // A `!` biztonságos: a térkép minden oszlopot tartalmaz.
+    // A `!` biztonságos: a mért térkép minden oszlopot tartalmaz.
     final width = column == RaceTableColumn.prize
         ? prizeWidth
-        : _columnWidths[column]!;
+        : columnWidths[column]!;
     return TableSpan(
       extent: FixedTableSpanExtent(width),
       foregroundDecoration: lines,
@@ -301,7 +329,11 @@ class _RaceTableState extends State<RaceTable> {
     ),
   );
 
-  TableViewCell _cell(WebLocalizations l10n, TableVicinity vicinity) {
+  TableViewCell _cell(
+    WebLocalizations l10n,
+    RaceTableWidths widths,
+    TableVicinity vicinity,
+  ) {
     final column = RaceTableColumn.values[vicinity.column];
     if (vicinity.row == 0) return _groupCell(l10n, vicinity.column);
     if (vicinity.row == 1) return TableViewCell(child: _header(l10n, column));
@@ -312,7 +344,7 @@ class _RaceTableState extends State<RaceTable> {
         raceCount,
       ),
       TableRaceItem(:final row) => TableViewCell(
-        child: _raceCell(l10n, row, column),
+        child: _raceCell(l10n, widths, row, column),
       ),
     };
   }
@@ -353,113 +385,80 @@ class _RaceTableState extends State<RaceTable> {
 
   Widget _header(WebLocalizations l10n, RaceTableColumn column) {
     final label = _columnLabel(l10n, column);
+    final unit = _columnUnit(l10n, column);
+    final spoken = unit == null ? label : '$label, $unit';
     final sort = widget.sort;
     final sortedDirection = sort.column == column ? sort.direction : null;
     return TableSortHeader(
       label: label,
+      unit: unit,
       semanticLabel: switch (sortedDirection) {
-        SortDirection.ascending => l10n.tableSortedAscending(label),
-        SortDirection.descending => l10n.tableSortedDescending(label),
-        null => label,
+        SortDirection.ascending => l10n.tableSortedAscending(spoken),
+        SortDirection.descending => l10n.tableSortedDescending(spoken),
+        null => spoken,
       },
       sortedDirection: sortedDirection,
-      isAlignedEnd: _isNumeric(column),
+      isAlignedEnd: _isAlignedEnd(column),
       onTap: () => widget.onSortTap(column),
     );
   }
 
   Widget _raceCell(
     WebLocalizations l10n,
+    RaceTableWidths widths,
     RaceTableRow row,
     RaceTableColumn column,
   ) {
-    final isApproximate = row.areStatsApproximate;
-    return switch (column) {
-      RaceTableColumn.date => TableValueCell(
-        value: formatTableDate(row.day),
-        isAlignedEnd: false,
-      ),
-      RaceTableColumn.name => TableNameCell(
+    final placing = switch (column) {
+      RaceTableColumn.classPlace => row.classPlace,
+      RaceTableColumn.overallPlace => row.overallPlace,
+      RaceTableColumn.monohullPlace => row.monohullPlace,
+      _ => null,
+    };
+    final slots = widths.placingSlots[column];
+    if (placing != null && slots != null) {
+      return TablePlacingCell(placing: placing, slots: slots);
+    }
+    if (column == RaceTableColumn.name) {
+      return TableNameCell(
         name: row.name,
         manualLabel: row.isManual ? l10n.tableManualCaps : null,
-      ),
-      RaceTableColumn.classPlace => _placingCell(row.classPlace),
-      RaceTableColumn.overallPlace => _placingCell(row.overallPlace),
-      RaceTableColumn.monohullPlace => _placingCell(row.monohullPlace),
-      RaceTableColumn.ysNumber => _optional(
-        row.ysNumberHundredths,
-        (ys) => TableValueCell(value: formatYsNumber(ys)),
-      ),
-      RaceTableColumn.start => _optional(
-        row.start,
-        (start) => TableValueCell(
-          value: formatTableClock(start.instant),
-          isApproximate: start.isApproximate,
-        ),
-      ),
-      RaceTableColumn.finish => _optional(
-        row.finish,
-        (finish) => TableValueCell(
-          value: formatTableClock(finish.instant),
-          isApproximate: finish.isApproximate,
-          suffix: row.isFinishNextDay ? l10n.tableNextDay : null,
-        ),
-      ),
-      RaceTableColumn.elapsed => _optional(
-        row.elapsed,
-        (elapsed) => TableValueCell(
-          value: formatElapsed(elapsed.value),
-          isApproximate: elapsed.isApproximate,
-        ),
-      ),
-      RaceTableColumn.distance => _optional(
-        row.distanceMeters,
-        (meters) => TableValueCell(
-          value: formatTableKilometers(meters),
-          isApproximate: isApproximate,
-        ),
-      ),
-      RaceTableColumn.avgSpeed => _knotsCell(row.avgSpeedMps, isApproximate),
-      RaceTableColumn.maxSpeed => _knotsCell(row.maxSpeedMps, isApproximate),
-      RaceTableColumn.avgWind => _knotsCell(row.avgWindMps, isApproximate),
-      RaceTableColumn.maxWind => _knotsCell(row.maxWindMps, isApproximate),
-      RaceTableColumn.windDirection => _optional(
-        row.windPoint,
-        (point) => TableValueCell(
-          value: compassPointLabel(point),
-          isApproximate: isApproximate,
-        ),
-      ),
-      RaceTableColumn.prize => _optional(
-        row.prize,
-        (prize) => TableValueCell(value: prize, isAlignedEnd: false),
-      ),
-    };
+      );
+    }
+    final cell = tableCellValueOf(row, column, nextDayMark: l10n.tableNextDay);
+    // Üres cellában semmi nem áll (G2).
+    if (cell == null) return const SizedBox.shrink();
+    return TableValueCell(
+      value: cell.value,
+      isApproximate: cell.isApproximate,
+      suffix: cell.suffix,
+      isAlignedEnd: _isAlignedEnd(column),
+    );
   }
 
-  Widget _placingCell(TablePlacing? placing) =>
-      _optional(placing, (value) => TablePlacingCell(placing: value));
-
-  Widget _knotsCell(double? metersPerSecond, bool isApproximate) => _optional(
-    metersPerSecond,
-    (value) => TableValueCell(
-      value: formatTableKnots(value),
-      isApproximate: isApproximate,
-    ),
-  );
-
-  // Üres cellában semmi nem áll (G2).
-  static Widget _optional<T extends Object>(
-    T? value,
-    Widget Function(T value) build,
-  ) => value == null ? const SizedBox.shrink() : build(value);
-
-  static bool _isNumeric(RaceTableColumn column) => switch (column) {
+  // A számok jobbra zárnak, a dátum, a név, az égtáj és a díj balra
+  // (G2); a fejléc ugyanígy igazodik, mint a cellái.
+  static bool _isAlignedEnd(RaceTableColumn column) => switch (column) {
     RaceTableColumn.date ||
     RaceTableColumn.name ||
     RaceTableColumn.windDirection ||
     RaceTableColumn.prize => false,
     _ => true,
+  };
+
+  // A mértékegység a fejléc második sorában (Addendum 5 L5).
+  static String? _columnUnit(
+    WebLocalizations l10n,
+    RaceTableColumn column,
+  ) => switch (column) {
+    RaceTableColumn.start || RaceTableColumn.finish => l10n.tableUnitClock,
+    RaceTableColumn.elapsed => l10n.tableUnitElapsed,
+    RaceTableColumn.distance => l10n.tableUnitKilometers,
+    RaceTableColumn.avgSpeed ||
+    RaceTableColumn.maxSpeed ||
+    RaceTableColumn.avgWind ||
+    RaceTableColumn.maxWind => l10n.tableUnitKnots,
+    _ => null,
   };
 
   static String _columnLabel(

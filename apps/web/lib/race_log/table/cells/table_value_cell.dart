@@ -40,15 +40,15 @@ class TableValueCell extends StatelessWidget {
             if (suffixText != null)
               TextSpan(
                 text: ' $suffixText',
-                style: tableNumberStyle.copyWith(
-                  fontSize: 9,
+                style: tableSuffixStyle.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
           ],
         ),
         maxLines: 1,
-        overflow: TextOverflow.clip,
+        // Az oszlop a tartalomhoz mért (L4); csak a Díj vágódhat.
+        overflow: TextOverflow.ellipsis,
         softWrap: false,
         style: tableNumberStyle.copyWith(color: color),
       ),

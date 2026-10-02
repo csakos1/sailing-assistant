@@ -549,10 +549,10 @@ class WebLocalizationsHu extends WebLocalizations {
   String get tableGroupResultCaps => 'EREDMÉNY · HELYEZÉS/MEZŐNY';
 
   @override
-  String get tableGroupTimeCaps => 'IDŐ ÉS TÁV · KM';
+  String get tableGroupTimeCaps => 'IDŐ ÉS TÁV';
 
   @override
-  String get tableGroupSpeedCaps => 'SEBESSÉG ÉS SZÉL · KN';
+  String get tableGroupSpeedCaps => 'SEBESSÉG ÉS SZÉL';
 
   @override
   String get tableGroupPrizeCaps => 'DÍJ';
@@ -620,4 +620,16 @@ class WebLocalizationsHu extends WebLocalizations {
   String tableSortedDescending(String column) {
     return '$column, csökkenő sorrend';
   }
+
+  @override
+  String get tableUnitKilometers => 'km';
+
+  @override
+  String get tableUnitKnots => 'kn';
+
+  @override
+  String get tableUnitClock => 'ó:p';
+
+  @override
+  String get tableUnitElapsed => 'ó:p:mp';
 }

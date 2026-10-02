@@ -7,7 +7,8 @@ import 'package:foretack_web/race_log/table/sort_direction.dart';
 ///
 /// A rendezett oszlopot csak a fejléc jelöli: világos felirat, nyíl, 2 px-es
 /// alsó vonal és kiemelt háttér. A rendezés iránya a szemantikai címkében
-/// szerepel, mert a Flutterben nincs `aria-sort` (K29).
+/// szerepel, mert a Flutterben nincs `aria-sort` (K29). A mértékegység a
+/// felirat alatt, második sorban áll (Addendum 5 L5).
 class TableSortHeader extends StatelessWidget {
   /// Fejléc a [label] felirattal; [sortedDirection] a rendezés iránya, ha
   /// ez az oszlop a rendezett.
@@ -15,6 +16,7 @@ class TableSortHeader extends StatelessWidget {
     required this.label,
     required this.semanticLabel,
     required this.onTap,
+    this.unit,
     this.sortedDirection,
     this.isAlignedEnd = false,
     super.key,
@@ -22,6 +24,9 @@ class TableSortHeader extends StatelessWidget {
 
   /// A verzál felirat.
   final String label;
+
+  /// A mértékegység (pl. `km`), vagy `null`, ha az oszlopnak nincs.
+  final String? unit;
 
   /// A felolvasott címke, a rendezett oszlopnál az iránnyal.
   final String semanticLabel;
@@ -41,13 +46,32 @@ class TableSortHeader extends StatelessWidget {
     final direction = sortedDirection;
     final isSorted = direction != null;
     final color = isSorted ? scheme.onSurface : scheme.onSurfaceVariant;
+    final unitText = unit;
     final text = Flexible(
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        softWrap: false,
-        style: tableHeaderStyle.copyWith(color: color),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: isAlignedEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            softWrap: false,
+            style: tableHeaderStyle.copyWith(color: color),
+          ),
+          if (unitText != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              unitText,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: tableUnitStyle.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ],
       ),
     );
     final arrow = Icon(

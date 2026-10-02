@@ -1087,13 +1087,13 @@ abstract class WebLocalizations {
   /// A táblázat csoportsora: rajt, befutás, menetidő, táv (G2).
   ///
   /// In hu, this message translates to:
-  /// **'IDŐ ÉS TÁV · KM'**
+  /// **'IDŐ ÉS TÁV'**
   String get tableGroupTimeCaps;
 
   /// A táblázat csoportsora: sebesség, szél, irány (G2).
   ///
   /// In hu, this message translates to:
-  /// **'SEBESSÉG ÉS SZÉL · KN'**
+  /// **'SEBESSÉG ÉS SZÉL'**
   String get tableGroupSpeedCaps;
 
   /// A táblázat csoportsora: a díj (G2).
@@ -1221,6 +1221,30 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'{column}, csökkenő sorrend'**
   String tableSortedDescending(String column);
+
+  /// Mértékegység a Táv fejlécében (L5).
+  ///
+  /// In hu, this message translates to:
+  /// **'km'**
+  String get tableUnitKilometers;
+
+  /// Mértékegység a sebesség és a szél fejlécében (L5).
+  ///
+  /// In hu, this message translates to:
+  /// **'kn'**
+  String get tableUnitKnots;
+
+  /// A rajt és a befutás fejlécének második sora (L5).
+  ///
+  /// In hu, this message translates to:
+  /// **'ó:p'**
+  String get tableUnitClock;
+
+  /// A menetidő fejlécének második sora (L5).
+  ///
+  /// In hu, this message translates to:
+  /// **'ó:p:mp'**
+  String get tableUnitElapsed;
 }
 
 class _WebLocalizationsDelegate

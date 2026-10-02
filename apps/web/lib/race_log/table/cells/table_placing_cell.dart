@@ -4,17 +4,28 @@ import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/race_log/table/cells/table_cell_padding.dart';
 import 'package:foretack_web/race_log/table/cells/table_cell_styles.dart';
 import 'package:foretack_web/race_log/table/race_table_row.dart';
+import 'package:foretack_web/race_log/table/race_table_widths.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 /// Egy helyezés a saját mezőnyével (G2): jobbra zárt szám, perjeles,
 /// tompított mezőny; a perjelek egy oszlopba esnek. DNF és DSQ mellett a
 /// mezőny nem látszik; az 1–3. hely alatt talapzat (G6).
+///
+/// A két hely szélessége az oszlop leghosszabb értékéhez mért (Addendum 5
+/// L4), így a perjelek akkor is egy oszlopba esnek, ha a mezőny háromjegyű.
 class TablePlacingCell extends StatelessWidget {
-  /// Cella a [placing] helyezéssel.
-  const TablePlacingCell({required this.placing, super.key});
+  /// Cella a [placing] helyezéssel, az oszlop [slots] helyeivel.
+  const TablePlacingCell({
+    required this.placing,
+    required this.slots,
+    super.key,
+  });
 
   /// A helyezés és a mezőny.
   final TablePlacing placing;
+
+  /// A szám és a mezőny helyének szélessége az oszlopban.
+  final PlacingSlots slots;
 
   @override
   Widget build(BuildContext context) {
@@ -22,13 +33,12 @@ class TablePlacingCell extends StatelessWidget {
     // A `!` biztonságos: a `foretackTheme` regisztrálja a `TextTones`-t.
     final tones = Theme.of(context).extension<TextTones>()!;
     final fleetSize = placing.fleetSize;
-    final (text, isNumber, isPodium) = switch (placing.placing) {
-      FinishPlace(:final place) => ('$place', true, place <= 3),
-      Dnf() => ('DNF', false, false),
-      Dsq() => ('DSQ', false, false),
+    final (isNumber, isPodium) = switch (placing.placing) {
+      FinishPlace(:final place) => (true, place <= 3),
+      Dnf() || Dsq() => (false, false),
     };
     final placeText = Text(
-      text,
+      tablePlaceText(placing.placing),
       maxLines: 1,
       softWrap: false,
       style: tableNumberStyle.copyWith(
@@ -37,10 +47,12 @@ class TablePlacingCell extends StatelessWidget {
     );
 
     return TableCellPadding(
+      alignment: Alignment.centerRight,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: WebLayout.tablePlaceWidth,
+            width: slots.place,
             child: Align(
               alignment: Alignment.centerRight,
               child: isPodium
@@ -59,7 +71,7 @@ class TablePlacingCell extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: WebLayout.tableFleetWidth,
+            width: slots.fleet,
             child: isNumber && fleetSize != null
                 ? Text(
                     '/$fleetSize',

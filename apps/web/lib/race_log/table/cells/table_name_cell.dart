@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/race_log/table/cells/table_cell_padding.dart';
 import 'package:foretack_web/race_log/table/cells/table_cell_styles.dart';
 
@@ -28,7 +27,7 @@ class TableNameCell extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               softWrap: false,
-              style: supportTextStyle.copyWith(color: scheme.onSurface),
+              style: tableNameStyle.copyWith(color: scheme.onSurface),
             ),
           ),
           if (label != null) ...[

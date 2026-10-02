@@ -721,11 +721,11 @@
   "@tableGroupResultCaps": {
     "description": "A táblázat csoportsora: helyezések és YS (G2)."
   },
-  "tableGroupTimeCaps": "IDŐ ÉS TÁV · KM",
+  "tableGroupTimeCaps": "IDŐ ÉS TÁV",
   "@tableGroupTimeCaps": {
     "description": "A táblázat csoportsora: rajt, befutás, menetidő, táv (G2)."
   },
-  "tableGroupSpeedCaps": "SEBESSÉG ÉS SZÉL · KN",
+  "tableGroupSpeedCaps": "SEBESSÉG ÉS SZÉL",
   "@tableGroupSpeedCaps": {
     "description": "A táblázat csoportsora: sebesség, szél, irány (G2)."
   },
@@ -822,5 +822,21 @@
         "type": "String"
       }
     }
+  },
+  "tableUnitKilometers": "km",
+  "@tableUnitKilometers": {
+    "description": "Mértékegység a Táv fejlécében (L5)."
+  },
+  "tableUnitKnots": "kn",
+  "@tableUnitKnots": {
+    "description": "Mértékegység a sebesség és a szél fejlécében (L5)."
+  },
+  "tableUnitClock": "ó:p",
+  "@tableUnitClock": {
+    "description": "A rajt és a befutás fejlécének második sora (L5)."
+  },
+  "tableUnitElapsed": "ó:p:mp",
+  "@tableUnitElapsed": {
+    "description": "A menetidő fejlécének második sora (L5)."
   }
 }

@@ -17,7 +17,9 @@ import 'package:race_archive_api/race_archive_api.dart';
 import '../support/sample_summaries.dart';
 
 // A teljes webes app a Tablazat nezettel, MockClient-tel a szerver helyen.
-// A nezet 1600 px szeles, hogy mind a 16 oszlop gorgetes nelkul latsszon.
+// A nezet 3200 px szeles: a teszt-betu minden jele egy em szeles, igy a
+// tartalomhoz mert oszlopok (L4) szelesebbek a valodinal, es mind a 16
+// oszlopnak gorgetes nelkul latszania kell.
 
 void main() {
   final summaries = [
@@ -44,7 +46,7 @@ void main() {
 
   Future<void> pumpApp(WidgetTester tester) async {
     tester.view
-      ..physicalSize = const Size(1600, 900)
+      ..physicalSize = const Size(3200, 900)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -101,7 +103,16 @@ void main() {
     expect(find.byType(RaceTable), findsOneWidget);
     expect(find.byType(RaceLogRow), findsNothing);
     expect(find.text('MAX SZÉL'), findsOneWidget);
-    expect(find.text('SEBESSÉG ÉS SZÉL · KN'), findsOneWidget);
+    expect(find.text('SEBESSÉG ÉS SZÉL'), findsOneWidget);
+    // A mertekegyseg a fejlec masodik soraban all (L5); a stat-csik is ir
+    // "km"-t, ezert a kereses a tablazatra szukul.
+    Finder inTable(String text) => find.descendant(
+      of: find.byType(RaceTable),
+      matching: find.text(text),
+    );
+    expect(inTable('km'), findsOneWidget);
+    expect(inTable('kn'), findsNWidgets(4));
+    expect(inTable('ó:p'), findsNWidgets(2));
     expect(find.text('Verseny lelle'), findsOneWidget);
     // A telemetrias verseny hivatalos idok nelkul kozelito (G6).
     expect(find.text('~9,8'), findsOneWidget);
