@@ -6,6 +6,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/app/leave_warning_scope.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_layout.dart';
+import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 
 /// A szerkesztők közös kerete (ADR 0048 Addendum 1 G4, Addendum 4 K15).
@@ -88,37 +89,28 @@ class EditorScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: WebLayout.columnMaxWidth,
-                        ),
-                        child: ListView(
-                          padding: const EdgeInsets.only(bottom: 48),
-                          children: [
-                            ?header,
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: WebLayout.textMaxWidth,
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: WebLayout.columnInset,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: children,
-                                  ),
-                                ),
+                    child: WebScrollColumn(
+                      bottomPadding: 48,
+                      children: [
+                        ?header,
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: WebLayout.textMaxWidth,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: WebLayout.columnInset,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: children,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                   _SaveBar(

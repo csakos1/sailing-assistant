@@ -6,6 +6,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/api/api_failure.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_layout.dart';
+import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/detail_section_label.dart';
 import 'package:foretack_web/race_detail/full_screen_track_map_screen.dart';
@@ -114,48 +115,41 @@ class _DetailBody extends StatelessWidget {
     final stats = summary.stats;
     final summaryText = summary.result?.content.summary;
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: WebLayout.columnMaxWidth),
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 56),
-          children: [
-            if (telemetry != null)
-              DetailStatusStrip(race: telemetry.race)
-            else
-              _ManualStatusStrip(summary: summary),
-            TrackStatsRow(stats: stats.track),
-            RaceLogStatsStrip(cells: _windCells(l10n, stats)),
-            if (stats.window.isApproximate) const _ApproximateNote(),
-            ResultBlock(result: summary.result, onEdit: onEdit),
-            if (telemetry != null) ...[
-              const SizedBox(height: 24),
-              _TrackMapCard(name: summary.name, telemetry: telemetry),
-              DetailSectionLabel(text: l10n.detailMarksCaps),
-              for (final mark in telemetry.race.marks)
-                DetailMarkRow(mark: mark),
-            ],
-            if (summaryText != null) ...[
-              DetailSectionLabel(text: l10n.detailSummaryCaps),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: WebLayout.textMaxWidth,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: WebLayout.columnInset,
-                    ),
-                    child: Text(summaryText, style: supportTextStyle),
-                  ),
-                ),
+    return WebScrollColumn(
+      bottomPadding: 56,
+      children: [
+        if (telemetry != null)
+          DetailStatusStrip(race: telemetry.race)
+        else
+          _ManualStatusStrip(summary: summary),
+        TrackStatsRow(stats: stats.track),
+        RaceLogStatsStrip(cells: _windCells(l10n, stats)),
+        if (stats.window.isApproximate) const _ApproximateNote(),
+        ResultBlock(result: summary.result, onEdit: onEdit),
+        if (telemetry != null) ...[
+          const SizedBox(height: 24),
+          _TrackMapCard(name: summary.name, telemetry: telemetry),
+          DetailSectionLabel(text: l10n.detailMarksCaps),
+          for (final mark in telemetry.race.marks) DetailMarkRow(mark: mark),
+        ],
+        if (summaryText != null) ...[
+          DetailSectionLabel(text: l10n.detailSummaryCaps),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: WebLayout.textMaxWidth,
               ),
-            ],
-          ],
-        ),
-      ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: WebLayout.columnInset,
+                ),
+                child: Text(summaryText, style: supportTextStyle),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

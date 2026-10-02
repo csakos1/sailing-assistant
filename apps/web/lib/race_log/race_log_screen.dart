@@ -6,6 +6,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
+import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
@@ -178,17 +179,9 @@ class _RaceLogBody extends ConsumerWidget {
           ),
         ),
         Expanded(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: WebLayout.columnMaxWidth,
-              ),
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 56),
-                children: _rows(context, l10n),
-              ),
-            ),
+          child: WebScrollColumn(
+            bottomPadding: 56,
+            children: _rows(context, l10n),
           ),
         ),
       ],
