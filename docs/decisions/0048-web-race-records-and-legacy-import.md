@@ -8,7 +8,8 @@ következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
 14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
 alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
 tervét, a napló, a részletező, a szerkesztők és a feltöltés döntéseit
-rögzíti.
+rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
+(görgetés, másodperc, szél-maximum) rögzíti.
 
 ## Kontextus
 
@@ -206,6 +207,7 @@ nem olvassa.
 
 - **Átlagos szél:** a nem-null TWS-ek számtani átlaga.
 - **Max. szél:** a legnagyobb TWS, a sebességgel azonos szabály szerint.
+  Az Addendum 5 L3 felülírja: tüske-szűrt maximum.
 - **Uralkodó irány:** a nem-null TWD-k körkörös átlaga (egységvektorok
   átlaga). Az egyszerű számtani átlag a 359°→1° átmenetnél hibás lenne,
   ugyanaz a probléma, amit a wind-shift trend `unwrap`-ja kezel.
@@ -1412,3 +1414,64 @@ osztály (`one_member_abstracts`, a domain `*Reader` typedefjeinek mintája).
   - a szerkesztők kerete, ha van mentetlen változtatás (K15);
   - a feltöltés-dialógus, amíg a feltöltés fut.
 - Az appon belüli kilépést továbbra is a 13o dialógus kezeli.
+
+## Addendum 5 — Javítások a feltöltés után (2026-10-02)
+
+A feltöltés böngészős próbája után a felhasználó három hibát jelzett. Az
+L1–L3 a javításukat rögzíti.
+
+### L1 — Görgetés az oldal teljes szélességében (felhasználói döntés)
+
+- **A hiba:** a napló, a részletező és a szerkesztők a `ListView`-t az
+  880 px-es oszlopba tették. A görgő eseménye a kurzor alatti görgethető
+  widgethez jut, ezért az oszlopon kívül az oldal nem görgetett.
+- **A javítás:** közös `WebScrollColumn` (`apps/web/lib/app/`). A
+  `ListView` az ablak teljes szélességét kapja, a gyerekei egyenként a
+  `WebColumn`-ban állnak. A görgetősáv így az ablak jobb szélére kerül,
+  ahogy egy weboldalon megszokott.
+- A napló évsávja és stat-csíkja **fix marad** a lista fölött
+  (felhasználói döntés). Fölöttük a görgő nem görget, ahogy az AppBar
+  fölött sem.
+- A feltöltés-dialógus eredmény-listája (K21) nem érintett: az a doboz
+  saját görgetője.
+
+### L2 — Másodperc a hivatalos időkben
+
+- A beolvasás a K11 óta elfogadja a másodpercet (`10:00:30`, `100030`),
+  és a szerver is másodpercre pontosan tárol. A másodperc nem kötelező,
+  és a rajt mezőjében is megadható (ugyanaz a parser).
+- **A hiba:** a részletező a hivatalos rajtot és befutást `ÓÓ:PP`
+  alakban írta ki, a mező súgója `ÓÓ:PP` volt, a hibaüzenet példája
+  `10:00`. A megadott másodperc így nem látszott sehol, csak a
+  menetidőben.
+- **A javítás:** a részletező másodperccel mutatja az időt, ha az nem
+  nulla (`14:32:07`), különben `ÓÓ:PP` (`14:32`), az űrlap
+  `formatClockTime`-jának szabálya szerint. A súgó `ÓÓ:PP(:MM)`, a
+  hibaüzenet példája `10:00 vagy 10:00:30`.
+
+### L3 — Max. szél tüske-szűréssel (felülírja a D5 „Max. szél" pontját)
+
+- **A hiba:** a nyers maximum egyetlen mintából is lehet. Az 58. Kékszalag
+  max. szele 66 kn volt: 3:00:00-kor, szélcsendben, az AWS két mintán át
+  0,0-ról 68,4 kn-ra ugrott, majd vissza 0,0-ra (a műszer TWS-e ebből
+  számol). Még két versenyen volt 50 kn fölötti érték.
+- **A szabály:** a max. szél az időrendi TWS-sor **5 mintás csúszó
+  mediánjainak maximuma**. A mintavétel 1 Hz, így ez kb. 5 mp. Ha
+  5-nél kevesebb TWS-minta van, az összes minta egyetlen mediánja számít;
+  páros darabnál az alsó középső. A `null` TWS-ű minta kimarad a sorból.
+- **Amit ez jelent:** a legfeljebb 2 egymást követő mintáig tartó tüske
+  kiesik. A legalább 3 mp-ig tartó szint megmarad. Egy csúcsos lökésből
+  az ablak 3. legnagyobb értéke marad, vagyis a lökés tartós része.
+- **A sorrend most számít:** a `SummarizeWind` az időrendet használja. A
+  `WindSampleReader` szerződése már eddig is időrendet írt elő.
+- Az átlagos szél és az uralkodó irány nyers marad: egy-két tüske egy
+  több ezer mintás versenyen nem mozdítja el őket. A max. **sebesség**
+  is nyers marad (a Kontextus 10. pontja, felhasználói döntés).
+- A számítás egy pure segédfüggvény a domain `_internal`-jában
+  (`rollingMedianMaximum`), így később a sebességre is ráköthető.
+- **Cache:** a `race_stats` sorai képlet-verziót nem hordoznak. A
+  meglévő sorok a DB újrafeltöltésével frissülnek, mert az import minden
+  benne lévő versenyt újraszámol. A VPS-en az első import már az új
+  szabállyal számol. Képlet-verzió a cache-be akkor kerül, ha a képlet
+  élesítés után változik.
+- A kézi verseny max. szele beírt érték, a szabály nem érinti.

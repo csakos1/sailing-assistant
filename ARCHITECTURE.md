@@ -5370,8 +5370,10 @@ kerül fel, és megszűnik.
 - **Ablakos statisztika:** ha a hivatalos idők megvannak, a táv, a
   sebesség és a szél (`SummarizeWind`, körkörös TWD-átlag, 16 égtáj) a
   rajt–befutás ablakból számolódik, különben a teljes rögzítésből,
-  közelítőként jelölve. A cache a `race_stats` tábla, az import és az
-  időket változtató mentés frissíti.
+  közelítőként jelölve. A max. szél az 5 mintás csúszó mediánok
+  maximuma, így a műszer 1–2 mp-es tüskéi kiesnek (ADR 0048 Addendum 5
+  L3). A cache a `race_stats` tábla, az import és az időket változtató
+  mentés frissíti.
 - A validáció pure `Result`-függvény a `race_archive_api`-ban, a szerver
   és az űrlap közösen használja.
 
@@ -5451,6 +5453,9 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   pure, a keretét és az akciósorát a `foretack_ui` adja. Fül bezárásakor
   `beforeunload` figyelmeztet mentetlen szerkesztésnél és futó
   feltöltésnél.
+- A görgethető felület az ablak teljes szélessége, a tartalom az
+  oszlopban marad (`WebScrollColumn`). A hivatalos idők másodperccel is
+  megadhatók és látszanak (ADR 0048 Addendum 5 L1–L2).
 - Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
   S7e táblázat.
 
