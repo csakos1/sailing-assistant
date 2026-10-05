@@ -5516,6 +5516,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   trackből számolódik, ugyanazokkal a use case-ekkel, mint a telefonos
   versenyeké, `official` ablakkal a `race_stats`-ban. A beírt Excel-számok
   megmaradnak, és hivatalos idő nélkül újra érvényesek.
+- **Megjelenés:** az S13a csak a cache-t írja; a számolt statot a napló
+  az S13b-től adja, a szerkesztő zárolt mezőivel együtt, hogy egy mentés
+  ne írja felül a beírt számokat (Addendum 1 E1).
+- **Frissítés:** külön `LegacyTrackStatsRefresher` (track-import után
+  mind, kézi mentés után a zár alatt); a kézi verseny törlése a trackjét
+  és a stat-sorát is törli (E2).
 - **Polár:** a régi minták is számítanak, mintánként 10 mp súllyal; a
   „Legjobb 5 mp" ott kötőjel.
 - **Web:** a trackes kézi verseny térképet kap, bóják nélkül.

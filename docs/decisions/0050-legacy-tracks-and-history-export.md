@@ -271,3 +271,70 @@ dart run web_server:import_legacy_tracks \
 - az edzések és a túrák feltöltését;
 - a régi versenyek bójáit és bójakerüléseit;
 - az export automatikus ütemezését és a visszaállítást egy exportból.
+
+## Addendum 1 — Pontosítások az S13a előtt (2026-10-05)
+
+### E1 — A számolt stat az S13b-ben jelenik meg (felhasználói döntés)
+
+- **Verifikált tény:** a webes kézi szerkesztő a napló-sor statjaiból
+  tölti elő a táv-, sebesség- és szél-mezőket, és mentéskor ezeket írja
+  vissza a `manual_races`-be (`manualEditorValuesOf`). Ha a szerver a
+  trackes kézi versenyre számolt statot adna, egy mentés a beírt
+  Excel-számokat a számoltakkal írná felül, és a D5 „visszaesés" elveszne.
+- **Ezért:** az S13a csak a cache-t írja (`race_stats`, `official`
+  ablakkal). A napló és a részletező az S13b-ben kezdi adni, a szerződés
+  H3-bővítésével (D7) és a szerkesztő zárolt mezőivel (D5) együtt. A
+  szerződés-patch így az S13b-be kerül.
+
+### E2 — Külön frissítő a trackes kézi versenyekre (javaslat)
+
+- **`LegacyTrackStatsRefresher`**, a telemetriás `RaceStatsRefresher`
+  mellett (OCP): a telemetriás frissítő változatlan.
+- **Várt ablak:** `OfficialWindow`, ha a kézi versenynek van tracke, és
+  az eredményében mindkét hivatalos idő megvan, a befutás a rajtnál
+  későbbi. Különben nincs számolt stat: egy meglévő `race_stats` sor
+  törlődik (D5 visszaesés).
+- **`refreshAll`** a track-import és az Excel-import `--apply`-ja után
+  (ez utóbbi az `--overwrite`-tal a hivatalos időket is írhatja): minden
+  trackes kézi verseny statja újraszámolódik akkor is, ha az ablak nem
+  változott, mert a track tartalma igen. A track nélküli kézi versenyek
+  sora törlődik.
+- **`refreshIfStale`** a kézi verseny mentése után, a közös `SerialLock`
+  alatt (I5), ha az ablak eltér a tárolttól.
+- **A kézi verseny törlése** a trackjét és a `race_stats` sorát is
+  törli, egy tranzakcióban, a zár alatt, hogy egy közben futó frissítés
+  ne hagyhasson árva sort.
+- Ha a hivatalos idők a track-import után változnak, a stat a tárolt
+  trackből számolódik az új ablakban. A track csak a régi ablakot fedi:
+  egy szélesebb ablakhoz az `import_legacy_tracks` újrafuttatása kell.
+
+### E3 — A CSV olvasása (javaslat)
+
+- **Fejléc:** a `Time`, `Latitude`, `Longitude`, `SOG`, `STW`, `TWS`,
+  `TWD(med)`, `TWS(med)` és `TWA(med)` oszlop kötelező; bármelyik
+  hiánya vagy ismétlődése leállítja az importot.
+- **Hibás sor** (eltérő cellaszám, olvashatatlan idő vagy szám, a
+  tartományon kívüli koordináta): kimarad, és a CLI kiírja a számukat és
+  az első ilyen sor számát. A hivatalos ablakokon kívüli sorokat csak az
+  időbélyegig olvassa.
+- **Ismétlődő időbélyeg** egy versenyen belül: a későbbi sor marad
+  (a PK miatt).
+- **Szögek:** a TWD `[0, 360)`-ra normálva, a TWA `(−180, 180]`-ra
+  hajtva (a 180° fölötti érték `érték − 360`).
+
+### E4 — A próbafuttatás és az `--apply` (javaslat)
+
+- **Lefedettség** = mintaszám × 10 mp ÷ az ablak hossza, legfeljebb
+  100%. A 10 mp a D6 súlya.
+- **Az `--apply` a teljes állapotot írja:** minden kézi verseny tracke a
+  mostani futás eredménye. Egy track nélkülire (nincs hivatalos ablak,
+  kevesebb mint két pozíció) a korábbi track törlődik. Így a futtatás
+  idempotens, és a hivatalos idők törlése után is helyes.
+- Egy tranzakcióban fut, utána a `refreshAll` (E2).
+
+### E5 — A CLI-k védelme (javaslat, handover §7 23.)
+
+- Ha egy megadott DB-fájl nem létezik, a CLI hibával kilép (66), mert a
+  Drift egy üres DB-t hozna létre, és a próbafuttatás „semmi"-t mutatna.
+- Az `import_legacy_races` külön sorban jelzi, ha az archívumban nincs
+  befejezett verseny, és ilyenkor nem fut az `--apply`.
