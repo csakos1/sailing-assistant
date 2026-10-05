@@ -15,6 +15,9 @@ Az ADR 0050 (2026-10-05) a sorrendet, a sémaverziót és a régi
 versenyek polár-mintáit pontosítja; lásd az „Utólagos pontosítások"
 szakaszt.
 
+Az Addendum 1 (2026-10-05) a Statisztika-képernyő elrendezését és a
+szezon-modell szabályait rögzíti az S9 előtt.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -369,3 +372,92 @@ mintájára.
     `web_server`-be; a `PolarSample` egy `durationSeconds` mezőt kap (1
     a telefonos, 10 a régi mintákra), ebből számol a hisztogram és a
     mért idő.
+
+## Addendum 1 — A Statisztika-képernyő az S9 előtt (2026-10-05)
+
+### P1 — Elrendezés (felhasználói döntés)
+
+- **Egy oszlop**, a napló 880 px-es oszlopában, görgethetően
+  (`WebScrollColumn`). Fentről lefelé:
+  1. az évsáv, ugyanaz, mint a naplón (D2);
+  2. **MENNYISÉG:** a napló stat-csíkja három cellával (VERSENY, VÍZEN
+     TÖLTÖTT, ÖSSZ. TÁV), alatta halk sorokban a telemetriás/kézi
+     bontás, a hivatalos idő nélküli kézi versenyek száma és a K9
+     közelítő-sora;
+  3. **HELYEZÉSEK:** egy tábla (P2);
+  4. **SEBESSÉG ÉS SZÉL:** a rekord-tábla (átlagsebesség, legnagyobb
+     max. sebesség és max. szél a verseny nevével és napjával), alatta a
+     szélsávok (P3);
+  5. **ÉVEK:** csak „Összes év" nézetben (P5).
+- **A polár helye nincs jelezve** (felhasználói döntés): az S12 a
+  képernyő aljára teszi a polár-táblát, addig nincs helyőrző.
+- **Megnyitás (javaslat):** a napló AppBarjában a nézet-váltó után egy
+  ikon-gomb (oszlopdiagram ikon, „Statisztika" tooltippel). Szöveges
+  gombként az AppBar egy 800 px-es ablakban már nem férne el a váltó,
+  az „Új verseny" és a Feltöltés mellett. A képernyő AppBarja
+  „Statisztika" címet és vissza-gombot kap, akciót nem.
+- A betöltés, a hiba és az üres archívum ugyanúgy jelenik meg, mint a
+  naplón; a képernyő a napló letöltött listáját használja, új kérés
+  nélkül.
+
+### P2 — Helyezések egy táblában (felhasználói döntés)
+
+- Sorok: Osztály, Abszolút, Egytestű. Oszlopok: 1., 2., 3., DOBOGÓ,
+  DNF, DSQ, ÁTLAG, MEGADVA.
+- **(javaslat)** A DOBOGÓ az 1–3. helyek összege az adott kategóriában.
+  Az ÁTLAG a számszerű helyezések (`FinishPlace`) átlaga egy tizedesre,
+  ilyen nélkül hiányjel. A MEGADVA `n/N` alakú: hány versenyen van
+  helyezés (DNF/DSQ is) a megjelenített N közül.
+- A tábla a napló táblázatának tipográfiáját és színeit kapja (G7), új
+  token és új függőség nélkül.
+
+### P3 — Szélsávok vízszintes sávokkal (felhasználói döntés)
+
+- Soronként a sáv címkéje (`< 4`, `4–8`, `8–12`, `12–16`, `≥ 16` kn), egy
+  arányos sáv és a darabszám. A sáv hossza a legnagyobb darabszámhoz
+  arányos, színe a `primary`. Chart-függőség nincs.
+- **(javaslat)** A besorolás a megjelenített, tizedre kerekített
+  csomóérték szerint történik: a táblázatban `4,0`-ként látszó verseny a
+  `4–8` sávba kerül, akkor is, ha a m/s → kn váltás 3,99999-et adna. Az
+  átlagszél nélküli versenyek számát egy halk sor adja.
+
+### P4 — A szezon-modell (javaslat)
+
+- **Bemenet:** a napló kész nézete (`RaceLogView`), tehát a választott
+  időszak ugyanúgy oldódik fel (a már nem létező év a legújabbra esik
+  vissza), és a napló napja (helyi idő) dönti el az évet.
+  `buildSeasonStats(RaceLogView)` pure függvény az
+  `apps/web/lib/season_stats/`-ban; a provider a
+  `raceLogViewProvider`-ből származik.
+- **Vízen töltött idő:** egy közös `elapsedTimeOf(RaceSummary)` adja a
+  naplónak, a táblázatnak és a statisztikának: a pozitív hivatalos
+  menetidő, különben telemetriás versenyen a rögzítés hossza
+  közelítőként, kézi versenyen semmi. A szabály így egy helyen él.
+- **Közelítő jelzés:** ha a megjelenített versenyek bármelyikének statja
+  rögzítési ablakos, vagy az ideje a rögzítésből jön, a MENNYISÉG alatt
+  a K9 halk sora áll. Az egész képernyőre egy sor, cellánkénti jel nincs.
+- **Átlagsebesség:** a táv és az idő összegének hányadosa, csak azokon a
+  versenyeken, ahol mindkettő megvan; a közelítő idő is számít, ahogy a
+  VÍZEN TÖLTÖTT csíkban.
+- **Rekordok:** a legnagyobb max. sebesség és max. szél a verseny
+  nevével és napjával. Döntetlennél a napló sorrendjében korábbi (azaz
+  az újabb) verseny nyer.
+- **A trackes kézi verseny** (`OfficialWindow`) számolt statja pontos
+  érték, nem közelítő (ADR 0050 Addendum 2 F1).
+
+### P5 — Évek összevetése (javaslat, a D3 4. pontja)
+
+- Csak „Összes év" nézetben. Soronként egy év, csökkenő sorrendben.
+  Oszlopok: ÉV, VERSENY, IDŐ (óra, egy tizedes), TÁV (km), ÁTLAG (kn),
+  DOBOGÓ OSZT., ABSZ., EGYT. Összesítő sor nincs: azt a fenti csíkok
+  adják.
+
+### P6 — Közös elemek a naplóból (javaslat)
+
+- Az S9 kiemeli az évsávot (`LogPeriodBand`), a betöltési hibát
+  (`LogLoadError`), az üres archívum szövegét (`LogEmptyMessage`) és az
+  `elapsedTimeOf`-ot a `race_log/` alá. A napló és a táblázat
+  viselkedése változatlan.
+- A kiemelés a Statisztika-képernyővel egy commitban megy: mindkettő a
+  napló képernyő-fájlját érinti (a Statisztika-gomb is ott van), és egy
+  patch-sorozatban egy fájlt csak egy patch érinthet.

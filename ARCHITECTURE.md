@@ -5489,6 +5489,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   vízen töltött idő, táv; helyezés-eloszlás és dobogók a három
   kategóriában; sebesség és szél; „Összes év" nézetben az évek
   összevetése. A web számolja a napló listájából, pure modellel (D4).
+  Elrendezés (Addendum 1 P1–P5): egy oszlop; a napló évsávja, a
+  MENNYISÉG csík, a HELYEZÉSEK táblája, a SEBESSÉG ÉS SZÉL rekordjai és
+  szélsávjai, „Összes év" nézetben az ÉVEK táblája. A vízen töltött idő
+  szabálya egy közös `elapsedTimeOf`-ban él (P4).
 - **Polár-teljesítmény:** a % a korrigált STW és a phone polárjának
   (`foretack.pol`, `LookupTargetSpeed`) célsebességének hányadosa.
   - Minták: a `race_stats` ablaka, `|TWA| ≥ 25°`, TWS-tüske szűrve.
