@@ -4,7 +4,8 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:web_server/src/web_db/cached_race_stats.dart';
 import 'package:web_server/src/web_db/web_database.dart';
 
-/// A `race_stats` cache olvasó-írója (ADR 0048 D4, D9 + Addendum 3 I2).
+/// A `race_stats` cache olvasó-írója (ADR 0048 D4, D9 + Addendum 3 I2,
+/// ADR 0050 D5).
 ///
 /// Az érvényesség eldöntése nem az övé: a hívó veti össze a tárolt ablakot
 /// a várt ablakkal (I4).
@@ -33,11 +34,12 @@ class RaceStatsRepository {
     final (kind, window) = switch (stats.window) {
       OfficialWindow(:final window) => (_official, window),
       RecordingWindow(:final window) => (_recording, window),
-      // Programozói hiba: a kézi verseny statjai beírt értékek (I2).
+      // Programozói hiba: a beírt értékeknek nincs cache-e (I2). A trackes
+      // kézi verseny `OfficialWindow`-val kerül ide (ADR 0050 D5).
       ManualEntry() => throw ArgumentError.value(
         stats.window,
         'stats.window',
-        'kézi versenynek nincs statisztika-cache-e',
+        'beírt értéknek nincs statisztika-cache-e',
       ),
     };
     await _database
@@ -58,6 +60,14 @@ class RaceStatsRepository {
           ),
           mode: InsertMode.insertOrReplace,
         );
+  }
+
+  /// A [raceId] verseny tárolt statisztikájának törlése; nem hiba, ha nem
+  /// volt.
+  Future<void> delete(String raceId) async {
+    await (_database.delete(
+      _database.raceStatsTable,
+    )..where((row) => row.raceId.equals(raceId))).go();
   }
 
   CachedRaceStats _toStats(RaceStatsRow row) {

@@ -1,9 +1,10 @@
 import 'package:drift/drift.dart';
 
-/// A telemetriás versenyek statisztika-cache-e (ADR 0048 D4, D9 +
-/// Addendum 3 I2, I4).
+/// A versenyek statisztika-cache-e (ADR 0048 D4, D9 + Addendum 3 I2, I4,
+/// ADR 0050 D5).
 ///
-/// Csak telemetriás versenynek van sora. Az ablak fajtája `'official'`
+/// Telemetriás versenynek és trackes kézi versenynek van sora; a track
+/// nélküli kézi verseny statjai beírt értékek. Az ablak fajtája `'official'`
 /// vagy `'recording'`, a határai epoch-milliszekundumok: a sor csak akkor
 /// érvényes, ha ezek pontosan egyeznek a várt ablakkal. Az irány fokban
 /// áll, az égtájra képzés a válasz dolga.

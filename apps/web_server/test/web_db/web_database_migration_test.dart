@@ -8,9 +8,9 @@ import 'package:test/test.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/web_database.dart';
 
-// A v1 -> v2 migracio (ADR 0048 D9 + Addendum 3 I2). A v1 fajlt nyers
-// sqlite3-mal epitjuk, pontosan a v1 Drift-semaval, hogy a migracio valodi
-// v1-es fajlon fusson, ne a mai kodbol generalton.
+// A v1 -> v3 migracio (ADR 0048 D9 + Addendum 3 I2, ADR 0050 D3). A v1
+// fajlt nyers sqlite3-mal epitjuk, pontosan a v1 Drift-semaval, hogy a
+// migracio valodi v1-es fajlon fusson, ne a mai kodbol generalton.
 
 const _v1Schema = '''
 CREATE TABLE race_annotations (
@@ -91,13 +91,14 @@ void main() {
 
     // ASSERT
     expect(rows.map((row) => row.read<String>('name')), [
+      'legacy_track_samples',
       'manual_races',
       'race_results',
       'race_stats',
     ]);
   });
 
-  test('sets the schema version to 2', () async {
+  test('sets the schema version to 3', () async {
     final database = WebDatabase(NativeDatabase(file));
     addTearDown(database.close);
 
@@ -105,6 +106,45 @@ void main() {
         .customSelect('PRAGMA user_version')
         .getSingle();
 
-    expect(version.read<int>('user_version'), 2);
+    expect(version.read<int>('user_version'), 3);
+  });
+
+  group('from v2', () {
+    late Directory v2Directory;
+    late File v2File;
+
+    // A v2 a v3 a legacy_track_samples nelkul: a v3 csak uj tablat hoz.
+    // Igy a v2-es fajl a mai semabol all elo, egy tabla eldobasaval.
+    setUp(() async {
+      v2Directory = await Directory.systemTemp.createTemp('foretack_web_v2');
+      v2File = File('${v2Directory.path}/web.sqlite');
+      final current = WebDatabase(NativeDatabase(v2File));
+      await RaceResultRepository(current).upsert(
+        'r1',
+        const RaceResultInput(overallPlace: FinishPlace(3)),
+        updatedAt: DateTime.utc(2026, 10, 2),
+      );
+      await current.customStatement('DROP TABLE legacy_track_samples');
+      await current.customStatement('PRAGMA user_version = 2');
+      await current.close();
+    });
+
+    tearDown(() => v2Directory.delete(recursive: true));
+
+    test('adds legacy_track_samples and keeps the results', () async {
+      // ARRANGE
+      final database = WebDatabase(NativeDatabase(v2File));
+      addTearDown(database.close);
+
+      // ACT
+      final result = await RaceResultRepository(database).get('r1');
+      final tracks = await database
+          .customSelect('SELECT COUNT(*) AS n FROM legacy_track_samples')
+          .getSingle();
+
+      // ASSERT
+      expect(result?.content.overallPlace, const FinishPlace(3));
+      expect(tracks.read<int>('n'), 0);
+    });
   });
 }

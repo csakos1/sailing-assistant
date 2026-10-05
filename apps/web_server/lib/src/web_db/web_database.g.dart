@@ -2331,12 +2331,638 @@ class RaceStatsTableCompanion extends UpdateCompanion<RaceStatsRow> {
   }
 }
 
+class $LegacyTrackSamplesTable extends LegacyTrackSamples
+    with TableInfo<$LegacyTrackSamplesTable, LegacyTrackSampleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LegacyTrackSamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMsMeta = const VerificationMeta(
+    'timestampMs',
+  );
+  @override
+  late final GeneratedColumn<int> timestampMs = GeneratedColumn<int>(
+    'timestamp_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latDegMeta = const VerificationMeta('latDeg');
+  @override
+  late final GeneratedColumn<double> latDeg = GeneratedColumn<double>(
+    'lat_deg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lonDegMeta = const VerificationMeta('lonDeg');
+  @override
+  late final GeneratedColumn<double> lonDeg = GeneratedColumn<double>(
+    'lon_deg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sogMpsMeta = const VerificationMeta('sogMps');
+  @override
+  late final GeneratedColumn<double> sogMps = GeneratedColumn<double>(
+    'sog_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stwMpsMeta = const VerificationMeta('stwMps');
+  @override
+  late final GeneratedColumn<double> stwMps = GeneratedColumn<double>(
+    'stw_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _twsMpsMeta = const VerificationMeta('twsMps');
+  @override
+  late final GeneratedColumn<double> twsMps = GeneratedColumn<double>(
+    'tws_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _twdDegMeta = const VerificationMeta('twdDeg');
+  @override
+  late final GeneratedColumn<double> twdDeg = GeneratedColumn<double>(
+    'twd_deg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _polarTwsMpsMeta = const VerificationMeta(
+    'polarTwsMps',
+  );
+  @override
+  late final GeneratedColumn<double> polarTwsMps = GeneratedColumn<double>(
+    'polar_tws_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _polarTwaDegMeta = const VerificationMeta(
+    'polarTwaDeg',
+  );
+  @override
+  late final GeneratedColumn<double> polarTwaDeg = GeneratedColumn<double>(
+    'polar_twa_deg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    raceId,
+    timestampMs,
+    latDeg,
+    lonDeg,
+    sogMps,
+    stwMps,
+    twsMps,
+    twdDeg,
+    polarTwsMps,
+    polarTwaDeg,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'legacy_track_samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LegacyTrackSampleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('timestamp_ms')) {
+      context.handle(
+        _timestampMsMeta,
+        timestampMs.isAcceptableOrUnknown(
+          data['timestamp_ms']!,
+          _timestampMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMsMeta);
+    }
+    if (data.containsKey('lat_deg')) {
+      context.handle(
+        _latDegMeta,
+        latDeg.isAcceptableOrUnknown(data['lat_deg']!, _latDegMeta),
+      );
+    }
+    if (data.containsKey('lon_deg')) {
+      context.handle(
+        _lonDegMeta,
+        lonDeg.isAcceptableOrUnknown(data['lon_deg']!, _lonDegMeta),
+      );
+    }
+    if (data.containsKey('sog_mps')) {
+      context.handle(
+        _sogMpsMeta,
+        sogMps.isAcceptableOrUnknown(data['sog_mps']!, _sogMpsMeta),
+      );
+    }
+    if (data.containsKey('stw_mps')) {
+      context.handle(
+        _stwMpsMeta,
+        stwMps.isAcceptableOrUnknown(data['stw_mps']!, _stwMpsMeta),
+      );
+    }
+    if (data.containsKey('tws_mps')) {
+      context.handle(
+        _twsMpsMeta,
+        twsMps.isAcceptableOrUnknown(data['tws_mps']!, _twsMpsMeta),
+      );
+    }
+    if (data.containsKey('twd_deg')) {
+      context.handle(
+        _twdDegMeta,
+        twdDeg.isAcceptableOrUnknown(data['twd_deg']!, _twdDegMeta),
+      );
+    }
+    if (data.containsKey('polar_tws_mps')) {
+      context.handle(
+        _polarTwsMpsMeta,
+        polarTwsMps.isAcceptableOrUnknown(
+          data['polar_tws_mps']!,
+          _polarTwsMpsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('polar_twa_deg')) {
+      context.handle(
+        _polarTwaDegMeta,
+        polarTwaDeg.isAcceptableOrUnknown(
+          data['polar_twa_deg']!,
+          _polarTwaDegMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {raceId, timestampMs};
+  @override
+  LegacyTrackSampleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LegacyTrackSampleRow(
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      timestampMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timestamp_ms'],
+      )!,
+      latDeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lat_deg'],
+      ),
+      lonDeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lon_deg'],
+      ),
+      sogMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}sog_mps'],
+      ),
+      stwMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}stw_mps'],
+      ),
+      twsMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}tws_mps'],
+      ),
+      twdDeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}twd_deg'],
+      ),
+      polarTwsMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}polar_tws_mps'],
+      ),
+      polarTwaDeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}polar_twa_deg'],
+      ),
+    );
+  }
+
+  @override
+  $LegacyTrackSamplesTable createAlias(String alias) {
+    return $LegacyTrackSamplesTable(attachedDatabase, alias);
+  }
+}
+
+class LegacyTrackSampleRow extends DataClass
+    implements Insertable<LegacyTrackSampleRow> {
+  final String raceId;
+  final int timestampMs;
+  final double? latDeg;
+  final double? lonDeg;
+  final double? sogMps;
+  final double? stwMps;
+  final double? twsMps;
+  final double? twdDeg;
+  final double? polarTwsMps;
+  final double? polarTwaDeg;
+  const LegacyTrackSampleRow({
+    required this.raceId,
+    required this.timestampMs,
+    this.latDeg,
+    this.lonDeg,
+    this.sogMps,
+    this.stwMps,
+    this.twsMps,
+    this.twdDeg,
+    this.polarTwsMps,
+    this.polarTwaDeg,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['race_id'] = Variable<String>(raceId);
+    map['timestamp_ms'] = Variable<int>(timestampMs);
+    if (!nullToAbsent || latDeg != null) {
+      map['lat_deg'] = Variable<double>(latDeg);
+    }
+    if (!nullToAbsent || lonDeg != null) {
+      map['lon_deg'] = Variable<double>(lonDeg);
+    }
+    if (!nullToAbsent || sogMps != null) {
+      map['sog_mps'] = Variable<double>(sogMps);
+    }
+    if (!nullToAbsent || stwMps != null) {
+      map['stw_mps'] = Variable<double>(stwMps);
+    }
+    if (!nullToAbsent || twsMps != null) {
+      map['tws_mps'] = Variable<double>(twsMps);
+    }
+    if (!nullToAbsent || twdDeg != null) {
+      map['twd_deg'] = Variable<double>(twdDeg);
+    }
+    if (!nullToAbsent || polarTwsMps != null) {
+      map['polar_tws_mps'] = Variable<double>(polarTwsMps);
+    }
+    if (!nullToAbsent || polarTwaDeg != null) {
+      map['polar_twa_deg'] = Variable<double>(polarTwaDeg);
+    }
+    return map;
+  }
+
+  LegacyTrackSamplesCompanion toCompanion(bool nullToAbsent) {
+    return LegacyTrackSamplesCompanion(
+      raceId: Value(raceId),
+      timestampMs: Value(timestampMs),
+      latDeg: latDeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latDeg),
+      lonDeg: lonDeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lonDeg),
+      sogMps: sogMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sogMps),
+      stwMps: stwMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stwMps),
+      twsMps: twsMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(twsMps),
+      twdDeg: twdDeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(twdDeg),
+      polarTwsMps: polarTwsMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(polarTwsMps),
+      polarTwaDeg: polarTwaDeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(polarTwaDeg),
+    );
+  }
+
+  factory LegacyTrackSampleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LegacyTrackSampleRow(
+      raceId: serializer.fromJson<String>(json['raceId']),
+      timestampMs: serializer.fromJson<int>(json['timestampMs']),
+      latDeg: serializer.fromJson<double?>(json['latDeg']),
+      lonDeg: serializer.fromJson<double?>(json['lonDeg']),
+      sogMps: serializer.fromJson<double?>(json['sogMps']),
+      stwMps: serializer.fromJson<double?>(json['stwMps']),
+      twsMps: serializer.fromJson<double?>(json['twsMps']),
+      twdDeg: serializer.fromJson<double?>(json['twdDeg']),
+      polarTwsMps: serializer.fromJson<double?>(json['polarTwsMps']),
+      polarTwaDeg: serializer.fromJson<double?>(json['polarTwaDeg']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'raceId': serializer.toJson<String>(raceId),
+      'timestampMs': serializer.toJson<int>(timestampMs),
+      'latDeg': serializer.toJson<double?>(latDeg),
+      'lonDeg': serializer.toJson<double?>(lonDeg),
+      'sogMps': serializer.toJson<double?>(sogMps),
+      'stwMps': serializer.toJson<double?>(stwMps),
+      'twsMps': serializer.toJson<double?>(twsMps),
+      'twdDeg': serializer.toJson<double?>(twdDeg),
+      'polarTwsMps': serializer.toJson<double?>(polarTwsMps),
+      'polarTwaDeg': serializer.toJson<double?>(polarTwaDeg),
+    };
+  }
+
+  LegacyTrackSampleRow copyWith({
+    String? raceId,
+    int? timestampMs,
+    Value<double?> latDeg = const Value.absent(),
+    Value<double?> lonDeg = const Value.absent(),
+    Value<double?> sogMps = const Value.absent(),
+    Value<double?> stwMps = const Value.absent(),
+    Value<double?> twsMps = const Value.absent(),
+    Value<double?> twdDeg = const Value.absent(),
+    Value<double?> polarTwsMps = const Value.absent(),
+    Value<double?> polarTwaDeg = const Value.absent(),
+  }) => LegacyTrackSampleRow(
+    raceId: raceId ?? this.raceId,
+    timestampMs: timestampMs ?? this.timestampMs,
+    latDeg: latDeg.present ? latDeg.value : this.latDeg,
+    lonDeg: lonDeg.present ? lonDeg.value : this.lonDeg,
+    sogMps: sogMps.present ? sogMps.value : this.sogMps,
+    stwMps: stwMps.present ? stwMps.value : this.stwMps,
+    twsMps: twsMps.present ? twsMps.value : this.twsMps,
+    twdDeg: twdDeg.present ? twdDeg.value : this.twdDeg,
+    polarTwsMps: polarTwsMps.present ? polarTwsMps.value : this.polarTwsMps,
+    polarTwaDeg: polarTwaDeg.present ? polarTwaDeg.value : this.polarTwaDeg,
+  );
+  LegacyTrackSampleRow copyWithCompanion(LegacyTrackSamplesCompanion data) {
+    return LegacyTrackSampleRow(
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      timestampMs: data.timestampMs.present
+          ? data.timestampMs.value
+          : this.timestampMs,
+      latDeg: data.latDeg.present ? data.latDeg.value : this.latDeg,
+      lonDeg: data.lonDeg.present ? data.lonDeg.value : this.lonDeg,
+      sogMps: data.sogMps.present ? data.sogMps.value : this.sogMps,
+      stwMps: data.stwMps.present ? data.stwMps.value : this.stwMps,
+      twsMps: data.twsMps.present ? data.twsMps.value : this.twsMps,
+      twdDeg: data.twdDeg.present ? data.twdDeg.value : this.twdDeg,
+      polarTwsMps: data.polarTwsMps.present
+          ? data.polarTwsMps.value
+          : this.polarTwsMps,
+      polarTwaDeg: data.polarTwaDeg.present
+          ? data.polarTwaDeg.value
+          : this.polarTwaDeg,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LegacyTrackSampleRow(')
+          ..write('raceId: $raceId, ')
+          ..write('timestampMs: $timestampMs, ')
+          ..write('latDeg: $latDeg, ')
+          ..write('lonDeg: $lonDeg, ')
+          ..write('sogMps: $sogMps, ')
+          ..write('stwMps: $stwMps, ')
+          ..write('twsMps: $twsMps, ')
+          ..write('twdDeg: $twdDeg, ')
+          ..write('polarTwsMps: $polarTwsMps, ')
+          ..write('polarTwaDeg: $polarTwaDeg')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    raceId,
+    timestampMs,
+    latDeg,
+    lonDeg,
+    sogMps,
+    stwMps,
+    twsMps,
+    twdDeg,
+    polarTwsMps,
+    polarTwaDeg,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LegacyTrackSampleRow &&
+          other.raceId == this.raceId &&
+          other.timestampMs == this.timestampMs &&
+          other.latDeg == this.latDeg &&
+          other.lonDeg == this.lonDeg &&
+          other.sogMps == this.sogMps &&
+          other.stwMps == this.stwMps &&
+          other.twsMps == this.twsMps &&
+          other.twdDeg == this.twdDeg &&
+          other.polarTwsMps == this.polarTwsMps &&
+          other.polarTwaDeg == this.polarTwaDeg);
+}
+
+class LegacyTrackSamplesCompanion
+    extends UpdateCompanion<LegacyTrackSampleRow> {
+  final Value<String> raceId;
+  final Value<int> timestampMs;
+  final Value<double?> latDeg;
+  final Value<double?> lonDeg;
+  final Value<double?> sogMps;
+  final Value<double?> stwMps;
+  final Value<double?> twsMps;
+  final Value<double?> twdDeg;
+  final Value<double?> polarTwsMps;
+  final Value<double?> polarTwaDeg;
+  final Value<int> rowid;
+  const LegacyTrackSamplesCompanion({
+    this.raceId = const Value.absent(),
+    this.timestampMs = const Value.absent(),
+    this.latDeg = const Value.absent(),
+    this.lonDeg = const Value.absent(),
+    this.sogMps = const Value.absent(),
+    this.stwMps = const Value.absent(),
+    this.twsMps = const Value.absent(),
+    this.twdDeg = const Value.absent(),
+    this.polarTwsMps = const Value.absent(),
+    this.polarTwaDeg = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LegacyTrackSamplesCompanion.insert({
+    required String raceId,
+    required int timestampMs,
+    this.latDeg = const Value.absent(),
+    this.lonDeg = const Value.absent(),
+    this.sogMps = const Value.absent(),
+    this.stwMps = const Value.absent(),
+    this.twsMps = const Value.absent(),
+    this.twdDeg = const Value.absent(),
+    this.polarTwsMps = const Value.absent(),
+    this.polarTwaDeg = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : raceId = Value(raceId),
+       timestampMs = Value(timestampMs);
+  static Insertable<LegacyTrackSampleRow> custom({
+    Expression<String>? raceId,
+    Expression<int>? timestampMs,
+    Expression<double>? latDeg,
+    Expression<double>? lonDeg,
+    Expression<double>? sogMps,
+    Expression<double>? stwMps,
+    Expression<double>? twsMps,
+    Expression<double>? twdDeg,
+    Expression<double>? polarTwsMps,
+    Expression<double>? polarTwaDeg,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (raceId != null) 'race_id': raceId,
+      if (timestampMs != null) 'timestamp_ms': timestampMs,
+      if (latDeg != null) 'lat_deg': latDeg,
+      if (lonDeg != null) 'lon_deg': lonDeg,
+      if (sogMps != null) 'sog_mps': sogMps,
+      if (stwMps != null) 'stw_mps': stwMps,
+      if (twsMps != null) 'tws_mps': twsMps,
+      if (twdDeg != null) 'twd_deg': twdDeg,
+      if (polarTwsMps != null) 'polar_tws_mps': polarTwsMps,
+      if (polarTwaDeg != null) 'polar_twa_deg': polarTwaDeg,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LegacyTrackSamplesCompanion copyWith({
+    Value<String>? raceId,
+    Value<int>? timestampMs,
+    Value<double?>? latDeg,
+    Value<double?>? lonDeg,
+    Value<double?>? sogMps,
+    Value<double?>? stwMps,
+    Value<double?>? twsMps,
+    Value<double?>? twdDeg,
+    Value<double?>? polarTwsMps,
+    Value<double?>? polarTwaDeg,
+    Value<int>? rowid,
+  }) {
+    return LegacyTrackSamplesCompanion(
+      raceId: raceId ?? this.raceId,
+      timestampMs: timestampMs ?? this.timestampMs,
+      latDeg: latDeg ?? this.latDeg,
+      lonDeg: lonDeg ?? this.lonDeg,
+      sogMps: sogMps ?? this.sogMps,
+      stwMps: stwMps ?? this.stwMps,
+      twsMps: twsMps ?? this.twsMps,
+      twdDeg: twdDeg ?? this.twdDeg,
+      polarTwsMps: polarTwsMps ?? this.polarTwsMps,
+      polarTwaDeg: polarTwaDeg ?? this.polarTwaDeg,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (timestampMs.present) {
+      map['timestamp_ms'] = Variable<int>(timestampMs.value);
+    }
+    if (latDeg.present) {
+      map['lat_deg'] = Variable<double>(latDeg.value);
+    }
+    if (lonDeg.present) {
+      map['lon_deg'] = Variable<double>(lonDeg.value);
+    }
+    if (sogMps.present) {
+      map['sog_mps'] = Variable<double>(sogMps.value);
+    }
+    if (stwMps.present) {
+      map['stw_mps'] = Variable<double>(stwMps.value);
+    }
+    if (twsMps.present) {
+      map['tws_mps'] = Variable<double>(twsMps.value);
+    }
+    if (twdDeg.present) {
+      map['twd_deg'] = Variable<double>(twdDeg.value);
+    }
+    if (polarTwsMps.present) {
+      map['polar_tws_mps'] = Variable<double>(polarTwsMps.value);
+    }
+    if (polarTwaDeg.present) {
+      map['polar_twa_deg'] = Variable<double>(polarTwaDeg.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LegacyTrackSamplesCompanion(')
+          ..write('raceId: $raceId, ')
+          ..write('timestampMs: $timestampMs, ')
+          ..write('latDeg: $latDeg, ')
+          ..write('lonDeg: $lonDeg, ')
+          ..write('sogMps: $sogMps, ')
+          ..write('stwMps: $stwMps, ')
+          ..write('twsMps: $twsMps, ')
+          ..write('twdDeg: $twdDeg, ')
+          ..write('polarTwsMps: $polarTwsMps, ')
+          ..write('polarTwaDeg: $polarTwaDeg, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$WebDatabase extends GeneratedDatabase {
   _$WebDatabase(QueryExecutor e) : super(e);
   $WebDatabaseManager get managers => $WebDatabaseManager(this);
   late final $RaceResultsTable raceResults = $RaceResultsTable(this);
   late final $ManualRacesTable manualRaces = $ManualRacesTable(this);
   late final $RaceStatsTableTable raceStatsTable = $RaceStatsTableTable(this);
+  late final $LegacyTrackSamplesTable legacyTrackSamples =
+      $LegacyTrackSamplesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2345,6 +2971,7 @@ abstract class _$WebDatabase extends GeneratedDatabase {
     raceResults,
     manualRaces,
     raceStatsTable,
+    legacyTrackSamples,
   ];
 }
 
@@ -3420,6 +4047,320 @@ typedef $$RaceStatsTableTableProcessedTableManager =
       RaceStatsRow,
       PrefetchHooks Function()
     >;
+typedef $$LegacyTrackSamplesTableCreateCompanionBuilder =
+    LegacyTrackSamplesCompanion Function({
+      required String raceId,
+      required int timestampMs,
+      Value<double?> latDeg,
+      Value<double?> lonDeg,
+      Value<double?> sogMps,
+      Value<double?> stwMps,
+      Value<double?> twsMps,
+      Value<double?> twdDeg,
+      Value<double?> polarTwsMps,
+      Value<double?> polarTwaDeg,
+      Value<int> rowid,
+    });
+typedef $$LegacyTrackSamplesTableUpdateCompanionBuilder =
+    LegacyTrackSamplesCompanion Function({
+      Value<String> raceId,
+      Value<int> timestampMs,
+      Value<double?> latDeg,
+      Value<double?> lonDeg,
+      Value<double?> sogMps,
+      Value<double?> stwMps,
+      Value<double?> twsMps,
+      Value<double?> twdDeg,
+      Value<double?> polarTwsMps,
+      Value<double?> polarTwaDeg,
+      Value<int> rowid,
+    });
+
+class $$LegacyTrackSamplesTableFilterComposer
+    extends Composer<_$WebDatabase, $LegacyTrackSamplesTable> {
+  $$LegacyTrackSamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latDeg => $composableBuilder(
+    column: $table.latDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lonDeg => $composableBuilder(
+    column: $table.lonDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get sogMps => $composableBuilder(
+    column: $table.sogMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get stwMps => $composableBuilder(
+    column: $table.stwMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get twsMps => $composableBuilder(
+    column: $table.twsMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get twdDeg => $composableBuilder(
+    column: $table.twdDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get polarTwsMps => $composableBuilder(
+    column: $table.polarTwsMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get polarTwaDeg => $composableBuilder(
+    column: $table.polarTwaDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LegacyTrackSamplesTableOrderingComposer
+    extends Composer<_$WebDatabase, $LegacyTrackSamplesTable> {
+  $$LegacyTrackSamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latDeg => $composableBuilder(
+    column: $table.latDeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lonDeg => $composableBuilder(
+    column: $table.lonDeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get sogMps => $composableBuilder(
+    column: $table.sogMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get stwMps => $composableBuilder(
+    column: $table.stwMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get twsMps => $composableBuilder(
+    column: $table.twsMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get twdDeg => $composableBuilder(
+    column: $table.twdDeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get polarTwsMps => $composableBuilder(
+    column: $table.polarTwsMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get polarTwaDeg => $composableBuilder(
+    column: $table.polarTwaDeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LegacyTrackSamplesTableAnnotationComposer
+    extends Composer<_$WebDatabase, $LegacyTrackSamplesTable> {
+  $$LegacyTrackSamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get raceId =>
+      $composableBuilder(column: $table.raceId, builder: (column) => column);
+
+  GeneratedColumn<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latDeg =>
+      $composableBuilder(column: $table.latDeg, builder: (column) => column);
+
+  GeneratedColumn<double> get lonDeg =>
+      $composableBuilder(column: $table.lonDeg, builder: (column) => column);
+
+  GeneratedColumn<double> get sogMps =>
+      $composableBuilder(column: $table.sogMps, builder: (column) => column);
+
+  GeneratedColumn<double> get stwMps =>
+      $composableBuilder(column: $table.stwMps, builder: (column) => column);
+
+  GeneratedColumn<double> get twsMps =>
+      $composableBuilder(column: $table.twsMps, builder: (column) => column);
+
+  GeneratedColumn<double> get twdDeg =>
+      $composableBuilder(column: $table.twdDeg, builder: (column) => column);
+
+  GeneratedColumn<double> get polarTwsMps => $composableBuilder(
+    column: $table.polarTwsMps,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get polarTwaDeg => $composableBuilder(
+    column: $table.polarTwaDeg,
+    builder: (column) => column,
+  );
+}
+
+class $$LegacyTrackSamplesTableTableManager
+    extends
+        RootTableManager<
+          _$WebDatabase,
+          $LegacyTrackSamplesTable,
+          LegacyTrackSampleRow,
+          $$LegacyTrackSamplesTableFilterComposer,
+          $$LegacyTrackSamplesTableOrderingComposer,
+          $$LegacyTrackSamplesTableAnnotationComposer,
+          $$LegacyTrackSamplesTableCreateCompanionBuilder,
+          $$LegacyTrackSamplesTableUpdateCompanionBuilder,
+          (
+            LegacyTrackSampleRow,
+            BaseReferences<
+              _$WebDatabase,
+              $LegacyTrackSamplesTable,
+              LegacyTrackSampleRow
+            >,
+          ),
+          LegacyTrackSampleRow,
+          PrefetchHooks Function()
+        > {
+  $$LegacyTrackSamplesTableTableManager(
+    _$WebDatabase db,
+    $LegacyTrackSamplesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LegacyTrackSamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LegacyTrackSamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LegacyTrackSamplesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> raceId = const Value.absent(),
+                Value<int> timestampMs = const Value.absent(),
+                Value<double?> latDeg = const Value.absent(),
+                Value<double?> lonDeg = const Value.absent(),
+                Value<double?> sogMps = const Value.absent(),
+                Value<double?> stwMps = const Value.absent(),
+                Value<double?> twsMps = const Value.absent(),
+                Value<double?> twdDeg = const Value.absent(),
+                Value<double?> polarTwsMps = const Value.absent(),
+                Value<double?> polarTwaDeg = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LegacyTrackSamplesCompanion(
+                raceId: raceId,
+                timestampMs: timestampMs,
+                latDeg: latDeg,
+                lonDeg: lonDeg,
+                sogMps: sogMps,
+                stwMps: stwMps,
+                twsMps: twsMps,
+                twdDeg: twdDeg,
+                polarTwsMps: polarTwsMps,
+                polarTwaDeg: polarTwaDeg,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String raceId,
+                required int timestampMs,
+                Value<double?> latDeg = const Value.absent(),
+                Value<double?> lonDeg = const Value.absent(),
+                Value<double?> sogMps = const Value.absent(),
+                Value<double?> stwMps = const Value.absent(),
+                Value<double?> twsMps = const Value.absent(),
+                Value<double?> twdDeg = const Value.absent(),
+                Value<double?> polarTwsMps = const Value.absent(),
+                Value<double?> polarTwaDeg = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LegacyTrackSamplesCompanion.insert(
+                raceId: raceId,
+                timestampMs: timestampMs,
+                latDeg: latDeg,
+                lonDeg: lonDeg,
+                sogMps: sogMps,
+                stwMps: stwMps,
+                twsMps: twsMps,
+                twdDeg: twdDeg,
+                polarTwsMps: polarTwsMps,
+                polarTwaDeg: polarTwaDeg,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LegacyTrackSamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WebDatabase,
+      $LegacyTrackSamplesTable,
+      LegacyTrackSampleRow,
+      $$LegacyTrackSamplesTableFilterComposer,
+      $$LegacyTrackSamplesTableOrderingComposer,
+      $$LegacyTrackSamplesTableAnnotationComposer,
+      $$LegacyTrackSamplesTableCreateCompanionBuilder,
+      $$LegacyTrackSamplesTableUpdateCompanionBuilder,
+      (
+        LegacyTrackSampleRow,
+        BaseReferences<
+          _$WebDatabase,
+          $LegacyTrackSamplesTable,
+          LegacyTrackSampleRow
+        >,
+      ),
+      LegacyTrackSampleRow,
+      PrefetchHooks Function()
+    >;
 
 class $WebDatabaseManager {
   final _$WebDatabase _db;
@@ -3430,4 +4371,6 @@ class $WebDatabaseManager {
       $$ManualRacesTableTableManager(_db, _db.manualRaces);
   $$RaceStatsTableTableTableManager get raceStatsTable =>
       $$RaceStatsTableTableTableManager(_db, _db.raceStatsTable);
+  $$LegacyTrackSamplesTableTableManager get legacyTrackSamples =>
+      $$LegacyTrackSamplesTableTableManager(_db, _db.legacyTrackSamples);
 }

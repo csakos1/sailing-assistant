@@ -74,4 +74,30 @@ void main() {
       expect(recordingWindowOf(race), isNull);
     });
   });
+
+  group('officialWindowOf', () {
+    test('spans the official start and finish', () {
+      final window = officialWindowOf(
+        RaceResultInput(officialStart: start, officialFinish: finish),
+      );
+
+      expect(window, TimeWindow(start: start, end: finish));
+    });
+
+    test('is null without a result', () {
+      expect(officialWindowOf(null), isNull);
+    });
+
+    test('is null when the finish is missing', () {
+      expect(officialWindowOf(RaceResultInput(officialStart: start)), isNull);
+    });
+
+    test('is null when the finish equals the start', () {
+      final window = officialWindowOf(
+        RaceResultInput(officialStart: start, officialFinish: start),
+      );
+
+      expect(window, isNull);
+    });
+  });
 }

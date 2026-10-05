@@ -2,11 +2,12 @@ import 'package:domain/domain.dart';
 import 'package:equatable/equatable.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
-/// Egy telemetriás verseny tárolt statisztikája (ADR 0048 D4 + Addendum 3
-/// I4).
+/// Egy verseny tárolt statisztikája (ADR 0048 D4 + Addendum 3 I4, ADR
+/// 0050 D5).
 ///
-/// A [window] csak `OfficialWindow` vagy `RecordingWindow` lehet: kézi
-/// versenynek nincs cache-sora (I2).
+/// A [window] csak `OfficialWindow` vagy `RecordingWindow` lehet: a beírt
+/// értékeknek nincs cache-sora (I2). A trackes kézi verseny sora mindig
+/// `OfficialWindow`.
 final class CachedRaceStats extends Equatable {
   /// Statisztika a [window] ablakból, [computedAt]-kor számolva.
   const CachedRaceStats({

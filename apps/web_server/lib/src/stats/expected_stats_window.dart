@@ -22,11 +22,19 @@ TimeWindow? recordingWindowOf(Race race) =>
 StatsWindow expectedStatsWindow({
   required TimeWindow recording,
   RaceResultInput? result,
-}) {
+}) => switch (officialWindowOf(result)) {
+  final TimeWindow official => OfficialWindow(official),
+  null => RecordingWindow(recording),
+};
+
+/// A [result] hivatalos `[rajt, befutás]` ablaka, vagy `null`, ha
+/// bármelyik idő hiányzik, vagy a befutás nem későbbi a rajtnál.
+///
+/// A telemetriás és a trackes kézi verseny (ADR 0050 Addendum 1 E2)
+/// ugyanezzel a szabállyal dönti el, van-e hivatalos ablak.
+TimeWindow? officialWindowOf(RaceResultInput? result) {
   final start = result?.officialStart;
   final finish = result?.officialFinish;
-  if (start != null && finish != null && finish.isAfter(start)) {
-    return OfficialWindow(TimeWindow(start: start, end: finish));
-  }
-  return RecordingWindow(recording);
+  if (start == null || finish == null || !finish.isAfter(start)) return null;
+  return TimeWindow(start: start, end: finish);
 }

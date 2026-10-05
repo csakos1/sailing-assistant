@@ -27,6 +27,7 @@ import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
 import 'package:web_server/src/web_db/cached_race_stats.dart';
+import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
@@ -114,7 +115,12 @@ void main() {
         service: ManualRaceService(
           manualRaces: manualRaces,
           results: results,
+          tracks: LegacyTrackRepository(web),
+          stats: stats,
           runInTransaction: web.transaction,
+          lock: lock,
+          // A regi track frissitoje a sajat tesztjeben (ADR 0050 E2).
+          refreshStats: (_) async {},
           newId: () => 'manual-${++idCounter}',
           now: () => now,
         ),

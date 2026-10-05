@@ -87,6 +87,24 @@ void main() {
 
       await expectLater(repository.put('m1', manual), throwsArgumentError);
     });
+
+    test('deletes only the asked row', () async {
+      // ARRANGE
+      await repository.put('r1', stats);
+      await repository.put('r2', stats);
+
+      // ACT
+      await repository.delete('r1');
+
+      // ASSERT
+      expect(await repository.getAll(), {'r2': stats});
+    });
+
+    test('deleting a missing row is not an error', () async {
+      await repository.delete('missing');
+
+      expect(await repository.getAll(), isEmpty);
+    });
   });
 
   group('CachedRaceStats.toRaceStats', () {

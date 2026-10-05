@@ -17,9 +17,11 @@ import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
 import 'package:web_server/src/race/race_summary_service.dart';
 import 'package:web_server/src/serial_lock.dart';
+import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
+import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
@@ -108,8 +110,22 @@ Future<void> main(List<String> arguments) async {
     calculate: calculate,
     log: _log,
   );
-  // Egy zár az importnak és az eredmény-mentés utáni frissítésnek
-  // (ADR 0048 Addendum 3 I5).
+  final legacyTracks = LegacyTrackRepository(webDatabase);
+  // A trackes kézi verseny statja a régi trackből, ugyanazzal a számolóval
+  // (ADR 0050 D5); a napló az S13b-től adja (Addendum 1 E1).
+  final legacyRefresher = LegacyTrackStatsRefresher(
+    manualRaces: manualRaces,
+    results: results,
+    tracks: legacyTracks,
+    stats: stats,
+    calculate: RaceStatsCalculator(
+      readTrackSamples: legacyTracks.readWindow,
+      readWindSamples: legacyTracks.readWindow,
+    ),
+    log: _log,
+  );
+  // Egy zár az importnak és a mentések utáni frissítésnek (ADR 0048
+  // Addendum 3 I5, ADR 0050 Addendum 1 E2).
   final writeLock = SerialLock();
 
   final handler = buildArchiveApiHandler(
@@ -147,7 +163,11 @@ Future<void> main(List<String> arguments) async {
       service: ManualRaceService(
         manualRaces: manualRaces,
         results: results,
+        tracks: legacyTracks,
+        stats: stats,
         runInTransaction: webDatabase.transaction,
+        lock: writeLock,
+        refreshStats: legacyRefresher.refreshIfStale,
       ),
       bodyLimitBytes: _jsonBodyLimitBytes,
     ),
