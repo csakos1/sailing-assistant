@@ -5354,7 +5354,10 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 ### 20.3 Webes adatmodell (ADR 0048)
 
 A web az egyetlen forrás 2021-től: az Excel-napló egyszeri importtal
-kerül fel, és megszűnik.
+kerül fel, és megszűnik. Az import a telemetriás versenyekhez a helyi
+nap szerint párosít; a párosítatlan sorokból kézi versenyek lesznek, a
+nem egyértelmű napot a `--match` dönti el. Meglévő adatot csak
+`--overwrite`-tal ír felül (ADR 0048 Addendum 6).
 
 - **Kétféle verseny.** A **telemetriás** a phone DB-jéből jön (név, idő
   és track csak olvasható). A **kézi** a `web.sqlite` `manual_races`

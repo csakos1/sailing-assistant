@@ -10,7 +10,8 @@ alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
 tervét, a napló, a részletező, a szerkesztők, a feltöltés és a táblázat
 döntéseit rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
 (görgetés, másodperc, szél-maximum), valamint a táblázat első
-böngészős próbája utáni javításokat (L4–L6) rögzíti.
+böngészős próbája utáni javításokat (L4–L6) rögzíti. Az Addendum 6
+(2026-10-02) az Excel-import (S5c) pontosítása a valódi adatok alapján.
 
 ## Kontextus
 
@@ -1653,3 +1654,149 @@ L1–L3 a javításukat rögzíti.
   - a „Feltöltés": teal keret és felirat (`primary`), üres naplóban
     kitöltött (K23 marad).
 - A G1 „ugyanolyan keretes gomb" előírását felülírja.
+
+## Addendum 6 — Az Excel-import pontosítása (S5c, 2026-10-02)
+
+Az S5c előtt a valódi Excelt (`Lola_versenynaplo_9.xlsx`) és a telefon
+DB-jének versenyneveit is megnéztük. Két megfigyelés módosítja a D7-et:
+- a DB és az Excel nevei erősen eltérnek („BAHART Regatta Szemes 2-es
+  pálya" és „BAHART Regatta – Balatonszemes", „Timu Emlékverseny" és
+  „Timu Kupa"), ezért a név alapú párosítás sorra elbukna;
+- az Excel cellái a vártnál vegyesebbek (szöveges idők, negatív és
+  pontos helyezések, összesítő sorok a lap alján).
+
+Az átfedés (felhasználói megállapítás): a telefon DB-je 2026-ból
+majdnem minden versenyt tartalmaz, kivéve az első kettőt (akkor még
+nem volt app); az Excel 2021-től mindent, kivéve az utolsó néhányat.
+
+### M1 — Párosítás a helyi nap szerint (felülírja a D7 névszabályát)
+
+- **Kulcs:** a telemetriás verseny rögzítésének kezdete Europe/Budapest
+  időben, napra kerekítve, és az Excel „Dátum" oszlopa.
+- **Egyértelmű:** ha azon a napon pontosan egy befejezett telemetriás
+  verseny van, az Excel-sor hozzá párosul. A neveket a próbafuttatás
+  csak kiírja, egymás mellett, ellenőrzésre.
+- **Kétnapos sor:** ha a sor „2. nap" oszlopai ki vannak töltve, és a
+  `D` és a `D+1` napon is pontosan egy verseny van, a sor kettéválik
+  (M5).
+- **Nem egyértelmű:** egy napon több telemetriás verseny. A sor
+  semmilyen formában nem íródik, amíg a `--match <race-id>=<sor>`
+  kapcsoló nem dönt. A próbafuttatás és az `--apply` is listázza.
+- **Párosítatlan:** az adott napon nincs telemetriás verseny → kézi
+  verseny.
+- **Csak telemetria:** az a telemetriás verseny, amelyhez egy Excel-sor
+  sem került, csak tájékoztatásul jelenik meg (pl. a 2026. augusztus
+  végi versenyek); az eredményük a weben írandó.
+- A `--match` kapcsoló ismételhető, és felülír minden automatikus
+  döntést az adott sorra.
+
+### M2 — A cellák normalizálása (kiegészíti a D7-et)
+
+- **Sorok:** csak az a sor verseny, amelyben a „Dátum" és a „Verseny"
+  is ki van töltve. A lap alján álló összesítő blokk (MAXIMUMOK,
+  ÁTLAGOK) és az üres elválasztó sor így kimarad.
+- **Helyezés:**
+  - egész szám → helyezés; **a negatív szám abszolútértéke** a helyezés
+    (felhasználói döntés: a 2025-ös Mihálkovics `-3`-a és a Tihany-kör
+    `-2`-je jelölés volt);
+  - `19.` → 19;
+  - `8. / 6.` → az első szám, 8 (a D7 Kékszalag-esete általánosítva),
+    és a próbafuttatás jelzi;
+  - `DNF`, `DNC` → DNF; `DSQ` → DSQ.
+- **A Befutás cellában álló `DNF`** → mindhárom helyezés DNF, a befutás
+  ideje üres (D7). A „2. nap" oszlopa csak akkor lesz DNF, ha ki van
+  töltve, így az üres oszlop nem teszi kétnapossá a sort.
+- **Idő:** a rajt és a befutás `datetime` vagy szöveg. Szövegként ezek a
+  formák fordulnak elő: `2025.05.25 12:00`, `2026.07.18. 11:00`,
+  `2026.07.30. 9:00`. A másodperc opcionális, az időket helyi
+  (Europe/Budapest) időként értjük, és a legközelebbi egész
+  másodpercre kerekítjük.
+- **Szélirány:** az Excel 16 jelölése (D5) → `CompassPoint`. Ismeretlen
+  jelölés a sor hibája.
+- **Kimarad:** Év, Osztály, Dobogó, Menetidő, Átlag (kn), Telemetria
+  forrása. A menetidőt a hivatalos időkből számoljuk (D4), az átlagot a
+  kézi versenynél a táv és a menetidő adja (I6).
+- A normalizált sor a meglévő validátorokon is átmegy
+  (`ValidateRaceResultInput`, `ValidateManualRaceInput`). A hibás sor
+  egyik formában sem íródik, és a terv hibaként listázza.
+
+### M3 — Időzóna szabályból, függőség nélkül
+
+A szerver UTC-ben fut, a fejlesztői gép helyi időben, ezért a
+konverzió nem függhet a gép zónájától. Az Europe/Budapest szabálya
+1996 óta az EU-szabály: nyári idő (UTC+2) március utolsó vasárnapján
+01:00 UTC-től október utolsó vasárnapján 01:00 UTC-ig, különben UTC+1.
+Ez egy pure függvény a `web_server`-ben, tesztelve a két átállásra. A
+`timezone` csomag egyetlen zónáért túl nagy függőség lenne.
+
+- A nem létező helyi idő (tavaszi ugrás) és a kétértelmű (őszi
+  ismétlés) a korábbi, téli eltolással értelmeződik. Versenyidőpontra
+  (vasárnap 02:00–03:00) ez a gyakorlatban nem fordul elő.
+
+### M4 — Felülírás csak `--overwrite`-tal (pontosítja a D7 idempotenciáját)
+
+- **A kézi verseny azonosítója:** UUID v5 a `Namespace.url` névtérben a
+  `legacy:<YYYY-MM-DD>:<a sor neve>` kulcsból. Egy újrafuttatás nem
+  duplikál.
+- **Ha a kézi verseny már létezik**, az import sem az alapadatait, sem
+  az eredményét nem írja, csak `--overwrite`-tal. Így a weben azóta
+  javított név vagy szám nem vész el.
+- **Ha a telemetriás versenynek már van eredménye**, ugyanígy.
+- **Figyelmeztetés:** ha egy kézi verseny napján már él egy másik,
+  kézzel felvett kézi verseny, a terv jelzi (lehetséges duplikátum).
+
+### M5 — A kétnapos sor felbontása (a D7 Mihálkovics-esete általánosan)
+
+- **1. nap:** abszolút és egytestű helyezés az 1. nap oszlopaiból;
+  osztály-helyezés nincs.
+- **2. nap:** abszolút és egytestű helyezés a „2. nap" oszlopokból, és
+  az osztály-helyezés (a két nap összesített eredménye).
+- **Mindkét nap:** YS-szám és mezőny.
+- **Csak a 2. nap:** a díj (Claude választása, visszavonható: a díjat a
+  verseny végén adják).
+- **Hivatalos idők nincsenek:** az Excel sora a két napot egybefogja; a
+  napi időket a felhasználó írja be (D7).
+- **Ha a sor nem bomlik fel** (egy `--match`, vagy nincs telemetria, és
+  kézi verseny lesz belőle), az egész sor eredménye íródik, szintén
+  hivatalos idők nélkül: a két napot átfogó ablak egy napi rögzítésre
+  vagy egy kézi verseny menetidejére hamis statisztikát adna.
+
+### M6 — Mi kerül át
+
+| Párosítás | Eredmény, YS, hivatalos idők, díj | Táv, sebesség, szél |
+|---|---|---|
+| telemetriás verseny | az Excelből | a telemetriából (döntés 27) |
+| kézi verseny | az Excelből | az Excelből |
+
+Párosítás után a telemetriás versenyek statisztikája újraszámolódik,
+mert a hivatalos idők megváltoztatják az ablakot (`refreshIfStale`, I4).
+
+### M7 — Futtatás: előbb lokálisan, utána élesben
+
+- A CLI-t a szerver leállítása mellett kell futtatni, mint az
+  `import_race_db`-t: két folyamat ne írjon egyszerre ugyanabba a
+  fájlba.
+- **Lokálisan:** a próba-DB-páron próbafuttatás, a terv átnézése, a
+  szükséges `--match` kapcsolók, majd `--apply`.
+- **Élesben:** az S8 után a VPS-en ugyanazzal a JSON-nal és ugyanazokkal
+  a `--match` kapcsolókkal. Az eredmény az M4 miatt azonos.
+- **Külön Excel-feltöltő a weben nincs** (felhasználói döntés): az
+  import egyszeri, utána minden adat a telefonról és a webes
+  szerkesztőből jön.
+
+### M8 — A JSON-kinyerő
+
+- `tools/legacy_race_log/xlsx_to_json.py`, `openpyxl`-lel, csak olvas.
+- Kimenet: a `Versenyek` lap fejlécei (`columns`) és sorai, soronként a
+  sorszám és a cellák a fejléc neve szerint, típusjelöléssel (`text`,
+  `number`, `datetime`, `duration`). A képlet-cellák a gyorsítótárazott
+  értéküket adják. Ismétlődő fejléc esetén leáll.
+- Nem normalizál. Az egyetlen szűrés az M2 sorszabálya (dátum és név).
+- **Fejléc-ellenőrzés:** a CLI a fejléceket a kódban rögzített listával
+  veti össze (importált és szándékosan kihagyott oszlopok). Egy átnevezett
+  fejléc különben egy egész oszlop adatát hagyná ki hang nélkül. Az
+  ismeretlen és a hiányzó fejlécet a próbafuttatás kiírja, és ilyenkor
+  az `--apply` nem fut.
+- **A terv a meglévő adatot jelzi:** ha egy párosított versenynek már van
+  eredménye, vagy a kézi verseny már létezik, a sora mellett ott áll,
+  hogy `--overwrite` nélkül kimarad (M4).
