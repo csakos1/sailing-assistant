@@ -5,6 +5,7 @@ import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:drift/native.dart';
 import 'package:shared/shared.dart';
+import 'package:web_server/src/cli/missing_files.dart';
 import 'package:web_server/src/legacy/decode_legacy_sheet.dart';
 import 'package:web_server/src/legacy/describe_legacy_import.dart';
 import 'package:web_server/src/legacy/legacy_columns.dart';
@@ -13,8 +14,10 @@ import 'package:web_server/src/legacy/legacy_sheet.dart';
 import 'package:web_server/src/legacy/normalize_legacy_row.dart';
 import 'package:web_server/src/legacy/plan_legacy_import.dart';
 import 'package:web_server/src/legacy/telemetry_candidate.dart';
+import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
+import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
@@ -58,6 +61,18 @@ Future<void> main(List<String> arguments) async {
     return;
   }
 
+  final missing = missingFileLines({
+    'archive': options.archivePath,
+    'web-db': options.webDbPath,
+  });
+  if (missing.isNotEmpty) {
+    for (final line in missing) {
+      stderr.writeln(line);
+    }
+    exitCode = 66;
+    return;
+  }
+
   final String source;
   try {
     source = await File(options.jsonPath).readAsString();
@@ -98,14 +113,16 @@ Future<void> _run(
   final manualRaces = ManualRaceRepository(webDatabase);
   final results = RaceResultRepository(webDatabase);
   final existingManualRaces = await manualRaces.getAll();
+  final telemetryRaces = await _telemetryCandidates(races);
   final plan = planLegacyImport(
     rows: sheet.rows.map(normalizeLegacyRow).toList(),
-    telemetryRaces: await _telemetryCandidates(races),
+    telemetryRaces: telemetryRaces,
     manualRaces: existingManualRaces,
     explicitMatches: options.matches,
   );
   final columns = checkLegacyColumns(sheet.columns);
   final lines = [
+    if (telemetryRaces.isEmpty) _noFinishedRaceLine,
     ...describeLegacyColumns(
       unknown: columns.unknown,
       missing: columns.missing,
@@ -125,6 +142,11 @@ Future<void> _run(
   }
   if (columns.unknown.isNotEmpty || columns.missing.isNotEmpty) {
     stderr.writeln('A fejlécek eltérése miatt az import nem fut (M8).');
+    exitCode = 1;
+    return;
+  }
+  if (telemetryRaces.isEmpty) {
+    stderr.writeln('Üres archívum mellett az import nem fut (E5).');
     exitCode = 1;
     return;
   }
@@ -150,8 +172,36 @@ Future<void> _run(
     refreshStats: refresher.refreshIfStale,
   );
   final report = await applier(plan, shouldOverwrite: options.shouldOverwrite);
+  await _refreshLegacyTrackStats(webDatabase, manualRaces, results);
   stdout.writeln('--- Végrehajtva ---');
   describeLegacyApply(report).forEach(stdout.writeln);
+}
+
+// Egy üres archívum mellett minden Excel-sor kézi versenyként íródna, és
+// a telemetriás versenyek eredménye elmaradna (ADR 0050 Addendum 1 E5).
+const String _noFinishedRaceLine =
+    'FIGYELEM: az archívumban nincs befejezett verseny; '
+    'ellenőrizd az --archive útvonalát. Az --apply nem fut.';
+
+// A kézi verseny hivatalos idői az --overwrite-tal változhatnak; a trackes
+// kézi verseny statja ezért itt is frissül (ADR 0050 Addendum 1 E2).
+Future<void> _refreshLegacyTrackStats(
+  WebDatabase webDatabase,
+  ManualRaceRepository manualRaces,
+  RaceResultRepository results,
+) async {
+  final tracks = LegacyTrackRepository(webDatabase);
+  await LegacyTrackStatsRefresher(
+    manualRaces: manualRaces,
+    results: results,
+    tracks: tracks,
+    stats: RaceStatsRepository(webDatabase),
+    calculate: RaceStatsCalculator(
+      readTrackSamples: tracks.readWindow,
+      readWindSamples: tracks.readWindow,
+    ),
+    log: stderr.writeln,
+  ).refreshAll();
 }
 
 Future<List<TelemetryCandidate>> _telemetryCandidates(
