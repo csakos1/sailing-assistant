@@ -11,6 +11,10 @@ javaslatokat a pontok „(javaslat)" jelzéssel hordozzák. A Stat-szelet
 (S9), illetve a polár-szeletek (S10–S12) előtt még visszavonhatók; a
 visszavonás inline javítás ebben az ADR-ben.
 
+Az ADR 0050 (2026-10-05) a sorrendet, a sémaverziót és a régi
+versenyek polár-mintáit pontosítja; lásd az „Utólagos pontosítások"
+szakaszt.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -72,6 +76,8 @@ lábjegyzetei a számítás szabályait is megadják:
 ### D1 — Sorrend (felhasználói döntés)
 
 S5c (Excel-import) → S9 (szezon-statisztika) → S10–S12 (polár) → S8
+**[utólagos pontosítás: az S5c után az ADR 0050 S13a–b szeletei jönnek,
+az S10–S12 után az S14 export]**
 (deploy). Így a VPS-re eleve a teljes 2021–2026-os archívum és minden
 statisztika kerül, és a szezon-statisztika a teljes adaton tervezhető.
 
@@ -245,6 +251,8 @@ szezon a futamok cache-éből jön, nem a nyers mintákból.
   verseny „nincs számolva" állapotú. Memóriában **nem** számol, mert egy
   23 órás verseny 86 000 mintája egy kérésben túl drága.
 - A `web.sqlite` v2 → v3 migráció a három táblát hozza létre.
+  **[Utólagos pontosítás: v3 → v4, mert a v3 az ADR 0050 D3
+  `legacy_track_samples` táblája.]**
 
 ### D11 — Összesítő sorok (felhasználói döntés: mindkettő)
 
@@ -344,3 +352,20 @@ mintájára.
 - a STW-korrekció alkalmazását a phone élő kijelzésében (VISION J21);
 - a rangot „Összes év" nézetben;
 - a régi (2021–2025) trackek importját a `polar.csv` fedélzeti naplóból.
+
+## Utólagos pontosítások
+
+- **2026-10-05, ADR 0050:**
+  - **Sorrend:** S5c → S13a–b (régi trackek) → S9 → S10–S12 → S14
+    (export) → S8.
+  - **Séma:** a polár-cache migrációja `web.sqlite` v3 → v4 (D10).
+  - **Régi versenyek (ADR 0050 D6):** a trackes kézi versenyek is
+    polár-mintát adnak, a `legacy_track_samples`-ből. Egy minta 10
+    másodpercet ér; a „60 mp" küszöbök hat mintát jelentenek. A
+    „Legjobb 5 mp" ezeken kötőjel. STW-korrekció nincs, a tüske-szűrő
+    5 minta (50 mp) mediánjával fut.
+  - **Rétegek (D13):** a `PolarSampleReader` mellé egy
+    `legacy_track_samples`-re épülő implementáció kerül a
+    `web_server`-be; a `PolarSample` egy `durationSeconds` mezőt kap (1
+    a telefonos, 10 a régi mintákra), ebből számol a hisztogram és a
+    mért idő.

@@ -5502,7 +5502,26 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   számol mintákból.
 - **Megjelenítés:** a polár-táblázat a Statisztika-képernyőn, egy blokk
   a részletezőn. Diagram és új külső függőség nincs.
-- Szeletek: S5c, S9 statisztika, S10–S12 polár, utána az S8 deploy.
+- Szeletek: S5c, S13a–b régi trackek, S9 statisztika, S10–S12 polár,
+  S14 export, utána az S8 deploy.
+
+### 20.4c Régi trackek és a teljes export (ADR 0050)
+
+- **Régi trackek:** a YDVR-napló YDVRCONV-exportjából (`polar.csv`, 10
+  mp, helyi idő) az `import_legacy_tracks` CLI a kézi versenyek
+  hivatalos ablakát a `web.sqlite` `legacy_track_samples` táblájába
+  tölti. A telefonos versenyekhez nem kerül track; az `archive.sqlite`
+  érintetlen.
+- **Statisztika:** a trackes kézi verseny táva, sebessége és szele a
+  trackből számolódik, ugyanazokkal a use case-ekkel, mint a telefonos
+  versenyeké, `official` ablakkal a `race_stats`-ban. A beírt Excel-számok
+  megmaradnak, és hivatalos idő nélkül újra érvényesek.
+- **Polár:** a régi minták is számítanak, mintánként 10 mp súllyal; a
+  „Legjobb 5 mp" ott kötőjel.
+- **Web:** a trackes kézi verseny térképet kap, bóják nélkül.
+- **Export:** a `GET /api/export` egy tar.gz-t ad: a két DB konzisztens
+  mentése (`VACUUM INTO`) és egy JSON minden versenyről, a szerződés
+  kódolóival. Új függőség nincs.
 
 ### 20.5 Hozzáférés és üzemeltetés
 
@@ -5521,7 +5540,7 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 ### 20.6 Nem része v1-nek
 
 Felhasználóhoz kötött login és automatikus szinkron, JSON-export az
-appból, a 20.4b-n túli statisztikák és diagramok, Markdown, fotók,
+appból, a 20.4b–c-n túli statisztikák és diagramok, Markdown, fotók,
 verseny-törlés, automatikus CI-deploy. Mindegyik külön ADR vagy
 addendum lesz.
 
