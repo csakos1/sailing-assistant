@@ -166,6 +166,13 @@ final class JsonReader {
     ];
   }
 
+  /// Opcionális tömb: a hiányzó kulcs és a `null` is `null`; különben a
+  /// [list] szerint olvas.
+  List<T>? optionalList<T>(
+    String key,
+    T Function(Object? item, String path) decodeItem,
+  ) => _map[key] == null ? null : list(key, decodeItem);
+
   /// Kötelező enum-érték a `name`-je alapján.
   T enumByName<T extends Enum>(String key, List<T> values) {
     final name = _map[key];

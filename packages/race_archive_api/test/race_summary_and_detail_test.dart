@@ -77,11 +77,34 @@ void main() {
       expect(error.path, r'$.stats.window');
     });
 
-    test('rejects a time window on a manual race', () {
+    test('round-trips a manual race with stats from its old track', () {
+      // ARRANGE: ADR 0050 D7, a regi trackbol szamolt stat
+      final summary = RaceSummary(
+        id: 'manual-2',
+        name: '55. Kekszalag',
+        origin: ManualOrigin(manualDate),
+        stats: RaceStats(
+          window: OfficialWindow(
+            TimeWindow(start: officialStart, end: officialFinish),
+          ),
+          track: const TrackStats(distanceMeters: 152600),
+        ),
+      );
+
+      // ACT
+      final decoded = unwrap(
+        decodeRaceSummary(overTheWire(encodeRaceSummary(summary))),
+      );
+
+      // ASSERT
+      expect(decoded, summary);
+    });
+
+    test('rejects a recording window on a manual race', () {
       // ARRANGE
       final json = encodeRaceSummary(manualSummary);
       objectAt(json, 'stats')['window'] = <String, Object?>{
-        'kind': 'official',
+        'kind': 'recording',
         'start': 0,
         'end': 1,
       };
@@ -269,6 +292,68 @@ void main() {
 
       expect(decoded.summary, manualSummary);
       expect(decoded.telemetry, isNull);
+    });
+
+    test('round-trips a manual race with its old track', () {
+      // ARRANGE
+      const track = [
+        ArchiveTrackPoint(
+          position: Coordinate(latitude: 46.95, longitude: 17.9),
+          sogMps: 3.1,
+        ),
+        ArchiveTrackPoint(
+          position: Coordinate(latitude: 46.96, longitude: 17.9),
+        ),
+      ];
+
+      // ACT
+      final decoded = unwrap(
+        decodeRaceDetail(
+          overTheWire(
+            encodeRaceDetail(
+              RaceDetail(summary: manualSummary, legacyTrack: track),
+            ),
+          ),
+        ),
+      );
+
+      // ASSERT
+      expect(decoded.legacyTrack, track);
+      expect(decoded.telemetry, isNull);
+    });
+
+    test('writes a null old track when there is none', () {
+      final json = encodeRaceDetail(RaceDetail(summary: manualSummary));
+
+      expect(json.containsKey('legacyTrack'), isTrue);
+      expect(json['legacyTrack'], isNull);
+    });
+
+    test('reads a missing old track key as null', () {
+      // ARRANGE: egy regebbi szerver valasza
+      final json = encodeRaceDetail(RaceDetail(summary: manualSummary))
+        ..remove('legacyTrack');
+
+      // ACT
+      final decoded = unwrap(decodeRaceDetail(overTheWire(json)));
+
+      // ASSERT
+      expect(decoded.legacyTrack, isNull);
+    });
+
+    test('rejects an old track on a telemetry race', () {
+      // ARRANGE
+      final json = encodeRaceDetail(telemetryDetail())
+        ..['legacyTrack'] = [
+          [46.95, 17.9, null],
+        ];
+
+      // ACT
+      final error = errorOf(decodeRaceDetail(overTheWire(json)));
+
+      // ASSERT
+      expect(error.path, r'$.legacyTrack');
+      expect(error.expected, 'null for a telemetry race');
     });
 
     test('rejects a telemetry race without telemetry data', () {

@@ -6,20 +6,26 @@ import 'package:race_archive_api/src/record/race_summary.dart';
 /// A verseny-részletező adata (ADR 0048 D6 + Addendum 2 H4).
 ///
 /// A [summary] mindkét fajtán ugyanaz, mint a napló sora. A [telemetry]
-/// pontosan akkor van jelen, ha a verseny telemetriás.
+/// pontosan akkor van jelen, ha a verseny telemetriás. A [legacyTrack]
+/// csak kézi versenyen lehet jelen: a régi YDVR-napló tracke (ADR 0050
+/// D7 + Addendum 2 F4).
 ///
 /// Szándékosan nincs `==`: a domain `RoundingResult` nem értékszemantikájú,
 /// így egy mező-szintű egyenlőség félrevezető lenne.
 @immutable
 final class RaceDetail {
   /// Részletező a [summary] versenyhez.
-  const RaceDetail({required this.summary, this.telemetry});
+  const RaceDetail({required this.summary, this.telemetry, this.legacyTrack});
 
   /// A napló-sor adatai: eredet, statisztika, eredmény.
   final RaceSummary summary;
 
   /// A telemetriás verseny térkép- és bója-adatai; kézinél `null`.
   final TelemetryRaceData? telemetry;
+
+  /// A kézi verseny régi trackjének pontjai időrendben, bóják nélkül;
+  /// `null`, ha nincs tracke, és mindig `null` telemetriás versenyen.
+  final List<ArchiveTrackPoint>? legacyTrack;
 }
 
 /// A telemetriás verseny részletezőjének adatai (ADR 0047 D4).

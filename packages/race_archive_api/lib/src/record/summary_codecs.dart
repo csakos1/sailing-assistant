@@ -50,14 +50,15 @@ Result<RaceSummary, DecodeError> decodeRaceSummary(Object? json) =>
 /// Belső olvasó a beágyazó kodekeknek.
 ///
 /// Az eredet és az ablak összhangját is ellenőrzi: telemetriás versenyhez
-/// hivatalos vagy rögzítés-ablak, kézihez beírt érték tartozik (H3).
+/// hivatalos vagy rögzítés-ablak, kézihez beírt érték vagy (régi trackből
+/// számolt statnál) hivatalos ablak tartozik (H3, ADR 0050 D7).
 RaceSummary readRaceSummary(JsonReader reader) {
   final origin = _readOrigin(reader.object('origin'));
   final statsReader = reader.object('stats');
   final stats = _readStats(statsReader);
   final isConsistent = switch ((origin, stats.window)) {
     (TelemetryOrigin(), OfficialWindow() || RecordingWindow()) => true,
-    (ManualOrigin(), ManualEntry()) => true,
+    (ManualOrigin(), ManualEntry() || OfficialWindow()) => true,
     _ => false,
   };
   if (!isConsistent) {
