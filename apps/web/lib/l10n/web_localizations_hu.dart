@@ -639,4 +639,136 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get editAvgSpeedTrackSourceCaps => 'A TRACKBŐL SZÁMOLVA';
+
+  @override
+  String get logStatistics => 'Statisztika';
+
+  @override
+  String get statsTitle => 'Statisztika';
+
+  @override
+  String get statsStatRacesCaps => 'VERSENY';
+
+  @override
+  String statsOriginSplit(int telemetry, int manual) {
+    return '$telemetry telemetriás és $manual kézi verseny.';
+  }
+
+  @override
+  String statsRacesWithoutTime(int count) {
+    return '$count kézi versenynek nincs hivatalos ideje: a vízen töltött időbe és az átlagsebességbe nem számít bele.';
+  }
+
+  @override
+  String get statsApproximate =>
+      '~ Egyes számok közelítők: ahol nincs hivatalos rajt és befutás, a teljes rögzítésből számolódnak.';
+
+  @override
+  String get statsPlacingsCaps => 'HELYEZÉSEK';
+
+  @override
+  String get statsColumnFirst => '1.';
+
+  @override
+  String get statsColumnSecond => '2.';
+
+  @override
+  String get statsColumnThird => '3.';
+
+  @override
+  String get statsColumnPodiumCaps => 'DOBOGÓ';
+
+  @override
+  String get statsColumnDnfCaps => 'DNF';
+
+  @override
+  String get statsColumnDsqCaps => 'DSQ';
+
+  @override
+  String get statsColumnAverageCaps => 'ÁTLAG';
+
+  @override
+  String get statsColumnEnteredCaps => 'MEGADVA';
+
+  @override
+  String get statsRowClass => 'Osztály';
+
+  @override
+  String get statsRowOverall => 'Abszolút';
+
+  @override
+  String get statsRowMonohull => 'Egytestű';
+
+  @override
+  String statsEnteredOf(int entered, int total) {
+    return '$entered/$total';
+  }
+
+  @override
+  String get statsConditionsCaps => 'SEBESSÉG ÉS SZÉL';
+
+  @override
+  String get statsColumnValueCaps => 'ÉRTÉK';
+
+  @override
+  String get statsColumnRaceCaps => 'VERSENY';
+
+  @override
+  String get statsColumnDateCaps => 'DÁTUM';
+
+  @override
+  String get statsRowAvgSpeed => 'Átlagsebesség';
+
+  @override
+  String get statsRowMaxSpeed => 'Legnagyobb sebesség';
+
+  @override
+  String get statsRowMaxWind => 'Legnagyobb szél';
+
+  @override
+  String get statsWindBandsCaps => 'ÁTLAGSZÉL SZERINT';
+
+  @override
+  String statsWindBandBelow(int high) {
+    return '< $high kn';
+  }
+
+  @override
+  String statsWindBandRange(int low, int high) {
+    return '$low–$high kn';
+  }
+
+  @override
+  String statsWindBandAbove(int low) {
+    return '≥ $low kn';
+  }
+
+  @override
+  String statsRacesWithoutWind(int count) {
+    return '$count versenyen nincs szélmérés.';
+  }
+
+  @override
+  String get statsYearsCaps => 'ÉVEK';
+
+  @override
+  String get statsColumnYearCaps => 'ÉV';
+
+  @override
+  String get statsColumnRacesCaps => 'VERSENY';
+
+  @override
+  String get statsColumnTimeCaps => 'IDŐ';
+
+  @override
+  String get statsColumnDistanceCaps => 'TÁV';
+
+  @override
+  String get statsColumnAverageSpeedCaps => 'ÁTLAG';
+
+  @override
+  String get statsUnitHours => 'ó';
+
+  @override
+  String get statsUnitPodium => 'dobogó';
 }

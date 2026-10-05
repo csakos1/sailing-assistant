@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:foretack_web/race_log/elapsed_time.dart';
 import 'package:foretack_web/race_log/log_period.dart';
 import 'package:foretack_web/race_log/race_log_grouping.dart';
-import 'package:race_archive_api/race_archive_api.dart';
 
 /// A napló stat-csíkjának összesítői (ADR 0048 Addendum 4 K4).
 ///
@@ -94,7 +94,8 @@ RaceLogTotals _totalsOf(List<LogYear> years) {
     for (final month in year.months) {
       for (final entry in month.entries) {
         final summary = entry.summary;
-        final elapsed = _timeOnWaterOf(summary);
+        // A kézi verseny hivatalos idők nélkül nem számít bele (K4).
+        final elapsed = elapsedTimeOf(summary)?.value;
         if (elapsed != null) {
           timeOnWater = (timeOnWater ?? Duration.zero) + elapsed;
         }
@@ -114,16 +115,4 @@ RaceLogTotals _totalsOf(List<LogYear> years) {
     distanceMeters: distanceMeters,
     maxSpeedMps: maxSpeedMps,
   );
-}
-
-// A vízen töltött idő: a hivatalos menetidő, ha pozitív; különben a
-// telemetriás verseny rögzítésének hossza. A kézi verseny hivatalos idők
-// nélkül nem számít bele (K4).
-Duration? _timeOnWaterOf(RaceSummary summary) {
-  final official = summary.result?.content.officialElapsed;
-  if (official != null && official > Duration.zero) return official;
-  return switch (summary.origin) {
-    TelemetryOrigin(:final recording) => recording.duration,
-    ManualOrigin() => null,
-  };
 }

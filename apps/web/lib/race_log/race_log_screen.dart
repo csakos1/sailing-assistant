@@ -18,7 +18,11 @@ import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:foretack_web/race_log/table/race_table.dart';
 import 'package:foretack_web/race_log/table/race_table_items.dart';
 import 'package:foretack_web/race_log/table/race_table_sort_provider.dart';
+import 'package:foretack_web/race_log/widgets/log_empty_message.dart';
+import 'package:foretack_web/race_log/widgets/log_load_error.dart';
+import 'package:foretack_web/race_log/widgets/log_period_band.dart';
 import 'package:foretack_web/race_log/widgets/log_view_toggle.dart';
+import 'package:foretack_web/season_stats/season_stats_screen.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 /// A webes Versenynapló, Lista és Táblázat nézettel (ADR 0047 D8, ADR
@@ -51,6 +55,28 @@ class RaceLogScreen extends ConsumerWidget {
                 ref.read(logViewModeProvider.notifier).mode = mode,
           ),
           const SizedBox(width: 8),
+          // Ikon-gomb: szöveggel egy 800 px-es ablakban már nem férne el a
+          // többi vezérlő mellett (ADR 0049 Addendum 1 P1).
+          IconButton(
+            tooltip: l10n.logStatistics,
+            icon: const Icon(Icons.bar_chart),
+            color: Theme.of(context).colorScheme.onSurface,
+            // A többi vezérlővel egy magas (Addendum 5 L6).
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(WebLayout.appBarControlHeight),
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.all(6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => unawaited(
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SeasonStatsScreen(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
           // velük egy magas (Addendum 5 L6).
           TextButton.icon(
@@ -79,11 +105,11 @@ class RaceLogScreen extends ConsumerWidget {
         // Az ÚJRA után a folyamatjelző látsszon, ne a régi hiba.
         skipLoadingOnRefresh: false,
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => _LoadError(
+        error: (_, _) => LogLoadError(
           onRetry: () => ref.invalidate(raceSummariesProvider),
         ),
         data: (view) =>
-            view.isEmpty ? const _EmptyLog() : _RaceLogBody(view: view),
+            view.isEmpty ? const LogEmptyMessage() : _RaceLogBody(view: view),
       ),
     );
   }
@@ -163,7 +189,6 @@ class _RaceLogBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = WebLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final totals = view.totals;
     final mode = ref.watch(logViewModeProvider);
     final sort = ref.watch(raceTableSortProvider);
@@ -171,33 +196,7 @@ class _RaceLogBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // A sáv teljes szélességű, a tartalma az oszlopban (E3).
-        ColoredBox(
-          color: scheme.surfaceContainer,
-          child: WebColumn(
-            child: RaceLogYearSelector(
-              // Az évek fix, csökkenő sorrendben (ADR 0048 Addendum 7 N1).
-              years: [
-                for (final year in view.availableYears)
-                  (
-                    label: '$year',
-                    isSelected: year == view.selectedYear,
-                    onSelected: () =>
-                        ref.read(logPeriodProvider.notifier).chooseYear(year),
-                  ),
-              ],
-              leadingLabel: view.isAllYears ? _allYearsLabel(l10n) : null,
-              allYearsOption: view.isAllYears
-                  ? null
-                  : (
-                      label: l10n.logAllYearsCaps,
-                      onSelected: () =>
-                          ref.read(logPeriodProvider.notifier).chooseAllYears(),
-                    ),
-              countLabel: l10n.logRaceCountCaps(view.raceCount),
-            ),
-          ),
-        ),
+        LogPeriodBand(view: view),
         WebColumn(
           child: RaceLogStatsStrip(
             cells: [
@@ -234,12 +233,6 @@ class _RaceLogBody extends ConsumerWidget {
     );
   }
 
-  // Az évek csökkenő sorrendben jönnek: az utolsó a legkorábbi.
-  String _allYearsLabel(WebLocalizations l10n) {
-    final years = view.availableYears;
-    return l10n.logYearRange(years.last, years.first);
-  }
-
   List<Widget> _rows(BuildContext context, WebLocalizations l10n) => [
     for (final year in view.shownYears) ...[
       if (view.isAllYears) _YearHeading(year: year.year),
@@ -272,50 +265,6 @@ class _YearHeading extends StatelessWidget {
       '$year',
       style: numeralSmallStyle.copyWith(
         color: Theme.of(context).colorScheme.onSurface,
-      ),
-    ),
-  );
-}
-
-class _LoadError extends StatelessWidget {
-  const _LoadError({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = WebLocalizations.of(context)!;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(WebLayout.columnInset),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.logLoadError,
-              style: supportTextStyle,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: Text(l10n.logRetryCaps)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyLog extends StatelessWidget {
-  const _EmptyLog();
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(WebLayout.columnInset),
-      child: Text(
-        WebLocalizations.of(context)!.logEmpty,
-        style: supportTextStyle,
-        textAlign: TextAlign.center,
       ),
     ),
   );

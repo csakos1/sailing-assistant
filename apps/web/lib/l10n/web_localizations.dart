@@ -1257,6 +1257,240 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'A TRACKBŐL SZÁMOLVA'**
   String get editAvgSpeedTrackSourceCaps;
+
+  /// A napló AppBar ikon-gombjának tooltipje, amely a Statisztika-képernyőt nyitja (ADR 0049 Addendum 1 P1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Statisztika'**
+  String get logStatistics;
+
+  /// A Statisztika-képernyő címe (ADR 0049 D2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Statisztika'**
+  String get statsTitle;
+
+  /// A Statisztika MENNYISÉG csíkjának első cellája: a versenyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get statsStatRacesCaps;
+
+  /// Halk sor a MENNYISÉG csík alatt: a versenyek bontása forrás szerint.
+  ///
+  /// In hu, this message translates to:
+  /// **'{telemetry} telemetriás és {manual} kézi verseny.'**
+  String statsOriginSplit(int telemetry, int manual);
+
+  /// Halk sor: a hivatalos idő nélküli kézi versenyek kimaradnak az időből (ADR 0049 D3).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} kézi versenynek nincs hivatalos ideje: a vízen töltött időbe és az átlagsebességbe nem számít bele.'**
+  String statsRacesWithoutTime(int count);
+
+  /// A közelítő-sor a Statisztika-képernyőn (K9, ADR 0049 Addendum 1 P4).
+  ///
+  /// In hu, this message translates to:
+  /// **'~ Egyes számok közelítők: ahol nincs hivatalos rajt és befutás, a teljes rögzítésből számolódnak.'**
+  String get statsApproximate;
+
+  /// A helyezések táblájának szakaszcíme (P2).
+  ///
+  /// In hu, this message translates to:
+  /// **'HELYEZÉSEK'**
+  String get statsPlacingsCaps;
+
+  /// A helyezés-tábla oszlopa: első helyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'1.'**
+  String get statsColumnFirst;
+
+  /// A helyezés-tábla oszlopa: második helyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'2.'**
+  String get statsColumnSecond;
+
+  /// A helyezés-tábla oszlopa: harmadik helyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'3.'**
+  String get statsColumnThird;
+
+  /// A helyezés-tábla oszlopa: dobogók (1–3. hely) száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'DOBOGÓ'**
+  String get statsColumnPodiumCaps;
+
+  /// A helyezés-tábla oszlopa: feladások száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'DNF'**
+  String get statsColumnDnfCaps;
+
+  /// A helyezés-tábla oszlopa: kizárások száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'DSQ'**
+  String get statsColumnDsqCaps;
+
+  /// A helyezés-tábla oszlopa: a számszerű helyezések átlaga.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG'**
+  String get statsColumnAverageCaps;
+
+  /// A helyezés-tábla oszlopa: hány versenyen van megadva helyezés.
+  ///
+  /// In hu, this message translates to:
+  /// **'MEGADVA'**
+  String get statsColumnEnteredCaps;
+
+  /// A helyezés-tábla sora: osztályhelyezés.
+  ///
+  /// In hu, this message translates to:
+  /// **'Osztály'**
+  String get statsRowClass;
+
+  /// A helyezés-tábla sora: abszolút helyezés.
+  ///
+  /// In hu, this message translates to:
+  /// **'Abszolút'**
+  String get statsRowOverall;
+
+  /// A helyezés-tábla sora: egytestű helyezés.
+  ///
+  /// In hu, this message translates to:
+  /// **'Egytestű'**
+  String get statsRowMonohull;
+
+  /// A MEGADVA cella: megadott helyezések a megjelenített versenyek közül.
+  ///
+  /// In hu, this message translates to:
+  /// **'{entered}/{total}'**
+  String statsEnteredOf(int entered, int total);
+
+  /// A sebesség- és szél-szakasz címe (ADR 0049 D3).
+  ///
+  /// In hu, this message translates to:
+  /// **'SEBESSÉG ÉS SZÉL'**
+  String get statsConditionsCaps;
+
+  /// A rekord-tábla érték-oszlopa.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉRTÉK'**
+  String get statsColumnValueCaps;
+
+  /// A rekord-tábla oszlopa: a rekord versenye.
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get statsColumnRaceCaps;
+
+  /// A rekord-tábla oszlopa: a rekord versenyének napja.
+  ///
+  /// In hu, this message translates to:
+  /// **'DÁTUM'**
+  String get statsColumnDateCaps;
+
+  /// A rekord-tábla sora: össztáv ÷ összidő.
+  ///
+  /// In hu, this message translates to:
+  /// **'Átlagsebesség'**
+  String get statsRowAvgSpeed;
+
+  /// A rekord-tábla sora: a legnagyobb max. sebesség.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legnagyobb sebesség'**
+  String get statsRowMaxSpeed;
+
+  /// A rekord-tábla sora: a legnagyobb max. szél.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legnagyobb szél'**
+  String get statsRowMaxWind;
+
+  /// A szélsávok szakaszcíme (P3).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAGSZÉL SZERINT'**
+  String get statsWindBandsCaps;
+
+  /// A legalsó szélsáv címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'< {high} kn'**
+  String statsWindBandBelow(int high);
+
+  /// Egy közbülső szélsáv címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'{low}–{high} kn'**
+  String statsWindBandRange(int low, int high);
+
+  /// A legfelső szélsáv címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'≥ {low} kn'**
+  String statsWindBandAbove(int low);
+
+  /// Halk sor a szélsávok alatt: az átlagszél nélküli versenyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} versenyen nincs szélmérés.'**
+  String statsRacesWithoutWind(int count);
+
+  /// Az évek összevetésének szakaszcíme, csak „Összes év” nézetben (P5).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉVEK'**
+  String get statsYearsCaps;
+
+  /// Az évek táblájának első oszlopa.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉV'**
+  String get statsColumnYearCaps;
+
+  /// Az évek táblájának oszlopa: versenyszám.
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get statsColumnRacesCaps;
+
+  /// Az évek táblájának oszlopa: vízen töltött idő.
+  ///
+  /// In hu, this message translates to:
+  /// **'IDŐ'**
+  String get statsColumnTimeCaps;
+
+  /// Az évek táblájának oszlopa: össztáv.
+  ///
+  /// In hu, this message translates to:
+  /// **'TÁV'**
+  String get statsColumnDistanceCaps;
+
+  /// Az évek táblájának oszlopa: átlagsebesség.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG'**
+  String get statsColumnAverageSpeedCaps;
+
+  /// Az évek táblájának IDŐ fejlécében a mértékegység (L5).
+  ///
+  /// In hu, this message translates to:
+  /// **'ó'**
+  String get statsUnitHours;
+
+  /// Az évek táblájának kategória-oszlopaiban a második fejlécsor: dobogók száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'dobogó'**
+  String get statsUnitPodium;
 }
 
 class _WebLocalizationsDelegate

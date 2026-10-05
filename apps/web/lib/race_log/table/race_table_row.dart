@@ -1,6 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart';
 import 'package:foretack_web/race_detail/detail_formatters.dart';
+import 'package:foretack_web/race_log/elapsed_time.dart';
 import 'package:foretack_web/race_log/race_log_grouping.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
@@ -11,7 +12,7 @@ typedef TablePlacing = ({Placing placing, int? fleetSize});
 typedef TableInstant = ({DateTime instant, bool isApproximate});
 
 /// Egy időtartam a táblázatban; közelítő, ha a rögzítésből jön (G6).
-typedef TableDuration = ({Duration value, bool isApproximate});
+typedef TableDuration = ElapsedTime;
 
 /// A táblázat egy sora, cellánként kész értékkel (ADR 0048 Addendum 4
 /// K27).
@@ -138,7 +139,7 @@ RaceTableRow raceTableRowOf(LogEntry entry) {
         start != null &&
         finish != null &&
         isNextLocalDay(start.instant, finish.instant),
-    elapsed: _elapsedOf(content?.officialElapsed, recording?.duration),
+    elapsed: elapsedTimeOf(summary),
     areStatsApproximate: stats.window.isApproximate,
     distanceMeters: stats.track.distanceMeters,
     avgSpeedMps: stats.track.avgSpeedMps,
@@ -156,16 +157,5 @@ TablePlacing? _placingOf(Placing? placing, int? fleetSize) =>
 TableInstant? _instantOf(DateTime? official, DateTime? recorded) {
   if (official != null) return (instant: official, isApproximate: false);
   if (recorded != null) return (instant: recorded, isApproximate: true);
-  return null;
-}
-
-// A hivatalos menetidő csak pozitívként érvényes: egy fordított rajt és
-// befutás a szerver validációja szerint nem fordulhat elő, de egy nulla
-// menetidő sem mond semmit.
-TableDuration? _elapsedOf(Duration? official, Duration? recorded) {
-  if (official != null && official > Duration.zero) {
-    return (value: official, isApproximate: false);
-  }
-  if (recorded != null) return (value: recorded, isApproximate: true);
   return null;
 }
