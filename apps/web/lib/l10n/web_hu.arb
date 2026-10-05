@@ -838,5 +838,13 @@
   "tableUnitElapsed": "ó:p:mp",
   "@tableUnitElapsed": {
     "description": "A menetidő fejlécének második sora (L5)."
+  },
+  "editStatsFromTrackNote": "A táv, a sebesség és a szél a régi trackből számolódik, a hivatalos rajt és befutás között.",
+  "@editStatsFromTrackNote": {
+    "description": "Halk sor a kézi szerkesztő stat-szakaszában, ha a statok a régi trackből számoltak (ADR 0050 Addendum 2 F3)."
+  },
+  "editAvgSpeedTrackSourceCaps": "A TRACKBŐL SZÁMOLVA",
+  "@editAvgSpeedTrackSourceCaps": {
+    "description": "Az átlagsebesség magyarázata, ha a trackből számolt, de nincs értéke."
   }
 }

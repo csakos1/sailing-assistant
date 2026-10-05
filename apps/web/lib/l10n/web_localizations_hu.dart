@@ -632,4 +632,11 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get tableUnitElapsed => 'ó:p:mp';
+
+  @override
+  String get editStatsFromTrackNote =>
+      'A táv, a sebesség és a szél a régi trackből számolódik, a hivatalos rajt és befutás között.';
+
+  @override
+  String get editAvgSpeedTrackSourceCaps => 'A TRACKBŐL SZÁMOLVA';
 }

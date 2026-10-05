@@ -1245,6 +1245,18 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'ó:p:mp'**
   String get tableUnitElapsed;
+
+  /// Halk sor a kézi szerkesztő stat-szakaszában, ha a statok a régi trackből számoltak (ADR 0050 Addendum 2 F3).
+  ///
+  /// In hu, this message translates to:
+  /// **'A táv, a sebesség és a szél a régi trackből számolódik, a hivatalos rajt és befutás között.'**
+  String get editStatsFromTrackNote;
+
+  /// Az átlagsebesség magyarázata, ha a trackből számolt, de nincs értéke.
+  ///
+  /// In hu, this message translates to:
+  /// **'A TRACKBŐL SZÁMOLVA'**
+  String get editAvgSpeedTrackSourceCaps;
 }
 
 class _WebLocalizationsDelegate

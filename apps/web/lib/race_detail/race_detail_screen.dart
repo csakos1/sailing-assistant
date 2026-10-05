@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -112,6 +113,7 @@ class _DetailBody extends StatelessWidget {
     final l10n = WebLocalizations.of(context)!;
     final summary = detail.summary;
     final telemetry = detail.telemetry;
+    final legacyTrack = detail.legacyTrack;
     final stats = summary.stats;
     final summaryText = summary.result?.content.summary;
 
@@ -128,9 +130,21 @@ class _DetailBody extends StatelessWidget {
         ResultBlock(result: summary.result, onEdit: onEdit),
         if (telemetry != null) ...[
           const SizedBox(height: 24),
-          _TrackMapCard(name: summary.name, telemetry: telemetry),
+          _TrackMapCard(
+            name: summary.name,
+            trackPoints: telemetry.trackPoints,
+            marks: telemetry.race.marks,
+          ),
           DetailSectionLabel(text: l10n.detailMarksCaps),
           for (final mark in telemetry.race.marks) DetailMarkRow(mark: mark),
+        ] else if (legacyTrack != null) ...[
+          // A régi YDVR-track, bóják nélkül (ADR 0050 D7 + Addendum 2 F4).
+          const SizedBox(height: 24),
+          _TrackMapCard(
+            name: summary.name,
+            trackPoints: legacyTrack,
+            marks: const [],
+          ),
         ],
         if (summaryText != null) ...[
           DetailSectionLabel(text: l10n.detailSummaryCaps),
@@ -248,20 +262,25 @@ class _ApproximateNote extends StatelessWidget {
 
 /// A gesztus nélküli térkép-kártya (K8); rákattintva a teljes képernyős
 /// nézet nyílik. Üres tracknél nincs mit nagyítani, ezért nem kattintható.
+/// A telemetriás és a régi track is ezt kapja; az utóbbi bóják nélkül.
 class _TrackMapCard extends StatelessWidget {
-  const _TrackMapCard({required this.name, required this.telemetry});
+  const _TrackMapCard({
+    required this.name,
+    required this.trackPoints,
+    required this.marks,
+  });
 
   final String name;
-  final TelemetryRaceData telemetry;
+  final List<ArchiveTrackPoint> trackPoints;
+  final List<Mark> marks;
 
   @override
   Widget build(BuildContext context) {
     final l10n = WebLocalizations.of(context)!;
     final points = [
-      for (final point in telemetry.trackPoints)
+      for (final point in trackPoints)
         TrackPoint(position: point.position, sogMps: point.sogMps),
     ];
-    final marks = telemetry.race.marks;
     final map = TrackMap(
       points: points,
       marks: marks,

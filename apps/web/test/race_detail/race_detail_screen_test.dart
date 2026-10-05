@@ -183,6 +183,69 @@ void main() {
     expect(find.text('BÓJÁK'), findsNothing);
   });
 
+  RaceSummary trackedManualSummary() {
+    final start = DateTime.utc(2023, 7, 6, 8);
+    final finish = start.add(const Duration(hours: 20));
+    return RaceSummary(
+      id: 'm2',
+      name: 'Kezi m2',
+      origin: ManualOrigin(CalendarDate.tryParse('2023-07-06')!),
+      stats: RaceStats(
+        window: OfficialWindow(TimeWindow(start: start, end: finish)),
+        track: const TrackStats(distanceMeters: 152600, avgSpeedMps: 2.1),
+      ),
+      result: RaceResult(
+        raceId: 'm2',
+        content: RaceResultInput(officialStart: start, officialFinish: finish),
+        updatedAt: DateTime.utc(2026, 10),
+      ),
+    );
+  }
+
+  testWidgets('shows the old track of a manual race without marks', (
+    tester,
+  ) async {
+    // ARRANGE: ures track, hogy a TrackMap ne toltson csempet (ADR 0050 D7)
+    final summary = trackedManualSummary();
+    final detail = RaceDetail(summary: summary, legacyTrack: const []);
+
+    // ACT
+    await openDetail(
+      tester,
+      listed: summary,
+      detail: () => json(encodeRaceDetail(detail)),
+    );
+
+    // ASSERT
+    expect(find.byType(TrackMap), findsOneWidget);
+    expect(find.text('BÓJÁK'), findsNothing);
+    expect(find.textContaining('Közelítő értékek'), findsNothing);
+  });
+
+  testWidgets('locks the computed stats in the editor of a tracked race', (
+    tester,
+  ) async {
+    // ARRANGE
+    final summary = trackedManualSummary();
+    await openDetail(
+      tester,
+      listed: summary,
+      detail: () => json(encodeRaceDetail(RaceDetail(summary: summary))),
+    );
+
+    // ACT
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+
+    // ASSERT: tav, max. sebesseg, atlagos es max. szel (F3)
+    final disabled = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .where((field) => !(field.enabled ?? true));
+    expect(disabled, hasLength(4));
+    expect(find.textContaining('régi trackből számolódik'), findsOneWidget);
+    expect(find.text('152,6'), findsOneWidget);
+  });
+
   testWidgets('explains a race that is gone, without a retry', (tester) async {
     // ARRANGE
     final summary = manualSummary('m1', date: '2025-08-23');

@@ -12,6 +12,7 @@ import 'package:foretack_web/race_edit/field_problem_text.dart';
 import 'package:foretack_web/race_edit/form/field_problem.dart';
 import 'package:foretack_web/race_edit/form/manual_race_form_values.dart';
 import 'package:foretack_web/race_edit/form/read_manual_race_form.dart';
+import 'package:foretack_web/race_edit/form/track_computed_stats.dart';
 import 'package:foretack_web/race_edit/manual_race_form_fields.dart';
 import 'package:foretack_web/race_edit/race_record_editor.dart';
 import 'package:foretack_web/race_edit/result_form_fields.dart';
@@ -112,6 +113,7 @@ class _ManualRaceEditorState extends ConsumerState<ManualRaceEditorScreen> {
           fields: _raceFields,
           resultFields: _resultFields,
           problems: _problems,
+          computedStats: trackComputedStatsOf(widget.summary),
         ),
         PrizeAndSummarySection(fields: _resultFields),
       ],
