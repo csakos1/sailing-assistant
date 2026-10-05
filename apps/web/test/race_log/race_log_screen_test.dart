@@ -77,6 +77,11 @@ void main() {
     expect(find.text('Kezi kekszalag2024'), findsOneWidget);
     expect(find.text('Verseny lelle'), findsNothing);
     expect(find.text('1 VERSENY'), findsWidgets);
+    // Az evek a helyukon maradnak (ADR 0048 Addendum 7 N1).
+    expect(
+      tester.getTopLeft(find.text('2026')).dx,
+      lessThan(tester.getTopLeft(find.text('2024')).dx),
+    );
   });
 
   testWidgets('shows every year with year headings', (tester) async {

@@ -176,16 +176,17 @@ class _RaceLogBody extends ConsumerWidget {
           color: scheme.surfaceContainer,
           child: WebColumn(
             child: RaceLogYearSelector(
-              selectedLabel: _selectedLabel(l10n),
-              options: [
+              // Az évek fix, csökkenő sorrendben (ADR 0048 Addendum 7 N1).
+              years: [
                 for (final year in view.availableYears)
-                  if (year != view.selectedYear)
-                    (
-                      label: '$year',
-                      onSelected: () =>
-                          ref.read(logPeriodProvider.notifier).chooseYear(year),
-                    ),
+                  (
+                    label: '$year',
+                    isSelected: year == view.selectedYear,
+                    onSelected: () =>
+                        ref.read(logPeriodProvider.notifier).chooseYear(year),
+                  ),
               ],
+              leadingLabel: view.isAllYears ? _allYearsLabel(l10n) : null,
               allYearsOption: view.isAllYears
                   ? null
                   : (
@@ -233,10 +234,8 @@ class _RaceLogBody extends ConsumerWidget {
     );
   }
 
-  String _selectedLabel(WebLocalizations l10n) {
-    final selected = view.selectedYear;
-    if (selected != null) return '$selected';
-    // Az évek csökkenő sorrendben jönnek: az utolsó a legkorábbi.
+  // Az évek csökkenő sorrendben jönnek: az utolsó a legkorábbi.
+  String _allYearsLabel(WebLocalizations l10n) {
     final years = view.availableYears;
     return l10n.logYearRange(years.last, years.first);
   }

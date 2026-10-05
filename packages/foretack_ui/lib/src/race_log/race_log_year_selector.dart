@@ -5,16 +5,28 @@ import 'package:foretack_ui/foretack_ui.dart';
 /// a választás kezelője.
 typedef RaceLogYearOption = ({String label, VoidCallback onSelected});
 
+/// Egy év az évsávon: a kész felirat, kiválasztott-e, és a választás
+/// kezelője (ADR 0048 Addendum 7 N1).
+typedef RaceLogYearEntry = ({
+  String label,
+  bool isSelected,
+  VoidCallback onSelected,
+});
+
 /// A Versenynapló évsávja, a makett 7c változata (ADR 0047 Addendum 5 F2,
-/// ADR 0048 Addendum 4 K4).
+/// ADR 0048 Addendum 4 K4, Addendum 7 N1).
 ///
-/// A kiválasztott év nagy számmal áll, mellette alulra igazítva a többi
-/// év tompított, kattintható számként: maga a lista a választó,
-/// külön ikon és lap nélkül. Egy elválasztó után jöhet az „összes év"
-/// opció (14w). Alatta a versenyek száma verzál címkével.
+/// Az évek fix sorrendben, a helyükön állnak: a kiválasztott év a helyén
+/// nagy számmal, a többi tompított, kattintható számként, alulra igazítva.
+/// A váltás rövid animáció, így a jobbra lévő évek csúszása nem ugrás. Egy
+/// elválasztó után jöhet az „összes év" opció (14w). Alatta, a bal szélen
+/// a versenyek száma verzál címkével.
+///
+/// Ha egyik év sincs kiválasztva („összes év"), a [leadingLabel] (pl. a
+/// `2021–2026` tartomány) áll nagyban a sor elején.
 ///
 /// Minden szöveget **készen kap**, a stat-csík mintájára: a lokalizáció és
-/// az „összes év" tartomány-felirata (pl. `2021–2026`) a hívó dolga.
+/// a tartomány-felirat a hívó dolga.
 ///
 /// A tipográfia az ADR 0044 D39 elve szerint meglévő fokozat: a nagy szám
 /// `numeralMediumStyle`, az opciók `numeralMicroStyle`, a címke
@@ -24,21 +36,22 @@ typedef RaceLogYearOption = ({String label, VoidCallback onSelected});
 /// A `TextTones` biztonságos: a `foretackTheme` regisztrálja, tehát a fában
 /// mindig jelen van.
 class RaceLogYearSelector extends StatelessWidget {
-  /// Évsáv a [selectedLabel] kiválasztott évvel és az [options] többi
-  /// évvel; az [allYearsOption] egy elválasztó után áll.
+  /// Évsáv a [years] évekkel a megjelenés sorrendjében; az [allYearsOption]
+  /// egy elválasztó után áll.
   const RaceLogYearSelector({
-    required this.selectedLabel,
-    required this.options,
+    required this.years,
     required this.countLabel,
+    this.leadingLabel,
     this.allYearsOption,
     super.key,
   });
 
-  /// A kiválasztott év (vagy az összes év tartománya) felirata.
-  final String selectedLabel;
+  /// Az évek a megjelenés (csökkenő) sorrendjében; legfeljebb egy
+  /// kiválasztott.
+  final List<RaceLogYearEntry> years;
 
-  /// A többi választható év, a megjelenés sorrendjében.
-  final List<RaceLogYearOption> options;
+  /// A sor elején nagyban álló felirat, ha egyik év sincs kiválasztva.
+  final String? leadingLabel;
 
   /// Az „összes év" opció; `null`, ha éppen az van kiválasztva.
   final RaceLogYearOption? allYearsOption;
@@ -46,11 +59,15 @@ class RaceLogYearSelector extends StatelessWidget {
   /// A kiválasztott időszak verseny-számának kész felirata.
   final String countLabel;
 
+  /// A méret- és színváltás hossza (N1).
+  static const Duration transitionDuration = Duration(milliseconds: 150);
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
     final allYears = allYearsOption;
+    final leading = leadingLabel;
 
     return ColoredBox(
       color: scheme.surfaceContainer,
@@ -64,22 +81,31 @@ class RaceLogYearSelector extends StatelessWidget {
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.end,
               children: [
-                Padding(
-                  // A nagy szám és az opciók közti 18 px-es rés (7c).
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Text(
-                    selectedLabel,
-                    style: numeralMediumStyle.copyWith(color: scheme.onSurface),
+                if (leading != null)
+                  Padding(
+                    // A nagy szám és az opciók közti 18 px-es rés (7c).
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Text(
+                      leading,
+                      style: numeralMediumStyle.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                    ),
                   ),
-                ),
-                for (final option in options) _YearOptionButton(option: option),
+                for (final year in years) _YearButton(entry: year),
                 if (allYears != null) ...[
                   SizedBox(
                     width: 1,
                     height: 14,
                     child: ColoredBox(color: scheme.outline),
                   ),
-                  _YearOptionButton(option: allYears),
+                  _YearButton(
+                    entry: (
+                      label: allYears.label,
+                      isSelected: false,
+                      onSelected: allYears.onSelected,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -95,17 +121,18 @@ class RaceLogYearSelector extends StatelessWidget {
   }
 }
 
-/// Egy kattintható év: tompított, hoverre és fókuszra kivilágosodik.
-class _YearOptionButton extends StatefulWidget {
-  const _YearOptionButton({required this.option});
+/// Egy év a sávon: kiválasztva nagy és világos, különben tompított és
+/// kattintható, hoverre és fókuszra kivilágosodik.
+class _YearButton extends StatefulWidget {
+  const _YearButton({required this.entry});
 
-  final RaceLogYearOption option;
+  final RaceLogYearEntry entry;
 
   @override
-  State<_YearOptionButton> createState() => _YearOptionButtonState();
+  State<_YearButton> createState() => _YearButtonState();
 }
 
-class _YearOptionButtonState extends State<_YearOptionButton> {
+class _YearButtonState extends State<_YearButton> {
   bool _isHovered = false;
   bool _isFocused = false;
 
@@ -113,23 +140,35 @@ class _YearOptionButtonState extends State<_YearOptionButton> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tones = Theme.of(context).extension<TextTones>()!;
+    final isSelected = widget.entry.isSelected;
     final isHighlighted = _isHovered || _isFocused;
+    final style = isSelected
+        ? numeralMediumStyle.copyWith(color: scheme.onSurface)
+        : numeralMicroStyle.copyWith(
+            color: isHighlighted ? scheme.onSurfaceVariant : tones.low,
+          );
 
     return InkWell(
-      onTap: widget.option.onSelected,
+      // A kiválasztott évet nincs mit választani (N1).
+      onTap: isSelected ? null : widget.entry.onSelected,
       onHover: (isHovered) => setState(() => _isHovered = isHovered),
       onFocusChange: (isFocused) => setState(() => _isFocused = isFocused),
       // A kiemelést a szín adja, nem a Material-réteg (E5: azonnali váltás).
       hoverColor: Colors.transparent,
       focusColor: Colors.transparent,
-      child: Padding(
-        // A 7c 2 px-es függőleges betéte; a 38-as szám aljához igazít.
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(
-          widget.option.label,
-          style: numeralMicroStyle.copyWith(
-            color: isHighlighted ? scheme.onSurfaceVariant : tones.low,
-          ),
+      child: AnimatedPadding(
+        duration: RaceLogYearSelector.transitionDuration,
+        curve: Curves.easeOut,
+        // Kicsiben a 7c 2 px-es függőleges betéte (a 38-as szám aljához
+        // igazít); nagyban a két oldali 4 px adja a 18 px-es rést.
+        padding: isSelected
+            ? const EdgeInsets.symmetric(horizontal: 4)
+            : const EdgeInsets.symmetric(vertical: 2),
+        child: AnimatedDefaultTextStyle(
+          duration: RaceLogYearSelector.transitionDuration,
+          curve: Curves.easeOut,
+          style: style,
+          child: Text(widget.entry.label),
         ),
       ),
     );
