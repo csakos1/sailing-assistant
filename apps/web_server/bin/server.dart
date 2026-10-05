@@ -146,6 +146,7 @@ Future<void> main(List<String> arguments) async {
         results: results,
         stats: stats,
         manualRaces: manualRaces,
+        tracks: legacyTracks,
         resolveStats: resolveStats,
         log: _log,
       ),

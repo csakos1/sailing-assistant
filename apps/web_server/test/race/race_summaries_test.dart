@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:test/test.dart';
 import 'package:web_server/src/race/race_summaries.dart';
+import 'package:web_server/src/web_db/cached_race_stats.dart';
 import 'package:web_server/src/web_db/manual_race_record.dart';
 
 void main() {
@@ -76,6 +77,66 @@ void main() {
       );
 
       expect(manualSummaryOf(record, result).stats.track.avgSpeedMps, isNull);
+    });
+
+    group('with stats from an old track', () {
+      final start = DateTime.utc(2025, 8, 23, 10);
+      final finish = DateTime.utc(2025, 8, 23, 12);
+      final official = resultOf(
+        RaceResultInput(officialStart: start, officialFinish: finish),
+      );
+      CachedRaceStats cachedFor(DateTime end) => CachedRaceStats(
+        window: OfficialWindow(TimeWindow(start: start, end: end)),
+        track: const TrackStats(
+          maxSpeedMps: 4.2,
+          avgSpeedMps: 2.1,
+          distanceMeters: 15100,
+        ),
+        wind: const WindStats(avgWindMps: 3, directionDeg: 315),
+        computedAt: DateTime.utc(2026, 10, 5),
+      );
+
+      test('uses a cache row of the current official window', () {
+        // ACT
+        final summary = manualSummaryOf(
+          record,
+          official,
+          cached: cachedFor(finish),
+        );
+
+        // ASSERT
+        expect(
+          summary.stats.window,
+          OfficialWindow(TimeWindow(start: start, end: finish)),
+        );
+        expect(summary.stats.track.distanceMeters, 15100);
+        expect(summary.stats.track.avgSpeedMps, 2.1);
+        expect(summary.stats.windPoint, CompassPoint.northWest);
+        expect(showsTrackStats(cachedFor(finish), official), isTrue);
+      });
+
+      test('falls back to the typed values on a stale row', () {
+        // ARRANGE: a sor egy korabbi befutashoz keszult
+        final stale = cachedFor(finish.subtract(const Duration(minutes: 5)));
+
+        // ACT
+        final summary = manualSummaryOf(record, official, cached: stale);
+
+        // ASSERT
+        expect(summary.stats.window, const ManualEntry());
+        expect(summary.stats.track.distanceMeters, 9800);
+        expect(showsTrackStats(stale, official), isFalse);
+      });
+
+      test('falls back to the typed values without official times', () {
+        final summary = manualSummaryOf(
+          record,
+          null,
+          cached: cachedFor(finish),
+        );
+
+        expect(summary.stats.window, const ManualEntry());
+      });
     });
   });
 

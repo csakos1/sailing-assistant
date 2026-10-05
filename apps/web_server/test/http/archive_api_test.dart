@@ -18,11 +18,13 @@ import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
 import 'package:web_server/src/http/race_result_handler.dart';
 import 'package:web_server/src/import/race_importer.dart';
+import 'package:web_server/src/legacy/legacy_track_sample.dart';
 import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
 import 'package:web_server/src/race/race_summary_service.dart';
 import 'package:web_server/src/serial_lock.dart';
+import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
@@ -79,6 +81,19 @@ void main() {
       log: logLines.add,
     );
     final lock = SerialLock();
+    final tracks = LegacyTrackRepository(web);
+    final legacyRefresher = LegacyTrackStatsRefresher(
+      manualRaces: manualRaces,
+      results: results,
+      tracks: tracks,
+      stats: stats,
+      calculate: RaceStatsCalculator(
+        readTrackSamples: tracks.readWindow,
+        readWindSamples: tracks.readWindow,
+        now: () => now,
+      ),
+      log: logLines.add,
+    );
     return buildArchiveApiHandler(
       raceList: RaceListHandler(
         RaceSummaryService(
@@ -97,6 +112,7 @@ void main() {
           results: results,
           stats: stats,
           manualRaces: manualRaces,
+          tracks: tracks,
           resolveStats: resolveStats,
           log: logLines.add,
         ),
@@ -115,12 +131,11 @@ void main() {
         service: ManualRaceService(
           manualRaces: manualRaces,
           results: results,
-          tracks: LegacyTrackRepository(web),
+          tracks: tracks,
           stats: stats,
           runInTransaction: web.transaction,
           lock: lock,
-          // A regi track frissitoje a sajat tesztjeben (ADR 0050 E2).
-          refreshStats: (_) async {},
+          refreshStats: legacyRefresher.refreshIfStale,
           newId: () => 'manual-${++idCounter}',
           now: () => now,
         ),
@@ -468,6 +483,135 @@ void main() {
       expect(response.statusCode, 403);
       expect(await errorOf(response), const MissingClientHeader());
       expect(await RaceResultRepository(databases.web).get('r1'), isNull);
+    });
+  });
+
+  group('manual races with an old track', () {
+    // ADR 0050 Addendum 2: ot minta 10 mp-enkent, 3 m/s, a hivatalos
+    // ablakban (12:00-12:01 UTC).
+    final start = DateTime.utc(2026, 7, 30, 12);
+    final official = RaceResultInput(
+      officialStart: start,
+      officialFinish: start.add(const Duration(minutes: 1)),
+    );
+
+    Future<void> seedTrackedRace() async {
+      await postManual(encodeManualRaceRequest(lelleRequest(result: official)));
+      await LegacyTrackRepository(databases.web).replace('manual-1', [
+        for (var step = 0; step < 5; step++)
+          LegacyTrackSample(
+            timestamp: start.add(Duration(seconds: 10 * step)),
+            latDeg: 46.95 + step * 0.001,
+            lonDeg: 17.9,
+            sogMps: 3,
+            twsMps: 5,
+            twdDeg: 200,
+          ),
+      ]);
+      // A mentes frissiti a cache-t (E2); az elso mentes meg trackkel.
+      await putManual(
+        'manual-1',
+        encodeManualRaceRequest(lelleRequest(result: official)),
+      );
+    }
+
+    test('lists the stats computed from the track', () async {
+      // ARRANGE
+      await seedTrackedRace();
+
+      // ACT
+      final summary = (await listRaces()).single;
+
+      // ASSERT
+      expect(
+        summary.stats.window,
+        OfficialWindow(
+          TimeWindow(start: start, end: start.add(const Duration(minutes: 1))),
+        ),
+      );
+      expect(summary.stats.track.maxSpeedMps, 3);
+      expect(summary.stats.track.distanceMeters, closeTo(4 * 111.19, 0.1));
+    });
+
+    test('returns the old track in the detail', () async {
+      // ARRANGE
+      await seedTrackedRace();
+
+      // ACT
+      final response = await send('GET', racePath('manual-1'));
+
+      // ASSERT
+      final detail = unwrap(decodeRaceDetail(await jsonOf(response)));
+      expect(detail.legacyTrack, hasLength(5));
+      expect(detail.legacyTrack?.first.sogMps, 3);
+      expect(detail.telemetry, isNull);
+    });
+
+    test('keeps the entered numbers when a save sends computed ones', () async {
+      // ARRANGE
+      await seedTrackedRace();
+      final request = ManualRaceRequest(
+        race: ManualRaceInput(
+          name: 'Lelle',
+          date: CalendarDate.tryParse('2026-07-30')!,
+          distanceMeters: 444.8,
+          maxSpeedMps: 3,
+        ),
+        result: official,
+      );
+
+      // ACT
+      final response = await putManual(
+        'manual-1',
+        encodeManualRaceRequest(request),
+      );
+
+      // ASSERT
+      final summary = unwrap(decodeRaceSummary(await jsonOf(response)));
+      expect(summary.name, 'Lelle');
+      expect(summary.stats.window, isA<OfficialWindow>());
+      final stored = await ManualRaceRepository(databases.web).get('manual-1');
+      expect(stored?.input.distanceMeters, 9800);
+      expect(stored?.input.maxSpeedMps, isNull);
+      expect(stored?.input.windPoint, CompassPoint.southEast);
+    });
+
+    test('falls back to the entered numbers without official times', () async {
+      // ARRANGE
+      await seedTrackedRace();
+
+      // ACT: a hivatalos idok torlese
+      final response = await putManual(
+        'manual-1',
+        encodeManualRaceRequest(lelleRequest()),
+      );
+
+      // ASSERT
+      final summary = unwrap(decodeRaceSummary(await jsonOf(response)));
+      expect(summary.stats.window, const ManualEntry());
+      expect(summary.stats.track.distanceMeters, 9800);
+      final detail = unwrap(
+        decodeRaceDetail(await jsonOf(await send('GET', racePath('manual-1')))),
+      );
+      expect(detail.legacyTrack, hasLength(5));
+    });
+
+    test('DELETE removes the old track too', () async {
+      // ARRANGE
+      await seedTrackedRace();
+
+      // ACT
+      final response = await send(
+        'DELETE',
+        manualRacePath('manual-1'),
+        headers: _webClient,
+      );
+
+      // ASSERT
+      expect(response.statusCode, 204);
+      final tracks = LegacyTrackRepository(databases.web);
+      expect(await tracks.hasTrack('manual-1'), isFalse);
+      expect(await RaceStatsRepository(databases.web).get('manual-1'), isNull);
     });
   });
 

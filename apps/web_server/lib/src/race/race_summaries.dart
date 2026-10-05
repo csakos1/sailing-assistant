@@ -1,5 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:race_archive_api/race_archive_api.dart';
+import 'package:web_server/src/stats/expected_stats_window.dart';
+import 'package:web_server/src/web_db/cached_race_stats.dart';
 import 'package:web_server/src/web_db/manual_race_record.dart';
 
 // A napló-sor összeállítása a két versenyfajtából (ADR 0048 D6 + Addendum
@@ -22,15 +24,39 @@ RaceSummary telemetrySummaryOf({
 
 /// Egy kézi verseny napló-sora.
 ///
-/// A statok a beírt értékek; az átlagsebesség táv ÷ hivatalos menetidő,
-/// ha mindkettő megvan, és a menetidő pozitív (D2, I6).
-RaceSummary manualSummaryOf(ManualRaceRecord record, RaceResult? result) {
-  final input = record.input;
-  return RaceSummary(
-    id: record.id,
-    name: input.name,
-    origin: ManualOrigin(input.date),
-    stats: RaceStats(
+/// A statok a régi trackből számoltak, ha a [cached] sor ablaka pontosan a
+/// mostani hivatalos ablak (ADR 0050 D5 + Addendum 2 F1); különben a beírt
+/// értékek. Ez utóbbinál az átlagsebesség táv ÷ hivatalos menetidő, ha
+/// mindkettő megvan, és a menetidő pozitív (D2, I6).
+RaceSummary manualSummaryOf(
+  ManualRaceRecord record,
+  RaceResult? result, {
+  CachedRaceStats? cached,
+}) => RaceSummary(
+  id: record.id,
+  name: record.input.name,
+  origin: ManualOrigin(record.input.date),
+  stats: _trackStatsOf(cached, result) ?? _enteredStatsOf(record.input, result),
+  result: result,
+);
+
+/// Igaz, ha a kézi verseny napló-sora a régi trackből számolt statot
+/// mutatja (ADR 0050 Addendum 2 F1, F2).
+bool showsTrackStats(CachedRaceStats? cached, RaceResult? result) =>
+    _trackStatsOf(cached, result) != null;
+
+// Egy elavult sor (elmaradt frissítés) a beírt számokra esik vissza.
+RaceStats? _trackStatsOf(CachedRaceStats? cached, RaceResult? result) {
+  if (cached == null) return null;
+  final official = officialWindowOf(result?.content);
+  if (official == null || cached.window != OfficialWindow(official)) {
+    return null;
+  }
+  return cached.toRaceStats();
+}
+
+RaceStats _enteredStatsOf(ManualRaceInput input, RaceResult? result) =>
+    RaceStats(
       window: const ManualEntry(),
       track: TrackStats(
         distanceMeters: input.distanceMeters,
@@ -43,10 +69,7 @@ RaceSummary manualSummaryOf(ManualRaceRecord record, RaceResult? result) {
       avgWindMps: input.avgWindMps,
       maxWindMps: input.maxWindMps,
       windPoint: input.windPoint,
-    ),
-    result: result,
-  );
-}
+    );
 
 /// A napló szerveroldali sorrendje: a legújabb elöl (I6).
 ///

@@ -4,6 +4,7 @@ import 'package:web_server/src/race/race_summaries.dart';
 import 'package:web_server/src/server_log.dart';
 import 'package:web_server/src/stats/expected_stats_window.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
+import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
@@ -15,7 +16,7 @@ import 'package:web_server/src/web_db/race_stats_repository.dart';
 /// a sorrendben, mint a phone `post_race_analysis_provider`-e, így a két
 /// felület számai definíció szerint egyeznek. A track a teljes rögzítés
 /// (Addendum 1 G3, a térkép a teljes trackre áll); csak a statisztika
-/// ablakos.
+/// ablakos. A kézi verseny a régi tracket kapja, ha van (ADR 0050 D7).
 class RaceDetailService {
   /// Szolgáltatás az archívum olvasóival és a webes tárakkal.
   RaceDetailService({
@@ -24,6 +25,7 @@ class RaceDetailService {
     required RaceResultRepository results,
     required RaceStatsRepository stats,
     required ManualRaceRepository manualRaces,
+    required LegacyTrackRepository tracks,
     required TelemetryStatsResolver resolveStats,
     ServerLog log = ignoreServerLog,
   }) : _races = races,
@@ -31,6 +33,7 @@ class RaceDetailService {
        _results = results,
        _stats = stats,
        _manualRaces = manualRaces,
+       _tracks = tracks,
        _resolveStats = resolveStats,
        _log = log;
 
@@ -39,6 +42,7 @@ class RaceDetailService {
   final RaceResultRepository _results;
   final RaceStatsRepository _stats;
   final ManualRaceRepository _manualRaces;
+  final LegacyTrackRepository _tracks;
   final TelemetryStatsResolver _resolveStats;
   final ServerLog _log;
 
@@ -55,8 +59,16 @@ class RaceDetailService {
     }
     final record = await _manualRaces.get(raceId);
     if (record == null) return null;
+    final legacyTrack = _positionsOf(await _tracks.readWindow(raceId, null));
     return RaceDetail(
-      summary: manualSummaryOf(record, await _results.get(raceId)),
+      summary: manualSummaryOf(
+        record,
+        await _results.get(raceId),
+        cached: await _stats.get(raceId),
+      ),
+      // A track a hivatalos idők törlése után is látszik (ADR 0050
+      // Addendum 2 F4); pozíció nélkül nincs mit rajzolni.
+      legacyTrack: legacyTrack.isEmpty ? null : legacyTrack,
     );
   }
 
@@ -86,7 +98,7 @@ class RaceDetailService {
       ),
       telemetry: TelemetryRaceData(
         race: race,
-        trackPoints: _trackPointsOf(samples),
+        trackPoints: _positionsOf(samples),
         roundings: _analyzeRoundings(samples),
       ),
     );
@@ -94,7 +106,7 @@ class RaceDetailService {
 
   // A pozíció nélküli minták kimaradnak, a sebesség nélküliek nem: a
   // színezés a hiányzó SOG-ot külön kezeli (phone ADR 0034 Addendum 4).
-  List<ArchiveTrackPoint> _trackPointsOf(List<RoundingSample> samples) => [
+  List<ArchiveTrackPoint> _positionsOf(List<TrackSample> samples) => [
     for (final sample in samples)
       if (sample.latDeg case final lat?)
         if (sample.lonDeg case final lon?)

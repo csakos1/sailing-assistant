@@ -71,16 +71,30 @@ class ManualRaceService {
 
   /// Az [id] kézi verseny mentése a validált [request]-ből; `null`, ha
   /// nincs ilyen kézi verseny.
+  ///
+  /// Ha a verseny a mentés előtt a régi trackből számolt statot mutatott,
+  /// a kérés stat-mezői nem íródnak: a beírt számok maradnak (ADR 0050
+  /// Addendum 2 F2). A válasz a frissítés utáni napló-sor.
   Future<RaceSummary?> update(String id, ManualRaceRequest request) async {
-    final summary = await _runInTransaction(() async {
+    final saved = await _runInTransaction(() async {
+      final existing = await _manualRaces.get(id);
+      if (existing == null) return null;
+      final race = await _showsTrackStats(id)
+          ? _withEnteredStats(request.race, existing.input)
+          : request.race;
       final now = _now().toUtc();
-      final record = await _manualRaces.update(id, request.race, now: now);
+      final record = await _manualRaces.update(id, race, now: now);
       if (record == null) return null;
       final result = await _saveResult(id, request.result, now);
-      return manualSummaryOf(record, result);
+      return (record: record, result: result);
     });
-    if (summary != null) await _lock.run(() => _refreshStats(id));
-    return summary;
+    if (saved == null) return null;
+    await _lock.run(() => _refreshStats(id));
+    return manualSummaryOf(
+      saved.record,
+      saved.result,
+      cached: await _stats.get(id),
+    );
   }
 
   /// Az [id] kézi verseny törlése az eredményével, a trackjével és a
@@ -95,6 +109,24 @@ class ManualRaceService {
       }
       return isDeleted;
     }),
+  );
+
+  Future<bool> _showsTrackStats(String id) async =>
+      showsTrackStats(await _stats.get(id), await _results.get(id));
+
+  // A szerkesztő ilyenkor a számolt értékeket küldi vissza a tiltott
+  // mezőkből; a szerver nem bízik a kliens zárolásában (F2).
+  static ManualRaceInput _withEnteredStats(
+    ManualRaceInput requested,
+    ManualRaceInput stored,
+  ) => ManualRaceInput(
+    name: requested.name,
+    date: requested.date,
+    distanceMeters: stored.distanceMeters,
+    maxSpeedMps: stored.maxSpeedMps,
+    avgWindMps: stored.avgWindMps,
+    maxWindMps: stored.maxWindMps,
+    windPoint: stored.windPoint,
   );
 
   // Csupa üres eredmény: a korábbi sor törlődik, eredmény nincs (D3).

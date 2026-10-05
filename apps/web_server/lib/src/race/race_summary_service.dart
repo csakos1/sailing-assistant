@@ -45,7 +45,7 @@ class RaceSummaryService {
     final summaries = <RaceSummary>[
       ...await _telemetrySummaries(results, cached),
       for (final record in await _manualRaces.getAll())
-        manualSummaryOf(record, results[record.id]),
+        manualSummaryOf(record, results[record.id], cached: cached[record.id]),
     ]..sort(compareNewestFirst);
     return summaries;
   }
