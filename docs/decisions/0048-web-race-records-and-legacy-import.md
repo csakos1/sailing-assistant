@@ -1800,3 +1800,24 @@ mert a hivatalos idők megváltoztatják az ablakot (`refreshIfStale`, I4).
 - **A terv a meglévő adatot jelzi:** ha egy párosított versenynek már van
   eredménye, vagy a kézi verseny már létezik, a sora mellett ott áll,
   hogy `--overwrite` nélkül kimarad (M4).
+
+## Addendum 7 — Fix sorrendű évsáv (2026-10-05)
+
+### N1 — Az évek helye nem változik (felhasználói döntés)
+
+- **A probléma:** a 7c évsávja a kiválasztott évet a sor elejére tette, a
+  többit utána. Egy régebbi év választásakor a sorrend összekeveredett
+  (`2025 2026 2024 2023 …`).
+- **Döntés:** az évek mindig csökkenő sorrendben, a helyükön állnak. A
+  kiválasztott év a helyén nő meg (`numeralMediumStyle`, `onSurface`), a
+  többi kicsi és tompított marad (`numeralMicroStyle`, `TextTones.low`).
+  A tőle jobbra lévők a szélesebb szám miatt odébb csúsznak, a sorrend nem
+  változik.
+- **A verseny-szám címkéje** („13 VERSENY") a sáv bal szélén marad, nem
+  követi a kiválasztott évet (felhasználói döntés).
+- **Átmenet:** a méret- és színváltás rövid, kb. 150 ms-os animáció, hogy a
+  jobbra lévő évek csúszása ne ugrás legyen (felhasználói döntés).
+- **„Összes":** változatlan. Kiválasztva a tartomány (`2021–2026`) áll
+  nagyban a sor elején, utána az évek kicsiben, sorban; az „Összes"
+  opció ilyenkor nem látszik.
+- **A kiválasztott év** nem kattintható (javaslat): nincs mit választani.

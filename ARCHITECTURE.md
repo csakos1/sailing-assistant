@@ -5438,7 +5438,9 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   alapú `ArchiveApiClient`, relatív `/api` cím.
 - A napló sora a phone-é: nap és név. A meta-sor és a helyezés-slot
   elmarad (K3). A stat-csík és a hónap-fejléc is a közös widget; az
-  évsáv a 7c (`RaceLogYearSelector`), „Összes" opcióval.
+  évsáv a 7c (`RaceLogYearSelector`), „Összes" opcióval; az évek fix,
+  csökkenő sorrendben állnak, a kiválasztott a helyén nő meg (ADR 0048
+  Addendum 7).
 - Lokálisan egy Caddy (`tools/dev/Caddyfile`) teszi egy originre a webet
   és az API-t, ahogy élesben.
 - A részletező is a közös csíkokból épül (szél-csík, eredmény-blokk). A
@@ -5524,7 +5526,9 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   és a stat-sorát is törli (E2).
 - **Polár:** a régi minták is számítanak, mintánként 10 mp súllyal; a
   „Legjobb 5 mp" ott kötőjel.
-- **Web:** a trackes kézi verseny térképet kap, bóják nélkül.
+- **Web:** a trackes kézi verseny térképet kap, bóják nélkül
+  (`RaceDetail.legacyTrack`). A szerkesztőben a számolt mezők tiltottak,
+  és a szerver mentéskor a beírt számokat őrzi (Addendum 2 F2, F3).
 - **Export:** a `GET /api/export` egy tar.gz-t ad: a két DB konzisztens
   mentése (`VACUUM INTO`) és egy JSON minden versenyről, a szerződés
   kódolóival. Új függőség nincs.

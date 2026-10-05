@@ -338,3 +338,45 @@ dart run web_server:import_legacy_tracks \
   Drift egy üres DB-t hozna létre, és a próbafuttatás „semmi"-t mutatna.
 - Az `import_legacy_races` külön sorban jelzi, ha az archívumban nincs
   befejezett verseny, és ilyenkor nem fut az `--apply`.
+
+## Addendum 2 — Pontosítások az S13b előtt (2026-10-05)
+
+### F1 — A napló a cache-ből, csak érvényes ablakkal (javaslat)
+
+- A kézi verseny napló-sora akkor kap számolt statot (`OfficialWindow`),
+  ha a `race_stats` sora megvan, és az ablaka pontosan a mostani hivatalos
+  ablak. Különben a beírt számok (`ManualEntry`), ahogy eddig.
+- A `GET` itt sem számol: a kézi verseny frissítése a mentés és az
+  importok dolga (E2). Egy elmaradt frissítés a beírt számokra esik
+  vissza, nem hibára.
+- A számolt átlagsebesség a SOG-minták átlaga, mint a telefonos
+  versenyeken; a beírt számoknál továbbra is táv ÷ menetidő.
+
+### F2 — A mentés nem írja felül a beírt számokat (javaslat)
+
+- **A szerver őrzi meg őket:** ha a kézi verseny a mentés előtt számolt
+  statot mutatott (van tracke és érvényes hivatalos ablaka), a kérés táv-,
+  sebesség- és szél-mezőit figyelmen kívül hagyja, és a tárolt (Excel)
+  értékek maradnak. A szerkesztő előtöltése ilyenkor a számolt értékeket
+  küldené vissza; a szerver nem bízik a kliens zárolásában.
+- **A mentés válasza** a frissítés utáni napló-sor: ha a hivatalos idők
+  változtak, már az új ablak statjával.
+
+### F3 — Szerkesztő (javaslat, a D5 pontosítása)
+
+- Számolt statnál a táv, a max. sebesség, a szél és az irány mezője
+  tiltott, a számolt értékkel. Az átlagsebesség sora a számolt
+  SOG-átlagot mutatja. A szakasz címe alatt halk sor: a számok a régi
+  trackből számolódnak, a hivatalos rajt és befutás között.
+- Ha a hivatalos idők törlődnek, a következő megnyitáskor a mezők újra
+  szerkeszthetők, a beírt számokkal (D5 visszaesés).
+
+### F4 — Részletező és szerződés (javaslat)
+
+- **`RaceDetail.legacyTrack`:** a kézi verseny régi trackjének pozíciós
+  pontjai, ha van tracke; különben `null`. Telemetriás versenyen nem
+  lehet jelen. A régebbi szerver válaszából hiányzó kulcs `null`.
+- **Térkép:** a kézi verseny a K8 kártyáját kapja bóják nélkül, ha van
+  tracke, akkor is, ha a hivatalos idők azóta törlődtek.
+- **Telepítés:** a szerver és a web egyszerre megy ki: egy régi web a
+  kézi verseny hivatalos ablakát (H3 bővítés) hibaként utasítaná el.
