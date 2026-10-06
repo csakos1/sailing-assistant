@@ -10,7 +10,11 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
+import 'package:web_server/src/export/database_snapshot.dart';
+import 'package:web_server/src/export/history_exporter.dart';
+import 'package:web_server/src/export/vacuum_into.dart';
 import 'package:web_server/src/http/archive_api.dart';
+import 'package:web_server/src/http/export_handler.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
@@ -39,6 +43,7 @@ import 'package:web_server/src/web_db/polar_stats_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
 
+import '../export/tar_reader.dart';
 import '../polar/polar_fixtures.dart';
 import '../support/archive_fixture.dart';
 
@@ -171,6 +176,20 @@ void main() {
                 fingerprint: 'fp-1',
               )
             : null,
+      ),
+      export: ExportHandler(
+        HistoryExporter(
+          tempRoot: uploadRoot,
+          lock: lock,
+          snapshotArchive: (path) => vacuumInto(archive, path),
+          snapshotWebDatabase: (path) => vacuumInto(web, path),
+          openSnapshot: openDatabaseSnapshot,
+          archiveSchemaVersion: archive.schemaVersion,
+          webSchemaVersion: web.schemaVersion,
+          serverVersion: '0.0.0',
+          now: () => now,
+          log: logLines.add,
+        ),
       ),
       log: logLines.add,
     );
@@ -1015,6 +1034,54 @@ void main() {
         expect(response.statusCode, 400);
         expect(await errorOf(response), isA<MalformedRequest>());
       });
+    });
+  });
+
+  group('GET $exportPath', () {
+    Future<List<int>> bodyOf(Response response) async {
+      final bytes = <int>[];
+      await response.read().forEach(bytes.addAll);
+      return bytes;
+    }
+
+    test('downloads the whole archive without a client header', () async {
+      await seedArchiveRace(databases.archive, finishedArchiveRace('t-1'));
+
+      final response = await send('GET', exportPath);
+      final bytes = await bodyOf(response);
+
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], 'application/gzip');
+      expect(
+        response.headers['content-disposition'],
+        'attachment; filename="foretack-history-2026-10-01.tar.gz"',
+      );
+      expect(response.headers['content-length'], '${bytes.length}');
+      expect(response.headers['cache-control'], 'no-store');
+      expect(
+        readTarGz(bytes).keys,
+        contains('foretack-history-2026-10-01/foretack-history.json'),
+      );
+    });
+
+    test('refuses HEAD without blocking the next export', () async {
+      final head = await send('HEAD', exportPath);
+      final get = await send('GET', exportPath);
+      await bodyOf(get);
+
+      expect(head.statusCode, 405);
+      expect(head.headers['allow'], 'GET');
+      expect(get.statusCode, 200);
+    });
+
+    test('answers 409 while another export is streaming', () async {
+      final first = await send('GET', exportPath);
+
+      final second = await send('GET', exportPath);
+      await bodyOf(first);
+
+      expect(second.statusCode, 409);
+      expect(await errorOf(second), const ExportInProgress());
     });
   });
 }

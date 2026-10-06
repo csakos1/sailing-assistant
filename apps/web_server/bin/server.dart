@@ -5,7 +5,12 @@ import 'package:args/args.dart';
 import 'package:data/data.dart';
 import 'package:drift/native.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:web_server/src/export/database_snapshot.dart';
+import 'package:web_server/src/export/history_exporter.dart';
+import 'package:web_server/src/export/stale_export_cleanup.dart';
+import 'package:web_server/src/export/vacuum_into.dart';
 import 'package:web_server/src/http/archive_api.dart';
+import 'package:web_server/src/http/export_handler.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
@@ -20,21 +25,20 @@ import 'package:web_server/src/polar/polar_setup.dart';
 import 'package:web_server/src/polar/polar_stats_calculator.dart';
 import 'package:web_server/src/polar/polar_stats_refresher.dart';
 import 'package:web_server/src/polar/polar_table_service.dart';
+import 'package:web_server/src/race/archive_read_services.dart';
 import 'package:web_server/src/race/manual_race_service.dart';
-import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
-import 'package:web_server/src/race/race_summary_service.dart';
 import 'package:web_server/src/serial_lock.dart';
 import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
-import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
 import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
 import 'package:web_server/src/web_db/polar_stats_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
 import 'package:web_server/src/web_db/web_database.dart';
+import 'package:web_server/src/web_server_version.dart';
 
 // A webes archívum REST szervere (ADR 0047 Addendum 3 C5). Kompozíciós
 // gyökér: itt, és csak itt, dől el, melyik implementáció áll az
@@ -67,7 +71,7 @@ Future<void> main(List<String> arguments) async {
     )
     ..addOption(
       'temp-root',
-      help: 'A feltöltések és importok ideiglenes könyvtára.',
+      help: 'A feltöltések, importok és exportok ideiglenes könyvtára.',
     )
     ..addOption(
       'polar',
@@ -121,7 +125,6 @@ Future<void> main(List<String> arguments) async {
     readTrackSamples: TrackSampleReaderImpl(archive).readWindow,
     readWindSamples: WindSampleReaderImpl(archive).call,
   );
-  final resolveStats = TelemetryStatsResolver(calculate: calculate, log: _log);
   final refresher = RaceStatsRefresher(
     races: races,
     results: results,
@@ -189,30 +192,20 @@ Future<void> main(List<String> arguments) async {
   // Egy zár az importnak és a mentések utáni frissítésnek (ADR 0048
   // Addendum 3 I5, ADR 0050 Addendum 1 E2).
   final writeLock = SerialLock();
+  // A napló és a részletező olvasói; az export a pillanatképre ugyanezeket
+  // rakja össze (ADR 0050 Addendum 3 G3).
+  final reads = ArchiveReadServices.over(
+    archive: archive,
+    webDatabase: webDatabase,
+    log: _log,
+  );
+  // Egy korábbi futás félbemaradt exportja (G2); most még nem fut export.
+  final staleExports = await removeStaleExportDirectories(tempRoot);
+  if (staleExports > 0) _log('árva export-könyvtár törölve: $staleExports');
 
   final handler = buildArchiveApiHandler(
-    raceList: RaceListHandler(
-      RaceSummaryService(
-        races: races,
-        results: results,
-        stats: stats,
-        manualRaces: manualRaces,
-        resolveStats: resolveStats,
-        log: _log,
-      ),
-    ),
-    raceDetail: RaceDetailHandler(
-      RaceDetailService(
-        races: races,
-        readRoundingSamples: RoundingSampleReaderImpl(archive).call,
-        results: results,
-        stats: stats,
-        manualRaces: manualRaces,
-        tracks: legacyTracks,
-        resolveStats: resolveStats,
-        log: _log,
-      ),
-    ),
+    raceList: RaceListHandler(reads.summaries),
+    raceDetail: RaceDetailHandler(reads.details),
     raceResult: RaceResultHandler(
       service: RaceResultService(
         races: races,
@@ -252,6 +245,24 @@ Future<void> main(List<String> arguments) async {
       tempRoot: tempRoot,
     ),
     polar: PolarHandler(polarTables),
+    export: ExportHandler(
+      HistoryExporter(
+        tempRoot: tempRoot,
+        lock: writeLock,
+        snapshotArchive: (path) => vacuumInto(archive, path),
+        snapshotWebDatabase: (path) => vacuumInto(webDatabase, path),
+        openSnapshot: ({required archiveCopy, required webCopy}) =>
+            openDatabaseSnapshot(
+              archiveCopy: archiveCopy,
+              webCopy: webCopy,
+              log: _log,
+            ),
+        archiveSchemaVersion: archive.schemaVersion,
+        webSchemaVersion: webDatabase.schemaVersion,
+        serverVersion: webServerVersion,
+        log: _log,
+      ),
+    ),
     log: _log,
   );
 

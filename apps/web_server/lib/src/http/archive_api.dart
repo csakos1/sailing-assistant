@@ -3,6 +3,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:web_server/src/http/client_header_guard.dart';
 import 'package:web_server/src/http/error_boundary.dart';
+import 'package:web_server/src/http/export_handler.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
 import 'package:web_server/src/http/polar_handler.dart';
@@ -12,7 +13,7 @@ import 'package:web_server/src/http/race_result_handler.dart';
 import 'package:web_server/src/server_log.dart';
 
 /// A webes archívum teljes HTTP-handlere (ADR 0047 Addendum 3 C8, ADR 0048
-/// D6 + Addendum 3 I7, ADR 0049 D12).
+/// D6 + Addendum 3 I7, ADR 0049 D12, ADR 0050 D8).
 ///
 /// A middleware-lánc sorrendje számít: a naplózás kívül van, hogy a
 /// kivételfogó által adott 500-as válasz is naplóba kerüljön; a
@@ -25,6 +26,7 @@ Handler buildArchiveApiHandler({
   required ManualRaceHandler manualRaces,
   required ImportHandler imports,
   required PolarHandler polar,
+  required ExportHandler export,
   ServerLog log = ignoreServerLog,
 }) {
   final router = Router()
@@ -37,7 +39,8 @@ Handler buildArchiveApiHandler({
     ..delete('$manualRacesPath/<raceId>', manualRaces.delete)
     ..post(importsPath, imports.call)
     ..get(polarSeasonsPath, polar.seasons)
-    ..get('$polarSeasonsPath/<year>', polar.season);
+    ..get('$polarSeasonsPath/<year>', polar.season)
+    ..get(exportPath, export.call);
 
   return const Pipeline()
       .addMiddleware(logRequests(logger: (message, isError) => log(message)))
