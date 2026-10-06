@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -8,10 +9,17 @@ import 'package:web_server/src/http/archive_api.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
+import 'package:web_server/src/http/polar_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
 import 'package:web_server/src/http/race_result_handler.dart';
 import 'package:web_server/src/import/race_importer.dart';
+import 'package:web_server/src/polar/legacy_polar_sample_reader.dart';
+import 'package:web_server/src/polar/polar_race_catalog.dart';
+import 'package:web_server/src/polar/polar_setup.dart';
+import 'package:web_server/src/polar/polar_stats_calculator.dart';
+import 'package:web_server/src/polar/polar_stats_refresher.dart';
+import 'package:web_server/src/polar/polar_table_service.dart';
 import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
@@ -23,6 +31,7 @@ import 'package:web_server/src/stats/race_stats_refresher.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
 import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
+import 'package:web_server/src/web_db/polar_stats_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
 import 'package:web_server/src/web_db/web_database.dart';
@@ -33,7 +42,9 @@ import 'package:web_server/src/web_db/web_database.dart';
 //
 //   dart run web_server:server \
 //     --archive /var/lib/foretack/archive.sqlite \
-//     --web-db /var/lib/foretack/web.sqlite
+//     --web-db /var/lib/foretack/web.sqlite \
+//     --polar /var/lib/foretack/foretack.pol \
+//     --stw-corrections /var/lib/foretack/stw-corrections.json
 
 const _defaultPort = 8087;
 const int _defaultMaxImportBytes = 4 * 1024 * 1024 * 1024;
@@ -57,6 +68,14 @@ Future<void> main(List<String> arguments) async {
     ..addOption(
       'temp-root',
       help: 'A feltöltések és importok ideiglenes könyvtára.',
+    )
+    ..addOption(
+      'polar',
+      help: 'A phone polárja (foretack.pol); nélküle nincs polár-statisztika.',
+    )
+    ..addOption(
+      'stw-corrections',
+      help: 'Az STW-korrekciók JSON-fájlja (ADR 0049 D6); opcionális.',
     );
 
   final ArgResults options;
@@ -111,6 +130,49 @@ Future<void> main(List<String> arguments) async {
     log: _log,
   );
   final legacyTracks = LegacyTrackRepository(webDatabase);
+  final polarSetup = await loadPolarSetup(
+    polarPath: options.option('polar'),
+    correctionsPath: options.option('stw-corrections'),
+  );
+  final polarCatalog = PolarRaceCatalog(
+    races: races,
+    results: results,
+    manualRaces: manualRaces,
+    tracks: legacyTracks,
+    log: _log,
+  );
+  final polarRepository = PolarStatsRepository(webDatabase);
+  // Polár nélkül nincs frissítő és nincs olvasó szolgáltatás: a
+  // végpontok 503-at adnak, a többi működik (ADR 0049 Addendum 4 U1).
+  final PolarStatsRefresher? polarRefresher;
+  final PolarTableService? polarTables;
+  switch (polarSetup) {
+    case PolarReady(:final reference):
+      polarRefresher = PolarStatsRefresher(
+        catalog: polarCatalog,
+        repository: polarRepository,
+        calculate: PolarStatsCalculator(
+          readTelemetrySamples: PolarSampleReaderImpl(archive).call,
+          readLegacySamples: LegacyPolarSampleReader(legacyTracks).call,
+          reference: reference,
+        ),
+        log: _log,
+      );
+      polarTables = PolarTableService(
+        catalog: polarCatalog,
+        repository: polarRepository,
+        fingerprint: reference.fingerprint,
+      );
+      _log('polár: ${reference.fingerprint}');
+    case PolarMissing(:final reason):
+      polarRefresher = null;
+      polarTables = null;
+      _log('polár nem elérhető: $reason');
+  }
+  Future<void> refreshPolar(String raceId) async {
+    await polarRefresher?.refreshIfStale(raceId);
+  }
+
   // A trackes kézi verseny statja a régi trackből, ugyanazzal a számolóval
   // (ADR 0050 D5); a napló az S13b-től adja (Addendum 1 E1).
   final legacyRefresher = LegacyTrackStatsRefresher(
@@ -157,6 +219,7 @@ Future<void> main(List<String> arguments) async {
         results: results,
         refresher: refresher,
         lock: writeLock,
+        refreshPolar: refreshPolar,
       ),
       bodyLimitBytes: _jsonBodyLimitBytes,
     ),
@@ -168,7 +231,10 @@ Future<void> main(List<String> arguments) async {
         stats: stats,
         runInTransaction: webDatabase.transaction,
         lock: writeLock,
-        refreshStats: legacyRefresher.refreshIfStale,
+        refreshStats: (raceId) async {
+          await legacyRefresher.refreshIfStale(raceId);
+          await refreshPolar(raceId);
+        },
       ),
       bodyLimitBytes: _jsonBodyLimitBytes,
     ),
@@ -177,11 +243,15 @@ Future<void> main(List<String> arguments) async {
         archive: archive,
         tempRoot: tempRoot,
         lock: writeLock,
-        afterMerge: refresher.afterImport,
+        afterMerge: (report) async {
+          await refresher.afterImport(report);
+          await polarRefresher?.afterImport(report);
+        },
       ),
       receiver: ImportUploadReceiver(limitBytes: maxImportBytes),
       tempRoot: tempRoot,
     ),
+    polar: PolarHandler(polarTables),
     log: _log,
   );
 
@@ -189,6 +259,10 @@ Future<void> main(List<String> arguments) async {
   // A tömörítés a Caddy dolga (C6).
   server.autoCompress = false;
   _log('figyel: http://$host:$port');
+  // Egy polár- vagy konfig-csere minden sort érint: a háttérben, a zár
+  // alatt frissül, a szerver közben kiszolgál (ADR 0049 Addendum 4 U6).
+  final polarRefreshAll = polarRefresher?.refreshAllStale;
+  if (polarRefreshAll != null) unawaited(writeLock.run(polarRefreshAll));
 
   await Future.any([
     ProcessSignal.sigint.watch().first,

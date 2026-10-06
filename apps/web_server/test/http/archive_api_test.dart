@@ -14,11 +14,14 @@ import 'package:web_server/src/http/archive_api.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
+import 'package:web_server/src/http/polar_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
 import 'package:web_server/src/http/race_result_handler.dart';
 import 'package:web_server/src/import/race_importer.dart';
 import 'package:web_server/src/legacy/legacy_track_sample.dart';
+import 'package:web_server/src/polar/polar_race_catalog.dart';
+import 'package:web_server/src/polar/polar_table_service.dart';
 import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
@@ -28,12 +31,15 @@ import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/stats/race_stats_refresher.dart';
 import 'package:web_server/src/stats/telemetry_stats_resolver.dart';
+import 'package:web_server/src/web_db/cached_polar_stats.dart';
 import 'package:web_server/src/web_db/cached_race_stats.dart';
 import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
+import 'package:web_server/src/web_db/polar_stats_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
 
+import '../polar/polar_fixtures.dart';
 import '../support/archive_fixture.dart';
 
 // Handler-szintu tesztek: valodi shelf Request-ek a teljes pipeline-on at
@@ -57,6 +63,7 @@ void main() {
   Handler buildHandler({
     int importLimitBytes = 8 * 1024 * 1024,
     int jsonLimitBytes = 1024,
+    bool hasPolar = false,
   }) {
     final archive = databases.archive;
     final web = databases.web;
@@ -150,6 +157,20 @@ void main() {
         ),
         receiver: ImportUploadReceiver(limitBytes: importLimitBytes),
         tempRoot: uploadRoot,
+      ),
+      polar: PolarHandler(
+        hasPolar
+            ? PolarTableService(
+                catalog: PolarRaceCatalog(
+                  races: races,
+                  results: results,
+                  manualRaces: manualRaces,
+                  tracks: tracks,
+                ),
+                repository: PolarStatsRepository(web),
+                fingerprint: 'fp-1',
+              )
+            : null,
       ),
       log: logLines.add,
     );
@@ -904,6 +925,96 @@ void main() {
       final response = await send('POST', importsPath, body: 'x');
 
       expect(response.statusCode, 403);
+    });
+  });
+
+  group('polar endpoints', () {
+    test('answer 503 without a polar', () async {
+      // ACT
+      final responses = [
+        await send('GET', polarSeasonsPath),
+        await send('GET', polarSeasonPath(2026)),
+        await send('GET', racePolarPath('r1')),
+      ];
+
+      // ASSERT
+      for (final response in responses) {
+        expect(response.statusCode, 503);
+        expect(await errorOf(response), const PolarUnavailable());
+      }
+    });
+
+    group('with a polar', () {
+      setUp(() async {
+        handler = buildHandler(hasPolar: true);
+        await seedArchiveRace(databases.archive, finishedArchiveRace('r1'));
+        await PolarStatsRepository(databases.web).put(
+          'r1',
+          CachedPolarStats(
+            window: RecordingWindow(
+              TimeWindow(
+                start: archiveStart,
+                end: archiveStart.add(const Duration(hours: 2)),
+              ),
+            ),
+            fingerprint: 'fp-1',
+            performance: uniformPerformance(seconds: 100, pct: 95),
+            computedAt: now,
+          ),
+        );
+      });
+
+      test('gives the season table', () async {
+        // ACT
+        final response = await send('GET', polarSeasonPath(2026));
+
+        // ASSERT
+        expect(response.statusCode, 200);
+        final table = unwrap(decodeSeasonPolarTable(await jsonOf(response)));
+        expect(table.rows.single.raceId, 'r1');
+        expect(table.rows.single.cacheState, PolarCacheState.fresh);
+        expect(table.rows.single.rank, 1);
+        expect(table.timeWeighted?.avgPct, 95);
+      });
+
+      test('gives the summary of every season', () async {
+        // ACT
+        final response = await send('GET', polarSeasonsPath);
+
+        // ASSERT
+        final seasons = unwrap(
+          decodeSeasonPolarSummaries(await jsonOf(response)),
+        );
+        expect([for (final season in seasons) season.year], [2026]);
+      });
+
+      test('gives the polar block of a race', () async {
+        // ACT
+        final response = await send('GET', racePolarPath('r1'));
+
+        // ASSERT
+        final detail = unwrap(decodeRacePolarDetail(await jsonOf(response)));
+        expect(detail.row.rank, 1);
+        expect(detail.rankedCount, 1);
+      });
+
+      test('answers 404 for a race without a polar source', () async {
+        // ACT
+        final response = await send('GET', racePolarPath('nincs'));
+
+        // ASSERT
+        expect(response.statusCode, 404);
+        expect(await errorOf(response), const RaceNotFound('nincs'));
+      });
+
+      test('answers 400 for a year that is no number', () async {
+        // ACT
+        final response = await send('GET', '$polarSeasonsPath/tavaly');
+
+        // ASSERT
+        expect(response.statusCode, 400);
+        expect(await errorOf(response), isA<MalformedRequest>());
+      });
     });
   });
 }

@@ -8,9 +8,10 @@ import 'package:test/test.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/web_database.dart';
 
-// A v1 -> v3 migracio (ADR 0048 D9 + Addendum 3 I2, ADR 0050 D3). A v1
-// fajlt nyers sqlite3-mal epitjuk, pontosan a v1 Drift-semaval, hogy a
-// migracio valodi v1-es fajlon fusson, ne a mai kodbol generalton.
+// A v1 -> v4 migracio (ADR 0048 D9 + Addendum 3 I2, ADR 0050 D3, ADR
+// 0049 D10). A v1 fajlt nyers sqlite3-mal epitjuk, pontosan a v1
+// Drift-semaval, hogy a migracio valodi v1-es fajlon fusson, ne a mai
+// kodbol generalton.
 
 const _v1Schema = '''
 CREATE TABLE race_annotations (
@@ -93,12 +94,15 @@ void main() {
     expect(rows.map((row) => row.read<String>('name')), [
       'legacy_track_samples',
       'manual_races',
+      'race_polar_buckets',
+      'race_polar_histogram',
+      'race_polar_stats',
       'race_results',
       'race_stats',
     ]);
   });
 
-  test('sets the schema version to 3', () async {
+  test('sets the schema version to 4', () async {
     final database = WebDatabase(NativeDatabase(file));
     addTearDown(database.close);
 
@@ -106,15 +110,16 @@ void main() {
         .customSelect('PRAGMA user_version')
         .getSingle();
 
-    expect(version.read<int>('user_version'), 3);
+    expect(version.read<int>('user_version'), 4);
   });
 
   group('from v2', () {
     late Directory v2Directory;
     late File v2File;
 
-    // A v2 a v3 a legacy_track_samples nelkul: a v3 csak uj tablat hoz.
-    // Igy a v2-es fajl a mai semabol all elo, egy tabla eldobasaval.
+    // A v2 a mai sema a legacy_track_samples es a harom polar-tabla
+    // nelkul: a v3 es a v4 csak uj tablakat hoz. Igy a v2-es fajl a mai
+    // semabol all elo, negy tabla eldobasaval.
     setUp(() async {
       v2Directory = await Directory.systemTemp.createTemp('foretack_web_v2');
       v2File = File('${v2Directory.path}/web.sqlite');
@@ -125,6 +130,7 @@ void main() {
         updatedAt: DateTime.utc(2026, 10, 2),
       );
       await current.customStatement('DROP TABLE legacy_track_samples');
+      await _dropPolarTables(current);
       await current.customStatement('PRAGMA user_version = 2');
       await current.close();
     });
@@ -147,4 +153,52 @@ void main() {
       expect(tracks.read<int>('n'), 0);
     });
   });
+
+  group('from v3', () {
+    late Directory v3Directory;
+    late File v3File;
+
+    // A v3 a mai sema a harom polar-tabla nelkul.
+    setUp(() async {
+      v3Directory = await Directory.systemTemp.createTemp('foretack_web_v3');
+      v3File = File('${v3Directory.path}/web.sqlite');
+      final current = WebDatabase(NativeDatabase(v3File));
+      await RaceResultRepository(current).upsert(
+        'r1',
+        const RaceResultInput(overallPlace: FinishPlace(2)),
+        updatedAt: DateTime.utc(2026, 10, 6),
+      );
+      await _dropPolarTables(current);
+      await current.customStatement('PRAGMA user_version = 3');
+      await current.close();
+    });
+
+    tearDown(() => v3Directory.delete(recursive: true));
+
+    test('adds the empty polar cache and keeps the results', () async {
+      // ARRANGE
+      final database = WebDatabase(NativeDatabase(v3File));
+      addTearDown(database.close);
+
+      // ACT
+      final result = await RaceResultRepository(database).get('r1');
+      final polarRows = await database
+          .customSelect('SELECT COUNT(*) AS n FROM race_polar_stats')
+          .getSingle();
+
+      // ASSERT
+      expect(result?.content.overallPlace, const FinishPlace(2));
+      expect(polarRows.read<int>('n'), 0);
+    });
+  });
+}
+
+Future<void> _dropPolarTables(WebDatabase database) async {
+  for (final table in [
+    'race_polar_stats',
+    'race_polar_histogram',
+    'race_polar_buckets',
+  ]) {
+    await database.customStatement('DROP TABLE $table');
+  }
 }

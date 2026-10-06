@@ -9,26 +9,30 @@ import 'package:web_server/src/web_db/race_result_repository.dart';
 ///
 /// A kézi verseny eredménye a kézi verseny végpontjain át íródik, ezért
 /// itt csak az archívum befejezett versenye számít létezőnek. Mentés után
-/// a statisztika a közös zár alatt frissül, ha a hivatalos idők az ablakot
-/// megváltoztatták.
+/// a statisztika és a polár-cache a közös zár alatt frissül, ha a
+/// hivatalos idők az ablakot megváltoztatták.
 class RaceResultService {
-  /// Szolgáltatás az archívum [races] olvasójával.
+  /// Szolgáltatás az archívum [races] olvasójával; a [refreshPolar] a
+  /// polár-cache frissítése (alapból semmi).
   RaceResultService({
     required RaceRepository races,
     required RaceResultRepository results,
     required RaceStatsRefresher refresher,
     required SerialLock lock,
+    Future<void> Function(String raceId) refreshPolar = _noPolarRefresh,
     DateTime Function() now = DateTime.now,
   }) : _races = races,
        _results = results,
        _refresher = refresher,
        _lock = lock,
+       _refreshPolar = refreshPolar,
        _now = now;
 
   final RaceRepository _races;
   final RaceResultRepository _results;
   final RaceStatsRefresher _refresher;
   final SerialLock _lock;
+  final Future<void> Function(String raceId) _refreshPolar;
   final DateTime Function() _now;
 
   /// Igaz, ha a [raceId] az archívum befejezett versenye.
@@ -51,7 +55,12 @@ class RaceResultService {
     } else {
       saved = await _results.upsert(raceId, content, updatedAt: now);
     }
-    await _lock.run(() => _refresher.refreshIfStale(raceId));
+    // A polár a race_stats után frissül, ugyanazon zár alatt (ADR 0049
+    // Addendum 4 U6).
+    await _lock.run(() async {
+      await _refresher.refreshIfStale(raceId);
+      await _refreshPolar(raceId);
+    });
     return saved;
   }
 
@@ -60,3 +69,5 @@ class RaceResultService {
     return race != null && race.status == RaceStatus.finished ? race : null;
   }
 }
+
+Future<void> _noPolarRefresh(String raceId) async {}

@@ -15,6 +15,7 @@ import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
 import 'package:web_server/src/web_db/legacy_track_repository.dart';
 import 'package:web_server/src/web_db/manual_race_repository.dart';
+import 'package:web_server/src/web_db/polar_stats_repository.dart';
 import 'package:web_server/src/web_db/race_result_repository.dart';
 import 'package:web_server/src/web_db/race_stats_repository.dart';
 import 'package:web_server/src/web_db/web_database.dart';
@@ -22,8 +23,10 @@ import 'package:web_server/src/web_db/web_database.dart';
 // A régi versenyek trackje a YDVR-napló polar.csv-jéből (ADR 0050 D4 +
 // Addendum 1 E3, E4). Alapból próbafuttatás: versenyenként kiírja, mi
 // kerülne fel, és nem ír semmit. Az --apply a teljes állapotot írja, és
-// utána frissíti a statisztikát. Az Excel-import után fut, mert a
-// hivatalos idők onnan jönnek; a szerver fusson le előtte.
+// utána frissíti a statisztikát. A kézi versenyek polár-sorai törlődnek;
+// a szerver a következő induláskor újraszámolja őket (ADR 0049 Addendum
+// 4 U6). Az Excel-import után fut, mert a hivatalos idők onnan jönnek; a
+// szerver fusson le előtte.
 //
 //   dart run web_server:import_legacy_tracks \
 //     --web-db /var/lib/foretack/web.sqlite \
@@ -133,7 +136,12 @@ Future<void> _run(
   final report = await LegacyTrackApplier(
     tracks: tracks,
     runInTransaction: webDatabase.transaction,
-    refreshStats: refresher.refreshAll,
+    refreshStats: () async {
+      await refresher.refreshAll();
+      await PolarStatsRepository(
+        webDatabase,
+      ).deleteAll([for (final race in races) race.id]);
+    },
   )(plan);
   stdout.writeln('--- Végrehajtva ---');
   for (final line in describeLegacyTrackApply(report)) {

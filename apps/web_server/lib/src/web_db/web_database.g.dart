@@ -2955,6 +2955,1254 @@ class LegacyTrackSamplesCompanion
   }
 }
 
+class $RacePolarStatsTableTable extends RacePolarStatsTable
+    with TableInfo<$RacePolarStatsTableTable, RacePolarStatsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RacePolarStatsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _windowKindMeta = const VerificationMeta(
+    'windowKind',
+  );
+  @override
+  late final GeneratedColumn<String> windowKind = GeneratedColumn<String>(
+    'window_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _windowStartMsMeta = const VerificationMeta(
+    'windowStartMs',
+  );
+  @override
+  late final GeneratedColumn<int> windowStartMs = GeneratedColumn<int>(
+    'window_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _windowEndMsMeta = const VerificationMeta(
+    'windowEndMs',
+  );
+  @override
+  late final GeneratedColumn<int> windowEndMs = GeneratedColumn<int>(
+    'window_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _referenceFingerprintMeta =
+      const VerificationMeta('referenceFingerprint');
+  @override
+  late final GeneratedColumn<String> referenceFingerprint =
+      GeneratedColumn<String>(
+        'reference_fingerprint',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _measuredSecondsMeta = const VerificationMeta(
+    'measuredSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> measuredSeconds = GeneratedColumn<int>(
+    'measured_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pctSecondsSumMeta = const VerificationMeta(
+    'pctSecondsSum',
+  );
+  @override
+  late final GeneratedColumn<double> pctSecondsSum = GeneratedColumn<double>(
+    'pct_seconds_sum',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _twsMpsSecondsSumMeta = const VerificationMeta(
+    'twsMpsSecondsSum',
+  );
+  @override
+  late final GeneratedColumn<double> twsMpsSecondsSum = GeneratedColumn<double>(
+    'tws_mps_seconds_sum',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bestFivePctMeta = const VerificationMeta(
+    'bestFivePct',
+  );
+  @override
+  late final GeneratedColumn<double> bestFivePct = GeneratedColumn<double>(
+    'best_five_pct',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _computedAtMeta = const VerificationMeta(
+    'computedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> computedAt = GeneratedColumn<DateTime>(
+    'computed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    raceId,
+    windowKind,
+    windowStartMs,
+    windowEndMs,
+    referenceFingerprint,
+    measuredSeconds,
+    pctSecondsSum,
+    twsMpsSecondsSum,
+    bestFivePct,
+    computedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'race_polar_stats';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RacePolarStatsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('window_kind')) {
+      context.handle(
+        _windowKindMeta,
+        windowKind.isAcceptableOrUnknown(data['window_kind']!, _windowKindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_windowKindMeta);
+    }
+    if (data.containsKey('window_start')) {
+      context.handle(
+        _windowStartMsMeta,
+        windowStartMs.isAcceptableOrUnknown(
+          data['window_start']!,
+          _windowStartMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_windowStartMsMeta);
+    }
+    if (data.containsKey('window_end')) {
+      context.handle(
+        _windowEndMsMeta,
+        windowEndMs.isAcceptableOrUnknown(
+          data['window_end']!,
+          _windowEndMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_windowEndMsMeta);
+    }
+    if (data.containsKey('reference_fingerprint')) {
+      context.handle(
+        _referenceFingerprintMeta,
+        referenceFingerprint.isAcceptableOrUnknown(
+          data['reference_fingerprint']!,
+          _referenceFingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_referenceFingerprintMeta);
+    }
+    if (data.containsKey('measured_seconds')) {
+      context.handle(
+        _measuredSecondsMeta,
+        measuredSeconds.isAcceptableOrUnknown(
+          data['measured_seconds']!,
+          _measuredSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_measuredSecondsMeta);
+    }
+    if (data.containsKey('pct_seconds_sum')) {
+      context.handle(
+        _pctSecondsSumMeta,
+        pctSecondsSum.isAcceptableOrUnknown(
+          data['pct_seconds_sum']!,
+          _pctSecondsSumMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pctSecondsSumMeta);
+    }
+    if (data.containsKey('tws_mps_seconds_sum')) {
+      context.handle(
+        _twsMpsSecondsSumMeta,
+        twsMpsSecondsSum.isAcceptableOrUnknown(
+          data['tws_mps_seconds_sum']!,
+          _twsMpsSecondsSumMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_twsMpsSecondsSumMeta);
+    }
+    if (data.containsKey('best_five_pct')) {
+      context.handle(
+        _bestFivePctMeta,
+        bestFivePct.isAcceptableOrUnknown(
+          data['best_five_pct']!,
+          _bestFivePctMeta,
+        ),
+      );
+    }
+    if (data.containsKey('computed_at')) {
+      context.handle(
+        _computedAtMeta,
+        computedAt.isAcceptableOrUnknown(data['computed_at']!, _computedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_computedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {raceId};
+  @override
+  RacePolarStatsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RacePolarStatsRow(
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      windowKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}window_kind'],
+      )!,
+      windowStartMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}window_start'],
+      )!,
+      windowEndMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}window_end'],
+      )!,
+      referenceFingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reference_fingerprint'],
+      )!,
+      measuredSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}measured_seconds'],
+      )!,
+      pctSecondsSum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pct_seconds_sum'],
+      )!,
+      twsMpsSecondsSum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}tws_mps_seconds_sum'],
+      )!,
+      bestFivePct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}best_five_pct'],
+      ),
+      computedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}computed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RacePolarStatsTableTable createAlias(String alias) {
+    return $RacePolarStatsTableTable(attachedDatabase, alias);
+  }
+}
+
+class RacePolarStatsRow extends DataClass
+    implements Insertable<RacePolarStatsRow> {
+  final String raceId;
+  final String windowKind;
+  final int windowStartMs;
+  final int windowEndMs;
+  final String referenceFingerprint;
+  final int measuredSeconds;
+  final double pctSecondsSum;
+  final double twsMpsSecondsSum;
+  final double? bestFivePct;
+  final DateTime computedAt;
+  const RacePolarStatsRow({
+    required this.raceId,
+    required this.windowKind,
+    required this.windowStartMs,
+    required this.windowEndMs,
+    required this.referenceFingerprint,
+    required this.measuredSeconds,
+    required this.pctSecondsSum,
+    required this.twsMpsSecondsSum,
+    this.bestFivePct,
+    required this.computedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['race_id'] = Variable<String>(raceId);
+    map['window_kind'] = Variable<String>(windowKind);
+    map['window_start'] = Variable<int>(windowStartMs);
+    map['window_end'] = Variable<int>(windowEndMs);
+    map['reference_fingerprint'] = Variable<String>(referenceFingerprint);
+    map['measured_seconds'] = Variable<int>(measuredSeconds);
+    map['pct_seconds_sum'] = Variable<double>(pctSecondsSum);
+    map['tws_mps_seconds_sum'] = Variable<double>(twsMpsSecondsSum);
+    if (!nullToAbsent || bestFivePct != null) {
+      map['best_five_pct'] = Variable<double>(bestFivePct);
+    }
+    map['computed_at'] = Variable<DateTime>(computedAt);
+    return map;
+  }
+
+  RacePolarStatsTableCompanion toCompanion(bool nullToAbsent) {
+    return RacePolarStatsTableCompanion(
+      raceId: Value(raceId),
+      windowKind: Value(windowKind),
+      windowStartMs: Value(windowStartMs),
+      windowEndMs: Value(windowEndMs),
+      referenceFingerprint: Value(referenceFingerprint),
+      measuredSeconds: Value(measuredSeconds),
+      pctSecondsSum: Value(pctSecondsSum),
+      twsMpsSecondsSum: Value(twsMpsSecondsSum),
+      bestFivePct: bestFivePct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bestFivePct),
+      computedAt: Value(computedAt),
+    );
+  }
+
+  factory RacePolarStatsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RacePolarStatsRow(
+      raceId: serializer.fromJson<String>(json['raceId']),
+      windowKind: serializer.fromJson<String>(json['windowKind']),
+      windowStartMs: serializer.fromJson<int>(json['windowStartMs']),
+      windowEndMs: serializer.fromJson<int>(json['windowEndMs']),
+      referenceFingerprint: serializer.fromJson<String>(
+        json['referenceFingerprint'],
+      ),
+      measuredSeconds: serializer.fromJson<int>(json['measuredSeconds']),
+      pctSecondsSum: serializer.fromJson<double>(json['pctSecondsSum']),
+      twsMpsSecondsSum: serializer.fromJson<double>(json['twsMpsSecondsSum']),
+      bestFivePct: serializer.fromJson<double?>(json['bestFivePct']),
+      computedAt: serializer.fromJson<DateTime>(json['computedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'raceId': serializer.toJson<String>(raceId),
+      'windowKind': serializer.toJson<String>(windowKind),
+      'windowStartMs': serializer.toJson<int>(windowStartMs),
+      'windowEndMs': serializer.toJson<int>(windowEndMs),
+      'referenceFingerprint': serializer.toJson<String>(referenceFingerprint),
+      'measuredSeconds': serializer.toJson<int>(measuredSeconds),
+      'pctSecondsSum': serializer.toJson<double>(pctSecondsSum),
+      'twsMpsSecondsSum': serializer.toJson<double>(twsMpsSecondsSum),
+      'bestFivePct': serializer.toJson<double?>(bestFivePct),
+      'computedAt': serializer.toJson<DateTime>(computedAt),
+    };
+  }
+
+  RacePolarStatsRow copyWith({
+    String? raceId,
+    String? windowKind,
+    int? windowStartMs,
+    int? windowEndMs,
+    String? referenceFingerprint,
+    int? measuredSeconds,
+    double? pctSecondsSum,
+    double? twsMpsSecondsSum,
+    Value<double?> bestFivePct = const Value.absent(),
+    DateTime? computedAt,
+  }) => RacePolarStatsRow(
+    raceId: raceId ?? this.raceId,
+    windowKind: windowKind ?? this.windowKind,
+    windowStartMs: windowStartMs ?? this.windowStartMs,
+    windowEndMs: windowEndMs ?? this.windowEndMs,
+    referenceFingerprint: referenceFingerprint ?? this.referenceFingerprint,
+    measuredSeconds: measuredSeconds ?? this.measuredSeconds,
+    pctSecondsSum: pctSecondsSum ?? this.pctSecondsSum,
+    twsMpsSecondsSum: twsMpsSecondsSum ?? this.twsMpsSecondsSum,
+    bestFivePct: bestFivePct.present ? bestFivePct.value : this.bestFivePct,
+    computedAt: computedAt ?? this.computedAt,
+  );
+  RacePolarStatsRow copyWithCompanion(RacePolarStatsTableCompanion data) {
+    return RacePolarStatsRow(
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      windowKind: data.windowKind.present
+          ? data.windowKind.value
+          : this.windowKind,
+      windowStartMs: data.windowStartMs.present
+          ? data.windowStartMs.value
+          : this.windowStartMs,
+      windowEndMs: data.windowEndMs.present
+          ? data.windowEndMs.value
+          : this.windowEndMs,
+      referenceFingerprint: data.referenceFingerprint.present
+          ? data.referenceFingerprint.value
+          : this.referenceFingerprint,
+      measuredSeconds: data.measuredSeconds.present
+          ? data.measuredSeconds.value
+          : this.measuredSeconds,
+      pctSecondsSum: data.pctSecondsSum.present
+          ? data.pctSecondsSum.value
+          : this.pctSecondsSum,
+      twsMpsSecondsSum: data.twsMpsSecondsSum.present
+          ? data.twsMpsSecondsSum.value
+          : this.twsMpsSecondsSum,
+      bestFivePct: data.bestFivePct.present
+          ? data.bestFivePct.value
+          : this.bestFivePct,
+      computedAt: data.computedAt.present
+          ? data.computedAt.value
+          : this.computedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarStatsRow(')
+          ..write('raceId: $raceId, ')
+          ..write('windowKind: $windowKind, ')
+          ..write('windowStartMs: $windowStartMs, ')
+          ..write('windowEndMs: $windowEndMs, ')
+          ..write('referenceFingerprint: $referenceFingerprint, ')
+          ..write('measuredSeconds: $measuredSeconds, ')
+          ..write('pctSecondsSum: $pctSecondsSum, ')
+          ..write('twsMpsSecondsSum: $twsMpsSecondsSum, ')
+          ..write('bestFivePct: $bestFivePct, ')
+          ..write('computedAt: $computedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    raceId,
+    windowKind,
+    windowStartMs,
+    windowEndMs,
+    referenceFingerprint,
+    measuredSeconds,
+    pctSecondsSum,
+    twsMpsSecondsSum,
+    bestFivePct,
+    computedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RacePolarStatsRow &&
+          other.raceId == this.raceId &&
+          other.windowKind == this.windowKind &&
+          other.windowStartMs == this.windowStartMs &&
+          other.windowEndMs == this.windowEndMs &&
+          other.referenceFingerprint == this.referenceFingerprint &&
+          other.measuredSeconds == this.measuredSeconds &&
+          other.pctSecondsSum == this.pctSecondsSum &&
+          other.twsMpsSecondsSum == this.twsMpsSecondsSum &&
+          other.bestFivePct == this.bestFivePct &&
+          other.computedAt == this.computedAt);
+}
+
+class RacePolarStatsTableCompanion extends UpdateCompanion<RacePolarStatsRow> {
+  final Value<String> raceId;
+  final Value<String> windowKind;
+  final Value<int> windowStartMs;
+  final Value<int> windowEndMs;
+  final Value<String> referenceFingerprint;
+  final Value<int> measuredSeconds;
+  final Value<double> pctSecondsSum;
+  final Value<double> twsMpsSecondsSum;
+  final Value<double?> bestFivePct;
+  final Value<DateTime> computedAt;
+  final Value<int> rowid;
+  const RacePolarStatsTableCompanion({
+    this.raceId = const Value.absent(),
+    this.windowKind = const Value.absent(),
+    this.windowStartMs = const Value.absent(),
+    this.windowEndMs = const Value.absent(),
+    this.referenceFingerprint = const Value.absent(),
+    this.measuredSeconds = const Value.absent(),
+    this.pctSecondsSum = const Value.absent(),
+    this.twsMpsSecondsSum = const Value.absent(),
+    this.bestFivePct = const Value.absent(),
+    this.computedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RacePolarStatsTableCompanion.insert({
+    required String raceId,
+    required String windowKind,
+    required int windowStartMs,
+    required int windowEndMs,
+    required String referenceFingerprint,
+    required int measuredSeconds,
+    required double pctSecondsSum,
+    required double twsMpsSecondsSum,
+    this.bestFivePct = const Value.absent(),
+    required DateTime computedAt,
+    this.rowid = const Value.absent(),
+  }) : raceId = Value(raceId),
+       windowKind = Value(windowKind),
+       windowStartMs = Value(windowStartMs),
+       windowEndMs = Value(windowEndMs),
+       referenceFingerprint = Value(referenceFingerprint),
+       measuredSeconds = Value(measuredSeconds),
+       pctSecondsSum = Value(pctSecondsSum),
+       twsMpsSecondsSum = Value(twsMpsSecondsSum),
+       computedAt = Value(computedAt);
+  static Insertable<RacePolarStatsRow> custom({
+    Expression<String>? raceId,
+    Expression<String>? windowKind,
+    Expression<int>? windowStartMs,
+    Expression<int>? windowEndMs,
+    Expression<String>? referenceFingerprint,
+    Expression<int>? measuredSeconds,
+    Expression<double>? pctSecondsSum,
+    Expression<double>? twsMpsSecondsSum,
+    Expression<double>? bestFivePct,
+    Expression<DateTime>? computedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (raceId != null) 'race_id': raceId,
+      if (windowKind != null) 'window_kind': windowKind,
+      if (windowStartMs != null) 'window_start': windowStartMs,
+      if (windowEndMs != null) 'window_end': windowEndMs,
+      if (referenceFingerprint != null)
+        'reference_fingerprint': referenceFingerprint,
+      if (measuredSeconds != null) 'measured_seconds': measuredSeconds,
+      if (pctSecondsSum != null) 'pct_seconds_sum': pctSecondsSum,
+      if (twsMpsSecondsSum != null) 'tws_mps_seconds_sum': twsMpsSecondsSum,
+      if (bestFivePct != null) 'best_five_pct': bestFivePct,
+      if (computedAt != null) 'computed_at': computedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RacePolarStatsTableCompanion copyWith({
+    Value<String>? raceId,
+    Value<String>? windowKind,
+    Value<int>? windowStartMs,
+    Value<int>? windowEndMs,
+    Value<String>? referenceFingerprint,
+    Value<int>? measuredSeconds,
+    Value<double>? pctSecondsSum,
+    Value<double>? twsMpsSecondsSum,
+    Value<double?>? bestFivePct,
+    Value<DateTime>? computedAt,
+    Value<int>? rowid,
+  }) {
+    return RacePolarStatsTableCompanion(
+      raceId: raceId ?? this.raceId,
+      windowKind: windowKind ?? this.windowKind,
+      windowStartMs: windowStartMs ?? this.windowStartMs,
+      windowEndMs: windowEndMs ?? this.windowEndMs,
+      referenceFingerprint: referenceFingerprint ?? this.referenceFingerprint,
+      measuredSeconds: measuredSeconds ?? this.measuredSeconds,
+      pctSecondsSum: pctSecondsSum ?? this.pctSecondsSum,
+      twsMpsSecondsSum: twsMpsSecondsSum ?? this.twsMpsSecondsSum,
+      bestFivePct: bestFivePct ?? this.bestFivePct,
+      computedAt: computedAt ?? this.computedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (windowKind.present) {
+      map['window_kind'] = Variable<String>(windowKind.value);
+    }
+    if (windowStartMs.present) {
+      map['window_start'] = Variable<int>(windowStartMs.value);
+    }
+    if (windowEndMs.present) {
+      map['window_end'] = Variable<int>(windowEndMs.value);
+    }
+    if (referenceFingerprint.present) {
+      map['reference_fingerprint'] = Variable<String>(
+        referenceFingerprint.value,
+      );
+    }
+    if (measuredSeconds.present) {
+      map['measured_seconds'] = Variable<int>(measuredSeconds.value);
+    }
+    if (pctSecondsSum.present) {
+      map['pct_seconds_sum'] = Variable<double>(pctSecondsSum.value);
+    }
+    if (twsMpsSecondsSum.present) {
+      map['tws_mps_seconds_sum'] = Variable<double>(twsMpsSecondsSum.value);
+    }
+    if (bestFivePct.present) {
+      map['best_five_pct'] = Variable<double>(bestFivePct.value);
+    }
+    if (computedAt.present) {
+      map['computed_at'] = Variable<DateTime>(computedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarStatsTableCompanion(')
+          ..write('raceId: $raceId, ')
+          ..write('windowKind: $windowKind, ')
+          ..write('windowStartMs: $windowStartMs, ')
+          ..write('windowEndMs: $windowEndMs, ')
+          ..write('referenceFingerprint: $referenceFingerprint, ')
+          ..write('measuredSeconds: $measuredSeconds, ')
+          ..write('pctSecondsSum: $pctSecondsSum, ')
+          ..write('twsMpsSecondsSum: $twsMpsSecondsSum, ')
+          ..write('bestFivePct: $bestFivePct, ')
+          ..write('computedAt: $computedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RacePolarHistogramTableTable extends RacePolarHistogramTable
+    with TableInfo<$RacePolarHistogramTableTable, RacePolarHistogramRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RacePolarHistogramTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pctBinMeta = const VerificationMeta('pctBin');
+  @override
+  late final GeneratedColumn<int> pctBin = GeneratedColumn<int>(
+    'pct_bin',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [raceId, pctBin, seconds];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'race_polar_histogram';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RacePolarHistogramRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('pct_bin')) {
+      context.handle(
+        _pctBinMeta,
+        pctBin.isAcceptableOrUnknown(data['pct_bin']!, _pctBinMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pctBinMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {raceId, pctBin};
+  @override
+  RacePolarHistogramRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RacePolarHistogramRow(
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      pctBin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pct_bin'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+    );
+  }
+
+  @override
+  $RacePolarHistogramTableTable createAlias(String alias) {
+    return $RacePolarHistogramTableTable(attachedDatabase, alias);
+  }
+}
+
+class RacePolarHistogramRow extends DataClass
+    implements Insertable<RacePolarHistogramRow> {
+  final String raceId;
+  final int pctBin;
+  final int seconds;
+  const RacePolarHistogramRow({
+    required this.raceId,
+    required this.pctBin,
+    required this.seconds,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['race_id'] = Variable<String>(raceId);
+    map['pct_bin'] = Variable<int>(pctBin);
+    map['seconds'] = Variable<int>(seconds);
+    return map;
+  }
+
+  RacePolarHistogramTableCompanion toCompanion(bool nullToAbsent) {
+    return RacePolarHistogramTableCompanion(
+      raceId: Value(raceId),
+      pctBin: Value(pctBin),
+      seconds: Value(seconds),
+    );
+  }
+
+  factory RacePolarHistogramRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RacePolarHistogramRow(
+      raceId: serializer.fromJson<String>(json['raceId']),
+      pctBin: serializer.fromJson<int>(json['pctBin']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'raceId': serializer.toJson<String>(raceId),
+      'pctBin': serializer.toJson<int>(pctBin),
+      'seconds': serializer.toJson<int>(seconds),
+    };
+  }
+
+  RacePolarHistogramRow copyWith({String? raceId, int? pctBin, int? seconds}) =>
+      RacePolarHistogramRow(
+        raceId: raceId ?? this.raceId,
+        pctBin: pctBin ?? this.pctBin,
+        seconds: seconds ?? this.seconds,
+      );
+  RacePolarHistogramRow copyWithCompanion(
+    RacePolarHistogramTableCompanion data,
+  ) {
+    return RacePolarHistogramRow(
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      pctBin: data.pctBin.present ? data.pctBin.value : this.pctBin,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarHistogramRow(')
+          ..write('raceId: $raceId, ')
+          ..write('pctBin: $pctBin, ')
+          ..write('seconds: $seconds')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(raceId, pctBin, seconds);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RacePolarHistogramRow &&
+          other.raceId == this.raceId &&
+          other.pctBin == this.pctBin &&
+          other.seconds == this.seconds);
+}
+
+class RacePolarHistogramTableCompanion
+    extends UpdateCompanion<RacePolarHistogramRow> {
+  final Value<String> raceId;
+  final Value<int> pctBin;
+  final Value<int> seconds;
+  final Value<int> rowid;
+  const RacePolarHistogramTableCompanion({
+    this.raceId = const Value.absent(),
+    this.pctBin = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RacePolarHistogramTableCompanion.insert({
+    required String raceId,
+    required int pctBin,
+    required int seconds,
+    this.rowid = const Value.absent(),
+  }) : raceId = Value(raceId),
+       pctBin = Value(pctBin),
+       seconds = Value(seconds);
+  static Insertable<RacePolarHistogramRow> custom({
+    Expression<String>? raceId,
+    Expression<int>? pctBin,
+    Expression<int>? seconds,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (raceId != null) 'race_id': raceId,
+      if (pctBin != null) 'pct_bin': pctBin,
+      if (seconds != null) 'seconds': seconds,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RacePolarHistogramTableCompanion copyWith({
+    Value<String>? raceId,
+    Value<int>? pctBin,
+    Value<int>? seconds,
+    Value<int>? rowid,
+  }) {
+    return RacePolarHistogramTableCompanion(
+      raceId: raceId ?? this.raceId,
+      pctBin: pctBin ?? this.pctBin,
+      seconds: seconds ?? this.seconds,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (pctBin.present) {
+      map['pct_bin'] = Variable<int>(pctBin.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarHistogramTableCompanion(')
+          ..write('raceId: $raceId, ')
+          ..write('pctBin: $pctBin, ')
+          ..write('seconds: $seconds, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RacePolarBucketsTableTable extends RacePolarBucketsTable
+    with TableInfo<$RacePolarBucketsTableTable, RacePolarBucketRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RacePolarBucketsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _twsBucketMeta = const VerificationMeta(
+    'twsBucket',
+  );
+  @override
+  late final GeneratedColumn<int> twsBucket = GeneratedColumn<int>(
+    'tws_bucket',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pctSecondsSumMeta = const VerificationMeta(
+    'pctSecondsSum',
+  );
+  @override
+  late final GeneratedColumn<double> pctSecondsSum = GeneratedColumn<double>(
+    'pct_seconds_sum',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    raceId,
+    twsBucket,
+    seconds,
+    pctSecondsSum,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'race_polar_buckets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RacePolarBucketRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('tws_bucket')) {
+      context.handle(
+        _twsBucketMeta,
+        twsBucket.isAcceptableOrUnknown(data['tws_bucket']!, _twsBucketMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_twsBucketMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsMeta);
+    }
+    if (data.containsKey('pct_seconds_sum')) {
+      context.handle(
+        _pctSecondsSumMeta,
+        pctSecondsSum.isAcceptableOrUnknown(
+          data['pct_seconds_sum']!,
+          _pctSecondsSumMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pctSecondsSumMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {raceId, twsBucket};
+  @override
+  RacePolarBucketRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RacePolarBucketRow(
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      twsBucket: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tws_bucket'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      pctSecondsSum: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pct_seconds_sum'],
+      )!,
+    );
+  }
+
+  @override
+  $RacePolarBucketsTableTable createAlias(String alias) {
+    return $RacePolarBucketsTableTable(attachedDatabase, alias);
+  }
+}
+
+class RacePolarBucketRow extends DataClass
+    implements Insertable<RacePolarBucketRow> {
+  final String raceId;
+  final int twsBucket;
+  final int seconds;
+  final double pctSecondsSum;
+  const RacePolarBucketRow({
+    required this.raceId,
+    required this.twsBucket,
+    required this.seconds,
+    required this.pctSecondsSum,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['race_id'] = Variable<String>(raceId);
+    map['tws_bucket'] = Variable<int>(twsBucket);
+    map['seconds'] = Variable<int>(seconds);
+    map['pct_seconds_sum'] = Variable<double>(pctSecondsSum);
+    return map;
+  }
+
+  RacePolarBucketsTableCompanion toCompanion(bool nullToAbsent) {
+    return RacePolarBucketsTableCompanion(
+      raceId: Value(raceId),
+      twsBucket: Value(twsBucket),
+      seconds: Value(seconds),
+      pctSecondsSum: Value(pctSecondsSum),
+    );
+  }
+
+  factory RacePolarBucketRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RacePolarBucketRow(
+      raceId: serializer.fromJson<String>(json['raceId']),
+      twsBucket: serializer.fromJson<int>(json['twsBucket']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      pctSecondsSum: serializer.fromJson<double>(json['pctSecondsSum']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'raceId': serializer.toJson<String>(raceId),
+      'twsBucket': serializer.toJson<int>(twsBucket),
+      'seconds': serializer.toJson<int>(seconds),
+      'pctSecondsSum': serializer.toJson<double>(pctSecondsSum),
+    };
+  }
+
+  RacePolarBucketRow copyWith({
+    String? raceId,
+    int? twsBucket,
+    int? seconds,
+    double? pctSecondsSum,
+  }) => RacePolarBucketRow(
+    raceId: raceId ?? this.raceId,
+    twsBucket: twsBucket ?? this.twsBucket,
+    seconds: seconds ?? this.seconds,
+    pctSecondsSum: pctSecondsSum ?? this.pctSecondsSum,
+  );
+  RacePolarBucketRow copyWithCompanion(RacePolarBucketsTableCompanion data) {
+    return RacePolarBucketRow(
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      twsBucket: data.twsBucket.present ? data.twsBucket.value : this.twsBucket,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      pctSecondsSum: data.pctSecondsSum.present
+          ? data.pctSecondsSum.value
+          : this.pctSecondsSum,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarBucketRow(')
+          ..write('raceId: $raceId, ')
+          ..write('twsBucket: $twsBucket, ')
+          ..write('seconds: $seconds, ')
+          ..write('pctSecondsSum: $pctSecondsSum')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(raceId, twsBucket, seconds, pctSecondsSum);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RacePolarBucketRow &&
+          other.raceId == this.raceId &&
+          other.twsBucket == this.twsBucket &&
+          other.seconds == this.seconds &&
+          other.pctSecondsSum == this.pctSecondsSum);
+}
+
+class RacePolarBucketsTableCompanion
+    extends UpdateCompanion<RacePolarBucketRow> {
+  final Value<String> raceId;
+  final Value<int> twsBucket;
+  final Value<int> seconds;
+  final Value<double> pctSecondsSum;
+  final Value<int> rowid;
+  const RacePolarBucketsTableCompanion({
+    this.raceId = const Value.absent(),
+    this.twsBucket = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.pctSecondsSum = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RacePolarBucketsTableCompanion.insert({
+    required String raceId,
+    required int twsBucket,
+    required int seconds,
+    required double pctSecondsSum,
+    this.rowid = const Value.absent(),
+  }) : raceId = Value(raceId),
+       twsBucket = Value(twsBucket),
+       seconds = Value(seconds),
+       pctSecondsSum = Value(pctSecondsSum);
+  static Insertable<RacePolarBucketRow> custom({
+    Expression<String>? raceId,
+    Expression<int>? twsBucket,
+    Expression<int>? seconds,
+    Expression<double>? pctSecondsSum,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (raceId != null) 'race_id': raceId,
+      if (twsBucket != null) 'tws_bucket': twsBucket,
+      if (seconds != null) 'seconds': seconds,
+      if (pctSecondsSum != null) 'pct_seconds_sum': pctSecondsSum,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RacePolarBucketsTableCompanion copyWith({
+    Value<String>? raceId,
+    Value<int>? twsBucket,
+    Value<int>? seconds,
+    Value<double>? pctSecondsSum,
+    Value<int>? rowid,
+  }) {
+    return RacePolarBucketsTableCompanion(
+      raceId: raceId ?? this.raceId,
+      twsBucket: twsBucket ?? this.twsBucket,
+      seconds: seconds ?? this.seconds,
+      pctSecondsSum: pctSecondsSum ?? this.pctSecondsSum,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (twsBucket.present) {
+      map['tws_bucket'] = Variable<int>(twsBucket.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (pctSecondsSum.present) {
+      map['pct_seconds_sum'] = Variable<double>(pctSecondsSum.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RacePolarBucketsTableCompanion(')
+          ..write('raceId: $raceId, ')
+          ..write('twsBucket: $twsBucket, ')
+          ..write('seconds: $seconds, ')
+          ..write('pctSecondsSum: $pctSecondsSum, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$WebDatabase extends GeneratedDatabase {
   _$WebDatabase(QueryExecutor e) : super(e);
   $WebDatabaseManager get managers => $WebDatabaseManager(this);
@@ -2963,6 +4211,12 @@ abstract class _$WebDatabase extends GeneratedDatabase {
   late final $RaceStatsTableTable raceStatsTable = $RaceStatsTableTable(this);
   late final $LegacyTrackSamplesTable legacyTrackSamples =
       $LegacyTrackSamplesTable(this);
+  late final $RacePolarStatsTableTable racePolarStatsTable =
+      $RacePolarStatsTableTable(this);
+  late final $RacePolarHistogramTableTable racePolarHistogramTable =
+      $RacePolarHistogramTableTable(this);
+  late final $RacePolarBucketsTableTable racePolarBucketsTable =
+      $RacePolarBucketsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2972,6 +4226,9 @@ abstract class _$WebDatabase extends GeneratedDatabase {
     manualRaces,
     raceStatsTable,
     legacyTrackSamples,
+    racePolarStatsTable,
+    racePolarHistogramTable,
+    racePolarBucketsTable,
   ];
 }
 
@@ -4361,6 +5618,718 @@ typedef $$LegacyTrackSamplesTableProcessedTableManager =
       LegacyTrackSampleRow,
       PrefetchHooks Function()
     >;
+typedef $$RacePolarStatsTableTableCreateCompanionBuilder =
+    RacePolarStatsTableCompanion Function({
+      required String raceId,
+      required String windowKind,
+      required int windowStartMs,
+      required int windowEndMs,
+      required String referenceFingerprint,
+      required int measuredSeconds,
+      required double pctSecondsSum,
+      required double twsMpsSecondsSum,
+      Value<double?> bestFivePct,
+      required DateTime computedAt,
+      Value<int> rowid,
+    });
+typedef $$RacePolarStatsTableTableUpdateCompanionBuilder =
+    RacePolarStatsTableCompanion Function({
+      Value<String> raceId,
+      Value<String> windowKind,
+      Value<int> windowStartMs,
+      Value<int> windowEndMs,
+      Value<String> referenceFingerprint,
+      Value<int> measuredSeconds,
+      Value<double> pctSecondsSum,
+      Value<double> twsMpsSecondsSum,
+      Value<double?> bestFivePct,
+      Value<DateTime> computedAt,
+      Value<int> rowid,
+    });
+
+class $$RacePolarStatsTableTableFilterComposer
+    extends Composer<_$WebDatabase, $RacePolarStatsTableTable> {
+  $$RacePolarStatsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get windowKind => $composableBuilder(
+    column: $table.windowKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get windowStartMs => $composableBuilder(
+    column: $table.windowStartMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get windowEndMs => $composableBuilder(
+    column: $table.windowEndMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get referenceFingerprint => $composableBuilder(
+    column: $table.referenceFingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get measuredSeconds => $composableBuilder(
+    column: $table.measuredSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get twsMpsSecondsSum => $composableBuilder(
+    column: $table.twsMpsSecondsSum,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get bestFivePct => $composableBuilder(
+    column: $table.bestFivePct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RacePolarStatsTableTableOrderingComposer
+    extends Composer<_$WebDatabase, $RacePolarStatsTableTable> {
+  $$RacePolarStatsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get windowKind => $composableBuilder(
+    column: $table.windowKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get windowStartMs => $composableBuilder(
+    column: $table.windowStartMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get windowEndMs => $composableBuilder(
+    column: $table.windowEndMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get referenceFingerprint => $composableBuilder(
+    column: $table.referenceFingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get measuredSeconds => $composableBuilder(
+    column: $table.measuredSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get twsMpsSecondsSum => $composableBuilder(
+    column: $table.twsMpsSecondsSum,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get bestFivePct => $composableBuilder(
+    column: $table.bestFivePct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RacePolarStatsTableTableAnnotationComposer
+    extends Composer<_$WebDatabase, $RacePolarStatsTableTable> {
+  $$RacePolarStatsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get raceId =>
+      $composableBuilder(column: $table.raceId, builder: (column) => column);
+
+  GeneratedColumn<String> get windowKind => $composableBuilder(
+    column: $table.windowKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get windowStartMs => $composableBuilder(
+    column: $table.windowStartMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get windowEndMs => $composableBuilder(
+    column: $table.windowEndMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get referenceFingerprint => $composableBuilder(
+    column: $table.referenceFingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get measuredSeconds => $composableBuilder(
+    column: $table.measuredSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get twsMpsSecondsSum => $composableBuilder(
+    column: $table.twsMpsSecondsSum,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get bestFivePct => $composableBuilder(
+    column: $table.bestFivePct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$RacePolarStatsTableTableTableManager
+    extends
+        RootTableManager<
+          _$WebDatabase,
+          $RacePolarStatsTableTable,
+          RacePolarStatsRow,
+          $$RacePolarStatsTableTableFilterComposer,
+          $$RacePolarStatsTableTableOrderingComposer,
+          $$RacePolarStatsTableTableAnnotationComposer,
+          $$RacePolarStatsTableTableCreateCompanionBuilder,
+          $$RacePolarStatsTableTableUpdateCompanionBuilder,
+          (
+            RacePolarStatsRow,
+            BaseReferences<
+              _$WebDatabase,
+              $RacePolarStatsTableTable,
+              RacePolarStatsRow
+            >,
+          ),
+          RacePolarStatsRow,
+          PrefetchHooks Function()
+        > {
+  $$RacePolarStatsTableTableTableManager(
+    _$WebDatabase db,
+    $RacePolarStatsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RacePolarStatsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RacePolarStatsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RacePolarStatsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> raceId = const Value.absent(),
+                Value<String> windowKind = const Value.absent(),
+                Value<int> windowStartMs = const Value.absent(),
+                Value<int> windowEndMs = const Value.absent(),
+                Value<String> referenceFingerprint = const Value.absent(),
+                Value<int> measuredSeconds = const Value.absent(),
+                Value<double> pctSecondsSum = const Value.absent(),
+                Value<double> twsMpsSecondsSum = const Value.absent(),
+                Value<double?> bestFivePct = const Value.absent(),
+                Value<DateTime> computedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarStatsTableCompanion(
+                raceId: raceId,
+                windowKind: windowKind,
+                windowStartMs: windowStartMs,
+                windowEndMs: windowEndMs,
+                referenceFingerprint: referenceFingerprint,
+                measuredSeconds: measuredSeconds,
+                pctSecondsSum: pctSecondsSum,
+                twsMpsSecondsSum: twsMpsSecondsSum,
+                bestFivePct: bestFivePct,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String raceId,
+                required String windowKind,
+                required int windowStartMs,
+                required int windowEndMs,
+                required String referenceFingerprint,
+                required int measuredSeconds,
+                required double pctSecondsSum,
+                required double twsMpsSecondsSum,
+                Value<double?> bestFivePct = const Value.absent(),
+                required DateTime computedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarStatsTableCompanion.insert(
+                raceId: raceId,
+                windowKind: windowKind,
+                windowStartMs: windowStartMs,
+                windowEndMs: windowEndMs,
+                referenceFingerprint: referenceFingerprint,
+                measuredSeconds: measuredSeconds,
+                pctSecondsSum: pctSecondsSum,
+                twsMpsSecondsSum: twsMpsSecondsSum,
+                bestFivePct: bestFivePct,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RacePolarStatsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WebDatabase,
+      $RacePolarStatsTableTable,
+      RacePolarStatsRow,
+      $$RacePolarStatsTableTableFilterComposer,
+      $$RacePolarStatsTableTableOrderingComposer,
+      $$RacePolarStatsTableTableAnnotationComposer,
+      $$RacePolarStatsTableTableCreateCompanionBuilder,
+      $$RacePolarStatsTableTableUpdateCompanionBuilder,
+      (
+        RacePolarStatsRow,
+        BaseReferences<
+          _$WebDatabase,
+          $RacePolarStatsTableTable,
+          RacePolarStatsRow
+        >,
+      ),
+      RacePolarStatsRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RacePolarHistogramTableTableCreateCompanionBuilder =
+    RacePolarHistogramTableCompanion Function({
+      required String raceId,
+      required int pctBin,
+      required int seconds,
+      Value<int> rowid,
+    });
+typedef $$RacePolarHistogramTableTableUpdateCompanionBuilder =
+    RacePolarHistogramTableCompanion Function({
+      Value<String> raceId,
+      Value<int> pctBin,
+      Value<int> seconds,
+      Value<int> rowid,
+    });
+
+class $$RacePolarHistogramTableTableFilterComposer
+    extends Composer<_$WebDatabase, $RacePolarHistogramTableTable> {
+  $$RacePolarHistogramTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pctBin => $composableBuilder(
+    column: $table.pctBin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RacePolarHistogramTableTableOrderingComposer
+    extends Composer<_$WebDatabase, $RacePolarHistogramTableTable> {
+  $$RacePolarHistogramTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pctBin => $composableBuilder(
+    column: $table.pctBin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RacePolarHistogramTableTableAnnotationComposer
+    extends Composer<_$WebDatabase, $RacePolarHistogramTableTable> {
+  $$RacePolarHistogramTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get raceId =>
+      $composableBuilder(column: $table.raceId, builder: (column) => column);
+
+  GeneratedColumn<int> get pctBin =>
+      $composableBuilder(column: $table.pctBin, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+}
+
+class $$RacePolarHistogramTableTableTableManager
+    extends
+        RootTableManager<
+          _$WebDatabase,
+          $RacePolarHistogramTableTable,
+          RacePolarHistogramRow,
+          $$RacePolarHistogramTableTableFilterComposer,
+          $$RacePolarHistogramTableTableOrderingComposer,
+          $$RacePolarHistogramTableTableAnnotationComposer,
+          $$RacePolarHistogramTableTableCreateCompanionBuilder,
+          $$RacePolarHistogramTableTableUpdateCompanionBuilder,
+          (
+            RacePolarHistogramRow,
+            BaseReferences<
+              _$WebDatabase,
+              $RacePolarHistogramTableTable,
+              RacePolarHistogramRow
+            >,
+          ),
+          RacePolarHistogramRow,
+          PrefetchHooks Function()
+        > {
+  $$RacePolarHistogramTableTableTableManager(
+    _$WebDatabase db,
+    $RacePolarHistogramTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RacePolarHistogramTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RacePolarHistogramTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RacePolarHistogramTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> raceId = const Value.absent(),
+                Value<int> pctBin = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarHistogramTableCompanion(
+                raceId: raceId,
+                pctBin: pctBin,
+                seconds: seconds,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String raceId,
+                required int pctBin,
+                required int seconds,
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarHistogramTableCompanion.insert(
+                raceId: raceId,
+                pctBin: pctBin,
+                seconds: seconds,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RacePolarHistogramTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WebDatabase,
+      $RacePolarHistogramTableTable,
+      RacePolarHistogramRow,
+      $$RacePolarHistogramTableTableFilterComposer,
+      $$RacePolarHistogramTableTableOrderingComposer,
+      $$RacePolarHistogramTableTableAnnotationComposer,
+      $$RacePolarHistogramTableTableCreateCompanionBuilder,
+      $$RacePolarHistogramTableTableUpdateCompanionBuilder,
+      (
+        RacePolarHistogramRow,
+        BaseReferences<
+          _$WebDatabase,
+          $RacePolarHistogramTableTable,
+          RacePolarHistogramRow
+        >,
+      ),
+      RacePolarHistogramRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RacePolarBucketsTableTableCreateCompanionBuilder =
+    RacePolarBucketsTableCompanion Function({
+      required String raceId,
+      required int twsBucket,
+      required int seconds,
+      required double pctSecondsSum,
+      Value<int> rowid,
+    });
+typedef $$RacePolarBucketsTableTableUpdateCompanionBuilder =
+    RacePolarBucketsTableCompanion Function({
+      Value<String> raceId,
+      Value<int> twsBucket,
+      Value<int> seconds,
+      Value<double> pctSecondsSum,
+      Value<int> rowid,
+    });
+
+class $$RacePolarBucketsTableTableFilterComposer
+    extends Composer<_$WebDatabase, $RacePolarBucketsTableTable> {
+  $$RacePolarBucketsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get twsBucket => $composableBuilder(
+    column: $table.twsBucket,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RacePolarBucketsTableTableOrderingComposer
+    extends Composer<_$WebDatabase, $RacePolarBucketsTableTable> {
+  $$RacePolarBucketsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get raceId => $composableBuilder(
+    column: $table.raceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get twsBucket => $composableBuilder(
+    column: $table.twsBucket,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RacePolarBucketsTableTableAnnotationComposer
+    extends Composer<_$WebDatabase, $RacePolarBucketsTableTable> {
+  $$RacePolarBucketsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get raceId =>
+      $composableBuilder(column: $table.raceId, builder: (column) => column);
+
+  GeneratedColumn<int> get twsBucket =>
+      $composableBuilder(column: $table.twsBucket, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+
+  GeneratedColumn<double> get pctSecondsSum => $composableBuilder(
+    column: $table.pctSecondsSum,
+    builder: (column) => column,
+  );
+}
+
+class $$RacePolarBucketsTableTableTableManager
+    extends
+        RootTableManager<
+          _$WebDatabase,
+          $RacePolarBucketsTableTable,
+          RacePolarBucketRow,
+          $$RacePolarBucketsTableTableFilterComposer,
+          $$RacePolarBucketsTableTableOrderingComposer,
+          $$RacePolarBucketsTableTableAnnotationComposer,
+          $$RacePolarBucketsTableTableCreateCompanionBuilder,
+          $$RacePolarBucketsTableTableUpdateCompanionBuilder,
+          (
+            RacePolarBucketRow,
+            BaseReferences<
+              _$WebDatabase,
+              $RacePolarBucketsTableTable,
+              RacePolarBucketRow
+            >,
+          ),
+          RacePolarBucketRow,
+          PrefetchHooks Function()
+        > {
+  $$RacePolarBucketsTableTableTableManager(
+    _$WebDatabase db,
+    $RacePolarBucketsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RacePolarBucketsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RacePolarBucketsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RacePolarBucketsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> raceId = const Value.absent(),
+                Value<int> twsBucket = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<double> pctSecondsSum = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarBucketsTableCompanion(
+                raceId: raceId,
+                twsBucket: twsBucket,
+                seconds: seconds,
+                pctSecondsSum: pctSecondsSum,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String raceId,
+                required int twsBucket,
+                required int seconds,
+                required double pctSecondsSum,
+                Value<int> rowid = const Value.absent(),
+              }) => RacePolarBucketsTableCompanion.insert(
+                raceId: raceId,
+                twsBucket: twsBucket,
+                seconds: seconds,
+                pctSecondsSum: pctSecondsSum,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RacePolarBucketsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WebDatabase,
+      $RacePolarBucketsTableTable,
+      RacePolarBucketRow,
+      $$RacePolarBucketsTableTableFilterComposer,
+      $$RacePolarBucketsTableTableOrderingComposer,
+      $$RacePolarBucketsTableTableAnnotationComposer,
+      $$RacePolarBucketsTableTableCreateCompanionBuilder,
+      $$RacePolarBucketsTableTableUpdateCompanionBuilder,
+      (
+        RacePolarBucketRow,
+        BaseReferences<
+          _$WebDatabase,
+          $RacePolarBucketsTableTable,
+          RacePolarBucketRow
+        >,
+      ),
+      RacePolarBucketRow,
+      PrefetchHooks Function()
+    >;
 
 class $WebDatabaseManager {
   final _$WebDatabase _db;
@@ -4373,4 +6342,13 @@ class $WebDatabaseManager {
       $$RaceStatsTableTableTableManager(_db, _db.raceStatsTable);
   $$LegacyTrackSamplesTableTableManager get legacyTrackSamples =>
       $$LegacyTrackSamplesTableTableManager(_db, _db.legacyTrackSamples);
+  $$RacePolarStatsTableTableTableManager get racePolarStatsTable =>
+      $$RacePolarStatsTableTableTableManager(_db, _db.racePolarStatsTable);
+  $$RacePolarHistogramTableTableTableManager get racePolarHistogramTable =>
+      $$RacePolarHistogramTableTableTableManager(
+        _db,
+        _db.racePolarHistogramTable,
+      );
+  $$RacePolarBucketsTableTableTableManager get racePolarBucketsTable =>
+      $$RacePolarBucketsTableTableTableManager(_db, _db.racePolarBucketsTable);
 }
