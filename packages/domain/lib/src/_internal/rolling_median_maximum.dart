@@ -1,3 +1,5 @@
+import 'package:domain/src/_internal/lower_median.dart';
+
 /// Library-internal helper: egy időrendi sorozat csúszó mediánjainak
 /// maximuma (ADR 0048 Addendum 5 L3).
 ///
@@ -25,19 +27,12 @@ double? rollingMedianMaximum(List<double> values, {required int windowSize}) {
     );
   }
   if (values.isEmpty) return null;
-  if (values.length <= windowSize) return _lowerMedian(values);
+  if (values.length <= windowSize) return lowerMedian(values);
 
   double? maximum;
   for (var start = 0; start + windowSize <= values.length; start++) {
-    final median = _lowerMedian(values.sublist(start, start + windowSize));
+    final median = lowerMedian(values.sublist(start, start + windowSize));
     if (maximum == null || median > maximum) maximum = median;
   }
   return maximum;
-}
-
-// Az ablak kicsi (5 elem), ezért a rendezés költsége elhanyagolható; egy
-// rendezett csúszó struktúra itt csak bonyolítana.
-double _lowerMedian(List<double> values) {
-  final sorted = [...values]..sort();
-  return sorted[(sorted.length - 1) ~/ 2];
 }
