@@ -1,8 +1,9 @@
+import 'package:domain/domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_web/race_edit/form/speed_units.dart';
+import 'package:foretack_web/season_stats/medal.dart';
 import 'package:foretack_web/season_stats/season_conditions.dart';
 import 'package:foretack_web/season_stats/season_placings.dart';
-import 'package:foretack_web/season_stats/season_totals.dart';
 import 'package:foretack_web/season_stats/season_volume.dart';
 import 'package:foretack_web/season_stats/wind_band.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -41,10 +42,7 @@ void main() {
 
       // ASSERT
       expect(volume.raceCount, 3);
-      expect(volume.telemetryRaceCount, 1);
-      expect(volume.manualRaceCount, 2);
       expect(volume.timeOnWater, const Duration(hours: 6));
-      expect(volume.racesWithoutTime, 1);
       expect(volume.distanceMeters, 40000);
     });
 
@@ -57,49 +55,100 @@ void main() {
       // ASSERT
       expect(volume.timeOnWater, isNull);
       expect(volume.distanceMeters, isNull);
-      expect(volume.racesWithoutTime, 1);
     });
   });
 
   group('summarizeSeasonPlacings', () {
-    test('tallies each category from its own field', () {
-      // ARRANGE
-      final entries = [
-        entryOf(
-          manualSummary(
-            'm1',
-            date: '2026-05-01',
-            result: const RaceResultInput(
-              classPlace: FinishPlace(1),
-              overallPlace: FinishPlace(12),
-              monohullPlace: FinishPlace(9),
-            ),
-          ),
+    // A naplo sorrendje: a legujabb elol.
+    final entries = [
+      // osztaly 4., abszolut 12. / egytestu 2. -> abszolut ezust
+      entryOf(
+        placedRace(
+          'aug',
+          date: '2026-08-01',
+          classPlace: const FinishPlace(4),
+          overallPlace: const FinishPlace(12),
+          monohullPlace: const FinishPlace(2),
         ),
-        entryOf(
-          manualSummary(
-            'm2',
-            date: '2026-06-01',
-            result: const RaceResultInput(
-              classPlace: FinishPlace(2),
-              overallPlace: Dnf(),
-            ),
-          ),
+      ),
+      // osztaly 1., abszolut DNF -> egytestu nincs, abszolut DNF
+      entryOf(
+        placedRace(
+          'jul',
+          date: '2026-07-01',
+          classPlace: const FinishPlace(1),
+          overallPlace: const Dnf(),
         ),
-        entryOf(manualSummary('m3', date: '2026-07-01')),
-      ];
+      ),
+      // semmi dobogo: osztaly 6., abszolut 9.
+      entryOf(
+        placedRace(
+          'jun',
+          date: '2026-06-01',
+          classPlace: const FinishPlace(6),
+          monohullPlace: const FinishPlace(9),
+        ),
+      ),
+      // helyezes nelkul
+      entryOf(manualSummary('may', date: '2026-05-01')),
+    ];
 
+    test('merges the overall and monohull places into the better one', () {
       // ACT
       final placings = summarizeSeasonPlacings(entries);
 
       // ASSERT
-      expect(placings.classPlacings.podiums, 2);
-      expect(placings.classPlacings.enteredCount, 2);
-      expect(placings.classPlacings.averagePlace, 1.5);
-      expect(placings.overallPlacings.dnfs, 1);
-      expect(placings.overallPlacings.averagePlace, 12);
-      expect(placings.monohullPlacings.enteredCount, 1);
-      expect(placings.monohullPlacings.podiums, 0);
+      expect(placings.overallPlacings.seconds, 1);
+      expect(placings.overallPlacings.offPodium, const [
+        FinishPlace(9),
+        Dnf(),
+      ]);
+      expect(placings.classPlacings.firsts, 1);
+      expect(placings.classPlacings.offPodium, const [
+        FinishPlace(4),
+        FinishPlace(6),
+      ]);
+    });
+
+    test('counts podium races and placings', () {
+      // ACT
+      final placings = summarizeSeasonPlacings(entries);
+
+      // ASSERT
+      expect(placings.podiumRaceCount, 2);
+      expect(placings.podiumPlacings, 2);
+      expect(placings.harvest, [Medal.gold, Medal.silver]);
+    });
+
+    test('gives one medal per race, oldest first', () {
+      // ACT
+      final placings = summarizeSeasonPlacings(entries);
+
+      // ASSERT: maj, jun, jul (osztaly 1.), aug (abszolut 2.)
+      expect(placings.raceMedals, [null, null, Medal.gold, Medal.silver]);
+    });
+
+    test('counts two podium placings on one race', () {
+      // ARRANGE
+      final sameRace = [
+        entryOf(
+          placedRace(
+            'both',
+            date: '2026-05-01',
+            classPlace: const FinishPlace(1),
+            overallPlace: const FinishPlace(3),
+          ),
+        ),
+      ];
+
+      // ACT
+      final placings = summarizeSeasonPlacings(sameRace);
+
+      // ASSERT
+      expect(placings.podiumRaceCount, 1);
+      expect(placings.podiumPlacings, 2);
+      expect(placings.raceMedals, [Medal.gold]);
+      expect(placings.harvest, [Medal.gold, Medal.bronze]);
     });
   });
 
@@ -129,31 +178,29 @@ void main() {
       expect(conditions.avgSpeedMps, closeTo(5, 1e-9));
     });
 
-    test('has no average speed without a timed distance', () {
-      // ACT
-      final conditions = summarizeSeasonConditions([
-        entryOf(manualSummary('m1', date: '2026-05-01', distanceMeters: 9000)),
-      ]);
-
-      // ASSERT
-      expect(conditions.avgSpeedMps, isNull);
-      expect(conditions.fastestRace, isNull);
-      expect(conditions.windiestRace, isNull);
-    });
-
-    test('names the fastest and the windiest race with its day', () {
+    test('names the record races with their day', () {
       // ARRANGE: a naplo sorrendje: a legujabb elol
       final entries = [
         entryOf(
           withStats(
             manualSummary('new', date: '2026-08-01'),
-            enteredStats(maxSpeedMps: 4, maxWindMps: 9),
+            enteredStats(
+              distanceMeters: 30000,
+              avgSpeedMps: 3,
+              maxSpeedMps: 4,
+              maxWindMps: 9,
+            ),
           ),
         ),
         entryOf(
           withStats(
             manualSummary('old', date: '2025-08-01'),
-            enteredStats(maxSpeedMps: 5, maxWindMps: 9),
+            enteredStats(
+              distanceMeters: 55900,
+              avgSpeedMps: 2.5,
+              maxSpeedMps: 5,
+              maxWindMps: 9,
+            ),
           ),
         ),
       ];
@@ -161,14 +208,53 @@ void main() {
       // ACT
       final conditions = summarizeSeasonConditions(entries);
 
-      // ASSERT: a szelrekord dontetlen, az ujabb verseny marad (P4)
-      expect(conditions.fastestRace, (
-        valueMps: 5.0,
+      // ASSERT: a szelrekord dontetlen, az ujabb verseny marad
+      expect(conditions.longestRace, (
+        value: 55900.0,
         raceName: 'Kezi old',
         day: DateTime(2025, 8),
       ));
+      expect(conditions.fastestAverageRace?.raceName, 'Kezi new');
+      expect(conditions.fastestRace?.raceName, 'Kezi old');
       expect(conditions.windiestRace?.raceName, 'Kezi new');
       expect(conditions.windiestRace?.day, DateTime(2026, 8));
+    });
+
+    test('has no records without measurements', () {
+      // ACT
+      final conditions = summarizeSeasonConditions([
+        entryOf(manualSummary('m1', date: '2026-05-01')),
+      ]);
+
+      // ASSERT
+      expect(conditions.avgSpeedMps, isNull);
+      expect(conditions.longestRace, isNull);
+      expect(conditions.fastestAverageRace, isNull);
+      expect(conditions.prevailingWindPoints, isEmpty);
+    });
+
+    test('gives every tied prevailing wind point in compass order', () {
+      // ARRANGE: DDNy ketszer, DDK ketszer, E egyszer
+      RaceSummary from(String id, CompassPoint point) => withStats(
+        manualSummary(id, date: '2026-05-01'),
+        enteredStats(windPoint: point),
+      );
+      final entries = [
+        entryOf(from('a', CompassPoint.southSouthWest)),
+        entryOf(from('b', CompassPoint.north)),
+        entryOf(from('c', CompassPoint.southSouthEast)),
+        entryOf(from('d', CompassPoint.southSouthWest)),
+        entryOf(from('e', CompassPoint.southSouthEast)),
+      ];
+
+      // ACT
+      final conditions = summarizeSeasonConditions(entries);
+
+      // ASSERT
+      expect(conditions.prevailingWindPoints, [
+        CompassPoint.southSouthEast,
+        CompassPoint.southSouthWest,
+      ]);
     });
 
     test('counts races into the average wind bands', () {
@@ -196,65 +282,7 @@ void main() {
         WindBand.from12To16: 0,
         WindBand.from16: 1,
       });
-      expect(
-        conditions.windBandCounts.keys.toList(),
-        WindBand.values,
-        reason: 'the bands keep their order',
-      );
-      expect(conditions.racesWithoutWind, 1);
-    });
-  });
-
-  group('summarizeSeason', () {
-    test('is exact for official windows and entered numbers', () {
-      // ARRANGE: hivatalos ablaku telemetria, trackes es beirt kezi
-      final telemetry = telemetrySummary(
-        't1',
-        start: DateTime(2026, 7, 26, 10),
-        result: officialTimes(officialStart, const Duration(hours: 3)),
-      );
-      final entries = [
-        entryOf(withStats(telemetry, officialStats(distanceMeters: 30000))),
-        entryOf(
-          withStats(
-            manualSummary('tracked', date: '2023-07-01'),
-            officialStats(distanceMeters: 20000),
-          ),
-        ),
-        entryOf(manualSummary('m1', date: '2022-07-01')),
-      ];
-
-      // ACT
-      final totals = summarizeSeason(entries);
-
-      // ASSERT
-      expect(totals.hasApproximateValues, isFalse);
-      expect(totals.volume.raceCount, 3);
-    });
-
-    test('is approximate when a recording window is included', () {
-      // ARRANGE: a sample telemetria rogzitesi ablakos
-      final entries = [
-        entryOf(telemetrySummary('t1', start: DateTime(2026, 7, 26, 10))),
-      ];
-
-      // ACT + ASSERT
-      expect(summarizeSeason(entries).hasApproximateValues, isTrue);
-    });
-
-    test('is approximate when only the time comes from the recording', () {
-      // ARRANGE: hivatalos ablaku stat, de a menetido a rogzitesbol jon
-      final entries = [
-        entryOf(
-          withStats(
-            telemetrySummary('t1', start: DateTime(2026, 7, 26, 10)),
-            officialStats(distanceMeters: 30000),
-          ),
-        ),
-      ];
-
-      // ACT + ASSERT
-      expect(summarizeSeason(entries).hasApproximateValues, isTrue);
+      expect(conditions.windBandCounts.keys.toList(), WindBand.values);
     });
   });
 }

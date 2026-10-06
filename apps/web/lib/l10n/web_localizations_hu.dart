@@ -650,80 +650,7 @@ class WebLocalizationsHu extends WebLocalizations {
   String get statsStatRacesCaps => 'VERSENY';
 
   @override
-  String statsOriginSplit(int telemetry, int manual) {
-    return '$telemetry telemetriás és $manual kézi verseny.';
-  }
-
-  @override
-  String statsRacesWithoutTime(int count) {
-    return '$count kézi versenynek nincs hivatalos ideje: a vízen töltött időbe és az átlagsebességbe nem számít bele.';
-  }
-
-  @override
-  String get statsApproximate =>
-      '~ Egyes számok közelítők: ahol nincs hivatalos rajt és befutás, a teljes rögzítésből számolódnak.';
-
-  @override
-  String get statsPlacingsCaps => 'HELYEZÉSEK';
-
-  @override
-  String get statsColumnFirst => '1.';
-
-  @override
-  String get statsColumnSecond => '2.';
-
-  @override
-  String get statsColumnThird => '3.';
-
-  @override
-  String get statsColumnPodiumCaps => 'DOBOGÓ';
-
-  @override
-  String get statsColumnDnfCaps => 'DNF';
-
-  @override
-  String get statsColumnDsqCaps => 'DSQ';
-
-  @override
-  String get statsColumnAverageCaps => 'ÁTLAG';
-
-  @override
-  String get statsColumnEnteredCaps => 'MEGADVA';
-
-  @override
-  String get statsRowClass => 'Osztály';
-
-  @override
-  String get statsRowOverall => 'Abszolút';
-
-  @override
-  String get statsRowMonohull => 'Egytestű';
-
-  @override
-  String statsEnteredOf(int entered, int total) {
-    return '$entered/$total';
-  }
-
-  @override
-  String get statsConditionsCaps => 'SEBESSÉG ÉS SZÉL';
-
-  @override
-  String get statsColumnValueCaps => 'ÉRTÉK';
-
-  @override
-  String get statsColumnRaceCaps => 'VERSENY';
-
-  @override
-  String get statsColumnDateCaps => 'DÁTUM';
-
-  @override
-  String get statsRowAvgSpeed => 'Átlagsebesség';
-
-  @override
-  String get statsRowMaxSpeed => 'Legnagyobb sebesség';
-
-  @override
-  String get statsRowMaxWind => 'Legnagyobb szél';
+  String get statsColumnPodiumCaps => 'DOBOGÓS';
 
   @override
   String get statsWindBandsCaps => 'ÁTLAGSZÉL SZERINT';
@@ -744,31 +671,76 @@ class WebLocalizationsHu extends WebLocalizations {
   }
 
   @override
-  String statsRacesWithoutWind(int count) {
-    return '$count versenyen nincs szélmérés.';
-  }
-
-  @override
-  String get statsYearsCaps => 'ÉVEK';
-
-  @override
   String get statsColumnYearCaps => 'ÉV';
 
   @override
-  String get statsColumnRacesCaps => 'VERSENY';
+  String get statsSeasonCaps => 'AZ ÉVAD';
 
   @override
-  String get statsColumnTimeCaps => 'IDŐ';
+  String get statsPodiumRacesCaps => 'DOBOGÓS VERSENY';
 
   @override
-  String get statsColumnDistanceCaps => 'TÁV';
+  String get statsPodiumRateCaps => 'DOBOGÓS ARÁNY';
 
   @override
-  String get statsColumnAverageSpeedCaps => 'ÁTLAG';
+  String get statsPodiumPlacingsCaps => 'DOBOGÓS HELYEZÉS';
 
   @override
-  String get statsUnitHours => 'ó';
+  String get statsClassCaps => 'OSZTÁLYBAN';
 
   @override
-  String get statsUnitPodium => 'dobogó';
+  String get statsOverallCaps => 'ABSZOLÚT';
+
+  @override
+  String get statsFirstPlaceCaps => 'I. HELY';
+
+  @override
+  String get statsSecondPlaceCaps => 'II. HELY';
+
+  @override
+  String get statsThirdPlaceCaps => 'III. HELY';
+
+  @override
+  String statsOfStarts(int total) {
+    return 'a $total indulásból';
+  }
+
+  @override
+  String get statsOffPodium => 'Dobogón kívül:';
+
+  @override
+  String get statsTrackCaps => 'A PÁLYÁN';
+
+  @override
+  String get statsLongestRaceCaps => 'LEGHOSSZABB TÁV';
+
+  @override
+  String get statsAverageSpeedCaps => 'ÁTLAGSEBESSÉG';
+
+  @override
+  String get statsFastestAverageCaps => 'LEGGYORSABB VERSENY';
+
+  @override
+  String get statsTopSpeedCaps => 'CSÚCSSEBESSÉG';
+
+  @override
+  String get statsStrongestWindCaps => 'LEGERŐSEBB SZÉL';
+
+  @override
+  String get statsPrevailingWindCaps => 'URALKODÓ SZÉLIRÁNY';
+
+  @override
+  String get statsMedalTableCaps => 'ÉREMTÁBLA ÉVENKÉNT';
+
+  @override
+  String get statsColumnStartsCaps => 'INDULÁS';
+
+  @override
+  String get statsColumnHarvestCaps => 'AZ ÉV TERMÉSE';
+
+  @override
+  String get statsTotalRow => 'Össz.';
+
+  @override
+  String get statsHarvestTotal => 'dobogós helyezés';
 }

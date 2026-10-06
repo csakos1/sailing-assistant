@@ -3,10 +3,10 @@ import 'package:foretack_web/race_log/race_log_grouping.dart';
 import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:foretack_web/season_stats/season_totals.dart';
 
-/// Egy év sora az évek összevetésében (ADR 0049 D3 4., Addendum 1 P5).
+/// Egy év sora az éremtáblában (ADR 0049 Addendum 2 R3).
 typedef SeasonYear = ({int year, SeasonTotals totals});
 
-/// A Statisztika-képernyő kész állapota (ADR 0049 D2–D4, Addendum 1).
+/// A Statisztika-képernyő kész állapota (ADR 0049 D2–D4, Addendum 2).
 @immutable
 class SeasonStats {
   /// Statisztika a [view] naplónézethez.

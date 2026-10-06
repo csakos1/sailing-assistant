@@ -2,6 +2,8 @@ import 'package:domain/domain.dart';
 import 'package:foretack_web/race_log/race_log_grouping.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
+import '../support/sample_summaries.dart';
+
 // A szezon-statisztika tesztjeinek mintai. A sebessegek es a szelek
 // m/s-ben, a tavok meterben jonnek, ahogy a szerzodesben.
 
@@ -18,37 +20,43 @@ RaceSummary withStats(RaceSummary summary, RaceStats stats) => RaceSummary(
 LogEntry entryOf(RaceSummary summary) =>
     LogEntry(summary: summary, day: logDayOf(summary));
 
-/// Hivatalos ablaku statisztika (pontos ertekek).
-RaceStats officialStats({
-  double? distanceMeters,
-  double? maxSpeedMps,
-  double? avgWindMps,
-  double? maxWindMps,
-}) => RaceStats(
-  window: OfficialWindow(
-    TimeWindow(
-      start: DateTime.utc(2026, 7, 26, 9),
-      end: DateTime.utc(2026, 7, 26, 12),
-    ),
-  ),
-  track: TrackStats(distanceMeters: distanceMeters, maxSpeedMps: maxSpeedMps),
-  avgWindMps: avgWindMps,
-  maxWindMps: maxWindMps,
-);
-
 /// Beirt (kezi) statisztika.
 RaceStats enteredStats({
   double? distanceMeters,
+  double? avgSpeedMps,
   double? maxSpeedMps,
   double? avgWindMps,
   double? maxWindMps,
+  CompassPoint? windPoint,
 }) => RaceStats(
   window: const ManualEntry(),
-  track: TrackStats(distanceMeters: distanceMeters, maxSpeedMps: maxSpeedMps),
+  track: TrackStats(
+    distanceMeters: distanceMeters,
+    avgSpeedMps: avgSpeedMps,
+    maxSpeedMps: maxSpeedMps,
+  ),
   avgWindMps: avgWindMps,
   maxWindMps: maxWindMps,
+  windPoint: windPoint,
 );
 
 /// Hivatalos rajt es befutas a [start]-tol [elapsed] hosszan.
 RaceResultInput officialTimes(DateTime start, Duration elapsed) =>
     RaceResultInput(officialStart: start, officialFinish: start.add(elapsed));
+
+/// Kezi verseny a [date] napon a megadott helyezesekkel.
+RaceSummary placedRace(
+  String id, {
+  required String date,
+  Placing? classPlace,
+  Placing? overallPlace,
+  Placing? monohullPlace,
+}) => manualSummary(
+  id,
+  date: date,
+  result: RaceResultInput(
+    classPlace: classPlace,
+    overallPlace: overallPlace,
+    monohullPlace: monohullPlace,
+  ),
+);

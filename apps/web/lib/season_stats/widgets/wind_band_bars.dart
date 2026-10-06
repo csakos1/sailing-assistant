@@ -6,7 +6,7 @@ import 'package:foretack_web/race_log/table/cells/table_cell_styles.dart';
 typedef WindBandBar = ({String label, int count});
 
 /// A versenyek eloszlása az átlagos szél szerint, vízszintes sávokkal (ADR
-/// 0049 Addendum 1 P3).
+/// 0049 Addendum 1 P3, Addendum 2 R2).
 ///
 /// A sáv hossza a legnagyobb darabszámhoz arányos, színe a `primary`.
 /// Chart-függőség nélkül, a meglévő tokenekből.

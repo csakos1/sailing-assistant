@@ -68,7 +68,7 @@ void main() {
 
       // ASSERT
       expect(stats.totals.volume.raceCount, 0);
-      expect(stats.totals.hasApproximateValues, isFalse);
+      expect(stats.totals.placings.raceMedals, isEmpty);
       expect(stats.years, isEmpty);
     });
   });

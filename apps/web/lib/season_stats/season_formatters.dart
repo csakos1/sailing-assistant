@@ -1,16 +1,17 @@
-// A Statisztika-képernyő szövegei (ADR 0049 Addendum 1). Pure függvények,
-// magyar tizedesvesszővel, mint a napló táblázatában.
+// A Statisztika-képernyő szövegei (ADR 0049 Addendum 2 R5). Pure
+// függvények, magyar tizedesvesszővel, mint a napló táblázatában.
 
-/// A vízen töltött idő órában, egy tizedesre: `37,5`.
-///
-/// A mértékegység az oszlopfejlécben áll (L5), ezért egy óra alatt sem
-/// vált percre, ellentétben a `measureHours`-szal.
-String formatSeasonHours(Duration elapsed) =>
-    _withDecimalComma(elapsed.inMinutes / 60);
+/// A rekord napja egy év nézetben: `06.13.`.
+String formatMonthDay(DateTime day) =>
+    '${_twoDigits(day.month)}.${_twoDigits(day.day)}.';
 
-/// A helyezések átlaga egy tizedesre: `4,3`.
-String formatAveragePlace(double averagePlace) =>
-    _withDecimalComma(averagePlace);
+/// A rekord napja az összes év nézetben: `2024.07.25.`.
+String formatFullDay(DateTime day) =>
+    '${day.year.toString().padLeft(4, '0')}.${formatMonthDay(day)}';
 
-String _withDecimalComma(double value) =>
-    value.toStringAsFixed(1).replaceAll('.', ',');
+/// A [count] aránya a [total]-hoz egész százalékban: `36%`; nulla
+/// [total]-nál `0%`.
+String formatPercent(int count, int total) =>
+    total == 0 ? '0%' : '${(count * 100 / total).round()}%';
+
+String _twoDigits(int value) => value.toString().padLeft(2, '0');

@@ -859,122 +859,13 @@
   "@statsStatRacesCaps": {
     "description": "A Statisztika MENNYISÉG csíkjának első cellája: a versenyek száma."
   },
-  "statsOriginSplit": "{telemetry} telemetriás és {manual} kézi verseny.",
-  "@statsOriginSplit": {
-    "description": "Halk sor a MENNYISÉG csík alatt: a versenyek bontása forrás szerint.",
-    "placeholders": {
-      "telemetry": {
-        "type": "int"
-      },
-      "manual": {
-        "type": "int"
-      }
-    }
-  },
-  "statsRacesWithoutTime": "{count} kézi versenynek nincs hivatalos ideje: a vízen töltött időbe és az átlagsebességbe nem számít bele.",
-  "@statsRacesWithoutTime": {
-    "description": "Halk sor: a hivatalos idő nélküli kézi versenyek kimaradnak az időből (ADR 0049 D3).",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "statsApproximate": "~ Egyes számok közelítők: ahol nincs hivatalos rajt és befutás, a teljes rögzítésből számolódnak.",
-  "@statsApproximate": {
-    "description": "A közelítő-sor a Statisztika-képernyőn (K9, ADR 0049 Addendum 1 P4)."
-  },
-  "statsPlacingsCaps": "HELYEZÉSEK",
-  "@statsPlacingsCaps": {
-    "description": "A helyezések táblájának szakaszcíme (P2)."
-  },
-  "statsColumnFirst": "1.",
-  "@statsColumnFirst": {
-    "description": "A helyezés-tábla oszlopa: első helyek száma."
-  },
-  "statsColumnSecond": "2.",
-  "@statsColumnSecond": {
-    "description": "A helyezés-tábla oszlopa: második helyek száma."
-  },
-  "statsColumnThird": "3.",
-  "@statsColumnThird": {
-    "description": "A helyezés-tábla oszlopa: harmadik helyek száma."
-  },
-  "statsColumnPodiumCaps": "DOBOGÓ",
+  "statsColumnPodiumCaps": "DOBOGÓS",
   "@statsColumnPodiumCaps": {
-    "description": "A helyezés-tábla oszlopa: dobogók (1–3. hely) száma."
-  },
-  "statsColumnDnfCaps": "DNF",
-  "@statsColumnDnfCaps": {
-    "description": "A helyezés-tábla oszlopa: feladások száma."
-  },
-  "statsColumnDsqCaps": "DSQ",
-  "@statsColumnDsqCaps": {
-    "description": "A helyezés-tábla oszlopa: kizárások száma."
-  },
-  "statsColumnAverageCaps": "ÁTLAG",
-  "@statsColumnAverageCaps": {
-    "description": "A helyezés-tábla oszlopa: a számszerű helyezések átlaga."
-  },
-  "statsColumnEnteredCaps": "MEGADVA",
-  "@statsColumnEnteredCaps": {
-    "description": "A helyezés-tábla oszlopa: hány versenyen van megadva helyezés."
-  },
-  "statsRowClass": "Osztály",
-  "@statsRowClass": {
-    "description": "A helyezés-tábla sora: osztályhelyezés."
-  },
-  "statsRowOverall": "Abszolút",
-  "@statsRowOverall": {
-    "description": "A helyezés-tábla sora: abszolút helyezés."
-  },
-  "statsRowMonohull": "Egytestű",
-  "@statsRowMonohull": {
-    "description": "A helyezés-tábla sora: egytestű helyezés."
-  },
-  "statsEnteredOf": "{entered}/{total}",
-  "@statsEnteredOf": {
-    "description": "A MEGADVA cella: megadott helyezések a megjelenített versenyek közül.",
-    "placeholders": {
-      "entered": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "statsConditionsCaps": "SEBESSÉG ÉS SZÉL",
-  "@statsConditionsCaps": {
-    "description": "A sebesség- és szél-szakasz címe (ADR 0049 D3)."
-  },
-  "statsColumnValueCaps": "ÉRTÉK",
-  "@statsColumnValueCaps": {
-    "description": "A rekord-tábla érték-oszlopa."
-  },
-  "statsColumnRaceCaps": "VERSENY",
-  "@statsColumnRaceCaps": {
-    "description": "A rekord-tábla oszlopa: a rekord versenye."
-  },
-  "statsColumnDateCaps": "DÁTUM",
-  "@statsColumnDateCaps": {
-    "description": "A rekord-tábla oszlopa: a rekord versenyének napja."
-  },
-  "statsRowAvgSpeed": "Átlagsebesség",
-  "@statsRowAvgSpeed": {
-    "description": "A rekord-tábla sora: össztáv ÷ összidő."
-  },
-  "statsRowMaxSpeed": "Legnagyobb sebesség",
-  "@statsRowMaxSpeed": {
-    "description": "A rekord-tábla sora: a legnagyobb max. sebesség."
-  },
-  "statsRowMaxWind": "Legnagyobb szél",
-  "@statsRowMaxWind": {
-    "description": "A rekord-tábla sora: a legnagyobb max. szél."
+    "description": "Az éremtábla oszlopa: dobogós versenyek száma és aránya (ADR 0049 Addendum 2 R3)."
   },
   "statsWindBandsCaps": "ÁTLAGSZÉL SZERINT",
   "@statsWindBandsCaps": {
-    "description": "A szélsávok szakaszcíme (P3)."
+    "description": "A szélsávok szakaszcíme (Addendum 1 P3, Addendum 2 R2)."
   },
   "statsWindBandBelow": "< {high} kn",
   "@statsWindBandBelow": {
@@ -1006,45 +897,105 @@
       }
     }
   },
-  "statsRacesWithoutWind": "{count} versenyen nincs szélmérés.",
-  "@statsRacesWithoutWind": {
-    "description": "Halk sor a szélsávok alatt: az átlagszél nélküli versenyek száma.",
+  "statsColumnYearCaps": "ÉV",
+  "@statsColumnYearCaps": {
+    "description": "Az éremtábla első oszlopa (R3)."
+  },
+  "statsSeasonCaps": "AZ ÉVAD",
+  "@statsSeasonCaps": {
+    "description": "Az egy-év nézet első szakaszcíme (R2)."
+  },
+  "statsPodiumRacesCaps": "DOBOGÓS VERSENY",
+  "@statsPodiumRacesCaps": {
+    "description": "Az évad nagy száma: hány versenyen volt osztály- vagy abszolút dobogó (R5)."
+  },
+  "statsPodiumRateCaps": "DOBOGÓS ARÁNY",
+  "@statsPodiumRateCaps": {
+    "description": "Az évad nagy száma: dobogós versenyek a megjelenített versenyekhez (R5)."
+  },
+  "statsPodiumPlacingsCaps": "DOBOGÓS HELYEZÉS",
+  "@statsPodiumPlacingsCaps": {
+    "description": "A dobogós helyezések száma; az évad sorában és a kategóriák alján (R5)."
+  },
+  "statsClassCaps": "OSZTÁLYBAN",
+  "@statsClassCaps": {
+    "description": "Az osztályhelyezések szakaszcíme és éremtábla-oszlopa (R2, R3)."
+  },
+  "statsOverallCaps": "ABSZOLÚT",
+  "@statsOverallCaps": {
+    "description": "Az összevont abszolút helyezések szakaszcíme és éremtábla-oszlopa (R1)."
+  },
+  "statsFirstPlaceCaps": "I. HELY",
+  "@statsFirstPlaceCaps": {
+    "description": "Az első helyek sora egy kategóriában."
+  },
+  "statsSecondPlaceCaps": "II. HELY",
+  "@statsSecondPlaceCaps": {
+    "description": "A második helyek sora egy kategóriában."
+  },
+  "statsThirdPlaceCaps": "III. HELY",
+  "@statsThirdPlaceCaps": {
+    "description": "A harmadik helyek sora egy kategóriában."
+  },
+  "statsOfStarts": "a {total} indulásból",
+  "@statsOfStarts": {
+    "description": "A százalék utáni szöveg egy helyezés-sorban.",
     "placeholders": {
-      "count": {
+      "total": {
         "type": "int"
       }
     }
   },
-  "statsYearsCaps": "ÉVEK",
-  "@statsYearsCaps": {
-    "description": "Az évek összevetésének szakaszcíme, csak „Összes év” nézetben (P5)."
+  "statsOffPodium": "Dobogón kívül:",
+  "@statsOffPodium": {
+    "description": "A dobogón kívüli helyezések sorának eleje (R4)."
   },
-  "statsColumnYearCaps": "ÉV",
-  "@statsColumnYearCaps": {
-    "description": "Az évek táblájának első oszlopa."
+  "statsTrackCaps": "A PÁLYÁN",
+  "@statsTrackCaps": {
+    "description": "A pálya-mutatók szakaszcíme (R2)."
   },
-  "statsColumnRacesCaps": "VERSENY",
-  "@statsColumnRacesCaps": {
-    "description": "Az évek táblájának oszlopa: versenyszám."
+  "statsLongestRaceCaps": "LEGHOSSZABB TÁV",
+  "@statsLongestRaceCaps": {
+    "description": "Pálya-mutató: a leghosszabb táv versenye."
   },
-  "statsColumnTimeCaps": "IDŐ",
-  "@statsColumnTimeCaps": {
-    "description": "Az évek táblájának oszlopa: vízen töltött idő."
+  "statsAverageSpeedCaps": "ÁTLAGSEBESSÉG",
+  "@statsAverageSpeedCaps": {
+    "description": "Pálya-mutató: össztáv ÷ összidő."
   },
-  "statsColumnDistanceCaps": "TÁV",
-  "@statsColumnDistanceCaps": {
-    "description": "Az évek táblájának oszlopa: össztáv."
+  "statsFastestAverageCaps": "LEGGYORSABB VERSENY",
+  "@statsFastestAverageCaps": {
+    "description": "Pálya-mutató: a legnagyobb átlagsebességű verseny."
   },
-  "statsColumnAverageSpeedCaps": "ÁTLAG",
-  "@statsColumnAverageSpeedCaps": {
-    "description": "Az évek táblájának oszlopa: átlagsebesség."
+  "statsTopSpeedCaps": "CSÚCSSEBESSÉG",
+  "@statsTopSpeedCaps": {
+    "description": "Pálya-mutató: a legnagyobb max. sebesség versenye."
   },
-  "statsUnitHours": "ó",
-  "@statsUnitHours": {
-    "description": "Az évek táblájának IDŐ fejlécében a mértékegység (L5)."
+  "statsStrongestWindCaps": "LEGERŐSEBB SZÉL",
+  "@statsStrongestWindCaps": {
+    "description": "Pálya-mutató: a legnagyobb max. szél versenye."
   },
-  "statsUnitPodium": "dobogó",
-  "@statsUnitPodium": {
-    "description": "Az évek táblájának kategória-oszlopaiban a második fejlécsor: dobogók száma."
+  "statsPrevailingWindCaps": "URALKODÓ SZÉLIRÁNY",
+  "@statsPrevailingWindCaps": {
+    "description": "Pálya-mutató: a leggyakoribb égtáj."
+  },
+  "statsMedalTableCaps": "ÉREMTÁBLA ÉVENKÉNT",
+  "@statsMedalTableCaps": {
+    "description": "Az összes év nézet első szakaszcíme (R3)."
+  },
+  "statsColumnStartsCaps": "INDULÁS",
+  "@statsColumnStartsCaps": {
+    "description": "Az éremtábla oszlopa: versenyek száma."
+  },
+  "statsColumnHarvestCaps": "AZ ÉV TERMÉSE",
+  "@statsColumnHarvestCaps": {
+    "description": "Az éremtábla oszlopa: az év dobogós helyezései vitorlákkal."
+  },
+  "statsTotalRow": "Össz.",
+  "@statsTotalRow": {
+    "description": "Az éremtábla összesítő sorának címkéje."
+  },
+  "statsHarvestTotal": "dobogós helyezés",
+  "@statsHarvestTotal": {
+    "description": "Az éremtábla összesítő sorában a dobogós helyezések száma után."
   }
 }
