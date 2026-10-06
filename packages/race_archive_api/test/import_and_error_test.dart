@@ -64,6 +64,7 @@ void main() {
       const MissingClientHeader(),
       const PayloadTooLarge(65536),
       const PolarUnavailable(),
+      const ExportInProgress(),
       const InternalError(),
     ];
 
@@ -88,7 +89,7 @@ void main() {
     test('maps each error to its HTTP status', () {
       expect(
         errors.map((error) => error.httpStatus),
-        [400, 422, 404, 422, 422, 422, 422, 403, 413, 503, 500],
+        [400, 422, 404, 422, 422, 422, 422, 403, 413, 503, 409, 500],
       );
     });
 

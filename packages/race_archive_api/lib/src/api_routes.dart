@@ -41,3 +41,6 @@ String polarSeasonPath(int year) => '$polarSeasonsPath/$year';
 
 /// Egy verseny polár-blokkja: `GET` (ADR 0049 D12).
 String racePolarPath(String raceId) => '${racePath(raceId)}/polar';
+
+/// A teljes export tar.gz-ben: `GET` (ADR 0050 D8 + Addendum 3).
+const String exportPath = '/api/export';

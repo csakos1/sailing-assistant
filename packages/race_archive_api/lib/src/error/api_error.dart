@@ -116,6 +116,16 @@ final class PolarUnavailable extends ApiError {
   int get httpStatus => 503;
 }
 
+/// Egy export már fut; egyszerre csak egy készülhet (ADR 0050 Addendum 3
+/// G4), hogy a lemezen ne legyen két másolat a DB-kből.
+final class ExportInProgress extends ApiError {
+  /// Foglalt export.
+  const ExportInProgress();
+
+  @override
+  int get httpStatus => 409;
+}
+
 /// Váratlan szerverhiba. Részletet szándékosan nem hordoz: az a szerver
 /// naplójába tartozik.
 final class InternalError extends ApiError {
@@ -154,6 +164,7 @@ Map<String, Object?> encodeApiError(ApiError error) => <String, Object?>{
       'limitBytes': limitBytes,
     },
     PolarUnavailable() => <String, Object?>{'code': _polarUnavailable},
+    ExportInProgress() => <String, Object?>{'code': _exportInProgress},
     InternalError() => <String, Object?>{'code': _internalError},
   },
 };
@@ -178,6 +189,7 @@ Result<ApiError, DecodeError> decodeApiError(Object? json) => runDecode(() {
     _missingClientHeader => const MissingClientHeader(),
     _payloadTooLarge => PayloadTooLarge(reader.integerAtLeast('limitBytes', 0)),
     _polarUnavailable => const PolarUnavailable(),
+    _exportInProgress => const ExportInProgress(),
     _internalError => const InternalError(),
     _ => JsonReader.failAt(reader.childPath('code'), 'api error code'),
   };
@@ -190,4 +202,5 @@ const String _importRejected = 'importRejected';
 const String _missingClientHeader = 'missingClientHeader';
 const String _payloadTooLarge = 'payloadTooLarge';
 const String _polarUnavailable = 'polarUnavailable';
+const String _exportInProgress = 'exportInProgress';
 const String _internalError = 'internalError';
