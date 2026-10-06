@@ -388,3 +388,195 @@ használ VPN-t), csak jelzés jön róla (D7).
 - a `biometric_signature` pontos verzióját és az attesztáció használatát
   (A4);
 - a szinkront és a többhajós adatmodellt (D14).
+
+## Addendum 1 — A makett és a `biometric_signature` (2026-10-06)
+
+Az A1 előtt. A Claude Design makett (17a–17f web, 18a–18l telefon)
+feldolgozása, a `biometric_signature` forrásának ellenőrzése, és ami a
+makettben nem szerepel. A „(javaslat, elfogadva)" pontokat Claude
+javasolta, a felhasználó jóváhagyta; a szelet előtt visszavonhatók.
+
+### H1 — Hol érhető el a webes hozzáférés a telefonon (felhasználói döntés)
+
+- A főképernyő AppBarjában a debug-ikonok előtt egy **QR-beolvasás
+  ikon-gomb** (`onSurface`), a végén egy **⋮** gomb (18a).
+- A ⋮ menü „WEBES HOZZÁFÉRÉS" csoportja (18a-2): „Webes belépések"
+  (18i/18j), „Legénység" (18k, csak az `owner`-nek, a függő kérelmek
+  számával), „Fiók és biztonság" (18l; a `crew`-nál „Fiók", 18l-2).
+- **Fiók nélküli appban a ⋮ rejtve van**, csak a QR-ikon látszik. A
+  beolvasás vezet a csatlakozáshoz (belépési QR) vagy a regisztrációhoz
+  (`foretack-enroll` QR).
+- A szalagok (18h) a lista tetején; a kérelem-szalag a „Legénység"
+  képernyőt nyitja.
+
+### H2 — A 17c nem mutatja, ki olvasta be (felhasználói döntés)
+
+- A beolvasás után a böngésző csak az állapotot mutatja („Erősítsd meg a
+  telefonodon"), **nevet és eszközt nem**. A makett mintaadata (név ·
+  telefon) elmarad: QR-jackingnél a támadó böngészője az ujjlenyomat
+  előtt megtudná, kinek a telefonja olvasta be.
+- A protokoll ezért nem kap „ki olvasta be" állapotot. A belépési kérés
+  állapotai (javaslat, elfogadva): `pending` → `opened` (az app lekérte
+  az adatait, D4 4. lépés) → `approved`, illetve `expired`. A web a
+  lekérdezésben csak az állapotot kapja.
+- Az `opened` kérés az utolsó lekéréstől még 60 mp-ig él (javaslat,
+  elfogadva), hogy az ujjlenyomatra legyen idő; ez idő alatt a web nem
+  cserél QR-t. A „Vissza a QR-kódhoz" link a kérést eldobja, és újat
+  nyit.
+
+### H3 — A jóváhagyó lapon nincs „tulajdonos új telefonja" (felhasználói döntés)
+
+- A 18k-2 választható elemei: „Új tag" (alap) és a `crew` tagjai („Bence
+  új telefonja"). A makett „Ákos új telefonja" eleme elmarad.
+- Ez megerősíti a D3-at: **`owner`-eszköz csak a CLI-vel** kerül be. A
+  szerver a jóváhagyásnál is elutasítja, ha a célfiók `owner`.
+
+### H4 — A napló AppBarja a weben (felhasználói döntés)
+
+- A makett a régi 13a AppBarra rajzolt; helyette **a mai AppBar
+  elemei** maradnak, a végükre egy függőleges elválasztó (`outline`) és a
+  **név-menü** kerül (17f):
+  - `owner`: váltó · Statisztika · Export · Új verseny · Feltöltés | név;
+  - `crew`: váltó · Statisztika | név.
+- A név-gomb nyitva egy menü (240 px, `surfaceContainerHigh`, `outline`
+  keret): a név, a szerep (`TULAJDONOS` / `LEGÉNYSÉG`, mono, halk) és a
+  „Kijelentkezés".
+- A cím és az AppBar színe a mai marad (a makett verzál címe nem jön
+  át). 800 px-en egy widget-teszt ellenőrzi, hogy az `owner` sora elfér.
+- A részletezőn a `crew`-nak a ceruza és a törlés sem látszik.
+
+### H5 — A `biometric_signature` (verifikált tények és döntések)
+
+Verifikálva a forrásból (13.2.0, 2026-09-30):
+- `SignatureType.ecdsa`: Keystore `secp256r1` (P-256), `SHA256withECDSA`.
+- A nyilvános kulcs (`KeyFormat.base64`) base64 X.509
+  **SubjectPublicKeyInfo DER**; az aláírás **DER (ASN.1 `r`, `s`)**,
+  base64 `NO_WRAP`.
+- Minden aláíráshoz friss azonosítás kell
+  (`setUserAuthenticationParameters(0, …)`), időablak nélkül.
+- StrongBox best-effort, sikertelenségnél egyszer TEE-ben.
+- A prompt címe a `promptMessage`, az alcíme a `promptSubtitle`, a
+  gombja a `cancelButtonText` (alapból angol „Cancel").
+- `minSdk` 23, `compileSdk` 35; debug buildben is működik.
+- **`FlutterFragmentActivity` kell**: a phone `MainActivity`-je ma
+  `FlutterActivity` — az A4-ben átírandó, utána Pixel smoke-teszt.
+
+Döntések:
+- **Ujjlenyomat hozzáadása vagy törlése nem érvényteleníti a kulcsot**
+  (felhasználói döntés): `setInvalidatedByBiometricEnrollment: false`. A
+  kulcs használata továbbra is friss biometrikus azonosítást kér; a
+  felhasználó tudatosan elfogadja, hogy aki ismeri a telefon PIN-jét és
+  felveszi a saját ujját, aláírhat.
+- **Kulcs-attesztáció v1-ben nincs** (felhasználói döntés). Később külön
+  addendummal bekapcsolható.
+- Javaslat, elfogadva:
+  - csak biometria, PIN nélkül (`useDeviceCredentials: false`,
+    `allowDeviceCredentials: false`), a D1 „ujjlenyomat" szerint;
+  - a kulcs létrehozása nem kér ujjlenyomatot (`enforceBiometric:
+    false`); az első aláírás (regisztráció, csatlakozás) kéri, így ezek
+    is egyetlen ujjlenyomattal mennek;
+  - aláírás a `createSignatureFromBytes`-szal, a kanonikus üzenet UTF-8
+    bájtjain; egy kulcs-alias (`foretack-web`);
+  - a szerver csak P-256-os SPKI kulcsot fogad el, és DER aláírást
+    ellenőriz; más görbe, RSA vagy hibás kódolás elutasítva.
+- A `keyNotFound` / `keyInvalidated` (pl. a képernyőzár törlése után) a
+  visszavont eszközzel azonos panelt kap (H7).
+
+### H6 — Az ujjlenyomat-ablakok szövegei (javaslat, elfogadva)
+
+| Művelet | Cím | Alcím |
+|---|---|---|
+| QR-belépés (18c) | „Belépés a Foretack webre" | böngésző · OS · város, ország |
+| Csatlakozás (18e) | „Csatlakozás a Lola archívumához" | a szerver hostja |
+| Első regisztráció (18f) | „Telefon regisztrálása" | a szerver hostja |
+| Jóváhagyás (18k-2) | „<név> jóváhagyása" | telefon · város, ország |
+
+- A gomb felirata „Mégse". Megszakításkor az app csendben visszatér az
+  előző képernyőre.
+- A szövegek az app ARB-jében élnek.
+
+### H7 — Hibák és állapotok a telefonon (javaslat, elfogadva)
+
+- A beolvasó alsó hibapanelje (18d-2…5) mellé:
+  - nem Foretack-QR: „Ez nem Foretack-kód";
+  - lejárt vagy már felhasznált kérés: „Lejárt QR-kód";
+  - 429: „Próbáld újra N perc múlva".
+- Visszavont eszköz, illetve elveszett vagy érvénytelen kulcs (H5): „Ez
+  a telefon vissza lett vonva". A `crew`-nál a „Csatlakozás kérése"
+  gomb **előbb törli a helyi fiókadatot és a kulcsot**, majd a 18e-t
+  nyitja; az `owner`-nél a gomb helyett egy sor: regisztráció a
+  szerveren (CLI).
+- Siker: snackbar a főképernyőn („Belépve a webre" + mono eszközsor).
+- Üres lista, betöltés és offline sor („Nincs kapcsolat a szerverrel" +
+  „Újra") a meglévő minták szerint.
+
+### H8 — A gyanús szalag (javaslat, elfogadva)
+
+- A cím a fajta szerint: „Belépés jelszóval", „Belépés helyreállító
+  kóddal", „Belépés más országból". Más felhasználónál a név elöl
+  („Bence · Belépés más országból").
+- A „Rendben" a **szerveren** nyugtázza a belépési eseményt, így a
+  tulajdonos másik telefonján sem jön vissza. A „Kiléptetés" a
+  munkamenetet zárja, és nyugtáz is.
+- Kettőnél több gyanús esemény egy sorba vonódik („3 gyanús belépés" →
+  „Webes belépések").
+
+### H9 — A fiók-képernyők apró szabályai (javaslat, elfogadva)
+
+- A mód-címkék a munkamenet-sorban: `QR`, `JELSZÓ`, `KÓD`.
+- **Önkizárás ellen:** az éppen használt telefon saját sorában nincs
+  „Visszavonás", és az `owner` lapján nincs „Tag eltávolítása". A szerver
+  ezeket is elutasítja.
+- A 18l-ben egy halk sor mutatja a jelszó állapotát („nincs beállítva" /
+  „beállítva: <dátum>"). Törlés nincs, csak csere.
+- A `crew` a 18l-2-ben átírhatja a saját nevét.
+- A tag eltávolítása és a kódok újragenerálása megerősítő dialógust kap
+  (18k-4, 18l-3); az eszköz visszavonása és a kiléptetés azonnal hat.
+
+### H10 — Időzítések a weben (javaslat, elfogadva)
+
+- 17d-2: a „Lejárt — olvasd be újra" sor a következő QR-frissítésig (60
+  mp) látszik, utána az alap 17a.
+- 17e-3: a várakozás percben, felfelé kerekítve; 1 percnél rövidebb is
+  „1 perc".
+- 17b: 240 ms-os lefelé söprés, a sáv 1:00-ra áll vissza.
+
+### H11 — Offline viselkedés és egy build (Claude válasza, elfogadva)
+
+- **Egy build mindenkinek:** az app a szerep szerint (`GET
+  /api/auth/me`) mutat vagy rejt el részeket. A biztonság a szerveren
+  van (401/403), nem az elrejtésen; külön tulajdonosi build nincs.
+- **A versenyfunkciók nem függnek a fióktól.** Az élő verseny, a
+  rögzítés, a napló, a polár és az óra fiók nélkül, offline és a YDWG
+  Wi-Fi-jén is ugyanúgy működik.
+- Az app helyben tárolja a fiókadatot (név, szerep, `origin`,
+  eszköz-azonosító), így offline is tudja, mit mutasson a ⋮ menüben.
+- Offline a „Webes hozzáférés" képernyői halk „Nincs kapcsolat a
+  szerverrel" sort és „Újra" gombot mutatnak, nem hibát.
+- A szalag csak online, megnyitáskor frissül; offline nem vár és nem
+  lassít.
+- A QR-belépéshez internet kell. A szerep változását az app a következő
+  online kérésnél tudja meg; addig a szerver 401/403-mal véd.
+
+### H12 — Tokenek és fokozatok (javaslat, elfogadva)
+
+- Új token nincs. A makett ismétlődő `#C7D5E0`-ja (ikonok, ⋮, mono
+  IP-sor) → `onSurfaceVariant`.
+- A helyreállító kódok `numeralMicroStyle` (14) fokozattal (a makett 15
+  px-et rajzolt).
+- A 18c a rendszer ablaka; a Roboto és a rendszerszínek nem a mi
+  tokenjeink.
+- A webes állapotdoboz és a QR-mező (264 px, `onSurface` alap, 16 px
+  csendes zóna) a meglévő tokenekből épül.
+
+### Mit pontosít
+
+- **D1:** a gyors beolvasás helye most döntés (H1).
+- **D3:** `owner`-eszköz jóváhagyással sem kerülhet be (H3).
+- **D4:** a kérés állapotai és az `opened` élettartama (H2); a kulcs
+  részletei (H5).
+- **„Amit ez az ADR NEM dönt el":** a `biometric_signature` verziója
+  (13.2.0) és az attesztáció (nincs) eldőlt.
+- **Nyitva marad (A2 eleje):** kell-e ujjlenyomat a telefon nem belépési
+  műveleteihez (lista, kiléptetés, jóváhagyás), és hogyan hitelesíti
+  magát ezeknél az eszköz.

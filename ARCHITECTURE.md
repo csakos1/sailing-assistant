@@ -5579,6 +5579,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     kívül) session nélkül 401;
   - a módosító végpontok továbbra is `X-Foretack-Client` fejlécet
     követelnek; a szerver csak a `127.0.0.1`-en figyel.
+  - a telefonon a főképernyő AppBarjában QR-beolvasás gomb, a webes
+    hozzáférés képernyői a ⋮ menüből; egy build mindenkinek, a
+    versenyfunkciók fiók és internet nélkül is működnek (Addendum 1);
+  - a kulcs a `biometric_signature` (13.2.0) P-256 kulcsa, minden
+    aláírás ujjlenyomatot kér; ujjlenyomat-változás nem érvényteleníti,
+    attesztáció nincs (Addendum 1 H5).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;
