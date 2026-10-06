@@ -644,6 +644,9 @@ class WebLocalizationsHu extends WebLocalizations {
   String get logStatistics => 'Statisztika';
 
   @override
+  String get logExport => 'Export';
+
+  @override
   String get statsTitle => 'Statisztika';
 
   @override

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/api/archive_api_client.dart';
 import 'package:foretack_web/app/api_providers.dart';
+import 'package:foretack_web/app/file_download_provider.dart';
 import 'package:foretack_web/app/foretack_web_app.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -25,8 +26,9 @@ void main() {
 
   Future<void> pumpApp(
     WidgetTester tester,
-    Future<http.Response> Function(http.Request request) handler,
-  ) async {
+    Future<http.Response> Function(http.Request request) handler, {
+    FileDownloader download = _ignoreDownload,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -36,6 +38,7 @@ void main() {
               baseUri: Uri.parse('http://localhost/'),
             ),
           ),
+          fileDownloadProvider.overrideWithValue(download),
         ],
         child: const ForetackWebApp(),
       ),
@@ -160,4 +163,23 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('downloads the export from the app bar', (tester) async {
+    // ARRANGE
+    final downloads = <String>[];
+    await pumpApp(
+      tester,
+      (request) => serving(summaries),
+      download: downloads.add,
+    );
+
+    // ACT
+    await tester.tap(find.byTooltip('Export'));
+    await tester.pump();
+
+    // ASSERT
+    expect(downloads, [exportPath]);
+  });
 }
+
+void _ignoreDownload(String href) {}

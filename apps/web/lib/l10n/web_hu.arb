@@ -851,6 +851,10 @@
   "@logStatistics": {
     "description": "A napló AppBar ikon-gombjának tooltipje, amely a Statisztika-képernyőt nyitja (ADR 0049 Addendum 1 P1)."
   },
+  "logExport": "Export",
+  "@logExport": {
+    "description": "A napló AppBar ikon-gombjának tooltipje, amely a teljes exportot (tar.gz) tölti le (ADR 0050 Addendum 3 G1)."
+  },
   "statsTitle": "Statisztika",
   "@statsTitle": {
     "description": "A Statisztika-képernyő címe (ADR 0049 D2)."

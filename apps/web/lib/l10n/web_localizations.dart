@@ -1264,6 +1264,12 @@ abstract class WebLocalizations {
   /// **'Statisztika'**
   String get logStatistics;
 
+  /// A napló AppBar ikon-gombjának tooltipje, amely a teljes exportot (tar.gz) tölti le (ADR 0050 Addendum 3 G1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Export'**
+  String get logExport;
+
   /// A Statisztika-képernyő címe (ADR 0049 D2).
   ///
   /// In hu, this message translates to:

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:foretack_web/app/file_download_provider.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
@@ -18,6 +19,7 @@ import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:foretack_web/race_log/table/race_table.dart';
 import 'package:foretack_web/race_log/table/race_table_items.dart';
 import 'package:foretack_web/race_log/table/race_table_sort_provider.dart';
+import 'package:foretack_web/race_log/widgets/log_app_bar_icon_button.dart';
 import 'package:foretack_web/race_log/widgets/log_empty_message.dart';
 import 'package:foretack_web/race_log/widgets/log_load_error.dart';
 import 'package:foretack_web/race_log/widgets/log_period_band.dart';
@@ -55,19 +57,9 @@ class RaceLogScreen extends ConsumerWidget {
                 ref.read(logViewModeProvider.notifier).mode = mode,
           ),
           const SizedBox(width: 8),
-          // Ikon-gomb: szöveggel egy 800 px-es ablakban már nem férne el a
-          // többi vezérlő mellett (ADR 0049 Addendum 1 P1).
-          IconButton(
+          LogAppBarIconButton(
             tooltip: l10n.logStatistics,
-            icon: const Icon(Icons.bar_chart),
-            color: Theme.of(context).colorScheme.onSurface,
-            // A többi vezérlővel egy magas (Addendum 5 L6).
-            style: IconButton.styleFrom(
-              fixedSize: const Size.square(WebLayout.appBarControlHeight),
-              minimumSize: Size.zero,
-              padding: const EdgeInsets.all(6),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
+            icon: Icons.bar_chart,
             onPressed: () => unawaited(
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -75,6 +67,13 @@ class RaceLogScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+          // A böngésző tölti le; a hibát a letöltés-sávja jelzi (ADR 0050
+          // Addendum 3 G2).
+          LogAppBarIconButton(
+            tooltip: l10n.logExport,
+            icon: Icons.download_outlined,
+            onPressed: () => ref.read(fileDownloadProvider)(exportPath),
           ),
           const SizedBox(width: 8),
           // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
