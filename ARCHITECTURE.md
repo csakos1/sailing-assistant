@@ -5549,7 +5549,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   és a szerver mentéskor a beírt számokat őrzi (Addendum 2 F2, F3).
 - **Export:** a `GET /api/export` egy tar.gz-t ad: a két DB konzisztens
   mentése (`VACUUM INTO`) és egy JSON minden versenyről, a szerződés
-  kódolóival. Új függőség nincs.
+  kódolóival. Új függőség nincs. Az archívum előbb a `--temp-root`
+  alatt épül fel, és csak utána megy ki (hibánál tiszta 500); a zár
+  alatt csak a két `VACUUM INTO` fut, a JSON a másolatokból készül;
+  egyszerre egy export fut, a második 409 (Addendum 3 G1–G7). A web
+  ikon-gombja egy rejtett `<a download>`-dal indítja a letöltést.
 
 ### 20.5 Hozzáférés és üzemeltetés
 

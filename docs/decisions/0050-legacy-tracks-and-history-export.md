@@ -380,3 +380,118 @@ dart run web_server:import_legacy_tracks \
   tracke, akkor is, ha a hivatalos idők azóta törlődtek.
 - **Telepítés:** a szerver és a web egyszerre megy ki: egy régi web a
   kézi verseny hivatalos ablakát (H3 bővítés) hibaként utasítaná el.
+
+## Addendum 3 — Pontosítások az S14 előtt (2026-10-06)
+
+### G1 — Az „Export" gomb (felhasználói döntés)
+
+- Ikon-gomb a napló AppBarjában, a Statisztika ikonja után
+  (`Icons.download_outlined`, „Export" tooltip, 36 px, ADR 0048
+  Addendum 5 L6). Szöveges gombként 800 px-en nem férne el.
+
+### G2 — Előbb lemezre, utána küld (felhasználói döntés)
+
+- A szerver a teljes tar.gz-t a `--temp-root` alatti
+  `foretack-export-*` könyvtárban építi fel, és csak utána válaszol
+  `200`-zal, `Content-Length`-gel. Egy építés közbeni hiba így tiszta
+  `500` (`InternalError`), nem csonka fájl `200`-as státusszal.
+- A web egy rejtett `<a href="/api/export" download>` kattintásával
+  indítja a letöltést (`package:web`, K18). Azonos origó, így a böngésző
+  a Caddy `basic_auth` hitelesítését viszi. Folyamatjelző nincs, a
+  böngésző letöltés-sávja mutatja; a hibát (`500`, `409`) is ott jelzi
+  sikertelen letöltésként. A web a státuszt nem látja, snackbar nincs.
+- A könyvtár a válasz streamelésének végén törlődik, a kapcsolat
+  megszakadásakor is. Szerverinduláskor az árva `foretack-export-*`
+  könyvtárak törlődnek (egy összeomlás maradéka).
+
+### G3 — Pillanatkép a zár alatt, JSON a másolatokból (felhasználói döntés)
+
+- A közös `SerialLock` alatt (ADR 0048 Addendum 3 I5) csak a két
+  `VACUUM INTO` fut: előbb az `archive.sqlite`, utána a `web.sqlite`.
+  Az archívumot csak a zár alatti import írja, és a frissítők is a zár
+  alatt futnak, így import vagy frissítés nem esik a két másolat közé.
+  Egy eredmény- vagy kézi mentés maga zár nélkül ír; ha a két `VACUUM`
+  közé esik, a `web.sqlite` másolatban már benne van, a cache-sora
+  viszont még a régi lehet — ugyanúgy, mint az élő szerveren a mentés
+  utáni frissítésig. A JSON ettől helyes, mert a hiányzó vagy elavult
+  telemetriás statot az olvasó a mintákból számolja (I4).
+- A `foretack-history.json` már a zár nélkül, **a két másolatból**
+  készül, háttér-isolate kapcsolattal, ugyanazokkal az olvasó
+  szolgáltatásokkal, mint a `GET` végpontok. Ehhez a `RaceSummaryService`
+  és a `RaceDetailService` összerakása a `bin/server.dart`-ból egy közös
+  `ArchiveReadServices`-be kerül (javaslat). A JSON így pontosan a csomag
+  DB-it írja le, és az export nem tartja fel az importot.
+- A phone `AppDatabase` megnyitáskor WAL-ra állítja a másolatot; adat nem
+  változik, a lezárás a `-wal`-t visszaírja és törli. A csomagolás csak a
+  két kapcsolat lezárása után indul, és egy megmaradt, nem üres napló
+  (`-wal`, `-journal`) hibát ad, mert a csomagba csak a fő fájl kerül.
+
+### G4 — Egyszerre egy export (felhasználói döntés)
+
+- Új `ApiError`: `ExportInProgress` (`409`, `exportInProgress`). Az
+  export az építés kezdetétől a válasz streamelésének végéig foglalt; a
+  közben érkező kérés azonnal 409-et kap, így nincs dupla lemezhasználat.
+- A `HEAD /api/export` `405`: a router a `GET` útvonalra a `HEAD`-et is
+  a handlerhez irányítja és eldobja a törzset, így egy felépült, de soha
+  ki nem olvasott export foglalt maradna.
+- A `GET` a D9 szerint nem kér `X-Foretack-Client` fejlécet, így egy
+  idegen oldal (gyorsítótárazott `basic_auth` mellett) elindíthat egy
+  exportot. Adat nem szivárog (a választ az idegen oldal nem olvashatja),
+  a kár legfeljebb egy fölösleges építés; tudatosan elfogadva.
+
+### G5 — A tar-író (javaslat)
+
+- **USTAR:** fejlécenként egy 512 bájtos blokk: név ≤ 100 bájt (ASCII),
+  mód `0000644`, uid/gid 0, méret és mtime oktálisan (11 jegy + `\0`),
+  típus `0`, `ustar\0` + `00`, felhasználó- és csoportnév üres. A
+  checksum a fejléc bájtjainak összege, a checksum-mezőt nyolc szóköznek
+  számolva; 6 oktális jegy + `\0` + szóköz. A tartalom 512 bájtra
+  nullákkal kiegészítve, a végén két nulla blokk.
+- **Korlát:** a fájlméret < 8 GiB (a 11 oktális jegy határa); felette
+  `ArgumentError`, mert az export hibás lenne.
+- **Stream:** a tar egy `async*` generátor (`Stream<List<int>>`) a
+  bejegyzések forrásaiból; a `gzip.encoder` és a fájlba írás a
+  visszanyomást (backpressure) tiszteli, így a 1,7 GB-os archívum sem
+  kerül a memóriába. A generátor a forrás tényleges bájtszámát a
+  fejlécbe írt mérethez veti, eltérésnél `StateError` (egy közben változó
+  fájl ne adjon hibás archívumot).
+- **Elrendezés:** a csomag egy `foretack-history-<YYYY-MM-DD>/`
+  könyvtárat tartalmaz (`archive.sqlite`, `web.sqlite`,
+  `foretack-history.json`, `README.txt`), így kicsomagoláskor nem
+  szóródik szét. Könyvtár-bejegyzés nincs, a `tar` létrehozza.
+- **mtime** az export pillanata; a pure fejléc-építő TDD-vel készül.
+
+### G6 — A JSON szerkezete (javaslat)
+
+```json
+{"format": "foretack-history", "version": 1,
+ "exportedAt": "2026-10-06T09:30:00.000Z",
+ "races": [<encodeRaceDetail>, ...]}
+```
+
+- A `RaceDetail` a napló sorát (`summary`) is tartalmazza, ezért nincs
+  külön `RaceSummary`-lista: a D8 „napló sora + részletező" tartalma így
+  egyszer szerepel. A sorrend a napló sorrendje.
+- Versenyenként íródik és ürül (flush): a memóriában egyszerre egy
+  verseny részletezője van. Egy a listában szereplő, de részletező nélküli
+  verseny (ellentmondás a másolatban) kimarad, és a napló jelzi.
+- A polár-cache nem része a JSON-nak; a `web.sqlite`-ban benne van, és
+  újraszámolható.
+
+### G7 — README és fájlnév (javaslat)
+
+- **`README.txt`** (magyarul): a négy fájl szerepe, az export ideje
+  (UTC és budapesti idő), a versenyek száma, a szerver verziója, a két DB
+  sémaverziója, a JSON `format`/`version` értéke, és a kézi visszaállítás
+  lépései (szerver leállítása, a két DB visszamásolása, indítás).
+- **A szerver verziója:** `webServerVersion` konstans a `web_server`-ben;
+  egy teszt veti össze a `pubspec.yaml` `version` mezőjével, hogy ne
+  térjenek el.
+- **Válasz:** `Content-Type: application/gzip`, `Content-Disposition:
+  attachment; filename="foretack-history-<YYYY-MM-DD>.tar.gz"` (a nap
+  Europe/Budapest szerint, `budapestDayOf`), `Content-Length`,
+  `Cache-Control: no-store`.
+- **S8:** a Caddy `encode` ne tömörítse újra az `application/gzip`-et
+  (alapból nem teszi), és a hosszú letöltést időkorlát ne vágja el.
+  A VPS-en a `--temp-root` alatt kb. a két DB + JSON + tar.gz helye kell
+  (most kb. 2–3 GB).
