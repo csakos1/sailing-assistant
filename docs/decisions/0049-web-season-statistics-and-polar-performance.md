@@ -22,6 +22,9 @@ Az Addendum 2 (2026-10-06) a képernyőt a böngészős próba és a Claude
 Design 15a–15b makettje alapján újratervezi (S9b); az Addendum 1 P1–P3
 és P5 pontját felülírja.
 
+Az Addendum 3 (2026-10-06) a polár domain- és data-rétegének részleteit
+rögzíti az S10 előtt.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -559,3 +562,79 @@ versenyek, idő, táv — a csík adja), a „Lola-idő" szél-tábla.
   .5)`, `close`. Méretek: 12×17 az évad sorában, 10×14 a helyezés-
   sorokban, 8×11 a táblában. Az üres vitorla ugyanez körvonallal,
   `text-low` színnel.
+
+## Addendum 3 — A polár domain- és data-rétege az S10 előtt (2026-10-06)
+
+A D5–D10 és D13, valamint az ADR 0050 D6 nyitva hagyott részletei. Mind
+javaslat; az S11 előtt még visszavonhatók.
+
+### T1 — Minta és olvasó
+
+- **`PolarSample`:** időbélyeg (UTC), előjeles TWA fokban, TWS és STW
+  m/s-ben (mind `null`-képes), és `durationSeconds`: 1 a telefonos, 10 a
+  régi minta (ADR 0050 D6).
+- **`PolarSampleReader`:** függvény-typedef a `WindSampleReader`
+  mintájára: `(raceId, TimeWindow?) → Future<List<PolarSample>>`,
+  időrendben, a határokat is beleértve.
+- **`PolarSampleReaderImpl` (`data`):** a `snapshot_logs` JSON-jából
+  `json_extract`-tal: `$.wind.trueAngleWater`, `$.wind.trueSpeedWater`,
+  `$.boatState.speedThroughWater`, az időbélyeg a `timestamp` oszlopból.
+
+### T2 — STW-korrekció
+
+- **`StwCorrection`:** `from` (pillanat) és `factor` (véges, pozitív).
+  A `correctStw` a legkésőbbi olyan bejegyzést választja, amelynek
+  `from`-ja nem későbbi a mintánál; a lista sorrendje nem számít.
+- A korrekciók listáját a hívó adja. A régi (trackes kézi) versenyekre a
+  szerver üres listát ad (ADR 0050 D6); a domain nem tudja, honnan jön a
+  minta.
+
+### T3 — Tüske-szűrő
+
+- A TWS-sel bíró minták időrendi sorára **középre igazított** 5 mintás
+  csúszó medián; a sor elején és végén a rövidebb ablak mediánja (alsó
+  középső elem páros számnál, ahogy a `rollingMedianMaximum`).
+- Tüske, ha a minta TWS-e több mint 5 kn-ral tér el a saját mediánjától.
+  A medián segédje közös a `rollingMedianMaximum`-mal (D13).
+
+### T4 — Legjobb 5 mp
+
+- Csak az 1 másodperces minták számítanak. Öt elfogadott minta egy
+  futam, ha az egész másodpercük (`epoch-ms ~/ 1000`) egyesével nő; egy
+  kiszűrt minta vagy egy hézag megszakítja a futamot.
+- A régi versenyeken így magától `null` (kötőjel), ahogy az ADR 0050 D6
+  kéri.
+- Ismert korlát: a pillanatkép a másodpercre csonkolva tárolódik, így
+  egy telefonos ütem, amely kétszer ugyanarra a másodpercre esik vagy
+  egyet kihagy, megszakítja a futamot. Ez a legjobb 5 mp-et csak
+  lefelé torzíthatja; ha a valódi adaton gyakori, az S11 próbáján
+  lazítunk rajta.
+
+### T5 — Futam-összesítés (`PolarPerformance`)
+
+- **Tárolt mennyiségek** (a D10 cache-sorának tartalma): mért
+  másodperc, a `% × másodperc` és a `TWS × másodperc` összege, a
+  hisztogram, a szélvödrök, a legjobb 5 mp.
+- **Hisztogram:** rés = `floor(2 × %)`, 300% fölött egy közös rés (600).
+  A percentilis a D10 szerint a rés közepe; a túlcsorduló résé 300%.
+- **Szélvödör:** `floor(TWS kn / 2)`, a korrigálatlan TWS-ből.
+- **Kevés adat:** 60 mért másodperc alatt nincs statisztika és nincs
+  rang (D8). A küszöbök másodpercben értendők, így a régi mintáknál hat
+  mintát jelentenek.
+- A küszöbök egy helyen, nevesített konstansként élnek
+  (`PolarPerformanceRules`), hogy az S11 ujjlenyomata (D10) beléjük
+  számolhasson.
+
+### T6 — Összevonás és rang
+
+- **`MergePolarPerformance`:** az összegek és a hisztogramok, vödrök
+  összege; a legjobb 5 mp a maximum.
+- **`RankPolarPerformance`:** a 60 mp alatti versenyek nem kapnak rangot,
+  és a súlyokba sem számítanak. Egyenlő `S` (1e-9 tűréssel) egyenlő
+  rangot kap, a következő rang kihagyja a helyet (1, 1, 3).
+
+### T7 — A küszöb ellenőrzése
+
+- A tüske-küszöb ellenőrzése a valódi archívumon (D7) az S11 böngészős
+  próbájára kerül: az S10-ben még nincs szerveres számítás. A próba a
+  Kékszalag soránál nézi meg, hogy a 0 → 68 kn-os ugrás kiesett-e.

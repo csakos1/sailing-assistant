@@ -5503,6 +5503,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   - Összesítés: a futamok átlaga és az időre súlyozott sor.
   - Az STW-korrekció dátumhoz kötött szorzó a szerver konfigjából
     (`--stw-corrections`); csak a polár-statisztikát érinti.
+  - Domain (Addendum 3): `PolarSample` (`durationSeconds`: 1 vagy 10),
+    `StwCorrection`, `SummarizePolarPerformance` →
+    `PolarPerformance` (hisztogram, szélvödrök, legjobb 5 mp),
+    `MergePolarPerformance`, `RankPolarPerformance`; a küszöbök a
+    `PolarPerformanceRules`-ban. Data: `PolarSampleReaderImpl`.
 - **Számítás:** a szerver futamonként hisztogramot (0,5%-os rések) és
   szélvödör-összegeket cache-el a `web.sqlite` v3-ban, ujjlenyomattal a
   polárra és a konfigra. A szezon ezekből jön; a `GET` nem ír, és nem
