@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/src/theme/confidence_colors.dart';
 import 'package:foretack_ui/src/theme/foretack_typography.dart';
+import 'package:foretack_ui/src/theme/medal_colors.dart';
 import 'package:foretack_ui/src/theme/text_tones.dart';
 import 'package:foretack_ui/src/theme/warning_colors.dart';
 
@@ -75,6 +76,12 @@ ThemeData _buildForetackTheme() {
         info: Color(0xFF24323F),
       ),
       TextTones(low: Color(0xFF66788A)),
+      // A webes Statisztika érmei (ADR 0049 Addendum 2 R6).
+      MedalColors(
+        gold: Color(0xFFE3B341),
+        silver: Color(0xFFB4C2CE),
+        bronze: Color(0xFFC98A55),
+      ),
     ],
   );
 }

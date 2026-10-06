@@ -34,6 +34,7 @@ export 'package:foretack_ui/src/theme/confidence_colors.dart';
 export 'package:foretack_ui/src/theme/font_licenses.dart';
 export 'package:foretack_ui/src/theme/foretack_typography.dart';
 export 'package:foretack_ui/src/theme/marine_colors.dart';
+export 'package:foretack_ui/src/theme/medal_colors.dart';
 export 'package:foretack_ui/src/theme/text_tones.dart';
 export 'package:foretack_ui/src/theme/theme.dart';
 export 'package:foretack_ui/src/theme/warning_colors.dart';
