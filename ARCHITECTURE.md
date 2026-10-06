@@ -5267,10 +5267,11 @@ architektúra-szintű összefoglaló.
 
 ```
 Telefon (debug build)          VPS (Ubuntu, Caddy + systemd)
-  foretack.sqlite + -wal  ──►  Caddy :443 ── basic_auth ──┬── /        → /srv/foretack/web (Flutter web)
+  foretack.sqlite + -wal  ──►  Caddy :443 ── fejlécek ───┬── /        → /srv/foretack/web (Flutter web)
   (tools/pull_race_db.sh)                                 └── /api/*   → 127.0.0.1 web_server (AOT)
                                                                           ├── archive.sqlite     (AppDatabase séma)
-                                                                          └── web.sqlite         (WebDatabase)
+                                                                          ├── web.sqlite         (WebDatabase)
+                                                                          └── auth.sqlite        (fiókok, ADR 0051)
 ```
 
 - A **szerver számol, a web renderel** (D4). A szerver a `data`
@@ -5557,23 +5558,45 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 
 ### 20.5 Hozzáférés és üzemeltetés
 
-- **Autentikáció (D9):** Caddy `basic_auth` a teljes site-on, a hash nincs
-  a repóban. A módosító végpontok `X-Foretack-Client: web` fejlécet
-  követelnek (CSRF ellen). A szerver csak a `127.0.0.1`-en figyel.
+- **Hozzáférés (ADR 0051, leváltja a D9 `basic_auth`-ját):**
+  - belépés a weboldal QR-jának beolvasásával a Foretack appban, majd
+    ujjlenyomattal; az aláíró ES256-kulcs a telefon Keystore-jában van,
+    és nem exportálható;
+  - szerepek: `owner` (minden) és `crew` (csak olvas, export nélkül);
+    mindenki a Lola archívumát látja;
+  - regisztráció: az `owner` eszköze a VPS-en a `create_owner_enrollment`
+    CLI-vel; a legénység a belépési QR-ral csatlakozási kérelmet küld,
+    amelyet az `owner` az appjában hagy jóvá;
+  - session: `__Host-ft_session` cookie (`Secure`, `HttpOnly`,
+    `SameSite=Strict`), 7 nap tétlenségig, legfeljebb 90 napig;
+  - az appban a webes munkamenetek listája (böngésző, OS, IP, ország,
+    város) kiléptetéssel: az `owner` mindenkiét, a `crew` a sajátját;
+    a hely offline GeoIP-ből (DB-IP Lite) jön;
+  - tartalék csak az `owner`-nek: jelszó vagy helyreállító kód egy
+    mezőben, próbálkozás-korláttal;
+  - a fiókadat külön `auth.sqlite`-ban, kívül az S14 exporton;
+  - a Flutter web build nyilvános, az `/api/*` (a belépési végpontokon
+    kívül) session nélkül 401;
+  - a módosító végpontok továbbra is `X-Foretack-Client` fejlécet
+    követelnek; a szerver csak a `127.0.0.1`-en figyel.
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;
-  - DB-k a `/var/lib/foretack/` alatt, éjszakai `sqlite3 .backup`
-    timerrel, 14 nap megőrzéssel;
+  - DB-k a `/var/lib/foretack/` alatt (az `auth.sqlite` is), éjszakai
+    `sqlite3 .backup` timerrel, 14 nap megőrzéssel; a szerveroldali titok
+    egy `0600`-s fájlban; a `geoip.sqlite`-ot a deploy havonta
+    újraépíti;
+  - biztonsági fejlécek a Caddyben (HSTS, CSP, `noindex`, ADR 0051 D9);
   - `ufw`: csak 22, 80, 443;
   - a build lokálisan fut, a `deploy/deploy.sh` rsync-eli fel;
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek
 
-Felhasználóhoz kötött login és automatikus szinkron, JSON-export az
-appból, a 20.4b–c-n túli statisztikák és diagramok, Markdown, fotók,
-verseny-törlés, automatikus CI-deploy. Mindegyik külön ADR vagy
+Az automatikus szinkron (a felhasználóhoz kötött login az ADR 0051-ben
+elkészül), több hajó adata, JSON-export az appból, a 20.4b–c-n túli
+statisztikák és diagramok, Markdown, fotók, verseny-törlés, automatikus
+CI-deploy. Mindegyik külön ADR vagy
 addendum lesz.
 
 ---
