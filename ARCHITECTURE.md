@@ -5513,6 +5513,9 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     ujjlenyomat, `web.sqlite` v4 három táblával, frissítés import,
     mentés és indulás után. Végpontok: `/api/polar/seasons`,
     `/api/polar/seasons/{year}`, `/api/races/{id}/polar`.
+  - Web (Addendum 5, 16a–16d makett): egy évnél 06 POLÁR-TELJESÍTMÉNY,
+    összes évnél 04 POLÁR ÉVENKÉNT, a részletezőn POLÁR blokk az eredmény
+    fölött; a két arány alatt egymásra rajzolt mini sáv.
 - **Számítás:** a szerver futamonként hisztogramot (0,5%-os rések) és
   szélvödör-összegeket cache-el a `web.sqlite` v4-ben, ujjlenyomattal a
   polárra és a konfigra. A szezon ezekből jön; a `GET` nem ír, és nem

@@ -28,6 +28,9 @@ rögzíti az S10 előtt.
 Az Addendum 4 (2026-10-06) a szerver polár-részét rögzíti az S11 előtt:
 konfiguráció, ujjlenyomat, cache, frissítés, szerződés és végpontok.
 
+Az Addendum 5 (2026-10-06) a polár webes megjelenítését rögzíti az S12
+előtt, a Claude Design 16a–16d makettje szerint.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -747,3 +750,44 @@ döntések jelölve, a többi javaslat.
 - **Időre súlyozva** (D11): a statisztikás versenyek összevont
   teljesítménye (`MergePolarPerformance`).
 - Statisztikás verseny nélkül mindkét sor `null`.
+
+## Addendum 5 — A polár a weben az S12 előtt (2026-10-06)
+
+A D14 megjelenítése a `Foretack Design.dc.html` 16a–16d makettje szerint,
+amelyet a felhasználó elfogadott. A makett-jegyzetek (tokenek,
+fokozatok, döntések) az irányadók; ez az addendum csak a makettben nem
+szereplő részleteket rögzíti. Mind javaslat.
+
+### W1 — Helyek
+
+- **Egy év:** 06 POLÁR-TELJESÍTMÉNY a 05 alatt, jobb oldalt „N verseny ·
+  időrendben". Egy sorra kattintva a verseny részletezője nyílik.
+- **Összes év:** 04 POLÁR ÉVENKÉNT a 03 alatt, jobb oldalt „időre
+  súlyozva · N verseny". Egy sorra kattintva az évsáv arra az évre vált.
+- **Részletező:** POLÁR blokk a szél-csík és a közelítő-sor után, az
+  EREDMÉNY fölött. Polár-forrás nélküli versenyen, nem elérhető polárnál
+  vagy hibánál a blokk elmarad.
+
+### W2 — A makettben nem szereplő állapotok
+
+- **Kevés adat:** a szerződés 60 mp alatt nem ad mért időt, ezért a sor
+  alcíme „kevés adat" másodpercszám nélkül; a részletező fejlécének jobb
+  slotja „KEVÉS ADAT".
+- **Még nincs számolva** (hiányzó cache-sor): a sor számai hiányjelek, az
+  alcím „még nincs számolva"; a szakasz tetején a frissítés-sor áll.
+- **Betöltés:** a szakaszcím alatt egy kis folyamatjelző. **Hálózati vagy
+  szerverhiba:** egy halk mondat és az ÚJRA gomb, a napló mintájára. A
+  „nincs polár" a 16d-3 mondata.
+- **Frissítés alatt:** a 16d-2 sora; a web nem kérdez újra magától, egy
+  újranyitás vagy évváltás tölt friss adatot.
+
+### W3 — Keskeny ablak
+
+- 820 px-es tartalom-szélesség alatt a 16d-4 rácsa: a dátum a név alá
+  kerül a menetidő elé, a számoszlopok és a mini sáv szűkülnek.
+- A legkisebb támogatott ablak a 16d-4 800 px-e (asztali böngésző, ADR
+  0049 Addendum 2). Ennél jóval keskenyebben (kb. 470 px alatt) a
+  táblázat sora már nem fér el; mobil nézet nincs.
+- A szakaszok providereit a képernyő tartja életben, mert a lusta lista
+  görgetéskor leszereli a szakaszt. Egy mentés a szerkesztőben a polár
+  providereit is érvényteleníti.
