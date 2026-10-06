@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
+import '../polar/polar_fixtures.dart';
 import '../support/sample_summaries.dart';
 
 // A naplobol nyitott reszletezo a teljes appon at, MockClient-tel. A
@@ -63,6 +64,7 @@ void main() {
     WidgetTester tester, {
     required RaceSummary listed,
     required Future<http.Response> Function() detail,
+    Future<http.Response> Function() polar = polarUnavailableResponse,
   }) async {
     // A ListView lustan epit: a 800x600-as alap nezetben a 560 magas
     // terkep-kartya alatti blokkok (bojak, osszefoglalo) meg sem epulnek.
@@ -75,11 +77,13 @@ void main() {
         overrides: [
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
-              MockClient(
-                (request) => request.url.path == racesPath
-                    ? json(encodeRaceSummaries([listed]))
-                    : detail(),
-              ),
+              MockClient((request) {
+                final path = request.url.path;
+                if (path == racesPath) {
+                  return json(encodeRaceSummaries([listed]));
+                }
+                return path == racePolarPath(listed.id) ? polar() : detail();
+              }),
               baseUri: Uri.parse('http://localhost/'),
             ),
           ),
@@ -277,5 +281,111 @@ void main() {
 
     // ASSERT
     expect(find.byType(RaceLogRow), findsOneWidget);
+  });
+
+  group('polar block', () {
+    final detail = telemetryDetail();
+
+    Future<void> openWithPolar(WidgetTester tester, RacePolarRow row) =>
+        openDetail(
+          tester,
+          listed: detail.summary,
+          detail: () => json(encodeRaceDetail(detail)),
+          polar: () => json(
+            encodeRacePolarDetail(
+              RacePolarDetail(row: row, rankedCount: 15),
+            ),
+          ),
+        );
+
+    testWidgets('shows the season rank and the metrics', (tester) async {
+      // ACT
+      await openWithPolar(
+        tester,
+        samplePolarRow('horvath', stats: samplePolarStats(), rank: 4),
+      );
+
+      // ASSERT
+      expect(find.text('POLÁR'), findsOneWidget);
+      expect(find.text('4.'), findsOneWidget);
+      expect(find.text('/ 15'), findsOneWidget);
+      expect(find.text('83,6'), findsOneWidget);
+      expect(find.text('85,2'), findsOneWidget);
+      expect(find.text('116,7'), findsOneWidget);
+      expect(find.text('40,1'), findsOneWidget);
+      expect(find.text('14,5'), findsOneWidget);
+      expect(find.text('≈ KÖZELÍTŐ'), findsNothing);
+      // A polar az eredmeny folott all (W1).
+      expect(
+        tester.getTopLeft(find.text('POLÁR')).dy,
+        lessThan(tester.getTopLeft(find.text('EREDMÉNY')).dy),
+      );
+    });
+
+    testWidgets('marks an approximate race in the header', (tester) async {
+      // ACT
+      await openWithPolar(
+        tester,
+        samplePolarRow(
+          'horvath',
+          stats: samplePolarStats(bestFivePct: null),
+          rank: 6,
+          isApproximate: true,
+        ),
+      );
+
+      // ASSERT
+      expect(find.text('≈ KÖZELÍTŐ'), findsOneWidget);
+      expect(find.text('LEGJOBB 5 MP'), findsOneWidget);
+      expect(find.text('116,7'), findsNothing);
+    });
+
+    testWidgets('shows dashes for a race with few data', (tester) async {
+      // ACT
+      await openWithPolar(tester, samplePolarRow('horvath'));
+
+      // ASSERT
+      expect(find.text('KEVÉS ADAT'), findsOneWidget);
+      expect(find.text('/ 15'), findsNothing);
+      expect(find.text('83,6'), findsNothing);
+      expect(find.textContaining('Újraszámolás'), findsNothing);
+    });
+
+    testWidgets('says when the server is recomputing the race', (
+      tester,
+    ) async {
+      // ACT
+      await openWithPolar(
+        tester,
+        samplePolarRow(
+          'horvath',
+          stats: samplePolarStats(),
+          rank: 4,
+          cacheState: PolarCacheState.stale,
+        ),
+      );
+
+      // ASSERT
+      expect(
+        find.text('Újraszámolás a szerveren — a korábbi értékek látszanak.'),
+        findsOneWidget,
+      );
+      expect(find.text('83,6'), findsOneWidget);
+    });
+
+    testWidgets('leaves the block out when there is no polar', (
+      tester,
+    ) async {
+      // ACT
+      await openDetail(
+        tester,
+        listed: detail.summary,
+        detail: () => json(encodeRaceDetail(detail)),
+      );
+
+      // ASSERT
+      expect(find.text('POLÁR'), findsNothing);
+      expect(find.text('EREDMÉNY'), findsOneWidget);
+    });
   });
 }

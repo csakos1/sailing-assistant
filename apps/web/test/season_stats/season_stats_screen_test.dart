@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +7,10 @@ import 'package:foretack_web/app/api_providers.dart';
 import 'package:foretack_web/app/foretack_web_app.dart';
 import 'package:foretack_web/season_stats/widgets/medal_table.dart';
 import 'package:foretack_web/season_stats/widgets/season_overview_section.dart';
-import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
+import '../polar/polar_fixtures.dart';
 import '../support/sample_summaries.dart';
 import 'season_fixtures.dart';
 
@@ -68,12 +66,12 @@ void main() {
         overrides: [
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
+              // A polar-szakaszok sajat teszte a season_polar_test; itt a
+              // szerveren nincs polar, hogy a szamaik ne keveredjenek.
               MockClient(
-                (request) async => http.Response.bytes(
-                  utf8.encode(jsonEncode(encodeRaceSummaries(summaries))),
-                  200,
-                  headers: {'content-type': 'application/json; charset=utf-8'},
-                ),
+                (request) => request.url.path.startsWith('/api/polar')
+                    ? polarUnavailableResponse()
+                    : polarJson(encodeRaceSummaries(summaries)),
               ),
               baseUri: Uri.parse('http://localhost/'),
             ),

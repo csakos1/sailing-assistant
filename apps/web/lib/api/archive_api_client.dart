@@ -30,6 +30,20 @@ class ArchiveApiClient {
   Future<Result<RaceDetail, ApiFailure>> fetchRaceDetail(String raceId) =>
       _getJson(racePath(raceId), decodeRaceDetail);
 
+  /// Egy szezon polár-táblázata: `GET /api/polar/seasons/{year}` (ADR
+  /// 0049 D12). Polár nélküli szerveren `PolarUnavailable` jön vissza.
+  Future<Result<SeasonPolarTable, ApiFailure>> fetchSeasonPolar(int year) =>
+      _getJson(polarSeasonPath(year), decodeSeasonPolarTable);
+
+  /// A szezonok időre súlyozott polár-sorai: `GET /api/polar/seasons`.
+  Future<Result<List<SeasonPolarSummary>, ApiFailure>> fetchPolarSeasons() =>
+      _getJson(polarSeasonsPath, decodeSeasonPolarSummaries);
+
+  /// Egy verseny polár-blokkja: `GET /api/races/{id}/polar`. Polár-forrás
+  /// nélküli versenyre `RaceNotFound` jön vissza.
+  Future<Result<RacePolarDetail, ApiFailure>> fetchRacePolar(String raceId) =>
+      _getJson(racePolarPath(raceId), decodeRacePolarDetail);
+
   /// Egy telemetriás verseny eredményének mentése: `PUT
   /// /api/races/{id}/result`. A csupa üres bemenet törli az eredményt
   /// (ADR 0048 D3); a válasz a tárolt eredmény.

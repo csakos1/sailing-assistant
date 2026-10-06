@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -5,6 +7,10 @@ import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
+import 'package:foretack_web/polar/polar_providers.dart';
+import 'package:foretack_web/polar/widgets/polar_season_section.dart';
+import 'package:foretack_web/polar/widgets/polar_years_section.dart';
+import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:foretack_web/race_log/widgets/log_empty_message.dart';
 import 'package:foretack_web/race_log/widgets/log_load_error.dart';
@@ -18,13 +24,15 @@ import 'package:foretack_web/season_stats/widgets/season_overview_section.dart';
 import 'package:foretack_web/season_stats/widgets/season_section_heading.dart';
 import 'package:foretack_web/season_stats/widgets/track_records_section.dart';
 import 'package:foretack_web/season_stats/widgets/wind_band_section.dart';
+import 'package:race_archive_api/race_archive_api.dart';
 
 /// A Statisztika-képernyő (ADR 0049 D2–D4, Addendum 2).
 ///
 /// A napló AppBarjából nyílik. Fent a napló évsávja és csíkja; alatta egy
 /// évnél az évad, az osztály- és az abszolút helyezések, a pálya és a
-/// szélsávok (R2), „Összes év" nézetben az éremtábla, a pálya és a
-/// szélsávok (R3). Az időszak a naplóval közös.
+/// szélsávok (R2) és a polár (ADR 0049 Addendum 5 W1), „Összes év"
+/// nézetben az éremtábla, a pálya, a szélsávok (R3) és a polár évenként.
+/// Az időszak a naplóval közös.
 ///
 /// A `WebLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
@@ -63,6 +71,7 @@ class _SeasonStatsBody extends ConsumerWidget {
     final l10n = WebLocalizations.of(context)!;
     final totals = stats.totals;
     final volume = totals.volume;
+    _keepPolarAlive(ref);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -91,15 +100,15 @@ class _SeasonStatsBody extends ConsumerWidget {
             bottomPadding: 56,
             children: stats.view.isAllYears
                 ? _allYearsSections(l10n, ref)
-                : _yearSections(l10n),
+                : _yearSections(context, l10n),
           ),
         ),
       ],
     );
   }
 
-  // Egy év (R2): évad, osztály, abszolút, pálya, szél.
-  List<Widget> _yearSections(WebLocalizations l10n) {
+  // Egy év (R2): évad, osztály, abszolút, pálya, szél, polár.
+  List<Widget> _yearSections(BuildContext context, WebLocalizations l10n) {
     final totals = stats.totals;
     final raceCount = totals.volume.raceCount;
     return [
@@ -122,10 +131,18 @@ class _SeasonStatsBody extends ConsumerWidget {
       ),
       SeasonSectionHeading(number: 5, title: l10n.statsWindBandsCaps),
       WindBandSection(conditions: totals.conditions),
+      // Egy év nézetben a választott év sosem `null`; a minta `!` nélkül
+      // szűkít.
+      if (stats.view.selectedYear case final year?)
+        PolarSeasonSection(
+          number: 6,
+          year: year,
+          onRaceSelected: (row) => _openDetail(context, row),
+        ),
     ];
   }
 
-  // Minden év (R3): éremtábla, pálya, szél.
+  // Minden év (R3): éremtábla, pálya, szél, polár évenként.
   List<Widget> _allYearsSections(WebLocalizations l10n, WidgetRef ref) {
     final totals = stats.totals;
     return [
@@ -143,6 +160,33 @@ class _SeasonStatsBody extends ConsumerWidget {
       ),
       SeasonSectionHeading(number: 3, title: l10n.statsWindBandsCaps),
       WindBandSection(conditions: totals.conditions),
+      PolarYearsSection(
+        number: 4,
+        onYearSelected: (year) =>
+            ref.read(logPeriodProvider.notifier).chooseYear(year),
+      ),
     ];
   }
+
+  // A lusta lista görgetéskor leszereli a polár-szakaszt; az autoDispose
+  // provider így eldobódna és újratöltene. A képernyő tartja életben
+  // (ADR 0049 Addendum 5 W2). A listen nem építi újra a képernyőt.
+  void _keepPolarAlive(WidgetRef ref) {
+    final year = stats.view.selectedYear;
+    if (year == null) {
+      ref.listen(polarSeasonsProvider, (_, _) {});
+    } else {
+      ref.listen(seasonPolarProvider(year), (_, _) {});
+    }
+  }
+
+  // A polár-sorról a verseny részletezője nyílik, mint a naplóból.
+  static void _openDetail(BuildContext context, RacePolarRow row) => unawaited(
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            RaceDetailScreen(raceId: row.raceId, raceName: row.name),
+      ),
+    ),
+  );
 }

@@ -9,6 +9,8 @@ import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
+import 'package:foretack_web/polar/polar_providers.dart';
+import 'package:foretack_web/polar/widgets/polar_detail_block.dart';
 import 'package:foretack_web/race_detail/detail_section_label.dart';
 import 'package:foretack_web/race_detail/full_screen_track_map_screen.dart';
 import 'package:foretack_web/race_detail/race_detail_providers.dart';
@@ -42,6 +44,10 @@ class RaceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = WebLocalizations.of(context)!;
     final detail = ref.watch(raceDetailProvider(raceId));
+    // A lusta lista görgetéskor leszereli a polár-blokkot; az autoDispose
+    // provider így eldobódna és újratöltene. A képernyő tartja életben
+    // (ADR 0049 Addendum 5 W2). A listen nem építi újra a képernyőt.
+    ref.listen(racePolarProvider(raceId), (_, _) {});
     final loaded = detail.valueOrNull?.summary;
     final openEditor = loaded == null ? null : _editorOpener(context, loaded);
 
@@ -127,6 +133,8 @@ class _DetailBody extends StatelessWidget {
         TrackStatsRow(stats: stats.track),
         RaceLogStatsStrip(cells: _windCells(l10n, stats)),
         if (stats.window.isApproximate) const _ApproximateNote(),
+        // A polár a szél után, az eredmény fölött (ADR 0049 Addendum 5 W1).
+        PolarDetailBlock(raceId: summary.id),
         ResultBlock(result: summary.result, onEdit: onEdit),
         if (telemetry != null) ...[
           const SizedBox(height: 24),

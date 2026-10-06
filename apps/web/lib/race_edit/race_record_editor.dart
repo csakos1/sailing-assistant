@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_web/api/api_failure.dart';
 import 'package:foretack_web/api/archive_api_client.dart';
 import 'package:foretack_web/app/api_providers.dart';
+import 'package:foretack_web/polar/polar_providers.dart';
 import 'package:foretack_web/race_detail/race_detail_providers.dart';
 import 'package:foretack_web/race_log/race_log_providers.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -10,8 +11,9 @@ import 'package:shared/shared.dart';
 /// A szerkesztők írásai a szerverre (ADR 0048 Addendum 4 K16).
 ///
 /// Alkalmazás-réteg: a klienst hívja, és siker után érvényteleníti a
-/// napló és a részletező providerét, hogy a következő olvasás friss adatot
-/// hozzon. A képernyő csak a navigációt és a snackbart intézi.
+/// napló, a részletező és a polár providereit, hogy a következő olvasás
+/// friss adatot hozzon. A képernyő csak a navigációt és a snackbart
+/// intézi.
 class RaceRecordEditor {
   /// Szerkesztő a [_ref] providerei fölött.
   RaceRecordEditor(this._ref);
@@ -62,14 +64,28 @@ class RaceRecordEditor {
     };
     if (!isGone) return result;
     _ref.invalidate(raceSummariesProvider);
+    _invalidateSeasonPolar();
     return const Ok(null);
   }
 
   ArchiveApiClient get _client => _ref.read(archiveApiClientProvider);
 
-  void _invalidate(String raceId) => _ref
-    ..invalidate(raceSummariesProvider)
-    ..invalidate(raceDetailProvider(raceId));
+  void _invalidate(String raceId) {
+    _ref
+      ..invalidate(raceSummariesProvider)
+      ..invalidate(raceDetailProvider(raceId))
+      // A mentett hivatalos idők a polár-ablakot is mozgatják; a szerver
+      // mentés után újraszámol (ADR 0049 Addendum 4), ezért a részletező
+      // a frissítés-sort mutatja majd.
+      ..invalidate(racePolarProvider(raceId));
+    _invalidateSeasonPolar();
+  }
+
+  // A family egészét dobja el: a szezon-táblák a Statisztika-képernyőn
+  // a részletező alatt életben lehetnek.
+  void _invalidateSeasonPolar() => _ref
+    ..invalidate(seasonPolarProvider)
+    ..invalidate(polarSeasonsProvider);
 }
 
 /// A [RaceRecordEditor] példánya; a tesztek az `archiveApiClientProvider`

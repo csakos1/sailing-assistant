@@ -743,4 +743,136 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get statsHarvestTotal => 'dobogós helyezés';
+
+  @override
+  String get polarSeasonSectionCaps => 'POLÁR-TELJESÍTMÉNY';
+
+  @override
+  String polarSeasonTrailing(int count) {
+    return '$count verseny · időrendben';
+  }
+
+  @override
+  String get polarYearsSectionCaps => 'POLÁR ÉVENKÉNT';
+
+  @override
+  String polarYearsTrailing(int count) {
+    return 'időre súlyozva · $count verseny';
+  }
+
+  @override
+  String get polarGroupPercentCaps => 'POLÁR %';
+
+  @override
+  String get polarGroupTimeCaps => 'AZ IDŐ %';
+
+  @override
+  String get polarColumnYearCaps => 'ÉV';
+
+  @override
+  String get polarColumnRankCaps => 'RANG';
+
+  @override
+  String get polarColumnDateCaps => 'DÁTUM';
+
+  @override
+  String get polarColumnRaceCaps => 'VERSENY';
+
+  @override
+  String get polarColumnWindCaps => 'SZÉL';
+
+  @override
+  String get polarColumnAverageCaps => 'ÁTLAG';
+
+  @override
+  String get polarColumnMedianCaps => 'MEDIÁN';
+
+  @override
+  String get polarColumnP90Caps => 'P90';
+
+  @override
+  String get polarColumnP99Caps => 'P99';
+
+  @override
+  String get polarColumnBestCaps => 'LEGJOBB';
+
+  @override
+  String get polarColumnBestUnitCaps => '5 MP';
+
+  @override
+  String get polarColumnAbove90Caps => '90%';
+
+  @override
+  String get polarColumnAbove100Caps => '100%';
+
+  @override
+  String get polarColumnAboveUnitCaps => 'FELETT';
+
+  @override
+  String get polarRankTooltip => 'Szélvödrökre standardizált átlag';
+
+  @override
+  String get polarApproximateTooltip =>
+      'Közelítő: nincs hivatalos rajt és befutás, a teljes rögzítésből';
+
+  @override
+  String get polarYearRacesSuffix => 'vers.';
+
+  @override
+  String get polarRaceAverage => 'A futamok átlaga';
+
+  @override
+  String get polarTimeWeighted => 'Időre súlyozva';
+
+  @override
+  String polarMeasuredHours(String hours) {
+    return '$hours ó mért idő';
+  }
+
+  @override
+  String get polarFootnote =>
+      'A százalék a mért vízsebesség (STW) és a polár célsebességének aránya az adott szélszögre és -erősségre. A 100% nem plafon, hanem a historikus felső tized küszöbe.';
+
+  @override
+  String get polarFewData => 'kevés adat';
+
+  @override
+  String get polarNotComputed => 'még nincs számolva';
+
+  @override
+  String get polarStale =>
+      'Újraszámolás a szerveren — a korábbi értékek látszanak.';
+
+  @override
+  String get polarUnavailable =>
+      'Nincs polár a szerveren, ezért teljesítmény-százalék nem számolható.';
+
+  @override
+  String get polarLoadError => 'A polár-adatok nem tölthetők be.';
+
+  @override
+  String get polarDetailCaps => 'POLÁR';
+
+  @override
+  String get polarDetailApproximateCaps => '≈ KÖZELÍTŐ';
+
+  @override
+  String get polarDetailFewDataCaps => 'KEVÉS ADAT';
+
+  @override
+  String get polarDetailRankCaps => 'SZEZONBELI RANG';
+
+  @override
+  String polarDetailRankOf(int count) {
+    return '/ $count';
+  }
+
+  @override
+  String get polarDetailBestCaps => 'LEGJOBB 5 MP';
+
+  @override
+  String get polarDetailAbove90Caps => '90% FELETT';
+
+  @override
+  String get polarDetailAbove100Caps => '100% FELETT';
 }

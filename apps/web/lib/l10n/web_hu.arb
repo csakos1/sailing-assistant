@@ -997,5 +997,185 @@
   "statsHarvestTotal": "dobogós helyezés",
   "@statsHarvestTotal": {
     "description": "Az éremtábla összesítő sorában a dobogós helyezések száma után."
+  },
+  "polarSeasonSectionCaps": "POLÁR-TELJESÍTMÉNY",
+  "@polarSeasonSectionCaps": {
+    "description": "Az egy év nézet polár-szakaszának címe (W1)."
+  },
+  "polarSeasonTrailing": "{count} verseny · időrendben",
+  "@polarSeasonTrailing": {
+    "description": "A polár-szakaszcím jobb oldali halk felirata egy év nézetben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarYearsSectionCaps": "POLÁR ÉVENKÉNT",
+  "@polarYearsSectionCaps": {
+    "description": "Az összes év nézet polár-szakaszának címe (W1)."
+  },
+  "polarYearsTrailing": "időre súlyozva · {count} verseny",
+  "@polarYearsTrailing": {
+    "description": "A polár-szakaszcím jobb oldali halk felirata az összes év nézetben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarGroupPercentCaps": "POLÁR %",
+  "@polarGroupPercentCaps": {
+    "description": "A polár-táblázat fejlécének csoportcíme a százalék-oszlopok fölött."
+  },
+  "polarGroupTimeCaps": "AZ IDŐ %",
+  "@polarGroupTimeCaps": {
+    "description": "A polár-táblázat fejlécének csoportcíme a két időarány fölött."
+  },
+  "polarColumnYearCaps": "ÉV",
+  "@polarColumnYearCaps": {
+    "description": "A polár-táblázat oszlopa: év."
+  },
+  "polarColumnRankCaps": "RANG",
+  "@polarColumnRankCaps": {
+    "description": "A polár-táblázat oszlopa: szezonbeli rang."
+  },
+  "polarColumnDateCaps": "DÁTUM",
+  "@polarColumnDateCaps": {
+    "description": "A polár-táblázat oszlopa: a verseny napja."
+  },
+  "polarColumnRaceCaps": "VERSENY",
+  "@polarColumnRaceCaps": {
+    "description": "A polár-táblázat oszlopa: a verseny neve vagy a versenyek száma."
+  },
+  "polarColumnWindCaps": "SZÉL",
+  "@polarColumnWindCaps": {
+    "description": "A polár-táblázat oszlopa: átlagos TWS."
+  },
+  "polarColumnAverageCaps": "ÁTLAG",
+  "@polarColumnAverageCaps": {
+    "description": "Polár-mutató: a százalékok átlaga."
+  },
+  "polarColumnMedianCaps": "MEDIÁN",
+  "@polarColumnMedianCaps": {
+    "description": "Polár-mutató: a százalékok mediánja."
+  },
+  "polarColumnP90Caps": "P90",
+  "@polarColumnP90Caps": {
+    "description": "Polár-mutató: a százalékok 90. percentilise."
+  },
+  "polarColumnP99Caps": "P99",
+  "@polarColumnP99Caps": {
+    "description": "Polár-mutató: a százalékok 99. percentilise."
+  },
+  "polarColumnBestCaps": "LEGJOBB",
+  "@polarColumnBestCaps": {
+    "description": "A polár-táblázat oszlopa: legjobb 5 mp, első sor."
+  },
+  "polarColumnBestUnitCaps": "5 MP",
+  "@polarColumnBestUnitCaps": {
+    "description": "A polár-táblázat oszlopa: legjobb 5 mp, második sor."
+  },
+  "polarColumnAbove90Caps": "90%",
+  "@polarColumnAbove90Caps": {
+    "description": "A polár-táblázat oszlopa: a 90% fölötti idő, első sor."
+  },
+  "polarColumnAbove100Caps": "100%",
+  "@polarColumnAbove100Caps": {
+    "description": "A polár-táblázat oszlopa: a 100% fölötti idő, első sor."
+  },
+  "polarColumnAboveUnitCaps": "FELETT",
+  "@polarColumnAboveUnitCaps": {
+    "description": "A két időarány-oszlop második sora."
+  },
+  "polarRankTooltip": "Szélvödrökre standardizált átlag",
+  "@polarRankTooltip": {
+    "description": "A RANG fejléc és a SZEZONBELI RANG tooltipje."
+  },
+  "polarApproximateTooltip": "Közelítő: nincs hivatalos rajt és befutás, a teljes rögzítésből",
+  "@polarApproximateTooltip": {
+    "description": "A ≈ jel tooltipje."
+  },
+  "polarYearRacesSuffix": "vers.",
+  "@polarYearRacesSuffix": {
+    "description": "Az évsorban a versenyszám utáni halk toldalék."
+  },
+  "polarRaceAverage": "A futamok átlaga",
+  "@polarRaceAverage": {
+    "description": "Az első összesítő sor felirata."
+  },
+  "polarTimeWeighted": "Időre súlyozva",
+  "@polarTimeWeighted": {
+    "description": "A második összesítő sor felirata."
+  },
+  "polarMeasuredHours": "{hours} ó mért idő",
+  "@polarMeasuredHours": {
+    "description": "A mért idő összege az összesítő sorok alatt.",
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "polarFootnote": "A százalék a mért vízsebesség (STW) és a polár célsebességének aránya az adott szélszögre és -erősségre. A 100% nem plafon, hanem a historikus felső tized küszöbe.",
+  "@polarFootnote": {
+    "description": "A polár-táblázat lábjegyzete egy év nézetben (16a)."
+  },
+  "polarFewData": "kevés adat",
+  "@polarFewData": {
+    "description": "A sor alcíme, ha 60 mp-nél kevesebb a mért idő (W2)."
+  },
+  "polarNotComputed": "még nincs számolva",
+  "@polarNotComputed": {
+    "description": "A sor alcíme, ha a szerver még nem számolta a versenyt (W2)."
+  },
+  "polarStale": "Újraszámolás a szerveren — a korábbi értékek látszanak.",
+  "@polarStale": {
+    "description": "A frissítés alatti állapot sora (16d-2)."
+  },
+  "polarUnavailable": "Nincs polár a szerveren, ezért teljesítmény-százalék nem számolható.",
+  "@polarUnavailable": {
+    "description": "A szakasz mondata, ha a szerveren nincs polár (16d-3)."
+  },
+  "polarLoadError": "A polár-adatok nem tölthetők be.",
+  "@polarLoadError": {
+    "description": "A polár-szakasz betöltési hibája (W2)."
+  },
+  "polarDetailCaps": "POLÁR",
+  "@polarDetailCaps": {
+    "description": "A részletező polár-blokkjának címe (16c)."
+  },
+  "polarDetailApproximateCaps": "≈ KÖZELÍTŐ",
+  "@polarDetailApproximateCaps": {
+    "description": "A részletező polár-fejlécének jobb slotja közelítő versenynél."
+  },
+  "polarDetailFewDataCaps": "KEVÉS ADAT",
+  "@polarDetailFewDataCaps": {
+    "description": "A részletező polár-fejlécének jobb slotja kevés adatnál."
+  },
+  "polarDetailRankCaps": "SZEZONBELI RANG",
+  "@polarDetailRankCaps": {
+    "description": "A részletező polár-blokkjának rang-cellája."
+  },
+  "polarDetailRankOf": "/ {count}",
+  "@polarDetailRankOf": {
+    "description": "A szezonbeli rang mezőnye: a rangot kapott versenyek száma.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarDetailBestCaps": "LEGJOBB 5 MP",
+  "@polarDetailBestCaps": {
+    "description": "A részletező cellája: legjobb 5 mp."
+  },
+  "polarDetailAbove90Caps": "90% FELETT",
+  "@polarDetailAbove90Caps": {
+    "description": "A részletező cellája: a 90% fölötti idő aránya."
+  },
+  "polarDetailAbove100Caps": "100% FELETT",
+  "@polarDetailAbove100Caps": {
+    "description": "A részletező cellája: a 100% fölötti idő aránya."
   }
 }

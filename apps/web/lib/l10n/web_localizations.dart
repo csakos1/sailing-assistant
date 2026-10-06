@@ -1449,6 +1449,246 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'dobogós helyezés'**
   String get statsHarvestTotal;
+
+  /// Az egy év nézet polár-szakaszának címe (W1).
+  ///
+  /// In hu, this message translates to:
+  /// **'POLÁR-TELJESÍTMÉNY'**
+  String get polarSeasonSectionCaps;
+
+  /// A polár-szakaszcím jobb oldali halk felirata egy év nézetben.
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} verseny · időrendben'**
+  String polarSeasonTrailing(int count);
+
+  /// Az összes év nézet polár-szakaszának címe (W1).
+  ///
+  /// In hu, this message translates to:
+  /// **'POLÁR ÉVENKÉNT'**
+  String get polarYearsSectionCaps;
+
+  /// A polár-szakaszcím jobb oldali halk felirata az összes év nézetben.
+  ///
+  /// In hu, this message translates to:
+  /// **'időre súlyozva · {count} verseny'**
+  String polarYearsTrailing(int count);
+
+  /// A polár-táblázat fejlécének csoportcíme a százalék-oszlopok fölött.
+  ///
+  /// In hu, this message translates to:
+  /// **'POLÁR %'**
+  String get polarGroupPercentCaps;
+
+  /// A polár-táblázat fejlécének csoportcíme a két időarány fölött.
+  ///
+  /// In hu, this message translates to:
+  /// **'AZ IDŐ %'**
+  String get polarGroupTimeCaps;
+
+  /// A polár-táblázat oszlopa: év.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉV'**
+  String get polarColumnYearCaps;
+
+  /// A polár-táblázat oszlopa: szezonbeli rang.
+  ///
+  /// In hu, this message translates to:
+  /// **'RANG'**
+  String get polarColumnRankCaps;
+
+  /// A polár-táblázat oszlopa: a verseny napja.
+  ///
+  /// In hu, this message translates to:
+  /// **'DÁTUM'**
+  String get polarColumnDateCaps;
+
+  /// A polár-táblázat oszlopa: a verseny neve vagy a versenyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'VERSENY'**
+  String get polarColumnRaceCaps;
+
+  /// A polár-táblázat oszlopa: átlagos TWS.
+  ///
+  /// In hu, this message translates to:
+  /// **'SZÉL'**
+  String get polarColumnWindCaps;
+
+  /// Polár-mutató: a százalékok átlaga.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÁTLAG'**
+  String get polarColumnAverageCaps;
+
+  /// Polár-mutató: a százalékok mediánja.
+  ///
+  /// In hu, this message translates to:
+  /// **'MEDIÁN'**
+  String get polarColumnMedianCaps;
+
+  /// Polár-mutató: a százalékok 90. percentilise.
+  ///
+  /// In hu, this message translates to:
+  /// **'P90'**
+  String get polarColumnP90Caps;
+
+  /// Polár-mutató: a százalékok 99. percentilise.
+  ///
+  /// In hu, this message translates to:
+  /// **'P99'**
+  String get polarColumnP99Caps;
+
+  /// A polár-táblázat oszlopa: legjobb 5 mp, első sor.
+  ///
+  /// In hu, this message translates to:
+  /// **'LEGJOBB'**
+  String get polarColumnBestCaps;
+
+  /// A polár-táblázat oszlopa: legjobb 5 mp, második sor.
+  ///
+  /// In hu, this message translates to:
+  /// **'5 MP'**
+  String get polarColumnBestUnitCaps;
+
+  /// A polár-táblázat oszlopa: a 90% fölötti idő, első sor.
+  ///
+  /// In hu, this message translates to:
+  /// **'90%'**
+  String get polarColumnAbove90Caps;
+
+  /// A polár-táblázat oszlopa: a 100% fölötti idő, első sor.
+  ///
+  /// In hu, this message translates to:
+  /// **'100%'**
+  String get polarColumnAbove100Caps;
+
+  /// A két időarány-oszlop második sora.
+  ///
+  /// In hu, this message translates to:
+  /// **'FELETT'**
+  String get polarColumnAboveUnitCaps;
+
+  /// A RANG fejléc és a SZEZONBELI RANG tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szélvödrökre standardizált átlag'**
+  String get polarRankTooltip;
+
+  /// A ≈ jel tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Közelítő: nincs hivatalos rajt és befutás, a teljes rögzítésből'**
+  String get polarApproximateTooltip;
+
+  /// Az évsorban a versenyszám utáni halk toldalék.
+  ///
+  /// In hu, this message translates to:
+  /// **'vers.'**
+  String get polarYearRacesSuffix;
+
+  /// Az első összesítő sor felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'A futamok átlaga'**
+  String get polarRaceAverage;
+
+  /// A második összesítő sor felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Időre súlyozva'**
+  String get polarTimeWeighted;
+
+  /// A mért idő összege az összesítő sorok alatt.
+  ///
+  /// In hu, this message translates to:
+  /// **'{hours} ó mért idő'**
+  String polarMeasuredHours(String hours);
+
+  /// A polár-táblázat lábjegyzete egy év nézetben (16a).
+  ///
+  /// In hu, this message translates to:
+  /// **'A százalék a mért vízsebesség (STW) és a polár célsebességének aránya az adott szélszögre és -erősségre. A 100% nem plafon, hanem a historikus felső tized küszöbe.'**
+  String get polarFootnote;
+
+  /// A sor alcíme, ha 60 mp-nél kevesebb a mért idő (W2).
+  ///
+  /// In hu, this message translates to:
+  /// **'kevés adat'**
+  String get polarFewData;
+
+  /// A sor alcíme, ha a szerver még nem számolta a versenyt (W2).
+  ///
+  /// In hu, this message translates to:
+  /// **'még nincs számolva'**
+  String get polarNotComputed;
+
+  /// A frissítés alatti állapot sora (16d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Újraszámolás a szerveren — a korábbi értékek látszanak.'**
+  String get polarStale;
+
+  /// A szakasz mondata, ha a szerveren nincs polár (16d-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs polár a szerveren, ezért teljesítmény-százalék nem számolható.'**
+  String get polarUnavailable;
+
+  /// A polár-szakasz betöltési hibája (W2).
+  ///
+  /// In hu, this message translates to:
+  /// **'A polár-adatok nem tölthetők be.'**
+  String get polarLoadError;
+
+  /// A részletező polár-blokkjának címe (16c).
+  ///
+  /// In hu, this message translates to:
+  /// **'POLÁR'**
+  String get polarDetailCaps;
+
+  /// A részletező polár-fejlécének jobb slotja közelítő versenynél.
+  ///
+  /// In hu, this message translates to:
+  /// **'≈ KÖZELÍTŐ'**
+  String get polarDetailApproximateCaps;
+
+  /// A részletező polár-fejlécének jobb slotja kevés adatnál.
+  ///
+  /// In hu, this message translates to:
+  /// **'KEVÉS ADAT'**
+  String get polarDetailFewDataCaps;
+
+  /// A részletező polár-blokkjának rang-cellája.
+  ///
+  /// In hu, this message translates to:
+  /// **'SZEZONBELI RANG'**
+  String get polarDetailRankCaps;
+
+  /// A szezonbeli rang mezőnye: a rangot kapott versenyek száma.
+  ///
+  /// In hu, this message translates to:
+  /// **'/ {count}'**
+  String polarDetailRankOf(int count);
+
+  /// A részletező cellája: legjobb 5 mp.
+  ///
+  /// In hu, this message translates to:
+  /// **'LEGJOBB 5 MP'**
+  String get polarDetailBestCaps;
+
+  /// A részletező cellája: a 90% fölötti idő aránya.
+  ///
+  /// In hu, this message translates to:
+  /// **'90% FELETT'**
+  String get polarDetailAbove90Caps;
+
+  /// A részletező cellája: a 100% fölötti idő aránya.
+  ///
+  /// In hu, this message translates to:
+  /// **'100% FELETT'**
+  String get polarDetailAbove100Caps;
 }
 
 class _WebLocalizationsDelegate

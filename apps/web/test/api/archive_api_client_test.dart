@@ -259,4 +259,66 @@ void main() {
       expect((failure as ServerFailure).error, const RaceNotFound('m9'));
     });
   });
+
+  group('ArchiveApiClient polar', () {
+    test('requests the season table of a year', () async {
+      // ARRANGE
+      Uri? requested;
+      final client = clientAnswering((request) async {
+        requested = request.url;
+        return jsonResponse(
+          encodeSeasonPolarTable(
+            const SeasonPolarTable(year: 2026, rows: [], rankedCount: 0),
+          ),
+        );
+      });
+
+      // ACT
+      final result = await client.fetchSeasonPolar(2026);
+
+      // ASSERT
+      expect(
+        requested,
+        Uri.parse('http://localhost:8080/api/polar/seasons/2026'),
+      );
+      expect(result, isA<Ok<SeasonPolarTable, ApiFailure>>());
+    });
+
+    test('decodes the seasons', () async {
+      // ARRANGE
+      const seasons = [SeasonPolarSummary(year: 2025, raceCount: 0)];
+      final client = clientAnswering(
+        (request) async => jsonResponse(encodeSeasonPolarSummaries(seasons)),
+      );
+
+      // ACT
+      final result = await client.fetchPolarSeasons();
+
+      // ASSERT
+      final decoded = switch (result) {
+        Ok(:final value) => value,
+        Err(:final error) => throw StateError('Ok-t vartunk: $error'),
+      };
+      expect(decoded, seasons);
+    });
+
+    test('maps a missing polar to a server failure', () async {
+      // ARRANGE
+      Uri? requested;
+      final client = clientAnswering((request) async {
+        requested = request.url;
+        return jsonResponse(
+          encodeApiError(const PolarUnavailable()),
+          status: 503,
+        );
+      });
+
+      // ACT
+      final failure = failureOf(await client.fetchRacePolar('r1'));
+
+      // ASSERT
+      expect(requested, Uri.parse('http://localhost:8080/api/races/r1/polar'));
+      expect((failure as ServerFailure).error, const PolarUnavailable());
+    });
+  });
 }
