@@ -63,6 +63,7 @@ void main() {
       const ImportRejected(SchemaTooNew(fileVersion: 6, serverVersion: 5)),
       const MissingClientHeader(),
       const PayloadTooLarge(65536),
+      const PolarUnavailable(),
       const InternalError(),
     ];
 
@@ -87,7 +88,7 @@ void main() {
     test('maps each error to its HTTP status', () {
       expect(
         errors.map((error) => error.httpStatus),
-        [400, 422, 404, 422, 422, 422, 422, 403, 413, 500],
+        [400, 422, 404, 422, 422, 422, 422, 403, 413, 503, 500],
       );
     });
 
@@ -108,6 +109,11 @@ void main() {
   group('routes', () {
     test('percent-encode the race id in the path', () {
       expect(racePath('a/b'), '/api/races/a%2Fb');
+      expect(racePolarPath('a/b'), '/api/races/a%2Fb/polar');
+    });
+
+    test('put the year into the season path', () {
+      expect(polarSeasonPath(2026), '/api/polar/seasons/2026');
     });
   });
 }

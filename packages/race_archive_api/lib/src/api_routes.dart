@@ -32,3 +32,12 @@ const String manualRacesPath = '/api/manual-races';
 /// Egy kézi verseny: `PUT` ment, `DELETE` töröl (ADR 0048 D6).
 String manualRacePath(String raceId) =>
     '$manualRacesPath/${Uri.encodeComponent(raceId)}';
+
+/// A szezonok polár-összesítései: `GET` (ADR 0049 D12).
+const String polarSeasonsPath = '/api/polar/seasons';
+
+/// Egy szezon polár-táblázata: `GET` (ADR 0049 D12).
+String polarSeasonPath(int year) => '$polarSeasonsPath/$year';
+
+/// Egy verseny polár-blokkja: `GET` (ADR 0049 D12).
+String racePolarPath(String raceId) => '${racePath(raceId)}/polar';

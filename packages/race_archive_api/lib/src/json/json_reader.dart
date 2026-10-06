@@ -90,6 +90,13 @@ final class JsonReader {
     };
   }
 
+  /// Kötelező logikai érték.
+  bool boolean(String key) {
+    final value = _map[key];
+    if (value is bool) return value;
+    _fail(key, 'boolean');
+  }
+
   /// Kötelező egész szám.
   int integer(String key) => _asInt(_map[key]) ?? _fail(key, 'integer');
 

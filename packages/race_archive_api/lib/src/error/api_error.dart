@@ -105,6 +105,17 @@ final class PayloadTooLarge extends ApiError {
   List<Object?> get props => [limitBytes];
 }
 
+/// A szervernek nincs érvényes polárja vagy STW-korrekciója, ezért a
+/// polár-statisztika nem elérhető (ADR 0049 D5, Addendum 4 U1). A többi
+/// végpont ettől működik.
+final class PolarUnavailable extends ApiError {
+  /// Nem elérhető polár.
+  const PolarUnavailable();
+
+  @override
+  int get httpStatus => 503;
+}
+
 /// Váratlan szerverhiba. Részletet szándékosan nem hordoz: az a szerver
 /// naplójába tartozik.
 final class InternalError extends ApiError {
@@ -142,6 +153,7 @@ Map<String, Object?> encodeApiError(ApiError error) => <String, Object?>{
       'code': _payloadTooLarge,
       'limitBytes': limitBytes,
     },
+    PolarUnavailable() => <String, Object?>{'code': _polarUnavailable},
     InternalError() => <String, Object?>{'code': _internalError},
   },
 };
@@ -165,6 +177,7 @@ Result<ApiError, DecodeError> decodeApiError(Object? json) => runDecode(() {
     ),
     _missingClientHeader => const MissingClientHeader(),
     _payloadTooLarge => PayloadTooLarge(reader.integerAtLeast('limitBytes', 0)),
+    _polarUnavailable => const PolarUnavailable(),
     _internalError => const InternalError(),
     _ => JsonReader.failAt(reader.childPath('code'), 'api error code'),
   };
@@ -176,4 +189,5 @@ const String _raceNotFound = 'raceNotFound';
 const String _importRejected = 'importRejected';
 const String _missingClientHeader = 'missingClientHeader';
 const String _payloadTooLarge = 'payloadTooLarge';
+const String _polarUnavailable = 'polarUnavailable';
 const String _internalError = 'internalError';
