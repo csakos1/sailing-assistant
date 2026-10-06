@@ -18,6 +18,10 @@ szakaszt.
 Az Addendum 1 (2026-10-05) a Statisztika-képernyő elrendezését és a
 szezon-modell szabályait rögzíti az S9 előtt.
 
+Az Addendum 2 (2026-10-06) a képernyőt a böngészős próba és a Claude
+Design 15a–15b makettje alapján újratervezi (S9b); az Addendum 1 P1–P3
+és P5 pontját felülírja.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -461,3 +465,97 @@ mintájára.
 - A kiemelés a Statisztika-képernyővel egy commitban megy: mindkettő a
   napló képernyő-fájlját érinti (a Statisztika-gomb is ott van), és egy
   patch-sorozatban egy fájlt csak egy patch érinthet.
+
+## Addendum 2 — A Statisztika-képernyő újratervezése (S9b, 2026-10-06)
+
+Az S9 képernyője a böngészős próbán nehezen átláthatónak bizonyult: három
+egyforma, apró táblázat, érthetetlen „átlagos helyezés" és „MEGADVA
+n/N", külön abszolút és egytestű sor, levágott dátum. A felhasználó két
+saját statisztika-képet adott mintának; ezekből a Claude Design 15a
+(egy év) és 15b (összes év) makettje készült (`Foretack Design.dc.html`),
+amelyet a felhasználó az alábbi eltérésekkel fogadott el. A betűcsaládok
+és a szám-fokozatok a meglévők (`foretack_typography.dart`), nem a
+makettéi.
+
+### R1 — Összevont abszolút helyezés (felhasználói döntés)
+
+- A Statisztika-képernyőn két kategória van: **Osztályban** és
+  **Abszolút**. Az abszolút versenyenként az abszolút és az egytestű
+  helyezés **jobbika**.
+- **(javaslat)** Két számból a kisebb; szám és DNF/DSQ közül a szám; két
+  nem-szám közül a DNF (a DSQ rosszabb); ha mindkettő hiányzik, nincs
+  abszolút helyezés.
+- A napló, a táblázat és a részletező továbbra is mindhárom helyezést
+  külön mutatja; az összevonás csak a statisztikáé.
+
+### R2 — Felépítés egy évre (felhasználói döntés, 15a eltérésekkel)
+
+1. az évsáv és alatta a napló csíkja: **VERSENY · VÍZEN TÖLTÖTT · ÖSSZ.
+   TÁV**, ahogy az S9-ben;
+2. **01 AZ ÉVAD:** három nagy szám — dobogós verseny, dobogós arány,
+   dobogós helyezés — és a versenyek vitorla-sora; az „elrajtolt
+   verseny" nem ismétlődik, mert a csíkon ott van;
+3. **02 OSZTÁLYBAN** és **03 ABSZOLÚT:** I., II., III. hely a
+   darabszámmal, annyi vitorlával és „x% a N indulásból" sorral; alattuk
+   a dobogós helyezések száma és a „Dobogón kívül" sor;
+4. **04 A PÁLYÁN:** hat mutató két sorban — leghosszabb táv,
+   átlagsebesség, leggyorsabb verseny (átlagsebesség szerint),
+   csúcssebesség, legerősebb szél, uralkodó szélirány; a versenyhez
+   kötött mutató a verseny nevét és napját is mutatja;
+5. **05 ÁTLAGSZÉL SZERINT:** az S9 öt sávja vízszintes sávokkal,
+   változatlanul (a makett „Lola-idő" táblája nem kell).
+
+Kimarad a makettből: a „hat szezon" sávjai, a pálya első sora (mért
+versenyek, idő, táv — a csík adja), a „Lola-idő" szél-tábla.
+
+### R3 — Felépítés minden évre (felhasználói döntés, 15b eltérésekkel)
+
+1. az évsáv és a csík, mint egy évnél;
+2. **01 ÉREMTÁBLA ÉVENKÉNT:** soronként egy év (csökkenő): indulás,
+   dobogós verseny és arány, osztály és abszolút I/II/III darabszám (0
+   helyén hiányjel), az év termése vitorlákkal; alul „Össz." sor a
+   dobogós helyezések számával. Egy sorra kattintva az évsáv arra az évre
+   vált. Külön szezon-összevetés nincs: az arányt ez a tábla mutatja;
+3. **02 A PÁLYÁN** és **03 ÁTLAGSZÉL SZERINT** a teljes időszakra, mint
+   egy évnél.
+
+### R4 — Szövegek (felhasználói döntés)
+
+- Magyarázó szöveg nincs: sem alcím a nagy számok alatt, sem jobb oldali
+  szakasz-megjegyzés, sem jelmagyarázat, sem lábjegyzet.
+- **A K9 közelítő-sor is kimarad** a statisztikáról (az Addendum 1 P4-et
+  felülírja); a napló és a részletező jelzése változatlan.
+- Ami marad, az adat: a „Dobogón kívül" sor, a verseny neve és napja a
+  pálya-mutatóknál, az égtáj-holtverseny „/"-lel.
+
+### R5 — Mutatók (javaslat, a makett számítási jegyzete szerint)
+
+- **Dobogós verseny:** az osztály- vagy az összevont abszolút helyezés
+  1–3. **Dobogós arány** = dobogós verseny ÷ a megjelenített versenyek
+  (a DNF és a helyezés nélküli verseny is számít). **Dobogós helyezés** =
+  osztály + abszolút dobogó, versenyenként legfeljebb kettő.
+- **Vitorla-sor:** versenyenként egy vitorla időrendben (a legrégebbi
+  balra), színe a két helyezés jobbika; dobogó nélkül üres vitorla.
+- **„x% a N indulásból":** a darab ÷ a megjelenített versenyek, egészre
+  kerekítve.
+- **Dobogón kívül:** a 3. utáni helyezések növekvő sorrendben, utánuk a
+  DNF-ek, majd a DSQ-k; a helyezés nélküli verseny kimarad.
+- **Az év termése:** az év összes dobogós helyezése (osztály +
+  abszolút), arany, ezüst, bronz sorrendben.
+- **Pálya:** a leghosszabb táv, a leggyorsabb verseny (a verseny
+  átlagsebessége), a csúcssebesség és a legerősebb szél a versenyével;
+  döntetlennél az újabb verseny. Az átlagsebesség az Addendum 1 P4
+  szerint. Az uralkodó szélirány a versenyek égtájának módusza;
+  holtversenynél mind, égtáj-sorrendben, „/"-lel.
+- **Dátum:** egy év nézetben `06.13.`, minden évre `2024.07.25.`; sosem
+  vágódik le.
+
+### R6 — Érem-színek és vitorla-ikon (felhasználói döntés: új tokenek)
+
+- Új `ThemeExtension` a `foretack_ui`-ban: `MedalColors(gold: #E3B341,
+  silver: #B4C2CE, bronze: #C98A55)`, a `foretackTheme` regisztrálja.
+- A vitorla `CustomPainter`, a makett 11×15-ös rácsán: `moveTo(1, .5)`,
+  `lineTo(1, 14.5)`, `lineTo(10.5, 14.5)`, `quadraticBezierTo(9, 5.5, 1,
+  .5)`, `close`. Méretek: 12×17 az évad sorában, 10×14 a helyezés-
+  sorokban, 8×11 a táblában. Az üres vitorla ugyanez körvonallal,
+  `text-low` színnel.

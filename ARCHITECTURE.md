@@ -5485,14 +5485,15 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
 ### 20.4b Szezon-statisztika és polár-teljesítmény (ADR 0049)
 
 - **Statisztika-képernyő:** a napló AppBarjából nyílik, a napló közös
-  időszak-állapotával (egy év vagy „Összes év"). Tartalma: versenyszám,
-  vízen töltött idő, táv; helyezés-eloszlás és dobogók a három
-  kategóriában; sebesség és szél; „Összes év" nézetben az évek
-  összevetése. A web számolja a napló listájából, pure modellel (D4).
-  Elrendezés (Addendum 1 P1–P5): egy oszlop; a napló évsávja, a
-  MENNYISÉG csík, a HELYEZÉSEK táblája, a SEBESSÉG ÉS SZÉL rekordjai és
-  szélsávjai, „Összes év" nézetben az ÉVEK táblája. A vízen töltött idő
-  szabálya egy közös `elapsedTimeOf`-ban él (P4).
+  időszak-állapotával (egy év vagy „Összes év"). A web számolja a napló
+  listájából, pure modellel (D4); a vízen töltött idő szabálya egy közös
+  `elapsedTimeOf`-ban él (Addendum 1 P4).
+  **Elrendezés (Addendum 2, S9b):** egy oszlop, fent a napló évsávja és
+  csíkja (versenyszám, idő, táv). Az abszolút és az egytestű
+  helyezés jobbika egy „Abszolút" kategória; egy évre az évad dobogói
+  vitorla-sorral, Osztályban és Abszolút I/II/III százalékkal, a pálya
+  hat mutatója és a szélsávok; minden évre éremtábla évenként. Magyarázó
+  szöveg nincs; új tokenek: `MedalColors` (arany, ezüst, bronz).
 - **Polár-teljesítmény:** a % a korrigált STW és a phone polárjának
   (`foretack.pol`, `LookupTargetSpeed`) célsebességének hányadosa.
   - Minták: a `race_stats` ablaka, `|TWA| ≥ 25°`, TWS-tüske szűrve.
