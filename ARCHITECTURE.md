@@ -5508,8 +5508,13 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     `PolarPerformance` (hisztogram, szélvödrök, legjobb 5 mp),
     `MergePolarPerformance`, `RankPolarPerformance`; a küszöbök a
     `PolarPerformanceRules`-ban. Data: `PolarSampleReaderImpl`.
+  - Szerver (Addendum 4): `--polar` és `--stw-corrections` fájl-útvonal;
+    hibás bemenetnél a polár-végpontok 503-at adnak. FNV-1a 64
+    ujjlenyomat, `web.sqlite` v4 három táblával, frissítés import,
+    mentés és indulás után. Végpontok: `/api/polar/seasons`,
+    `/api/polar/seasons/{year}`, `/api/races/{id}/polar`.
 - **Számítás:** a szerver futamonként hisztogramot (0,5%-os rések) és
-  szélvödör-összegeket cache-el a `web.sqlite` v3-ban, ujjlenyomattal a
+  szélvödör-összegeket cache-el a `web.sqlite` v4-ben, ujjlenyomattal a
   polárra és a konfigra. A szezon ezekből jön; a `GET` nem ír, és nem
   számol mintákból.
 - **Megjelenítés:** a polár-táblázat a Statisztika-képernyőn, egy blokk

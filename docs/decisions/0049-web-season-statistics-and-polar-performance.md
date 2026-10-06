@@ -25,6 +25,9 @@ Design 15a–15b makettje alapján újratervezi (S9b); az Addendum 1 P1–P3
 Az Addendum 3 (2026-10-06) a polár domain- és data-rétegének részleteit
 rögzíti az S10 előtt.
 
+Az Addendum 4 (2026-10-06) a szerver polár-részét rögzíti az S11 előtt:
+konfiguráció, ujjlenyomat, cache, frissítés, szerződés és végpontok.
+
 ## Kontextus
 
 A webes archívum (ADR 0047, 0048) versenyenként mutat statisztikát, de
@@ -638,3 +641,109 @@ javaslat; az S11 előtt még visszavonhatók.
 - A tüske-küszöb ellenőrzése a valódi archívumon (D7) az S11 böngészős
   próbájára kerül: az S10-ben még nincs szerveres számítás. A próba a
   Kékszalag soránál nézi meg, hogy a 0 → 68 kn-os ugrás kiesett-e.
+
+## Addendum 4 — A szerver polár-része az S11 előtt (2026-10-06)
+
+A D5, D6, D10–D12 és az ADR 0050 D6 nyitott részletei. A felhasználói
+döntések jelölve, a többi javaslat.
+
+### U1 — Konfiguráció (felhasználói döntés: fájl-útvonalak)
+
+- `--polar <útvonal>`: a `foretack.pol`, a phone parserével
+  (`parseForetackPolar`) olvasva.
+- `--stw-corrections <útvonal>`: JSON-fájl, a D6 listájával. A `from`
+  időzónás ISO-pillanat (`Z` vagy `±hh:mm` végződés), a `factor` véges,
+  pozitív szám. A kapcsoló nélkül nincs korrekció.
+- Mindkettő induláskor egyszer töltődik. Hiányzó `--polar`, olvashatatlan
+  vagy hibás polár, illetve hibás korrekció-fájl esetén a polár **nem
+  elérhető**: a szerver elindul és naplóz, a polár-végpontok
+  `PolarUnavailable`-t (503) adnak, frissítés nem fut. Egy hibás
+  korrekció-fájl nem esik vissza csendben a korrekció nélküli számításra.
+
+### U2 — Ujjlenyomat (felhasználói döntés: FNV-1a 64)
+
+- A D10 SHA-256-ja helyett FNV-1a 64 bit, pure Dartban, új függőség
+  nélkül. Csak változás-észlelésre kell, nem biztonságra.
+- Bemenete: a polár fájl bájtjai, a korrekciók kanonikus szövege
+  (`from` szerint rendezve, epoch-ms és szorzó soronként), a
+  `PolarPerformanceRules` küszöbei és a `polarStatsVersion` konstans.
+  Alakja 16 hexa jegy.
+
+### U3 — Mely versenyeknek van polárja
+
+- **Telemetriás:** minden befejezett verseny érvényes rögzítési
+  ablakkal; az ablak a `race_stats`-é (hivatalos, különben a rögzítés,
+  közelítőként). A minták a `PolarSampleReaderImpl`-ből, a korrekciókkal.
+- **Régi (trackes kézi):** ha van tracke és érvényes hivatalos ablaka,
+  ahogy a `race_stats`-nál (ADR 0050 Addendum 2 F1). A minták a
+  `legacy_track_samples` `polar_twa_deg`, `polar_tws_mps` és `stw_mps`
+  oszlopából, 10 másodperces súllyal, korrekció nélkül (ADR 0050 D6).
+- **Szezon:** a verseny napjának éve; a nap a hivatalos rajt, különben a
+  rögzítés kezdete Budapesti időben, kézi versenynél a dátuma.
+
+### U4 — Cache (`web.sqlite` v4)
+
+- `race_polar_stats`: `race_id` (kulcs), az ablak fajtája és határai
+  (epoch-ms), `reference_fingerprint`, `measured_seconds`,
+  `pct_seconds_sum`, `tws_mps_seconds_sum`, `best_five_pct` (null-képes),
+  `computed_at`.
+- `race_polar_histogram`: `(race_id, pct_bin, seconds)`;
+  `race_polar_buckets`: `(race_id, tws_bucket, seconds, pct_seconds_sum)`.
+  Mindkét kulcsa a verseny és a rés, illetve a vödör.
+- Egy verseny sora akkor is létrejön, ha egyetlen polár-mintája sincs:
+  így a „számolva, nincs adat" és a „nincs számolva" különválik. A három
+  tábla írása egy tranzakcióban, törlés + beszúrás.
+
+### U5 — Frissesség és olvasás
+
+- Egy sor **friss**, ha az ablaka a várt ablak, és az ujjlenyomata a
+  mostani. Különben **elavult**; ha nincs sor, **hiányzik**.
+- A `GET` nem ír és nem számol (D10). Az elavult sor értékei
+  megjelennek, `stale` jelzéssel; a hiányzó sorú verseny sora üres.
+
+### U6 — Frissítés
+
+- **Import után:** a telemetriás versenyek közül az új és frissített
+  mindig, a többi, ha nem friss.
+- **Eredmény-mentés után** (telemetriás) és **kézi verseny mentése
+  után:** az adott verseny, ha nem friss. Mindkettő a közös `SerialLock`
+  alatt, a `race_stats` frissítése után.
+- **Szerverinduláskor:** a háttérben, a zár alatt, minden nem friss
+  verseny, és a már nem létező versenyek sorainak törlése. A szerver
+  közben kiszolgál. Egy törölt kézi verseny sorai is ekkor tűnnek el;
+  addig sem látszanak, mert az olvasás a versenyek listájából indul.
+- **Régi trackek importja (CLI):** a kézi versenyek polár-sorai
+  törlődnek, és a következő induláskor újraszámolódnak; a CLI a szerver
+  állása alatt fut.
+
+### U7 — Szerződés és végpontok
+
+- **`PolarStats`:** mért idő, átlagos TWS (null-képes), átlag, medián,
+  P90, P99, legjobb 5 mp (null-képes), a ≥ 90% és a ≥ 100% aránya (0–1).
+  Csak 60 mért másodperctől (D8).
+- **`RacePolarRow`:** azonosító, név, nap, menetidő (ADR 0048 D4),
+  közelítő-e (rögzítési ablak), a cache állapota (`fresh`, `stale`,
+  `missing`), `PolarStats?` és rang.
+- **`GET /api/polar/seasons/{year}`** → `SeasonPolarTable`: a szezon
+  sorai dátum szerint növekvő sorrendben, a két összesítő sor (D11), a
+  rangsorolt versenyek száma. Ismeretlen év üres tábla; nem szám év
+  `MalformedRequest`.
+- **`GET /api/polar/seasons`** → évenként egy `SeasonPolarSummary`: az
+  év, a statisztikás versenyek száma és az időre súlyozott sor, csökkenő
+  sorrendben.
+- **`GET /api/races/{id}/polar`** → `RacePolarDetail`: a verseny sora a
+  szezonbeli ranggal és a rangsorolt versenyek számával. Polár-forrás
+  nélküli vagy ismeretlen versenyre `RaceNotFound`.
+- **`PolarUnavailable`** (503): minden polár-végponton, ha az U1 szerint
+  nincs polár.
+
+### U8 — Rang és összesítő sorok
+
+- A rang a szezon összes polár-sorából számol, a frissekből és az
+  elavultakból is; a hiányzó sorú verseny kimarad.
+- **A futamok átlaga** (D11): a statisztikás versenyek mutatóinak
+  számtani átlaga; a legjobb 5 mp a meglévő értékek átlaga; SZÉL nincs.
+  A mért idő az összeg.
+- **Időre súlyozva** (D11): a statisztikás versenyek összevont
+  teljesítménye (`MergePolarPerformance`).
+- Statisztikás verseny nélkül mindkét sor `null`.
