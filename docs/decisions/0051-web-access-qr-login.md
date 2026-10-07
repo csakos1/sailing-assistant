@@ -1448,3 +1448,125 @@ A review alapján még:
 - **N8:** a `build_geoip` az ismétlődő tartomány-kezdetet elutasítja, az
   egymást átfedő tartományokat nem ellenőrzi (a DB-IP ilyet nem ad). Egy
   hibás gzip vagy UTF-8 65, egy nem írható kimenet 73.
+
+## Addendum 7 — Az A3 részletei: a web bejelentkezése (2026-10-07)
+
+Az A3 előtt. A P1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A makett 17a–17f (Addendum 1 H2, H4, H10,
+H12) mellé teszi, ami a makettben nincs.
+
+### P1 — Két döntés (felhasználói döntés)
+
+- **QR-rajzolás:** a `qr` csomag (4.0, kevmoo, csak a `meta`-tól függ)
+  kódol, a rajzolás egy saját `CustomPainter`. A `qr_flutter` 2023 óta nem
+  frissült, és a régi `qr ^3`-ra épül. Új külső függőség a webben: `qr`.
+- **Lejárt belépés munka közben:** bármely `401` után a web azonnal a
+  belépő képernyőre vált, egy halk sorral („A belépés lejárt"). Egy éppen
+  szerkesztett, el nem mentett verseny elvész; a mentés amúgy is `401`-et
+  kapna.
+
+### P2 — A munkamenet állapota és a kapu (javaslat)
+
+- `sessionProvider` (`AsyncNotifier<AccountInfo?>`): indításkor
+  `GET /api/auth/me`; `200` → a fiók, `401` → `null` (kijelentkezve).
+  Hálózati hiba → a meglévő hibasor („Nincs kapcsolat a szerverrel" +
+  ÚJRA), nem a belépő képernyő.
+- A kapu a `MaterialApp.builder`-ben áll, a navigátor fölött:
+  kijelentkezve a belépő képernyő a navigátor **helyett** látszik, így a
+  megnyitott képernyők (részletező, szerkesztő) is eltűnnek; belépés után
+  a napló indul újra. Betöltés alatt üres háttér és egy folyamatjelző.
+- A szerep a `sessionProvider`-ből jön (`isOwnerProvider`). A biztonság a
+  szerveren van (403), ez csak azt dönti el, mit mutat a web (H11).
+
+### P3 — A `401` bárhol (javaslat)
+
+- A HTTP-kliens egy vékony burok (`SessionAwareClient`): ha egy válasz
+  `401`, és a kérés nem a `/api/auth/` alá megy, a munkamenet `null` lesz
+  `expired` okkal. A belépő képernyő ekkor a P1 sorát mutatja.
+- A kijelentkezés (`POST /api/auth/logout`) után is `null`, de ok nélkül:
+  nincs halk sor.
+- Az `/api/auth/*` hívásai a saját válaszukat kezelik (pl. a tartalék
+  belépés `401`-e a 17e-2), ezért a burok nem nyúl hozzájuk.
+
+### P4 — A QR-belépés állapotai (javaslat)
+
+| Állapot | Mikor | Mit mutat |
+|---|---|---|
+| alap (17a) | új kérés után | QR, „Olvasd be a Foretack appal", 60 mp-es sáv és mono idő |
+| frissül (17b) | a 60 mp letelt | új kérés, 240 ms-os lefelé söprés (H10) |
+| megnyitva (17c) | a `poll` `opened` | „Erősítsd meg a telefonodon", név és eszköz **nélkül** (H2), „Vissza a QR-kódhoz" |
+| csatlakozás (17d-1) | a `poll` `joinPending` | „Kérelem elküldve", „A tulajdonos jóváhagyására vár", 10 perces mono visszaszámláló, név és eszköz **nélkül** (a H2 miatt), „Vissza a QR-kódhoz" |
+| lejárt (17d-2) | `expired` megnyitott vagy csatlakozó kérésnél | új QR, a felirat helyén „Lejárt — olvasd be újra" a következő frissítésig |
+| belépett | `signedIn` | a munkamenet beáll, a napló nyílik |
+
+- A böngésző 1,5 mp-enként kérdez (`POST …/poll`, a kötő-cookie-t a
+  böngésző küldi). A 60 mp-et és a 10 percet a web a válasz megérkezésétől
+  méri, nem a szerver `expiresAt`-jából: egy elcsúszott gépidő így nem
+  rontja el a visszaszámlálást. A kérés tényleges lejáratát a `poll`
+  mondja meg.
+- A „Vissza a QR-kódhoz" eldobja a kérést és újat nyit (H2).
+- Egy `poll` hálózati hibája nem állítja meg a lekérdezést; ha egymás után
+  háromszor elbukik, a felirat helyén „Nincs kapcsolat a szerverrel" áll,
+  amíg egy újabb `poll` sikerül.
+- A QR-kép csak a megnyitott oldalon él: a lap elhagyásakor (belépés,
+  tartalék-űrlap) a lekérdezés leáll.
+
+### P5 — A tartalék-űrlap (javaslat)
+
+- A 17a alján „Belépés jelszóval vagy helyreállító kóddal" link →
+  17e-1: egyetlen mező („Jelszó vagy helyreállító kód", rejtett szöveg,
+  jelszó-kitöltési jelöléssel), „Belépés" gomb, Enter is belép, „Vissza a
+  QR-kódhoz".
+- `401` → 17e-2: „Nem sikerült belépni", a mező piros kerete az egyetlen
+  piros; a mező kiürül.
+- `429` → 17e-3: a mező és a gomb 35%-on, tiltva; „Próbáld újra N perc
+  múlva" (a `Retry-After`, percre felfelé kerekítve, legalább 1, H10),
+  percenként csökken, a végén újra próbálható.
+- Hálózati hiba → „Nincs kapcsolat a szerverrel", a mező megmarad.
+- A beírt szöveg csak az űrlap állapotában él, a visszalépéskor törlődik.
+
+### P6 — A QR-kép (javaslat)
+
+- `QrCode(payload: QrPayload.fromString(qrText), errorCorrectLevel:
+  QrErrorCorrectLevel.medium)` → `QrImage`; a 260 körüli karakteres
+  szöveg kb. a 10-es verzió (57 modul).
+- 264 px-es mező, `onSurface` (`#F2F7FA`) alap, `surface` modulok (H12).
+  A modul mérete egész pixel (`floor((264 − 2·16) ÷ modulszám)`), a
+  maradék a csendes zónához adódik, és a kép középre kerül: a szkennernek
+  éles, egyforma modulok kellenek.
+- A QR-képhez képernyőolvasó-címke: „Belépési QR-kód".
+
+### P7 — Név-menü és szerepek (javaslat)
+
+- A napló AppBarja a H4 szerint: `owner`: váltó · Statisztika · Export ·
+  Új verseny · Feltöltés | név; `crew`: váltó · Statisztika | név. A név
+  előtt függőleges `outline` elválasztó.
+- A név-gomb egy `MenuAnchor`: 240 px-es panel (`surfaceContainerHigh`,
+  `outline` keret), benne a név, a szerep mono halkan (`TULAJDONOS` /
+  `LEGÉNYSÉG`), elválasztó, és „Kijelentkezés" ikonnal.
+- A `crew` elől rejtve a módosítás minden belépési pontja: Új verseny,
+  Feltöltés, Export, a részletező ceruzája, a kézi verseny törlése, az
+  üres eredmény szerkesztőt nyitó sora (13l) és az üres napló feltöltésre
+  hívó gombja.
+
+### P8 — Tesztek és lokális próba (javaslat)
+
+- Widget-tesztek `MockClient`-tel: indulás (`me` `200` / `401` / hálózati
+  hiba); a QR-állapotok a teszt órájával (`opened`, `joinPending`,
+  `expired`, `signedIn`, a 60 mp-es frissítés, a „Vissza"); a tartalék
+  `401` és `429` (percenkénti csökkenés); a `401` munka közben a belépő
+  képernyőre visz a halk sorral; kijelentkezés; a `crew` vezérlői; a
+  800 px-es `owner`-sor elfér (H4). A QR-painter egy egységtesztben a
+  modulméretet és a középre igazítást nézi.
+- A `__Host-` cookie `http://localhost:8080`-on (L8) a felhasználó
+  böngészős próbája; ha a böngésző elutasítja, egy fejlesztői kapcsoló
+  külön döntés.
+
+### Mit pontosít
+
+- **H2:** a 17d-1 sem mutat nevet és eszközt (P4).
+- **H10:** a visszaszámlálás a válasz megérkezésétől mér (P4).
+- **H11, D9:** a web szerep szerint rejt, és bármely `401` a belépő
+  képernyőre visz (P2, P3).
+- **D11:** a QR-rajzoló a `qr` csomag + saját painter (P1, P6).

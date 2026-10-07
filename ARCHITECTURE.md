@@ -4601,8 +4601,9 @@ name: nmea_replay
 A függőségi irányok:
 - `apps/web` → `foretack_ui`, `race_archive_api`, `domain`, `shared`.
   **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
-  Külső csomagjai: `flutter_riverpod`, `http`, `web` (ADR 0048 K18) és
-  `two_dimensional_scrollables` (K25, a táblázat).
+  Külső csomagjai: `flutter_riverpod`, `http`, `web` (ADR 0048 K18),
+  `two_dimensional_scrollables` (K25, a táblázat) és `qr` (a belépési
+  QR kódolása; a rajzolás saját painter, ADR 0051 Addendum 7 P1).
 - `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
   A hitelesítéshez (ADR 0051 Addendum 2 J10) külső csomagjai:
   `pointycastle` (ECDSA P-256), `cryptography` (argon2id) és `crypto`
@@ -5614,6 +5615,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     csatlakozni csak `pending` belépési kérésre lehet; offline GeoIP a
     `build_geoip` CLI-vel épített `geoip.sqlite`-ból, a `--geoip`
     kapcsolóval (Addendum 6).
+  - a weben a munkamenet-kapu a navigátor fölött áll: kijelentkezve vagy
+    bármely `401` után a belépő képernyő látszik; a QR-t a `qr` csomag
+    kódolja, saját painter rajzolja; a `crew` elől a módosító vezérlők
+    rejtve vannak, a név-menüben kijelentkezés (Addendum 7).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;
