@@ -1,5 +1,5 @@
 /// A webes versenyarchívum HTTP-szerződése (ADR 0047 D2 + Addendum 1,
-/// ADR 0048 D6 + Addendum 2, ADR 0049 D12).
+/// ADR 0048 D6 + Addendum 2, ADR 0049 D12, ADR 0051).
 ///
 /// A web és a szerver közös DTO-i, kodekjei és a bemenetek validációja.
 /// Pure Dart, `dart:io` és Flutter nélkül, hogy mindkét oldal
@@ -7,6 +7,13 @@
 library;
 
 export 'package:race_archive_api/src/api_routes.dart';
+export 'package:race_archive_api/src/auth/base64url.dart';
+export 'package:race_archive_api/src/auth/display_name.dart';
+export 'package:race_archive_api/src/auth/password_rules.dart';
+export 'package:race_archive_api/src/auth/qr_payload.dart';
+export 'package:race_archive_api/src/auth/signed_messages.dart';
+export 'package:race_archive_api/src/auth/user_role.dart';
+export 'package:race_archive_api/src/auth/web_origin.dart';
 export 'package:race_archive_api/src/error/api_error.dart';
 export 'package:race_archive_api/src/import/import_rejection.dart'
     show

@@ -66,6 +66,9 @@ void main() {
       const PolarUnavailable(),
       const ExportInProgress(),
       const InternalError(),
+      const NotAuthenticated(),
+      const NotAllowed(),
+      const TooManyAttempts(240),
     ];
 
     for (final error in errors) {
@@ -89,7 +92,42 @@ void main() {
     test('maps each error to its HTTP status', () {
       expect(
         errors.map((error) => error.httpStatus),
-        [400, 422, 404, 422, 422, 422, 422, 403, 413, 503, 409, 500],
+        [
+          400,
+          422,
+          404,
+          422,
+          422,
+          422,
+          422,
+          403,
+          413,
+          503,
+          409,
+          500,
+          401,
+          403,
+          429,
+        ],
+      );
+    });
+
+    test('rejects a retry delay shorter than a second', () {
+      final result = decodeApiError(<String, Object?>{
+        'error': <String, Object?>{
+          'code': 'tooManyAttempts',
+          'retryAfterSeconds': 0,
+        },
+      });
+
+      expect(
+        result,
+        const Err<ApiError, DecodeError>(
+          DecodeError(
+            path: r'$.error.retryAfterSeconds',
+            expected: 'integer >= 1',
+          ),
+        ),
       );
     });
 

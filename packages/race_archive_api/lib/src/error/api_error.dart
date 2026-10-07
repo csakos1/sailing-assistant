@@ -126,6 +126,41 @@ final class ExportInProgress extends ApiError {
   int get httpStatus => 409;
 }
 
+/// A kéréshez belépés kell, és nincs érvényes session (ADR 0051 D9).
+final class NotAuthenticated extends ApiError {
+  /// Hiányzó vagy lejárt session.
+  const NotAuthenticated();
+
+  @override
+  int get httpStatus => 401;
+}
+
+/// A belépett felhasználó szerepe ezt nem engedi (ADR 0051 D2): például a
+/// `crew` módosító végpontot vagy az exportot hívja.
+final class NotAllowed extends ApiError {
+  /// Tiltott művelet.
+  const NotAllowed();
+
+  @override
+  int get httpStatus => 403;
+}
+
+/// Túl sok próbálkozás; [retryAfterSeconds] múlva lehet újra (ADR 0051
+/// D8). A szerver ugyanezt a `Retry-After` fejlécben is küldi.
+final class TooManyAttempts extends ApiError {
+  /// Korlátozott kérés; újra [retryAfterSeconds] másodperc múlva.
+  const TooManyAttempts(this.retryAfterSeconds);
+
+  /// A várakozás egész másodpercben, legalább 1.
+  final int retryAfterSeconds;
+
+  @override
+  int get httpStatus => 429;
+
+  @override
+  List<Object?> get props => [retryAfterSeconds];
+}
+
 /// Váratlan szerverhiba. Részletet szándékosan nem hordoz: az a szerver
 /// naplójába tartozik.
 final class InternalError extends ApiError {
@@ -165,6 +200,12 @@ Map<String, Object?> encodeApiError(ApiError error) => <String, Object?>{
     },
     PolarUnavailable() => <String, Object?>{'code': _polarUnavailable},
     ExportInProgress() => <String, Object?>{'code': _exportInProgress},
+    NotAuthenticated() => <String, Object?>{'code': _notAuthenticated},
+    NotAllowed() => <String, Object?>{'code': _notAllowed},
+    TooManyAttempts(:final retryAfterSeconds) => <String, Object?>{
+      'code': _tooManyAttempts,
+      'retryAfterSeconds': retryAfterSeconds,
+    },
     InternalError() => <String, Object?>{'code': _internalError},
   },
 };
@@ -190,6 +231,11 @@ Result<ApiError, DecodeError> decodeApiError(Object? json) => runDecode(() {
     _payloadTooLarge => PayloadTooLarge(reader.integerAtLeast('limitBytes', 0)),
     _polarUnavailable => const PolarUnavailable(),
     _exportInProgress => const ExportInProgress(),
+    _notAuthenticated => const NotAuthenticated(),
+    _notAllowed => const NotAllowed(),
+    _tooManyAttempts => TooManyAttempts(
+      reader.integerAtLeast('retryAfterSeconds', 1),
+    ),
     _internalError => const InternalError(),
     _ => JsonReader.failAt(reader.childPath('code'), 'api error code'),
   };
@@ -204,3 +250,6 @@ const String _payloadTooLarge = 'payloadTooLarge';
 const String _polarUnavailable = 'polarUnavailable';
 const String _exportInProgress = 'exportInProgress';
 const String _internalError = 'internalError';
+const String _notAuthenticated = 'notAuthenticated';
+const String _notAllowed = 'notAllowed';
+const String _tooManyAttempts = 'tooManyAttempts';
