@@ -580,3 +580,138 @@ Döntések:
 - **Nyitva marad (A2 eleje):** kell-e ujjlenyomat a telefon nem belépési
   műveleteihez (lista, kiléptetés, jóváhagyás), és hogyan hitelesíti
   magát ezeknél az eszköz.
+
+## Addendum 2 — Pontosítások az A1 előtt (2026-10-06)
+
+Az A1 (szerződés és szerver-alapok) részletei. Mind Claude javaslata
+(„javaslat"); a felhasználó a szelet átadásakor hagyja jóvá, és a
+következő szelet előtt visszavonhatók.
+
+### J1 — Az A1 terjedelme (javaslat)
+
+- **A1:** a szerződés alapjai (QR-kódolás, aláírt üzenetek, név- és
+  jelszószabály, `UserRole`, a három új hiba) és a szerver alapjai
+  (kriptográfia, titok-fájl, `users` / `devices` / `enrollments`, a két
+  CLI).
+- **A2-be kerül:** a végpontokhoz kötött DTO-k és útvonalak, valamint a
+  `sessions`, `login_requests`, `join_requests`, `recovery_codes` és
+  `login_events` tábla. Ezek alakját a végpontok döntik el; előre
+  kitalálva kétszer kellene megírni őket.
+
+### J2 — A QR-tartalom (javaslat)
+
+- base64url **kitöltés nélkül**, és csak a kanonikus alak érvényes (a
+  visszakódolás ugyanazt adja): egy tokennek egy szöveges alakja van.
+- Az `origin` kanonikus: `https://host[:port]`, kisbetűs host, az
+  alapértelmezett port, útvonal, lekérdezés és felhasználó nélkül; `http`
+  csak `localhost`-ra és `127.0.0.1`-re (a Pixel-próba `adb reverse`-szel
+  megy, §6.4). Az app szövegesen veti össze a regisztráltal.
+- A `requestId` 16, a `challenge` és a `token` 32 bájt; más hossz hibás.
+- A dekódolás hibái: `notForetack` (H7 „Ez nem Foretack-kód"),
+  `unsupportedVersion` (más `foretack-*:vN` kód; a panel: „Frissítsd a
+  Foretack appot") és `malformed` (a panel: „Ez nem Foretack-kód").
+
+### J3 — Az aláírt üzenetek (javaslat)
+
+A D4 belépési üzenete változatlan. A másik kettő bővül:
+
+```
+foretack-enroll-v1        foretack-join-v1
+<origin>                  <origin>
+<token>                   <requestId>
+<base64(SPKI)>            <challenge>
+                          <név>
+                          <base64(SPKI)>
+```
+
+- A nyilvános kulcs (SubjectPublicKeyInfo DER, szabványos base64) mindkét
+  üzenetben benne van: az aláírás így azt is bizonyítja, hogy a beküldő a
+  kulcs birtokosa.
+- A csatlakozás a QR `challenge`-ét is aláírja, így a kérelem a
+  beolvasott QR-hoz kötődik.
+- Egy mező sem lehet üres vagy többsoros; a név a `normalizeDisplayName`
+  kimenete (1–40 kódpont, levágva). Nem lehet benne vezérlőkarakter,
+  sor-elválasztó, irányvezérlő és nulla szélességű jel: a tulajdonos ezt
+  a nevet látja a jóváhagyáskor, így láthatatlan vagy megfordító
+  karakterrel nem álcázható.
+
+### J4 — A jelszó (javaslat)
+
+- argon2id, a szabványos PHC-szöveggel tárolva
+  (`$argon2id$v=19$m=19456,t=2,p=1$<só>$<hash>`), 16 bájtos sóval és 32
+  bájtos hash-sel. A paraméterek a hash mellett vannak, így később
+  szigoríthatók; a régi hash a sajátjaival ellenőrződik.
+- Az OWASP-alapérték (19 MiB, 2 menet, 1 sáv) a 2 GB-os VPS-en mérendő
+  (S8). Egy tárolt hash csak korlátok között használható (legfeljebb 256
+  MiB, 10 menet, 4 sáv), különben „nem egyezik".
+- A jelszó 12–128 Unicode kódpont, és nem alakítjuk át (nincs
+  normalizálás, nincs levágás).
+
+### J5 — Tokenek és összehasonlítás (javaslat)
+
+- Minden token és kihívás `Random.secure()`-ből. A DB csak a tokenek
+  SHA-256 hash-ét tárolja; a keresés a hash-re történik.
+- A memóriában végzett titok-egyezés (hash, kód, jelszó-hash) konstans
+  idejű (`constantTimeEquals`).
+
+### J6 — A titok-fájl (javaslat)
+
+- Nyers bájtok, legalább 32:
+  ```bash
+  (umask 077; head -c 64 /dev/urandom > auth-secret)
+  ```
+  A szerver csak akkor indul, ha a csoportnak és másoknak semmilyen joga
+  nincs a fájlon (pl. `0600`); különben hibával áll le, nem fut csendben
+  tovább.
+- A helyreállító kódok HMAC-SHA-256-ja tartomány-előtaggal készül
+  (`foretack-recovery-v1\n` + kód), hogy a titok más célra is
+  használható maradjon keveredés nélkül.
+
+### J7 — Az `auth.sqlite` v1 (javaslat)
+
+- Az időpontok UTC epoch-milliszekundumban (`*_at_ms`), nem a Drift
+  `dateTime()`-jával (az másodpercre kerekít és helyi időként olvas
+  vissza, §5 5.).
+- A külső kulcsok be vannak kapcsolva (`PRAGMA foreign_keys = ON`): egy
+  fiók törlése az eszközeit is viszi.
+- Legfeljebb egy `owner`: egy részleges egyedi index is őrzi.
+- A visszavont eszköz sora megmarad (`revoked_at_ms`), hogy az app
+  pontos hibát kaphasson (18d-5).
+- Éles adat a deploy (S8) előtt nincs, ezért a v1 séma addig migráció
+  nélkül bővül (az A2 táblái).
+
+### J8 — A két CLI (javaslat)
+
+- **`create_owner_enrollment --auth-db … --origin … [--name …]`:** a
+  `--name` csak az első `owner`-hez kell; ha már van `owner`, név nélkül
+  futtatva az ő új telefonját regisztrálja (névvel hibát ad). A stdout-ra
+  csak a QR-szöveg megy (`| qrencode -t ansiutf8`), minden más a
+  stderr-re. Az első futás létrehozza az `auth.sqlite`-ot `0600`-s
+  joggal (a könyvtárát nem), egy lazább jogú meglévő fájlt pedig
+  `0600`-ra szigorít. A szerver felhasználójaként kell futtatni,
+  hogy a fájl az övé legyen.
+- **`revoke_device --auth-db … [--device …]`:** a `--device` nélkül
+  kilistázza az eszközöket az azonosítójukkal, vele visszavonja.
+- Kilépési kódok: 64 hibás kapcsoló, 65 elutasított kérés, 66 hiányzó
+  fájl vagy könyvtár, 73 a jogosultság nem állítható.
+
+### J9 — Kulcs és aláírás (javaslat)
+
+- A kulcs csak a pontos, 91 bájtos P-256 SubjectPublicKeyInfo lehet,
+  tömörítetlen ponttal, és a pontnak a görbén kell lennie.
+- Az aláírás szigorú DER (rövid hosszak, minimális egészek). Az `s` és az
+  `n − s` is érvényes; ez nem gond, mert minden kihívás és token egyszer
+  használatos.
+- Az ellenőrzés a `pointycastle` ECDSA-jával fut; a tesztvektorok
+  Pythonnal (OpenSSL) készültek, így két független implementáció egyezik.
+
+### J10 — Apróságok (javaslat)
+
+- **Új függőségek a `web_server`-ben:** `pointycastle ^4.0.0` (ECDSA),
+  `cryptography ^2.9.0` (argon2id), `crypto ^3.0.7` (SHA-256, HMAC; a
+  `cryptography` is erre épül).
+- **Helyreállító kód:** RFC 4648 base32 (`A–Z`, `2–7`). Begépeléskor a
+  kis- és nagybetű, a szóköz és a kötőjel mindegy. A makett mintakódja
+  (`K7Q2M-9XWPD`) a `9` miatt nem érvényes; ez csak mintaadat.
+- A `UserRole` (`owner`, `crew`) már a szerződésben van, mert az A2 `me`
+  végpontja és az app is ezt használja.

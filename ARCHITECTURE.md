@@ -4604,6 +4604,9 @@ A függőségi irányok:
   Külső csomagjai: `flutter_riverpod`, `http`, `web` (ADR 0048 K18) és
   `two_dimensional_scrollables` (K25, a táblázat).
 - `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
+  A hitelesítéshez (ADR 0051 Addendum 2 J10) külső csomagjai:
+  `pointycastle` (ECDSA P-256), `cryptography` (argon2id) és `crypto`
+  (SHA-256, HMAC).
 - `apps/phone` → `foretack_ui`.
 - `foretack_ui` → `domain`, `shared` (a tokenek a domain enumjait, a
   widgetek a domain entitásait jelenítik meg; Addendum 4 E9, Addendum 5
@@ -5585,6 +5588,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   - a kulcs a `biometric_signature` (13.2.0) P-256 kulcsa, minden
     aláírás ujjlenyomatot kér; ujjlenyomat-változás nem érvényteleníti,
     attesztáció nincs (Addendum 1 H5).
+  - a szerver csak a tokenek hash-ét tárolja, a jelszót argon2id-vel,
+    a helyreállító kódokat egy `0600`-s titok-fájl HMAC-jével; két CLI
+    (`create_owner_enrollment`, `revoke_device`) kezeli a VPS-en az
+    `owner` telefonját (Addendum 2).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;
