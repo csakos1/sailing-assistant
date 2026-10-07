@@ -5600,6 +5600,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     archívum mögötte fut (`AuthApi`); minden `owner`-regisztráció 10 új
     helyreállító kódot ad; próbálkozás-korlát IP-nként percenként 10
     (Addendum 4).
+  - az A2b két részben jön: az A2b-1 az akció-kihívást, a csatlakozást
+    (`joinPending`), a kérelmek, tagok és eszközök kezelését, a
+    munkamenet-listát és a kiléptetést, az átnevezést hozza; az
+    elutasított kérelem a böngészőnek lejártként látszik; mindenki csak
+    a saját nevét írhatja át; egy eszköz visszavonása a vele jóváhagyott
+    munkameneteket is lezárja (Addendum 5).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;

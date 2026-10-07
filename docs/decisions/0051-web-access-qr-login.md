@@ -1037,3 +1037,202 @@ végpontonként szétválasztani.
 - **K8:** a loopback a `::1` is (L11).
 - **K11:** a User-Agent-elemző az A2a része (L11).
 - **K13:** a `challenges` tábla `purpose` oszlop nélkül indul (L1).
+
+## Addendum 5 — Az A2b-1 részletei (2026-10-07)
+
+Az A2b-1 előtt. Az M1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. Az Addendum 3 K12 kettéosztását tovább
+bontja; a K-pontokat nem írja felül, csak kitölti.
+
+### M1 — Három döntés (felhasználói döntés)
+
+- **Az A2b két részben jön.** **A2b-1:** akció-kihívás, csatlakozás és
+  `joinPending`, legénység-kezelés, munkamenet-lista és kiléptetés,
+  átnevezés. **A2b-2:** tartalék belépés, jelszó, kódok újragenerálása,
+  belépési események és szalag, GeoIP és `build_geoip`. Az A2b-2
+  részletei egy rövid Addendum 6-ba kerülnek, az A2b-2 előtt. A
+  hátralévő szeletek: A2b-1, A2b-2, A3, A4, A5, S8.
+- **Átnevezés:** mindenki (az `owner` is) csak a saját nevét írhatja át.
+  Az `owner` a tagok nevét nem módosíthatja.
+- **Elutasítás = lejárat:** az elutasított csatlakozási kérelemre a
+  várakozó böngésző `expired`-et kap (17d-2), a telefon pedig a
+  lejárttal azonos `notApproved` állapotot („A kérelem nem lett
+  jóváhagyva"). Külön „Elutasítva" állapot és makett nincs.
+
+### M2 — Akció-kihívás (javaslat)
+
+- `POST /api/auth/action-challenges`, eszköz-tokennel → `IssuedSecret`
+  (60 mp, egyszeri, csak a kérő eszköznek). Korlát: IP-nként percenként
+  10, mint az eszköz-kihívásnál.
+- A `challenges` tábla `purpose` oszlopot kap (`deviceToken` |
+  `action`), CHECK-kel: egy eszköz-token kihívása nem írhat alá
+  műveletet, és fordítva.
+- A K4 műveleteinek törzse `SignedAction{challenge, signature}` (a
+  jóváhagyásnál + `memberId`). Az eszköz az eszköz-tokenből jön, ezért
+  a törzsben nincs `deviceId`.
+- Sorrend: eszköz-token → szerep és cél ellenőrzése (DB-olvasás) → a
+  kihívás elhasználása → aláírás az **aláíró** kulccsal a
+  `deviceActionMessage(origin, deviceId, challenge, action, target)`
+  üzenetre → a művelet. A kihívás az aláírás előtt elhasználódik, így
+  egy kihívásra egy próba jut (mint a K3-nál).
+
+### M3 — A csatlakozás (javaslat)
+
+- `POST /api/auth/join-requests` (`X-Foretack-Client: phone`, eszköz-
+  token nincs, a fiók nélküli app hívja). Törzs: `JoinRequest{requestId,
+  challenge, name, deviceName, model, publicKey, deviceKey, signature}`;
+  az aláírás az aláíró kulccsal a `joinRequestMessage`-re (J3, K2).
+- Ellenőrzés: a két kulcs alakja és különbözősége → aláírás (DB nélkül)
+  → egy tranzakcióban: a belépési kérés él, `pending` vagy `opened`, és
+  a kihívása egyezik; a kulcsok egyike sem szerepel eszközként vagy egy
+  élő, el nem döntött kérelemben; legfeljebb 5 élő, el nem döntött
+  kérelem van. Hiba esetén a belépési kérés nem változik.
+- Siker: új `join_requests` sor (24 óra), a belépési kérés `joinPending`
+  lesz, 10 percig él, és a kérelemre mutat. Válasz `201`
+  `JoinTicket{joinRequestId, statusToken, expiresAt}`; a lekérdező
+  tokennek csak a hash-e tárolódik.
+- Az 5 élő kérelem fölött `TooManyAttempts`, a `Retry-After` a
+  legkorábbi lejáratig hátralévő idő (legfeljebb 24 óra). IP-nként
+  óránként 3 kérelem (D8).
+- A név a `normalizeDisplayName` szerint (J3), és a dekóder ezt már
+  egységesíti. Egy név nem egyedi: két „Bence" is lehet.
+
+### M4 — A kérelem állapota a telefonon (javaslat)
+
+- `POST /api/auth/join-requests/{id}/status`, törzs `{statusToken}`.
+  Válasz `JoinRequestStatus`: `pending`; `approved` + `AccountInfo` +
+  `deviceId`; `notApproved` (elutasítva, lejárt, ismeretlen vagy rossz
+  token, M1).
+- Az `approved` választ a telefon a kérelem lejáratáig (24 óra) bármikor
+  újra lekérdezheti, ha egy hálózati hiba miatt elsőre nem kapta meg.
+- Korlát nincs külön (a 256 bites token nélkül semmit nem mond).
+
+### M5 — A böngésző `joinPending` alatt (javaslat)
+
+- A `poll` `joinPending`-et ad, amíg a kérelem el nem dől.
+- Jóváhagyáskor ugyanabban a tranzakcióban a belépési kérés `approved`
+  lesz a tag fiókjával és az új eszközzel (60 mp a beváltásra), a
+  `phone_ip` a kérelem IP-je. A következő `poll` a meglévő úton
+  (L6) váltja be: a tag `qr` módú sessiont kap.
+- Elutasításkor vagy ha a 10 perc letelt, a belépési kérés sora
+  törlődik, és a `poll` `expired`-et ad (M1).
+- Ha a böngésző már nem vár (a 10 perc letelt), a jóváhagyás ettől még
+  sikerül: a tag legközelebb csak beolvas.
+
+### M6 — A kérelmek kezelése (javaslat, csak `owner`)
+
+- `GET /api/auth/join-requests`, eszköz-tokennel → az élő, el nem
+  döntött kérelmek, a legújabb elöl: `PendingJoinRequest{id, name,
+  deviceName, model, ip, country, city, createdAt, expiresAt}`. Az
+  ország és a város az A2b-2-ig `null`.
+- `POST /api/auth/join-requests/{id}/approval`, törzs
+  `JoinApproval{memberId?, challenge, signature}`; `approveJoin`,
+  `target` = `<id>:new` vagy `<id>:<memberId>` (K4).
+  - `memberId` nélkül: új `crew` fiók a kérelem nevével.
+  - `memberId`-vel: a meglévő tag új eszköze; a tag régi eszközei
+    maradnak (D3), és a kérelem neve nem írja felül a tagét. Ha a cél
+    nem létező vagy `owner`: `NotAllowed` (H3).
+  - Az eszköz, a fiók, a kérelem és a belépési kérés változása egy
+    tranzakcióban történik. Ha közben a kulcsot más regisztrálta:
+    `MalformedRequest` (L3), a kérelem marad.
+  - Válasz `200`, a tag `MemberInfo`-ja (M8).
+- `POST /api/auth/join-requests/{id}/rejection`, eszköz-tokennel,
+  aláírás nélkül (K4) → `204`; a kérelem `rejected`, a belépési kérés
+  törlődik.
+- Ismeretlen, lejárt vagy már eldöntött kérelem: `RequestExpired`
+  (410), így az `owner` két telefonja nem dönthet kétszer.
+- A `crew` mindháromra `NotAllowed` (403).
+
+### M7 — Tagok és eszközök (javaslat)
+
+- `GET /api/auth/members`, eszköz-tokennel, csak az `owner`-nek (a
+  `crew` 18l-2-je csak a nevet mutatja, az a `me`-ből jön). Az `owner`
+  elöl, utána a tagok név szerint.
+- `MemberInfo{account, createdAt, devices}`, és az eszközök
+  `MemberDevice{id, name, model, createdAt, lastUsedAt?}`. Csak az
+  aktív eszközök látszanak; a visszavont eszköz sora csak a pontos
+  hibához marad meg (D10).
+- `POST /api/auth/devices/{id}/revocation`, `revokeDevice`, `target` =
+  `<deviceId>`. Csak az `owner`; bármely aktív eszközt visszavonhat, a
+  sajátjait is, **kivéve azt, amelyikről kéri** (H9: `NotAllowed`). A
+  `crew` nem von vissza: egy elveszett telefont az `owner` von vissza.
+- A visszavonás az eszköz eszköz-tokenjeit és az általa jóváhagyott
+  munkameneteket is törli: egy elveszett telefon így a vele nyitott
+  böngészőket is lezárja.
+- `POST /api/auth/members/{id}/removal`, `removeUser`, `target` =
+  `<userId>`. Csak az `owner`, és csak `crew` célra (H9); a fiók
+  törlése a DB külső kulcsain át visszaviszi az eszközeit, tokenjeit és
+  munkameneteit.
+- Ismeretlen cél vagy már visszavont eszköz: `RequestExpired`. A
+  sikeres művelet `204`.
+
+### M8 — Munkamenetek és kiléptetés (javaslat)
+
+- `GET /api/auth/sessions`, eszköz-tokennel. Az `owner` mindenkiét
+  látja, a `crew` csak a sajátjait; a legutóbb aktív elöl.
+- `WebSession{id, userId, userName, method, ip, browser?, os?, country?,
+  city?, createdAt, lastSeenAt}`. A gyanús-jelzés az A2b-2-ben jön (a
+  belépési eseményekből, K9).
+- `DELETE /api/auth/sessions/{id}`, eszköz-tokennel → `204`. A `crew`
+  csak a sajátját zárhatja (különben `NotAllowed`); egy már nem létező
+  munkamenet is `204` (két telefon egyszerre kiléptet).
+- A lejárt munkamenet nem látszik a listában, akkor sem, ha a
+  takarítás még nem törölte.
+
+### M9 — Átnevezés (javaslat)
+
+- `POST /api/auth/account/name`, eszköz-tokennel, törzs `{name}` → `200`
+  az új `AccountInfo`-val. Mindenki csak a sajátját (M1). A név a
+  `normalizeDisplayName` szerint; üresre vagy túl hosszúra
+  `MalformedRequest`.
+
+### M10 — Az `auth.sqlite` bővülése (javaslat)
+
+- Új tábla: `join_requests(id, status_digest, name, device_name, model,
+  public_key, device_key, ip, country, city, created_at_ms,
+  expires_at_ms, state, user_id?, device_id?)`. A `state` CHECK
+  `pending`/`approved`/`rejected`; a fiók és az eszköz külső kulcsa
+  `SET NULL`, mert egy jóváhagyott kérelem a tag eltávolítása után is
+  `notApproved` lehet.
+- A `login_requests` `state` CHECK-je `joinPending`-gel bővül, és új
+  `join_request_id` oszlopot kap (`SET NULL`).
+- A `challenges` `purpose` oszlopot kap (M2).
+- A sémaverzió marad 1 (J7). Egy helyi, A2a-val létrehozott
+  `auth.sqlite`-ot ezért törölni kell, és a `create_owner_enrollment`
+  újra létrehozza (mint az L10-nél).
+- A takarítás a lejárt kérelmeket is törli (a jóváhagyottakat és az
+  elutasítottakat is a 24 óra után).
+
+### M11 — Szerződés (javaslat)
+
+- Új DTO-k: `JoinRequest`, `JoinTicket`, `JoinRequestStatus` (`pending`,
+  `approved`, `notApproved`), `PendingJoinRequest`, `SignedAction`,
+  `JoinApproval`, `MemberInfo`, `MemberDevice`, `WebSession`, és a
+  kodekjeik az `auth_codecs.dart` mellett egy új fájlban.
+- Új útvonalak az `auth_routes.dart`-ban (új függvények, a meglévők nem
+  változnak). Új hiba nincs: a meglévők (L3, `NotAllowed`,
+  `TooManyAttempts`) lefedik az eseteket.
+
+### M12 — Korlátok és tesztek (javaslat)
+
+- Új limiterek az `AuthRateLimits`-ben: akció-kihívás (10/perc) és
+  csatlakozás (3/óra), IP-nként. A listák, a döntések és az átnevezés
+  eszköz-tokent kérnek, ezért nem kapnak külön korlátot.
+- A HTTP-tesztek a meglévő `AuthHarness`-t és `TestPhone`-t bővítik
+  egy aláírt-művelet segéddel. Lefedik a láthatóságot (`owner` /
+  `crew`), az önkizárást, a kétszeres döntést, a visszavonás hatását a
+  munkamenetekre, a csatlakozás teljes útját a böngésző `poll`-jával, és
+  a korlátokat.
+
+### Mit pontosít
+
+- **K4:** a csatlakozás, a visszavonás, az eltávolítás végpontjai és
+  `target`-jei (M6, M7); a `crew` nem von vissza eszközt (M7).
+- **K5:** a `joinPending` elutasításkor `expired` (M1, M5).
+- **K6:** a végpontok neve és törzse (M2–M9).
+- **K12:** az A2b kettéosztása (M1).
+- **K13:** a `join_requests` az A2b-1-ben, a `login_events` az
+  A2b-2-ben (M10).
+- **H9:** az önkizárás ellen a szerver az éppen kérő eszközt nem vonja
+  vissza, és `owner`-t nem távolít el (M7).
