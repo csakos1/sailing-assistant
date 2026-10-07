@@ -21,6 +21,11 @@ final Uint8List _keyB = base64.decode(
 );
 final DateTime _now = DateTime.utc(2026, 10, 6, 19, 30, 15, 123);
 
+// A repository nem ellenőrzi a kulcsok alakját; az eszközkulcs itt csak
+// egy, az aláíró kulcstól különböző, egyedi bájtsor.
+Uint8List _deviceKeyFor(Uint8List publicKey) =>
+    Uint8List.fromList([0xD0, ...publicKey]);
+
 void main() {
   late AuthDatabase database;
   late UserRepository users;
@@ -88,6 +93,7 @@ void main() {
         id: 'd-1',
         userId: 'u-akos',
         publicKey: _keyA,
+        deviceKey: _deviceKeyFor(_keyA),
         name: 'Ákos Pixel 8',
         model: 'Pixel 8',
         now: _now,
@@ -106,6 +112,7 @@ void main() {
         id: 'd-1',
         userId: 'u-akos',
         publicKey: _keyA,
+        deviceKey: _deviceKeyFor(_keyA),
         name: 'A',
         model: 'Pixel 8',
         now: _now,
@@ -116,6 +123,7 @@ void main() {
           id: 'd-2',
           userId: 'u-dori',
           publicKey: _keyA,
+          deviceKey: _deviceKeyFor(_keyB),
           name: 'B',
           model: 'Pixel 7a',
           now: _now,
@@ -124,12 +132,60 @@ void main() {
       );
     });
 
+    test('refuses a device key that another device already uses', () async {
+      await addOwnerAndCrew();
+      await devices.insert(
+        id: 'd-1',
+        userId: 'u-akos',
+        publicKey: _keyA,
+        deviceKey: _keyB,
+        name: 'A',
+        model: 'Pixel 8',
+        now: _now,
+      );
+
+      expect(await devices.isAnyKeyInUse([_keyB]), isTrue);
+      expect(await devices.isAnyKeyInUse([_keyA]), isTrue);
+      expect(await devices.isAnyKeyInUse([_deviceKeyFor(_keyA)]), isFalse);
+      expect(
+        devices.insert(
+          id: 'd-2',
+          userId: 'u-dori',
+          publicKey: _deviceKeyFor(_keyA),
+          deviceKey: _keyB,
+          name: 'B',
+          model: 'Pixel 7a',
+          now: _now,
+        ),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('records the last use of a device', () async {
+      await addOwnerAndCrew();
+      await devices.insert(
+        id: 'd-1',
+        userId: 'u-akos',
+        publicKey: _keyA,
+        deviceKey: _keyB,
+        name: 'A',
+        model: 'Pixel 8',
+        now: _now,
+      );
+      final later = _now.add(const Duration(minutes: 5));
+
+      await devices.markUsed('d-1', now: later);
+
+      expect((await devices.get('d-1'))?.lastUsedAt, later);
+    });
+
     test('revokes an active device once and keeps the first time', () async {
       await addOwnerAndCrew();
       await devices.insert(
         id: 'd-1',
         userId: 'u-dori',
         publicKey: _keyB,
+        deviceKey: _deviceKeyFor(_keyB),
         name: 'Dóri',
         model: 'Galaxy S23',
         now: _now,
@@ -148,6 +204,7 @@ void main() {
         id: 'd-1',
         userId: 'u-dori',
         publicKey: _keyB,
+        deviceKey: _deviceKeyFor(_keyB),
         name: 'Dóri',
         model: 'Galaxy S23',
         now: _now,

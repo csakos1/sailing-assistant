@@ -74,6 +74,7 @@ void main() {
             id: 'd-1',
             userId: 'u-akos',
             publicKey: Uint8List(0),
+            deviceKey: Uint8List(0),
             name: 'Ákos Pixel 8',
             model: 'Pixel 8',
             createdAt: DateTime.utc(2026, 10, 6, 18),

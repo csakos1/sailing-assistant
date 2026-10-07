@@ -4,12 +4,19 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:data/data.dart';
 import 'package:drift/native.dart';
+import 'package:race_archive_api/race_archive_api.dart';
+import 'package:shared/shared.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:web_server/src/auth/auth_secret.dart';
+import 'package:web_server/src/auth_db/auth_database.dart';
+import 'package:web_server/src/cli/missing_files.dart';
 import 'package:web_server/src/export/database_snapshot.dart';
 import 'package:web_server/src/export/history_exporter.dart';
 import 'package:web_server/src/export/stale_export_cleanup.dart';
 import 'package:web_server/src/export/vacuum_into.dart';
 import 'package:web_server/src/http/archive_api.dart';
+import 'package:web_server/src/http/auth/auth_api.dart';
+import 'package:web_server/src/http/auth/auth_rate_limits.dart';
 import 'package:web_server/src/http/export_handler.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
@@ -47,17 +54,38 @@ import 'package:web_server/src/web_server_version.dart';
 //   dart run web_server:server \
 //     --archive /var/lib/foretack/archive.sqlite \
 //     --web-db /var/lib/foretack/web.sqlite \
+//     --origin https://archivum.example.hu \
+//     --auth-db /var/lib/foretack/auth.sqlite \
+//     --auth-secret /var/lib/foretack/auth-secret \
 //     --polar /var/lib/foretack/foretack.pol \
 //     --stw-corrections /var/lib/foretack/stw-corrections.json
 
 const _defaultPort = 8087;
 const int _defaultMaxImportBytes = 4 * 1024 * 1024 * 1024;
 const int _jsonBodyLimitBytes = 64 * 1024;
+// A lejárt kérések, kihívások, tokenek és sessionök takarítása.
+const Duration _authHousekeepingInterval = Duration(minutes: 10);
 
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
     ..addOption('web-db', help: 'A webes adatok SQLite-fájlja (kötelező).')
+    ..addOption(
+      'origin',
+      help:
+          'A web kanonikus origója, pl. https://archivum.example.hu '
+          '(kötelező).',
+    )
+    ..addOption(
+      'auth-db',
+      help:
+          'A hitelesítés SQLite-fájlja; a create_owner_enrollment hozza '
+          'létre (kötelező).',
+    )
+    ..addOption(
+      'auth-secret',
+      help: 'A szerveroldali titok 0600-s fájlja (kötelező).',
+    )
     ..addOption(
       'host',
       help: 'A figyelt cím (D9: csak loopback).',
@@ -85,12 +113,18 @@ Future<void> main(List<String> arguments) async {
   final ArgResults options;
   final String archivePath;
   final String webDatabasePath;
+  final String origin;
+  final String authDbPath;
+  final String authSecretPath;
   final int port;
   final int maxImportBytes;
   try {
     options = parser.parse(arguments);
     archivePath = _requiredOption(options, 'archive');
     webDatabasePath = _requiredOption(options, 'web-db');
+    origin = _canonicalOrigin(_requiredOption(options, 'origin'));
+    authDbPath = _requiredOption(options, 'auth-db');
+    authSecretPath = _requiredOption(options, 'auth-secret');
     port = _positiveInt(options, 'port');
     maxImportBytes = _positiveInt(options, 'max-import-bytes');
   } on FormatException catch (error) {
@@ -99,6 +133,24 @@ Future<void> main(List<String> arguments) async {
       ..writeln(parser.usage);
     exitCode = 64;
     return;
+  }
+
+  // Hitelesítés nélküli üzemmód nincs (Addendum 3 K7): a DB-t a
+  // create_owner_enrollment hozza létre, a szerver nem.
+  final missing = missingFileLines({'auth-db': authDbPath});
+  if (missing.isNotEmpty) {
+    missing.forEach(stderr.writeln);
+    exitCode = 66;
+    return;
+  }
+  final AuthSecret authSecret;
+  switch (await loadAuthSecret(File(authSecretPath))) {
+    case Ok(:final value):
+      authSecret = value;
+    case Err(:final error):
+      stderr.writeln('--auth-secret: ${_describeSecretError(error)}');
+      exitCode = error == AuthSecretError.unreadable ? 66 : 78;
+      return;
   }
 
   // A defaultsTo miatt a host a parse után nem lehet null.
@@ -115,6 +167,15 @@ Future<void> main(List<String> arguments) async {
   );
   final webDatabase = WebDatabase(
     NativeDatabase.createInBackground(File(webDatabasePath)),
+  );
+  final authDatabase = AuthDatabase(
+    NativeDatabase.createInBackground(File(authDbPath)),
+  );
+  final auth = AuthApi.over(
+    database: authDatabase,
+    origin: origin,
+    digestRecoveryCode: authSecret.digestRecoveryCode,
+    rateLimits: AuthRateLimits.standard(),
   );
 
   final races = RaceRepositoryImpl(archive);
@@ -204,6 +265,8 @@ Future<void> main(List<String> arguments) async {
   if (staleExports > 0) _log('árva export-könyvtár törölve: $staleExports');
 
   final handler = buildArchiveApiHandler(
+    auth: auth.router,
+    requireAccess: auth.requireAccess,
     raceList: RaceListHandler(reads.summaries),
     raceDetail: RaceDetailHandler(reads.details),
     raceResult: RaceResultHandler(
@@ -269,7 +332,11 @@ Future<void> main(List<String> arguments) async {
   final server = await shelf_io.serve(handler, host, port);
   // A tömörítés a Caddy dolga (C6).
   server.autoCompress = false;
-  _log('figyel: http://$host:$port');
+  _log('figyel: http://$host:$port, origó: $origin');
+  final authHousekeeping = Timer.periodic(
+    _authHousekeepingInterval,
+    (_) => unawaited(_deleteExpiredAuthRows(auth)),
+  );
   // Egy polár- vagy konfig-csere minden sort érint: a háttérben, a zár
   // alatt frissül, a szerver közben kiszolgál (ADR 0049 Addendum 4 U6).
   final polarRefreshAll = polarRefresher?.refreshAllStale;
@@ -280,12 +347,24 @@ Future<void> main(List<String> arguments) async {
     ProcessSignal.sigterm.watch().first,
   ]);
   _log('leállás');
+  authHousekeeping.cancel();
   await server.close();
   await archive.close();
   await webDatabase.close();
+  await authDatabase.close();
 }
 
 void _log(String message) => stderr.writeln(message);
+
+// Egy takarítási hiba ne állítsa le a szervert: a következő kör újra
+// próbálja, a sorok addig is lejártak (az ellenőrzések az időt nézik).
+Future<void> _deleteExpiredAuthRows(AuthApi auth) async {
+  try {
+    await auth.deleteExpired();
+  } on Object catch (error) {
+    _log('auth-takarítás sikertelen: $error');
+  }
+}
 
 // Az args `mandatory` jelzője a hiányt nem a parse-kor, hanem csak az
 // érték olvasásakor jelezné, ArgumentError-ral. Így a hiányzó kapcsoló is
@@ -293,6 +372,20 @@ void _log(String message) => stderr.writeln(message);
 String _requiredOption(ArgResults options, String name) =>
     options.option(name) ??
     (throw FormatException('--$name: kötelező kapcsoló'));
+
+// Az app szövegesen veti össze az origót a regisztrálttal, és ez kerül az
+// aláírt üzenetekbe: csak a kanonikus alak indíthatja a szervert.
+String _canonicalOrigin(String value) =>
+    canonicalWebOrigin(value) ??
+    (throw FormatException(
+      '--origin: kanonikus origó kell (https://host[:port]), kaptam: $value',
+    ));
+
+String _describeSecretError(AuthSecretError error) => switch (error) {
+  AuthSecretError.unreadable => 'a fájl nem olvasható',
+  AuthSecretError.tooPermissive => 'a fájl másnak is olvasható; chmod 600 kell',
+  AuthSecretError.tooShort => 'legalább $minimumAuthSecretLength bájt kell',
+};
 
 int _positiveInt(ArgResults options, String name) {
   // A defaultsTo miatt az érték itt nem lehet null.

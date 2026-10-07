@@ -17,6 +17,7 @@ import 'package:web_server/src/http/archive_api.dart';
 import 'package:web_server/src/http/export_handler.dart';
 import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
+import 'package:web_server/src/http/json_response.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
 import 'package:web_server/src/http/polar_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
@@ -49,10 +50,15 @@ import '../support/archive_fixture.dart';
 
 // Handler-szintu tesztek: valodi shelf Request-ek a teljes pipeline-on at
 // (naplo, kivetelfogo, fejlec-or, router), socket nelkul, valodi
-// ideiglenes DB-kkel. A fixture versenyeinek harom pozicios mintaja SOG
-// 3, 4, 5 m/s, masodpercenkent a rajttol.
+// ideiglenes DB-kkel. A session-or itt atereszt, az auth-router egy csonk:
+// azokat a test/http/auth tesztjei probaljak. A fixture versenyeinek harom
+// pozicios mintaja SOG 3, 4, 5 m/s, masodpercenkent a rajttol.
 
 const _boundary = 'foretack-test-boundary';
+
+Handler _letEveryoneIn(Handler inner) => inner;
+
+Response _authStub(Request request) => Response(418);
 const Map<String, String> _webClient = {clientHeaderName: clientHeaderWebValue};
 
 void main() {
@@ -69,6 +75,7 @@ void main() {
     int importLimitBytes = 8 * 1024 * 1024,
     int jsonLimitBytes = 1024,
     bool hasPolar = false,
+    Middleware requireAccess = _letEveryoneIn,
   }) {
     final archive = databases.archive;
     final web = databases.web;
@@ -107,6 +114,8 @@ void main() {
       log: logLines.add,
     );
     return buildArchiveApiHandler(
+      auth: _authStub,
+      requireAccess: requireAccess,
       raceList: RaceListHandler(
         RaceSummaryService(
           races: races,
@@ -523,6 +532,47 @@ void main() {
       expect(response.statusCode, 403);
       expect(await errorOf(response), const MissingClientHeader());
       expect(await RaceResultRepository(databases.web).get('r1'), isNull);
+    });
+  });
+
+  group('auth dispatch and access', () {
+    test('hands the auth paths to the auth handler', () async {
+      final response = await send(
+        'POST',
+        loginRequestsPath,
+        headers: {clientHeaderName: clientHeaderPhoneValue},
+      );
+
+      expect(response.statusCode, 418);
+    });
+
+    test('guards the auth paths with the client header too', () async {
+      final response = await send('POST', loginRequestsPath);
+
+      expect(response.statusCode, 403);
+      expect(await errorOf(response), const MissingClientHeader());
+    });
+
+    test('accepts the phone value of the client header', () async {
+      final response = await send(
+        'PUT',
+        raceResultPath('r1'),
+        body: jsonEncode({'overallPlace': 3}),
+        headers: {clientHeaderName: clientHeaderPhoneValue},
+      );
+
+      expect(response.statusCode, 404);
+    });
+
+    test('puts the archive behind the access guard', () async {
+      handler = buildHandler(
+        requireAccess: (_) =>
+            (_) => apiErrorResponse(const NotAuthenticated()),
+      );
+
+      final response = await send('GET', racesPath);
+
+      expect(response.statusCode, 401);
     });
   });
 

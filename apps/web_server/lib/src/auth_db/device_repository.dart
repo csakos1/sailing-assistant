@@ -17,12 +17,14 @@ class DeviceRepository {
 
   /// Új eszköz; a visszaolvasott rekord.
   ///
-  /// A [publicKey] egy már ellenőrzött P-256 SubjectPublicKeyInfo; ha már
-  /// egy másik eszközé, a DB egyedi megszorítása hibát dob.
+  /// A [publicKey] és a [deviceKey] már ellenőrzött P-256
+  /// SubjectPublicKeyInfo; ha valamelyik már egy másik eszközé, a DB egyedi
+  /// megszorítása hibát dob (a hívó előbb az [isAnyKeyInUse]-t nézi).
   Future<AuthDevice> insert({
     required String id,
     required String userId,
     required Uint8List publicKey,
+    required Uint8List deviceKey,
     required String name,
     required String model,
     required DateTime now,
@@ -34,6 +36,7 @@ class DeviceRepository {
             id: id,
             userId: userId,
             publicKey: publicKey,
+            deviceKey: deviceKey,
             name: name,
             model: model,
             createdAtMs: toEpochMillis(now),
@@ -48,6 +51,29 @@ class DeviceRepository {
       ..where((row) => row.id.equals(id));
     final row = await query.getSingleOrNull();
     return row == null ? null : _toDevice(row);
+  }
+
+  /// Szerepel-e a [keys] bármelyike bármely eszköz bármelyik kulcsaként.
+  ///
+  /// Egy kulcs csak egyszer lehet a rendszerben, akár aláíró, akár
+  /// eszközkulcsként: így egy eszköz kulcsa sem csempészhető be egy
+  /// másikéként.
+  Future<bool> isAnyKeyInUse(List<Uint8List> keys) async {
+    final query = _database.selectOnly(_database.devices)
+      ..addColumns([_database.devices.id])
+      ..where(
+        _database.devices.publicKey.isIn(keys) |
+            _database.devices.deviceKey.isIn(keys),
+      )
+      ..limit(1);
+    return (await query.get()).isNotEmpty;
+  }
+
+  /// Az [id] eszköz utolsó használatának rögzítése (Addendum 3 K3).
+  Future<void> markUsed(String id, {required DateTime now}) async {
+    await (_database.update(_database.devices)
+          ..where((row) => row.id.equals(id)))
+        .write(DevicesCompanion(lastUsedAtMs: Value(toEpochMillis(now))));
   }
 
   /// Minden eszköz a fiókjával, fióknév és regisztrációs idő szerint.
@@ -87,6 +113,7 @@ class DeviceRepository {
     id: row.id,
     userId: row.userId,
     publicKey: row.publicKey,
+    deviceKey: row.deviceKey,
     name: row.name,
     model: row.model,
     createdAt: fromEpochMillis(row.createdAtMs),

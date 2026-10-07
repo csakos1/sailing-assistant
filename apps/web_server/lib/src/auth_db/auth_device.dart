@@ -9,6 +9,7 @@ final class AuthDevice extends Equatable {
     required this.id,
     required this.userId,
     required this.publicKey,
+    required this.deviceKey,
     required this.name,
     required this.model,
     required this.createdAt,
@@ -22,8 +23,12 @@ final class AuthDevice extends Equatable {
   /// A fiók, amelyhez tartozik.
   final String userId;
 
-  /// A nyilvános kulcs SubjectPublicKeyInfo DER-je.
+  /// Az aláíró kulcs SubjectPublicKeyInfo DER-je (ujjlenyomattal ír alá).
   final Uint8List publicKey;
+
+  /// A csendes eszközkulcs SubjectPublicKeyInfo DER-je (az eszköz-tokenhez,
+  /// Addendum 3 K1).
+  final Uint8List deviceKey;
 
   /// A megjelenítendő név (pl. „Ákos Pixel 8”).
   final String name;
@@ -48,6 +53,7 @@ final class AuthDevice extends Equatable {
     id,
     userId,
     publicKey,
+    deviceKey,
     name,
     model,
     createdAt,
