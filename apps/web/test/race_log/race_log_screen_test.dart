@@ -13,6 +13,7 @@ import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A teljes webes app a naplo-kepernyovel, valodi kliens-kodekkel es egy
 // MockClient-tel a szerver helyen.
@@ -32,6 +33,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient(handler),

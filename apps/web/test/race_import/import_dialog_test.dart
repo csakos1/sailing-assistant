@@ -20,6 +20,7 @@ import 'package:shared/shared.dart';
 
 import '../support/fake_import.dart';
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A feltoltes-dialogus a teljes appon at: naplo -> Feltoltes gomb. A
 // valaszto es a feltolto fake, a naplot egy MockClient szolgalja ki.
@@ -39,6 +40,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient((request) async {

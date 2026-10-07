@@ -12,6 +12,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 
 import '../polar/polar_fixtures.dart';
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A Statisztika-kepernyo polar-szakaszai a teljes appon at (ADR 0049
 // Addendum 5): a MockClient utvonalankent valaszol, a polar-vegpontok
@@ -48,6 +49,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient((request) {

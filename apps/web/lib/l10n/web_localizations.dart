@@ -1695,6 +1695,138 @@ abstract class WebLocalizations {
   /// In hu, this message translates to:
   /// **'100% FELETT'**
   String get polarDetailAbove100Caps;
+
+  /// A belépő képernyő felirata a cím fölött (17a, verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'FORETACK'**
+  String get signInBrandCaps;
+
+  /// A belépő képernyő címe (17a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Lola versenyarchívum'**
+  String get signInTitle;
+
+  /// Halk sor a belépő képernyőn, ha munka közben járt le a belépés (ADR 0051 Addendum 7 P1).
+  ///
+  /// In hu, this message translates to:
+  /// **'A belépés lejárt'**
+  String get signInExpired;
+
+  /// A QR-kód alatti felszólítás (17a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a Foretack appal'**
+  String get signInScanPrompt;
+
+  /// A QR-kép képernyőolvasó-címkéje (P6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépési QR-kód'**
+  String get signInQrLabel;
+
+  /// A beolvasott QR helyén álló doboz szövege (17c).
+  ///
+  /// In hu, this message translates to:
+  /// **'Erősítsd meg a telefonodon'**
+  String get signInConfirmOnPhone;
+
+  /// A csatlakozási kérelem dobozának felirata (17d-1, verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉRELEM ELKÜLDVE'**
+  String get signInJoinSentCaps;
+
+  /// A csatlakozási kérelem dobozának szövege (17d-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'A tulajdonos jóváhagyására vár'**
+  String get signInJoinAwaitingOwner;
+
+  /// A felirat helyén, ha a megnyitott vagy csatlakozó kérés lejárt (17d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Lejárt — olvasd be újra'**
+  String get signInQrExpired;
+
+  /// A szerver nem érhető el (belépő képernyő, induló kapu).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs kapcsolat a szerverrel'**
+  String get signInOffline;
+
+  /// Link vissza a QR-belépéshez (17c, 17d-1, 17e).
+  ///
+  /// In hu, this message translates to:
+  /// **'Vissza a QR-kódhoz'**
+  String get signInBackToQr;
+
+  /// Link a tartalék belépéshez (17a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés jelszóval vagy helyreállító kóddal'**
+  String get signInUseFallback;
+
+  /// A tartalék mező címkéje (17e-1, verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'JELSZÓ VAGY HELYREÁLLÍTÓ KÓD'**
+  String get signInFallbackLabelCaps;
+
+  /// A tartalék űrlap gombja (17e-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés'**
+  String get signInSubmit;
+
+  /// A hibás tartalék próba semleges szövege (17e-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült belépni'**
+  String get signInRejected;
+
+  /// A túl sok próbálkozás utáni várakozás (17e-3); a perc száma mono betűvel jelenik meg.
+  ///
+  /// In hu, this message translates to:
+  /// **'Próbáld újra {minutes} perc múlva'**
+  String signInRetryInMinutes(int minutes);
+
+  /// A név-menü gombjának tooltipje (17f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get accountMenuTooltip;
+
+  /// A tulajdonos szerepe a név-menüben (17f-1, verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'TULAJDONOS'**
+  String get accountRoleOwnerCaps;
+
+  /// A legénység szerepe a név-menüben (17f-2, verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'LEGÉNYSÉG'**
+  String get accountRoleCrewCaps;
+
+  /// A név-menü kijelentkezés-sora (17f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kijelentkezés'**
+  String get accountSignOut;
+
+  /// Snackbar, ha a kijelentkezés nem érte el a szervert; a web belépve marad.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült kijelentkezni. Próbáld újra.'**
+  String get accountSignOutFailed;
+
+  /// Az üres archívum szövege a legénységnek, feltöltésre hívás nélkül.
+  ///
+  /// In hu, this message translates to:
+  /// **'Még nincs verseny az archívumban.'**
+  String get logEmptyCrew;
 }
 
 class _WebLocalizationsDelegate

@@ -1181,5 +1181,98 @@
   "polarDetailAbove100Caps": "100% FELETT",
   "@polarDetailAbove100Caps": {
     "description": "A részletező cellája: a 100% fölötti idő aránya."
+  },
+  "signInBrandCaps": "FORETACK",
+  "@signInBrandCaps": {
+    "description": "A belépő képernyő felirata a cím fölött (17a, verzál)."
+  },
+  "signInTitle": "Lola versenyarchívum",
+  "@signInTitle": {
+    "description": "A belépő képernyő címe (17a)."
+  },
+  "signInExpired": "A belépés lejárt",
+  "@signInExpired": {
+    "description": "Halk sor a belépő képernyőn, ha munka közben járt le a belépés (ADR 0051 Addendum 7 P1)."
+  },
+  "signInScanPrompt": "Olvasd be a Foretack appal",
+  "@signInScanPrompt": {
+    "description": "A QR-kód alatti felszólítás (17a)."
+  },
+  "signInQrLabel": "Belépési QR-kód",
+  "@signInQrLabel": {
+    "description": "A QR-kép képernyőolvasó-címkéje (P6)."
+  },
+  "signInConfirmOnPhone": "Erősítsd meg a telefonodon",
+  "@signInConfirmOnPhone": {
+    "description": "A beolvasott QR helyén álló doboz szövege (17c)."
+  },
+  "signInJoinSentCaps": "KÉRELEM ELKÜLDVE",
+  "@signInJoinSentCaps": {
+    "description": "A csatlakozási kérelem dobozának felirata (17d-1, verzál)."
+  },
+  "signInJoinAwaitingOwner": "A tulajdonos jóváhagyására vár",
+  "@signInJoinAwaitingOwner": {
+    "description": "A csatlakozási kérelem dobozának szövege (17d-1)."
+  },
+  "signInQrExpired": "Lejárt — olvasd be újra",
+  "@signInQrExpired": {
+    "description": "A felirat helyén, ha a megnyitott vagy csatlakozó kérés lejárt (17d-2)."
+  },
+  "signInOffline": "Nincs kapcsolat a szerverrel",
+  "@signInOffline": {
+    "description": "A szerver nem érhető el (belépő képernyő, induló kapu)."
+  },
+  "signInBackToQr": "Vissza a QR-kódhoz",
+  "@signInBackToQr": {
+    "description": "Link vissza a QR-belépéshez (17c, 17d-1, 17e)."
+  },
+  "signInUseFallback": "Belépés jelszóval vagy helyreállító kóddal",
+  "@signInUseFallback": {
+    "description": "Link a tartalék belépéshez (17a)."
+  },
+  "signInFallbackLabelCaps": "JELSZÓ VAGY HELYREÁLLÍTÓ KÓD",
+  "@signInFallbackLabelCaps": {
+    "description": "A tartalék mező címkéje (17e-1, verzál)."
+  },
+  "signInSubmit": "Belépés",
+  "@signInSubmit": {
+    "description": "A tartalék űrlap gombja (17e-1)."
+  },
+  "signInRejected": "Nem sikerült belépni",
+  "@signInRejected": {
+    "description": "A hibás tartalék próba semleges szövege (17e-2)."
+  },
+  "signInRetryInMinutes": "Próbáld újra {minutes} perc múlva",
+  "@signInRetryInMinutes": {
+    "description": "A túl sok próbálkozás utáni várakozás (17e-3); a perc száma mono betűvel jelenik meg.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMenuTooltip": "Fiók",
+  "@accountMenuTooltip": {
+    "description": "A név-menü gombjának tooltipje (17f)."
+  },
+  "accountRoleOwnerCaps": "TULAJDONOS",
+  "@accountRoleOwnerCaps": {
+    "description": "A tulajdonos szerepe a név-menüben (17f-1, verzál)."
+  },
+  "accountRoleCrewCaps": "LEGÉNYSÉG",
+  "@accountRoleCrewCaps": {
+    "description": "A legénység szerepe a név-menüben (17f-2, verzál)."
+  },
+  "accountSignOut": "Kijelentkezés",
+  "@accountSignOut": {
+    "description": "A név-menü kijelentkezés-sora (17f)."
+  },
+  "accountSignOutFailed": "Nem sikerült kijelentkezni. Próbáld újra.",
+  "@accountSignOutFailed": {
+    "description": "Snackbar, ha a kijelentkezés nem érte el a szervert; a web belépve marad."
+  },
+  "logEmptyCrew": "Még nincs verseny az archívumban.",
+  "@logEmptyCrew": {
+    "description": "Az üres archívum szövege a legénységnek, feltöltésre hívás nélkül."
   }
 }

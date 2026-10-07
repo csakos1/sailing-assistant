@@ -878,4 +878,73 @@ class WebLocalizationsHu extends WebLocalizations {
 
   @override
   String get polarDetailAbove100Caps => '100% FELETT';
+
+  @override
+  String get signInBrandCaps => 'FORETACK';
+
+  @override
+  String get signInTitle => 'Lola versenyarchívum';
+
+  @override
+  String get signInExpired => 'A belépés lejárt';
+
+  @override
+  String get signInScanPrompt => 'Olvasd be a Foretack appal';
+
+  @override
+  String get signInQrLabel => 'Belépési QR-kód';
+
+  @override
+  String get signInConfirmOnPhone => 'Erősítsd meg a telefonodon';
+
+  @override
+  String get signInJoinSentCaps => 'KÉRELEM ELKÜLDVE';
+
+  @override
+  String get signInJoinAwaitingOwner => 'A tulajdonos jóváhagyására vár';
+
+  @override
+  String get signInQrExpired => 'Lejárt — olvasd be újra';
+
+  @override
+  String get signInOffline => 'Nincs kapcsolat a szerverrel';
+
+  @override
+  String get signInBackToQr => 'Vissza a QR-kódhoz';
+
+  @override
+  String get signInUseFallback => 'Belépés jelszóval vagy helyreállító kóddal';
+
+  @override
+  String get signInFallbackLabelCaps => 'JELSZÓ VAGY HELYREÁLLÍTÓ KÓD';
+
+  @override
+  String get signInSubmit => 'Belépés';
+
+  @override
+  String get signInRejected => 'Nem sikerült belépni';
+
+  @override
+  String signInRetryInMinutes(int minutes) {
+    return 'Próbáld újra $minutes perc múlva';
+  }
+
+  @override
+  String get accountMenuTooltip => 'Fiók';
+
+  @override
+  String get accountRoleOwnerCaps => 'TULAJDONOS';
+
+  @override
+  String get accountRoleCrewCaps => 'LEGÉNYSÉG';
+
+  @override
+  String get accountSignOut => 'Kijelentkezés';
+
+  @override
+  String get accountSignOutFailed =>
+      'Nem sikerült kijelentkezni. Próbáld újra.';
+
+  @override
+  String get logEmptyCrew => 'Még nincs verseny az archívumban.';
 }

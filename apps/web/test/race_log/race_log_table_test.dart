@@ -15,6 +15,7 @@ import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A teljes webes app a Tablazat nezettel, MockClient-tel a szerver helyen.
 // A nezet 3200 px szeles: a teszt-betu minden jele egy em szeles, igy a
@@ -52,6 +53,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient((request) async {

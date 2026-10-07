@@ -14,6 +14,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 
 import '../polar/polar_fixtures.dart';
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A naplobol nyitott reszletezo a teljes appon at, MockClient-tel. A
 // telemetrias verseny trackje szandekosan ures: igy a TrackMap nem kezd
@@ -75,6 +76,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient((request) {

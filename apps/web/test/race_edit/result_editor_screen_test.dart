@@ -15,6 +15,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // Az eredmeny-szerkeszto a teljes appon at: naplo -> reszletezo -> ceruza.
 // A szerver egy MockClient, amely a mentett eredmenyt a kovetkezo
@@ -93,6 +94,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient(answer),

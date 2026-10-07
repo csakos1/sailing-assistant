@@ -13,6 +13,7 @@ import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 
 // A kezi verseny szerkesztoje a teljes appon at: letrehozas a naplobol,
 // torles a reszletezobol. A szerver egy MockClient, amely a kereseket
@@ -58,6 +59,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               MockClient(answer),

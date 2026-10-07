@@ -12,6 +12,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 
 import '../polar/polar_fixtures.dart';
 import '../support/sample_summaries.dart';
+import '../support/signed_in_session.dart';
 import 'season_fixtures.dart';
 
 // A teljes webes app: a naplobol nyitott Statisztika-kepernyo, valodi
@@ -64,6 +65,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          signedInSession(),
           archiveApiClientProvider.overrideWithValue(
             ArchiveApiClient(
               // A polar-szakaszok sajat teszte a season_polar_test; itt a
