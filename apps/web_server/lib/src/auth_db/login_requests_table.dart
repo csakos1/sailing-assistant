@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:web_server/src/auth_db/devices_table.dart';
+import 'package:web_server/src/auth_db/join_requests_table.dart';
 import 'package:web_server/src/auth_db/users_table.dart';
 
 /// A QR-belépési kérések (ADR 0051 D4, Addendum 3 K5).
@@ -8,7 +9,8 @@ import 'package:web_server/src/auth_db/users_table.dart';
 /// ebből rakja össze; 60 mp-ig él, és a QR-ban amúgy is nyilvános. A
 /// kötő-tokennek csak a hash-e van itt. A böngésző IP-je, böngészője és
 /// OS-e a kérés nyitásakor rögzül; a jóváhagyó fiók, eszköz és IP a
-/// jóváhagyáskor. A beváltott kérés sora törlődik.
+/// jóváhagyáskor. A beváltott kérés sora törlődik. Csatlakozáskor a kérés
+/// `joinPending` lesz, és a kérelemre mutat (Addendum 5 M5).
 ///
 /// Row-class: `LoginRequestRow`.
 @DataClassName('LoginRequestRow')
@@ -33,12 +35,17 @@ class LoginRequests extends Table {
     onDelete: KeyAction.cascade,
   )();
   TextColumn get phoneIp => text().nullable()();
+  TextColumn get joinRequestId => text().nullable().references(
+    JoinRequests,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 
   @override
   Set<Column> get primaryKey => {id};
 
   @override
   List<String> get customConstraints => [
-    "CHECK (state IN ('pending', 'opened', 'approved'))",
+    "CHECK (state IN ('pending', 'opened', 'joinPending', 'approved'))",
   ];
 }

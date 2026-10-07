@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:web_server/src/auth/cli/describe_devices.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
+import 'package:web_server/src/auth_db/device_revocation.dart';
 import 'package:web_server/src/cli/missing_files.dart';
 
 // Egy eszköz visszavonása a VPS-en (ADR 0051 D3), például egy elveszett
@@ -49,7 +50,9 @@ Future<void> main(List<String> arguments) async {
       return;
     }
     final now = DateTime.now().toUtc();
-    if (await devices.revoke(deviceId, now: now)) {
+    // A munkamenetei és a tokenjei is lezárulnak (ADR 0051 Addendum 5 M7).
+    final revoke = deviceRevokerOver(authDatabase);
+    if (await revoke(deviceId, now: now)) {
       stdout.writeln('Visszavonva: $deviceId');
     } else {
       stderr.writeln('Nincs ilyen aktív eszköz: $deviceId');

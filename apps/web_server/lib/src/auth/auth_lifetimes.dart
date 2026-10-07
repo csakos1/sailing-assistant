@@ -1,5 +1,5 @@
 // A hitelesítés időzítései egy helyen (ADR 0051 D3, D4, D5, Addendum 1
-// H2, Addendum 3 K2, K3, K5).
+// H2, Addendum 3 K2, K3, K5, Addendum 5 M2–M5).
 
 /// A belépési kérés élete a nyitástól, illetve egy telefon megnyitása
 /// vagy jóváhagyása után.
@@ -22,3 +22,13 @@ const Duration sessionMaximumLifetime = Duration(days: 90);
 
 /// A session aktivitása legfeljebb ilyen gyakran íródik a DB-be.
 const Duration sessionTouchInterval = Duration(hours: 1);
+
+/// Egy csatlakozási kérelem élete (ADR 0051 D3), döntés után is: a
+/// telefon a jóváhagyást eddig kérdezheti le (Addendum 5 M4).
+const Duration joinRequestLifetime = Duration(hours: 24);
+
+/// A böngésző ennyit vár egy csatlakozási kérelemre (`joinPending`, D3).
+const Duration joinPendingLoginLifetime = Duration(minutes: 10);
+
+/// Az ujjlenyomatos művelet kihívásának élete (Addendum 5 M2).
+const Duration actionChallengeLifetime = Duration(seconds: 60);

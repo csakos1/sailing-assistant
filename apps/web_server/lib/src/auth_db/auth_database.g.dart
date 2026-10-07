@@ -1468,6 +1468,17 @@ class $ChallengesTable extends Challenges
       'REFERENCES devices (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _purposeMeta = const VerificationMeta(
+    'purpose',
+  );
+  @override
+  late final GeneratedColumn<String> purpose = GeneratedColumn<String>(
+    'purpose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _expiresAtMsMeta = const VerificationMeta(
     'expiresAtMs',
   );
@@ -1480,7 +1491,12 @@ class $ChallengesTable extends Challenges
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [digest, deviceId, expiresAtMs];
+  List<GeneratedColumn> get $columns => [
+    digest,
+    deviceId,
+    purpose,
+    expiresAtMs,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1508,6 +1524,14 @@ class $ChallengesTable extends Challenges
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('purpose')) {
+      context.handle(
+        _purposeMeta,
+        purpose.isAcceptableOrUnknown(data['purpose']!, _purposeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_purposeMeta);
     }
     if (data.containsKey('expires_at_ms')) {
       context.handle(
@@ -1537,6 +1561,10 @@ class $ChallengesTable extends Challenges
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      purpose: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}purpose'],
+      )!,
       expiresAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}expires_at_ms'],
@@ -1553,10 +1581,12 @@ class $ChallengesTable extends Challenges
 class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
   final Uint8List digest;
   final String deviceId;
+  final String purpose;
   final int expiresAtMs;
   const ChallengeRow({
     required this.digest,
     required this.deviceId,
+    required this.purpose,
     required this.expiresAtMs,
   });
   @override
@@ -1564,6 +1594,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     final map = <String, Expression>{};
     map['digest'] = Variable<Uint8List>(digest);
     map['device_id'] = Variable<String>(deviceId);
+    map['purpose'] = Variable<String>(purpose);
     map['expires_at_ms'] = Variable<int>(expiresAtMs);
     return map;
   }
@@ -1572,6 +1603,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     return ChallengesCompanion(
       digest: Value(digest),
       deviceId: Value(deviceId),
+      purpose: Value(purpose),
       expiresAtMs: Value(expiresAtMs),
     );
   }
@@ -1584,6 +1616,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     return ChallengeRow(
       digest: serializer.fromJson<Uint8List>(json['digest']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      purpose: serializer.fromJson<String>(json['purpose']),
       expiresAtMs: serializer.fromJson<int>(json['expiresAtMs']),
     );
   }
@@ -1593,6 +1626,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     return <String, dynamic>{
       'digest': serializer.toJson<Uint8List>(digest),
       'deviceId': serializer.toJson<String>(deviceId),
+      'purpose': serializer.toJson<String>(purpose),
       'expiresAtMs': serializer.toJson<int>(expiresAtMs),
     };
   }
@@ -1600,16 +1634,19 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
   ChallengeRow copyWith({
     Uint8List? digest,
     String? deviceId,
+    String? purpose,
     int? expiresAtMs,
   }) => ChallengeRow(
     digest: digest ?? this.digest,
     deviceId: deviceId ?? this.deviceId,
+    purpose: purpose ?? this.purpose,
     expiresAtMs: expiresAtMs ?? this.expiresAtMs,
   );
   ChallengeRow copyWithCompanion(ChallengesCompanion data) {
     return ChallengeRow(
       digest: data.digest.present ? data.digest.value : this.digest,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      purpose: data.purpose.present ? data.purpose.value : this.purpose,
       expiresAtMs: data.expiresAtMs.present
           ? data.expiresAtMs.value
           : this.expiresAtMs,
@@ -1621,51 +1658,63 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     return (StringBuffer('ChallengeRow(')
           ..write('digest: $digest, ')
           ..write('deviceId: $deviceId, ')
+          ..write('purpose: $purpose, ')
           ..write('expiresAtMs: $expiresAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash($driftBlobEquality.hash(digest), deviceId, expiresAtMs);
+  int get hashCode => Object.hash(
+    $driftBlobEquality.hash(digest),
+    deviceId,
+    purpose,
+    expiresAtMs,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ChallengeRow &&
           $driftBlobEquality.equals(other.digest, this.digest) &&
           other.deviceId == this.deviceId &&
+          other.purpose == this.purpose &&
           other.expiresAtMs == this.expiresAtMs);
 }
 
 class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
   final Value<Uint8List> digest;
   final Value<String> deviceId;
+  final Value<String> purpose;
   final Value<int> expiresAtMs;
   final Value<int> rowid;
   const ChallengesCompanion({
     this.digest = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.purpose = const Value.absent(),
     this.expiresAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ChallengesCompanion.insert({
     required Uint8List digest,
     required String deviceId,
+    required String purpose,
     required int expiresAtMs,
     this.rowid = const Value.absent(),
   }) : digest = Value(digest),
        deviceId = Value(deviceId),
+       purpose = Value(purpose),
        expiresAtMs = Value(expiresAtMs);
   static Insertable<ChallengeRow> custom({
     Expression<Uint8List>? digest,
     Expression<String>? deviceId,
+    Expression<String>? purpose,
     Expression<int>? expiresAtMs,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (digest != null) 'digest': digest,
       if (deviceId != null) 'device_id': deviceId,
+      if (purpose != null) 'purpose': purpose,
       if (expiresAtMs != null) 'expires_at_ms': expiresAtMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1674,12 +1723,14 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
   ChallengesCompanion copyWith({
     Value<Uint8List>? digest,
     Value<String>? deviceId,
+    Value<String>? purpose,
     Value<int>? expiresAtMs,
     Value<int>? rowid,
   }) {
     return ChallengesCompanion(
       digest: digest ?? this.digest,
       deviceId: deviceId ?? this.deviceId,
+      purpose: purpose ?? this.purpose,
       expiresAtMs: expiresAtMs ?? this.expiresAtMs,
       rowid: rowid ?? this.rowid,
     );
@@ -1693,6 +1744,9 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (purpose.present) {
+      map['purpose'] = Variable<String>(purpose.value);
     }
     if (expiresAtMs.present) {
       map['expires_at_ms'] = Variable<int>(expiresAtMs.value);
@@ -1708,6 +1762,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     return (StringBuffer('ChallengesCompanion(')
           ..write('digest: $digest, ')
           ..write('deviceId: $deviceId, ')
+          ..write('purpose: $purpose, ')
           ..write('expiresAtMs: $expiresAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2703,6 +2758,865 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
   }
 }
 
+class $JoinRequestsTable extends JoinRequests
+    with TableInfo<$JoinRequestsTable, JoinRequestRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $JoinRequestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusDigestMeta = const VerificationMeta(
+    'statusDigest',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> statusDigest =
+      GeneratedColumn<Uint8List>(
+        'status_digest',
+        aliasedName,
+        false,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceNameMeta = const VerificationMeta(
+    'deviceName',
+  );
+  @override
+  late final GeneratedColumn<String> deviceName = GeneratedColumn<String>(
+    'device_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _publicKeyMeta = const VerificationMeta(
+    'publicKey',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> publicKey = GeneratedColumn<Uint8List>(
+    'public_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceKeyMeta = const VerificationMeta(
+    'deviceKey',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> deviceKey = GeneratedColumn<Uint8List>(
+    'device_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ipMeta = const VerificationMeta('ip');
+  @override
+  late final GeneratedColumn<String> ip = GeneratedColumn<String>(
+    'ip',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+    'city',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMsMeta = const VerificationMeta(
+    'expiresAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> expiresAtMs = GeneratedColumn<int>(
+    'expires_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES devices (id) ON DELETE SET NULL',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    statusDigest,
+    name,
+    deviceName,
+    model,
+    publicKey,
+    deviceKey,
+    ip,
+    country,
+    city,
+    createdAtMs,
+    expiresAtMs,
+    state,
+    userId,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'join_requests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<JoinRequestRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('status_digest')) {
+      context.handle(
+        _statusDigestMeta,
+        statusDigest.isAcceptableOrUnknown(
+          data['status_digest']!,
+          _statusDigestMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_statusDigestMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('device_name')) {
+      context.handle(
+        _deviceNameMeta,
+        deviceName.isAcceptableOrUnknown(data['device_name']!, _deviceNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceNameMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('public_key')) {
+      context.handle(
+        _publicKeyMeta,
+        publicKey.isAcceptableOrUnknown(data['public_key']!, _publicKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_publicKeyMeta);
+    }
+    if (data.containsKey('device_key')) {
+      context.handle(
+        _deviceKeyMeta,
+        deviceKey.isAcceptableOrUnknown(data['device_key']!, _deviceKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceKeyMeta);
+    }
+    if (data.containsKey('ip')) {
+      context.handle(_ipMeta, ip.isAcceptableOrUnknown(data['ip']!, _ipMeta));
+    } else if (isInserting) {
+      context.missing(_ipMeta);
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+        _cityMeta,
+        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+      );
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('expires_at_ms')) {
+      context.handle(
+        _expiresAtMsMeta,
+        expiresAtMs.isAcceptableOrUnknown(
+          data['expires_at_ms']!,
+          _expiresAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMsMeta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  JoinRequestRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JoinRequestRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      statusDigest: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}status_digest'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      deviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_name'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      publicKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}public_key'],
+      )!,
+      deviceKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}device_key'],
+      )!,
+      ip: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ip'],
+      )!,
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      city: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city'],
+      ),
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      expiresAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}expires_at_ms'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+    );
+  }
+
+  @override
+  $JoinRequestsTable createAlias(String alias) {
+    return $JoinRequestsTable(attachedDatabase, alias);
+  }
+}
+
+class JoinRequestRow extends DataClass implements Insertable<JoinRequestRow> {
+  final String id;
+  final Uint8List statusDigest;
+  final String name;
+  final String deviceName;
+  final String model;
+  final Uint8List publicKey;
+  final Uint8List deviceKey;
+  final String ip;
+  final String? country;
+  final String? city;
+  final int createdAtMs;
+  final int expiresAtMs;
+  final String state;
+  final String? userId;
+  final String? deviceId;
+  const JoinRequestRow({
+    required this.id,
+    required this.statusDigest,
+    required this.name,
+    required this.deviceName,
+    required this.model,
+    required this.publicKey,
+    required this.deviceKey,
+    required this.ip,
+    this.country,
+    this.city,
+    required this.createdAtMs,
+    required this.expiresAtMs,
+    required this.state,
+    this.userId,
+    this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['status_digest'] = Variable<Uint8List>(statusDigest);
+    map['name'] = Variable<String>(name);
+    map['device_name'] = Variable<String>(deviceName);
+    map['model'] = Variable<String>(model);
+    map['public_key'] = Variable<Uint8List>(publicKey);
+    map['device_key'] = Variable<Uint8List>(deviceKey);
+    map['ip'] = Variable<String>(ip);
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || city != null) {
+      map['city'] = Variable<String>(city);
+    }
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['expires_at_ms'] = Variable<int>(expiresAtMs);
+    map['state'] = Variable<String>(state);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    return map;
+  }
+
+  JoinRequestsCompanion toCompanion(bool nullToAbsent) {
+    return JoinRequestsCompanion(
+      id: Value(id),
+      statusDigest: Value(statusDigest),
+      name: Value(name),
+      deviceName: Value(deviceName),
+      model: Value(model),
+      publicKey: Value(publicKey),
+      deviceKey: Value(deviceKey),
+      ip: Value(ip),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      createdAtMs: Value(createdAtMs),
+      expiresAtMs: Value(expiresAtMs),
+      state: Value(state),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+    );
+  }
+
+  factory JoinRequestRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JoinRequestRow(
+      id: serializer.fromJson<String>(json['id']),
+      statusDigest: serializer.fromJson<Uint8List>(json['statusDigest']),
+      name: serializer.fromJson<String>(json['name']),
+      deviceName: serializer.fromJson<String>(json['deviceName']),
+      model: serializer.fromJson<String>(json['model']),
+      publicKey: serializer.fromJson<Uint8List>(json['publicKey']),
+      deviceKey: serializer.fromJson<Uint8List>(json['deviceKey']),
+      ip: serializer.fromJson<String>(json['ip']),
+      country: serializer.fromJson<String?>(json['country']),
+      city: serializer.fromJson<String?>(json['city']),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+      expiresAtMs: serializer.fromJson<int>(json['expiresAtMs']),
+      state: serializer.fromJson<String>(json['state']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'statusDigest': serializer.toJson<Uint8List>(statusDigest),
+      'name': serializer.toJson<String>(name),
+      'deviceName': serializer.toJson<String>(deviceName),
+      'model': serializer.toJson<String>(model),
+      'publicKey': serializer.toJson<Uint8List>(publicKey),
+      'deviceKey': serializer.toJson<Uint8List>(deviceKey),
+      'ip': serializer.toJson<String>(ip),
+      'country': serializer.toJson<String?>(country),
+      'city': serializer.toJson<String?>(city),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+      'expiresAtMs': serializer.toJson<int>(expiresAtMs),
+      'state': serializer.toJson<String>(state),
+      'userId': serializer.toJson<String?>(userId),
+      'deviceId': serializer.toJson<String?>(deviceId),
+    };
+  }
+
+  JoinRequestRow copyWith({
+    String? id,
+    Uint8List? statusDigest,
+    String? name,
+    String? deviceName,
+    String? model,
+    Uint8List? publicKey,
+    Uint8List? deviceKey,
+    String? ip,
+    Value<String?> country = const Value.absent(),
+    Value<String?> city = const Value.absent(),
+    int? createdAtMs,
+    int? expiresAtMs,
+    String? state,
+    Value<String?> userId = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+  }) => JoinRequestRow(
+    id: id ?? this.id,
+    statusDigest: statusDigest ?? this.statusDigest,
+    name: name ?? this.name,
+    deviceName: deviceName ?? this.deviceName,
+    model: model ?? this.model,
+    publicKey: publicKey ?? this.publicKey,
+    deviceKey: deviceKey ?? this.deviceKey,
+    ip: ip ?? this.ip,
+    country: country.present ? country.value : this.country,
+    city: city.present ? city.value : this.city,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    expiresAtMs: expiresAtMs ?? this.expiresAtMs,
+    state: state ?? this.state,
+    userId: userId.present ? userId.value : this.userId,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+  );
+  JoinRequestRow copyWithCompanion(JoinRequestsCompanion data) {
+    return JoinRequestRow(
+      id: data.id.present ? data.id.value : this.id,
+      statusDigest: data.statusDigest.present
+          ? data.statusDigest.value
+          : this.statusDigest,
+      name: data.name.present ? data.name.value : this.name,
+      deviceName: data.deviceName.present
+          ? data.deviceName.value
+          : this.deviceName,
+      model: data.model.present ? data.model.value : this.model,
+      publicKey: data.publicKey.present ? data.publicKey.value : this.publicKey,
+      deviceKey: data.deviceKey.present ? data.deviceKey.value : this.deviceKey,
+      ip: data.ip.present ? data.ip.value : this.ip,
+      country: data.country.present ? data.country.value : this.country,
+      city: data.city.present ? data.city.value : this.city,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      expiresAtMs: data.expiresAtMs.present
+          ? data.expiresAtMs.value
+          : this.expiresAtMs,
+      state: data.state.present ? data.state.value : this.state,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JoinRequestRow(')
+          ..write('id: $id, ')
+          ..write('statusDigest: $statusDigest, ')
+          ..write('name: $name, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('model: $model, ')
+          ..write('publicKey: $publicKey, ')
+          ..write('deviceKey: $deviceKey, ')
+          ..write('ip: $ip, ')
+          ..write('country: $country, ')
+          ..write('city: $city, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('expiresAtMs: $expiresAtMs, ')
+          ..write('state: $state, ')
+          ..write('userId: $userId, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    $driftBlobEquality.hash(statusDigest),
+    name,
+    deviceName,
+    model,
+    $driftBlobEquality.hash(publicKey),
+    $driftBlobEquality.hash(deviceKey),
+    ip,
+    country,
+    city,
+    createdAtMs,
+    expiresAtMs,
+    state,
+    userId,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JoinRequestRow &&
+          other.id == this.id &&
+          $driftBlobEquality.equals(other.statusDigest, this.statusDigest) &&
+          other.name == this.name &&
+          other.deviceName == this.deviceName &&
+          other.model == this.model &&
+          $driftBlobEquality.equals(other.publicKey, this.publicKey) &&
+          $driftBlobEquality.equals(other.deviceKey, this.deviceKey) &&
+          other.ip == this.ip &&
+          other.country == this.country &&
+          other.city == this.city &&
+          other.createdAtMs == this.createdAtMs &&
+          other.expiresAtMs == this.expiresAtMs &&
+          other.state == this.state &&
+          other.userId == this.userId &&
+          other.deviceId == this.deviceId);
+}
+
+class JoinRequestsCompanion extends UpdateCompanion<JoinRequestRow> {
+  final Value<String> id;
+  final Value<Uint8List> statusDigest;
+  final Value<String> name;
+  final Value<String> deviceName;
+  final Value<String> model;
+  final Value<Uint8List> publicKey;
+  final Value<Uint8List> deviceKey;
+  final Value<String> ip;
+  final Value<String?> country;
+  final Value<String?> city;
+  final Value<int> createdAtMs;
+  final Value<int> expiresAtMs;
+  final Value<String> state;
+  final Value<String?> userId;
+  final Value<String?> deviceId;
+  final Value<int> rowid;
+  const JoinRequestsCompanion({
+    this.id = const Value.absent(),
+    this.statusDigest = const Value.absent(),
+    this.name = const Value.absent(),
+    this.deviceName = const Value.absent(),
+    this.model = const Value.absent(),
+    this.publicKey = const Value.absent(),
+    this.deviceKey = const Value.absent(),
+    this.ip = const Value.absent(),
+    this.country = const Value.absent(),
+    this.city = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.expiresAtMs = const Value.absent(),
+    this.state = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JoinRequestsCompanion.insert({
+    required String id,
+    required Uint8List statusDigest,
+    required String name,
+    required String deviceName,
+    required String model,
+    required Uint8List publicKey,
+    required Uint8List deviceKey,
+    required String ip,
+    this.country = const Value.absent(),
+    this.city = const Value.absent(),
+    required int createdAtMs,
+    required int expiresAtMs,
+    required String state,
+    this.userId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       statusDigest = Value(statusDigest),
+       name = Value(name),
+       deviceName = Value(deviceName),
+       model = Value(model),
+       publicKey = Value(publicKey),
+       deviceKey = Value(deviceKey),
+       ip = Value(ip),
+       createdAtMs = Value(createdAtMs),
+       expiresAtMs = Value(expiresAtMs),
+       state = Value(state);
+  static Insertable<JoinRequestRow> custom({
+    Expression<String>? id,
+    Expression<Uint8List>? statusDigest,
+    Expression<String>? name,
+    Expression<String>? deviceName,
+    Expression<String>? model,
+    Expression<Uint8List>? publicKey,
+    Expression<Uint8List>? deviceKey,
+    Expression<String>? ip,
+    Expression<String>? country,
+    Expression<String>? city,
+    Expression<int>? createdAtMs,
+    Expression<int>? expiresAtMs,
+    Expression<String>? state,
+    Expression<String>? userId,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (statusDigest != null) 'status_digest': statusDigest,
+      if (name != null) 'name': name,
+      if (deviceName != null) 'device_name': deviceName,
+      if (model != null) 'model': model,
+      if (publicKey != null) 'public_key': publicKey,
+      if (deviceKey != null) 'device_key': deviceKey,
+      if (ip != null) 'ip': ip,
+      if (country != null) 'country': country,
+      if (city != null) 'city': city,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (expiresAtMs != null) 'expires_at_ms': expiresAtMs,
+      if (state != null) 'state': state,
+      if (userId != null) 'user_id': userId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JoinRequestsCompanion copyWith({
+    Value<String>? id,
+    Value<Uint8List>? statusDigest,
+    Value<String>? name,
+    Value<String>? deviceName,
+    Value<String>? model,
+    Value<Uint8List>? publicKey,
+    Value<Uint8List>? deviceKey,
+    Value<String>? ip,
+    Value<String?>? country,
+    Value<String?>? city,
+    Value<int>? createdAtMs,
+    Value<int>? expiresAtMs,
+    Value<String>? state,
+    Value<String?>? userId,
+    Value<String?>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return JoinRequestsCompanion(
+      id: id ?? this.id,
+      statusDigest: statusDigest ?? this.statusDigest,
+      name: name ?? this.name,
+      deviceName: deviceName ?? this.deviceName,
+      model: model ?? this.model,
+      publicKey: publicKey ?? this.publicKey,
+      deviceKey: deviceKey ?? this.deviceKey,
+      ip: ip ?? this.ip,
+      country: country ?? this.country,
+      city: city ?? this.city,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      expiresAtMs: expiresAtMs ?? this.expiresAtMs,
+      state: state ?? this.state,
+      userId: userId ?? this.userId,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (statusDigest.present) {
+      map['status_digest'] = Variable<Uint8List>(statusDigest.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (deviceName.present) {
+      map['device_name'] = Variable<String>(deviceName.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (publicKey.present) {
+      map['public_key'] = Variable<Uint8List>(publicKey.value);
+    }
+    if (deviceKey.present) {
+      map['device_key'] = Variable<Uint8List>(deviceKey.value);
+    }
+    if (ip.present) {
+      map['ip'] = Variable<String>(ip.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (expiresAtMs.present) {
+      map['expires_at_ms'] = Variable<int>(expiresAtMs.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JoinRequestsCompanion(')
+          ..write('id: $id, ')
+          ..write('statusDigest: $statusDigest, ')
+          ..write('name: $name, ')
+          ..write('deviceName: $deviceName, ')
+          ..write('model: $model, ')
+          ..write('publicKey: $publicKey, ')
+          ..write('deviceKey: $deviceKey, ')
+          ..write('ip: $ip, ')
+          ..write('country: $country, ')
+          ..write('city: $city, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('expiresAtMs: $expiresAtMs, ')
+          ..write('state: $state, ')
+          ..write('userId: $userId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LoginRequestsTable extends LoginRequests
     with TableInfo<$LoginRequestsTable, LoginRequestRow> {
   @override
@@ -2838,6 +3752,20 @@ class $LoginRequestsTable extends LoginRequests
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _joinRequestIdMeta = const VerificationMeta(
+    'joinRequestId',
+  );
+  @override
+  late final GeneratedColumn<String> joinRequestId = GeneratedColumn<String>(
+    'join_request_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES join_requests (id) ON DELETE SET NULL',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2852,6 +3780,7 @@ class $LoginRequestsTable extends LoginRequests
     userId,
     deviceId,
     phoneIp,
+    joinRequestId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2951,6 +3880,15 @@ class $LoginRequestsTable extends LoginRequests
         phoneIp.isAcceptableOrUnknown(data['phone_ip']!, _phoneIpMeta),
       );
     }
+    if (data.containsKey('join_request_id')) {
+      context.handle(
+        _joinRequestIdMeta,
+        joinRequestId.isAcceptableOrUnknown(
+          data['join_request_id']!,
+          _joinRequestIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3008,6 +3946,10 @@ class $LoginRequestsTable extends LoginRequests
         DriftSqlType.string,
         data['${effectivePrefix}phone_ip'],
       ),
+      joinRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}join_request_id'],
+      ),
     );
   }
 
@@ -3030,6 +3972,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
   final String? userId;
   final String? deviceId;
   final String? phoneIp;
+  final String? joinRequestId;
   const LoginRequestRow({
     required this.id,
     required this.challenge,
@@ -3043,6 +3986,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
     this.userId,
     this.deviceId,
     this.phoneIp,
+    this.joinRequestId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3069,6 +4013,9 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
     if (!nullToAbsent || phoneIp != null) {
       map['phone_ip'] = Variable<String>(phoneIp);
     }
+    if (!nullToAbsent || joinRequestId != null) {
+      map['join_request_id'] = Variable<String>(joinRequestId);
+    }
     return map;
   }
 
@@ -3094,6 +4041,9 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
       phoneIp: phoneIp == null && nullToAbsent
           ? const Value.absent()
           : Value(phoneIp),
+      joinRequestId: joinRequestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(joinRequestId),
     );
   }
 
@@ -3115,6 +4065,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
       userId: serializer.fromJson<String?>(json['userId']),
       deviceId: serializer.fromJson<String?>(json['deviceId']),
       phoneIp: serializer.fromJson<String?>(json['phoneIp']),
+      joinRequestId: serializer.fromJson<String?>(json['joinRequestId']),
     );
   }
   @override
@@ -3133,6 +4084,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
       'userId': serializer.toJson<String?>(userId),
       'deviceId': serializer.toJson<String?>(deviceId),
       'phoneIp': serializer.toJson<String?>(phoneIp),
+      'joinRequestId': serializer.toJson<String?>(joinRequestId),
     };
   }
 
@@ -3149,6 +4101,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
     Value<String?> userId = const Value.absent(),
     Value<String?> deviceId = const Value.absent(),
     Value<String?> phoneIp = const Value.absent(),
+    Value<String?> joinRequestId = const Value.absent(),
   }) => LoginRequestRow(
     id: id ?? this.id,
     challenge: challenge ?? this.challenge,
@@ -3162,6 +4115,9 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
     userId: userId.present ? userId.value : this.userId,
     deviceId: deviceId.present ? deviceId.value : this.deviceId,
     phoneIp: phoneIp.present ? phoneIp.value : this.phoneIp,
+    joinRequestId: joinRequestId.present
+        ? joinRequestId.value
+        : this.joinRequestId,
   );
   LoginRequestRow copyWithCompanion(LoginRequestsCompanion data) {
     return LoginRequestRow(
@@ -3183,6 +4139,9 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
       userId: data.userId.present ? data.userId.value : this.userId,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       phoneIp: data.phoneIp.present ? data.phoneIp.value : this.phoneIp,
+      joinRequestId: data.joinRequestId.present
+          ? data.joinRequestId.value
+          : this.joinRequestId,
     );
   }
 
@@ -3200,7 +4159,8 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
           ..write('expiresAtMs: $expiresAtMs, ')
           ..write('userId: $userId, ')
           ..write('deviceId: $deviceId, ')
-          ..write('phoneIp: $phoneIp')
+          ..write('phoneIp: $phoneIp, ')
+          ..write('joinRequestId: $joinRequestId')
           ..write(')'))
         .toString();
   }
@@ -3219,6 +4179,7 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
     userId,
     deviceId,
     phoneIp,
+    joinRequestId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3235,7 +4196,8 @@ class LoginRequestRow extends DataClass implements Insertable<LoginRequestRow> {
           other.expiresAtMs == this.expiresAtMs &&
           other.userId == this.userId &&
           other.deviceId == this.deviceId &&
-          other.phoneIp == this.phoneIp);
+          other.phoneIp == this.phoneIp &&
+          other.joinRequestId == this.joinRequestId);
 }
 
 class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
@@ -3251,6 +4213,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
   final Value<String?> userId;
   final Value<String?> deviceId;
   final Value<String?> phoneIp;
+  final Value<String?> joinRequestId;
   final Value<int> rowid;
   const LoginRequestsCompanion({
     this.id = const Value.absent(),
@@ -3265,6 +4228,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
     this.userId = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.phoneIp = const Value.absent(),
+    this.joinRequestId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LoginRequestsCompanion.insert({
@@ -3280,6 +4244,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
     this.userId = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.phoneIp = const Value.absent(),
+    this.joinRequestId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        challenge = Value(challenge),
@@ -3301,6 +4266,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
     Expression<String>? userId,
     Expression<String>? deviceId,
     Expression<String>? phoneIp,
+    Expression<String>? joinRequestId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3316,6 +4282,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
       if (userId != null) 'user_id': userId,
       if (deviceId != null) 'device_id': deviceId,
       if (phoneIp != null) 'phone_ip': phoneIp,
+      if (joinRequestId != null) 'join_request_id': joinRequestId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3333,6 +4300,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
     Value<String?>? userId,
     Value<String?>? deviceId,
     Value<String?>? phoneIp,
+    Value<String?>? joinRequestId,
     Value<int>? rowid,
   }) {
     return LoginRequestsCompanion(
@@ -3348,6 +4316,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
       userId: userId ?? this.userId,
       deviceId: deviceId ?? this.deviceId,
       phoneIp: phoneIp ?? this.phoneIp,
+      joinRequestId: joinRequestId ?? this.joinRequestId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3391,6 +4360,9 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
     if (phoneIp.present) {
       map['phone_ip'] = Variable<String>(phoneIp.value);
     }
+    if (joinRequestId.present) {
+      map['join_request_id'] = Variable<String>(joinRequestId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3412,6 +4384,7 @@ class LoginRequestsCompanion extends UpdateCompanion<LoginRequestRow> {
           ..write('userId: $userId, ')
           ..write('deviceId: $deviceId, ')
           ..write('phoneIp: $phoneIp, ')
+          ..write('joinRequestId: $joinRequestId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3761,6 +4734,7 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
   late final $ChallengesTable challenges = $ChallengesTable(this);
   late final $DeviceTokensTable deviceTokens = $DeviceTokensTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
+  late final $JoinRequestsTable joinRequests = $JoinRequestsTable(this);
   late final $LoginRequestsTable loginRequests = $LoginRequestsTable(this);
   late final $RecoveryCodesTable recoveryCodes = $RecoveryCodesTable(this);
   @override
@@ -3774,6 +4748,7 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
     challenges,
     deviceTokens,
     sessions,
+    joinRequests,
     loginRequests,
     recoveryCodes,
   ];
@@ -3819,6 +4794,20 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
         'users',
         limitUpdateKind: UpdateKind.delete,
       ),
+      result: [TableUpdate('join_requests', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'devices',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('join_requests', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'users',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('login_requests', kind: UpdateKind.delete)],
     ),
     WritePropagation(
@@ -3827,6 +4816,13 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('login_requests', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'join_requests',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('login_requests', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -3895,6 +4891,24 @@ final class $$UsersTableReferences
     ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_sessionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$JoinRequestsTable, List<JoinRequestRow>>
+  _joinRequestsRefsTable(_$AuthDatabase db) => MultiTypedResultKey.fromTable(
+    db.joinRequests,
+    aliasName: $_aliasNameGenerator(db.users.id, db.joinRequests.userId),
+  );
+
+  $$JoinRequestsTableProcessedTableManager get joinRequestsRefs {
+    final manager = $$JoinRequestsTableTableManager(
+      $_db,
+      $_db.joinRequests,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_joinRequestsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4016,6 +5030,31 @@ class $$UsersTableFilterComposer extends Composer<_$AuthDatabase, $UsersTable> {
           }) => $$SessionsTableFilterComposer(
             $db: $db,
             $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> joinRequestsRefs(
+    Expression<bool> Function($$JoinRequestsTableFilterComposer f) f,
+  ) {
+    final $$JoinRequestsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableFilterComposer(
+            $db: $db,
+            $table: $db.joinRequests,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4199,6 +5238,31 @@ class $$UsersTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> joinRequestsRefs<T extends Object>(
+    Expression<T> Function($$JoinRequestsTableAnnotationComposer a) f,
+  ) {
+    final $$JoinRequestsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.joinRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> loginRequestsRefs<T extends Object>(
     Expression<T> Function($$LoginRequestsTableAnnotationComposer a) f,
   ) {
@@ -4266,6 +5330,7 @@ class $$UsersTableTableManager
           PrefetchHooks Function({
             bool devicesRefs,
             bool sessionsRefs,
+            bool joinRequestsRefs,
             bool loginRequestsRefs,
             bool recoveryCodesRefs,
           })
@@ -4327,6 +5392,7 @@ class $$UsersTableTableManager
               ({
                 devicesRefs = false,
                 sessionsRefs = false,
+                joinRequestsRefs = false,
                 loginRequestsRefs = false,
                 recoveryCodesRefs = false,
               }) {
@@ -4335,6 +5401,7 @@ class $$UsersTableTableManager
                   explicitlyWatchedTables: [
                     if (devicesRefs) db.devices,
                     if (sessionsRefs) db.sessions,
+                    if (joinRequestsRefs) db.joinRequests,
                     if (loginRequestsRefs) db.loginRequests,
                     if (recoveryCodesRefs) db.recoveryCodes,
                   ],
@@ -4373,6 +5440,27 @@ class $$UsersTableTableManager
                                 table,
                                 p0,
                               ).sessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (joinRequestsRefs)
+                        await $_getPrefetchedData<
+                          UserRow,
+                          $UsersTable,
+                          JoinRequestRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._joinRequestsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).joinRequestsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.userId == item.id,
@@ -4444,6 +5532,7 @@ typedef $$UsersTableProcessedTableManager =
       PrefetchHooks Function({
         bool devicesRefs,
         bool sessionsRefs,
+        bool joinRequestsRefs,
         bool loginRequestsRefs,
         bool recoveryCodesRefs,
       })
@@ -4546,6 +5635,24 @@ final class $$DevicesTableReferences
     ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_sessionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$JoinRequestsTable, List<JoinRequestRow>>
+  _joinRequestsRefsTable(_$AuthDatabase db) => MultiTypedResultKey.fromTable(
+    db.joinRequests,
+    aliasName: $_aliasNameGenerator(db.devices.id, db.joinRequests.deviceId),
+  );
+
+  $$JoinRequestsTableProcessedTableManager get joinRequestsRefs {
+    final manager = $$JoinRequestsTableTableManager(
+      $_db,
+      $_db.joinRequests,
+    ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_joinRequestsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4708,6 +5815,31 @@ class $$DevicesTableFilterComposer
           }) => $$SessionsTableFilterComposer(
             $db: $db,
             $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> joinRequestsRefs(
+    Expression<bool> Function($$JoinRequestsTableFilterComposer f) f,
+  ) {
+    final $$JoinRequestsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableFilterComposer(
+            $db: $db,
+            $table: $db.joinRequests,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4953,6 +6085,31 @@ class $$DevicesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> joinRequestsRefs<T extends Object>(
+    Expression<T> Function($$JoinRequestsTableAnnotationComposer a) f,
+  ) {
+    final $$JoinRequestsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.joinRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> loginRequestsRefs<T extends Object>(
     Expression<T> Function($$LoginRequestsTableAnnotationComposer a) f,
   ) {
@@ -4997,6 +6154,7 @@ class $$DevicesTableTableManager
             bool challengesRefs,
             bool deviceTokensRefs,
             bool sessionsRefs,
+            bool joinRequestsRefs,
             bool loginRequestsRefs,
           })
         > {
@@ -5073,6 +6231,7 @@ class $$DevicesTableTableManager
                 challengesRefs = false,
                 deviceTokensRefs = false,
                 sessionsRefs = false,
+                joinRequestsRefs = false,
                 loginRequestsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -5081,6 +6240,7 @@ class $$DevicesTableTableManager
                     if (challengesRefs) db.challenges,
                     if (deviceTokensRefs) db.deviceTokens,
                     if (sessionsRefs) db.sessions,
+                    if (joinRequestsRefs) db.joinRequests,
                     if (loginRequestsRefs) db.loginRequests,
                   ],
                   addJoins:
@@ -5180,6 +6340,27 @@ class $$DevicesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (joinRequestsRefs)
+                        await $_getPrefetchedData<
+                          DeviceRow,
+                          $DevicesTable,
+                          JoinRequestRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DevicesTableReferences
+                              ._joinRequestsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DevicesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).joinRequestsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.deviceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (loginRequestsRefs)
                         await $_getPrefetchedData<
                           DeviceRow,
@@ -5226,6 +6407,7 @@ typedef $$DevicesTableProcessedTableManager =
         bool challengesRefs,
         bool deviceTokensRefs,
         bool sessionsRefs,
+        bool joinRequestsRefs,
         bool loginRequestsRefs,
       })
     >;
@@ -5458,6 +6640,7 @@ typedef $$ChallengesTableCreateCompanionBuilder =
     ChallengesCompanion Function({
       required Uint8List digest,
       required String deviceId,
+      required String purpose,
       required int expiresAtMs,
       Value<int> rowid,
     });
@@ -5465,6 +6648,7 @@ typedef $$ChallengesTableUpdateCompanionBuilder =
     ChallengesCompanion Function({
       Value<Uint8List> digest,
       Value<String> deviceId,
+      Value<String> purpose,
       Value<int> expiresAtMs,
       Value<int> rowid,
     });
@@ -5502,6 +6686,11 @@ class $$ChallengesTableFilterComposer
   });
   ColumnFilters<Uint8List> get digest => $composableBuilder(
     column: $table.digest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get purpose => $composableBuilder(
+    column: $table.purpose,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5548,6 +6737,11 @@ class $$ChallengesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get purpose => $composableBuilder(
+    column: $table.purpose,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get expiresAtMs => $composableBuilder(
     column: $table.expiresAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -5588,6 +6782,9 @@ class $$ChallengesTableAnnotationComposer
   });
   GeneratedColumn<Uint8List> get digest =>
       $composableBuilder(column: $table.digest, builder: (column) => column);
+
+  GeneratedColumn<String> get purpose =>
+      $composableBuilder(column: $table.purpose, builder: (column) => column);
 
   GeneratedColumn<int> get expiresAtMs => $composableBuilder(
     column: $table.expiresAtMs,
@@ -5648,11 +6845,13 @@ class $$ChallengesTableTableManager
               ({
                 Value<Uint8List> digest = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<String> purpose = const Value.absent(),
                 Value<int> expiresAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChallengesCompanion(
                 digest: digest,
                 deviceId: deviceId,
+                purpose: purpose,
                 expiresAtMs: expiresAtMs,
                 rowid: rowid,
               ),
@@ -5660,11 +6859,13 @@ class $$ChallengesTableTableManager
               ({
                 required Uint8List digest,
                 required String deviceId,
+                required String purpose,
                 required int expiresAtMs,
                 Value<int> rowid = const Value.absent(),
               }) => ChallengesCompanion.insert(
                 digest: digest,
                 deviceId: deviceId,
+                purpose: purpose,
                 expiresAtMs: expiresAtMs,
                 rowid: rowid,
               ),
@@ -6561,6 +7762,718 @@ typedef $$SessionsTableProcessedTableManager =
       SessionRow,
       PrefetchHooks Function({bool userId, bool deviceId})
     >;
+typedef $$JoinRequestsTableCreateCompanionBuilder =
+    JoinRequestsCompanion Function({
+      required String id,
+      required Uint8List statusDigest,
+      required String name,
+      required String deviceName,
+      required String model,
+      required Uint8List publicKey,
+      required Uint8List deviceKey,
+      required String ip,
+      Value<String?> country,
+      Value<String?> city,
+      required int createdAtMs,
+      required int expiresAtMs,
+      required String state,
+      Value<String?> userId,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+typedef $$JoinRequestsTableUpdateCompanionBuilder =
+    JoinRequestsCompanion Function({
+      Value<String> id,
+      Value<Uint8List> statusDigest,
+      Value<String> name,
+      Value<String> deviceName,
+      Value<String> model,
+      Value<Uint8List> publicKey,
+      Value<Uint8List> deviceKey,
+      Value<String> ip,
+      Value<String?> country,
+      Value<String?> city,
+      Value<int> createdAtMs,
+      Value<int> expiresAtMs,
+      Value<String> state,
+      Value<String?> userId,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$JoinRequestsTableReferences
+    extends BaseReferences<_$AuthDatabase, $JoinRequestsTable, JoinRequestRow> {
+  $$JoinRequestsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $UsersTable _userIdTable(_$AuthDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.joinRequests.userId, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager? get userId {
+    final $_column = $_itemColumn<String>('user_id');
+    if ($_column == null) return null;
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DevicesTable _deviceIdTable(_$AuthDatabase db) =>
+      db.devices.createAlias(
+        $_aliasNameGenerator(db.joinRequests.deviceId, db.devices.id),
+      );
+
+  $$DevicesTableProcessedTableManager? get deviceId {
+    final $_column = $_itemColumn<String>('device_id');
+    if ($_column == null) return null;
+    final manager = $$DevicesTableTableManager(
+      $_db,
+      $_db.devices,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deviceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$LoginRequestsTable, List<LoginRequestRow>>
+  _loginRequestsRefsTable(_$AuthDatabase db) => MultiTypedResultKey.fromTable(
+    db.loginRequests,
+    aliasName: $_aliasNameGenerator(
+      db.joinRequests.id,
+      db.loginRequests.joinRequestId,
+    ),
+  );
+
+  $$LoginRequestsTableProcessedTableManager get loginRequestsRefs {
+    final manager = $$LoginRequestsTableTableManager(
+      $_db,
+      $_db.loginRequests,
+    ).filter((f) => f.joinRequestId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_loginRequestsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$JoinRequestsTableFilterComposer
+    extends Composer<_$AuthDatabase, $JoinRequestsTable> {
+  $$JoinRequestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get statusDigest => $composableBuilder(
+    column: $table.statusDigest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get deviceKey => $composableBuilder(
+    column: $table.deviceKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ip => $composableBuilder(
+    column: $table.ip,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get expiresAtMs => $composableBuilder(
+    column: $table.expiresAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableFilterComposer get deviceId {
+    final $$DevicesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableFilterComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> loginRequestsRefs(
+    Expression<bool> Function($$LoginRequestsTableFilterComposer f) f,
+  ) {
+    final $$LoginRequestsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginRequests,
+      getReferencedColumn: (t) => t.joinRequestId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginRequestsTableFilterComposer(
+            $db: $db,
+            $table: $db.loginRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$JoinRequestsTableOrderingComposer
+    extends Composer<_$AuthDatabase, $JoinRequestsTable> {
+  $$JoinRequestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get statusDigest => $composableBuilder(
+    column: $table.statusDigest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get deviceKey => $composableBuilder(
+    column: $table.deviceKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ip => $composableBuilder(
+    column: $table.ip,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get expiresAtMs => $composableBuilder(
+    column: $table.expiresAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableOrderingComposer get deviceId {
+    final $$DevicesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableOrderingComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$JoinRequestsTableAnnotationComposer
+    extends Composer<_$AuthDatabase, $JoinRequestsTable> {
+  $$JoinRequestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get statusDigest => $composableBuilder(
+    column: $table.statusDigest,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceName => $composableBuilder(
+    column: $table.deviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get publicKey =>
+      $composableBuilder(column: $table.publicKey, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get deviceKey =>
+      $composableBuilder(column: $table.deviceKey, builder: (column) => column);
+
+  GeneratedColumn<String> get ip =>
+      $composableBuilder(column: $table.ip, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get expiresAtMs => $composableBuilder(
+    column: $table.expiresAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableAnnotationComposer get deviceId {
+    final $$DevicesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> loginRequestsRefs<T extends Object>(
+    Expression<T> Function($$LoginRequestsTableAnnotationComposer a) f,
+  ) {
+    final $$LoginRequestsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginRequests,
+      getReferencedColumn: (t) => t.joinRequestId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginRequestsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.loginRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$JoinRequestsTableTableManager
+    extends
+        RootTableManager<
+          _$AuthDatabase,
+          $JoinRequestsTable,
+          JoinRequestRow,
+          $$JoinRequestsTableFilterComposer,
+          $$JoinRequestsTableOrderingComposer,
+          $$JoinRequestsTableAnnotationComposer,
+          $$JoinRequestsTableCreateCompanionBuilder,
+          $$JoinRequestsTableUpdateCompanionBuilder,
+          (JoinRequestRow, $$JoinRequestsTableReferences),
+          JoinRequestRow,
+          PrefetchHooks Function({
+            bool userId,
+            bool deviceId,
+            bool loginRequestsRefs,
+          })
+        > {
+  $$JoinRequestsTableTableManager(_$AuthDatabase db, $JoinRequestsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$JoinRequestsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$JoinRequestsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$JoinRequestsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<Uint8List> statusDigest = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> deviceName = const Value.absent(),
+                Value<String> model = const Value.absent(),
+                Value<Uint8List> publicKey = const Value.absent(),
+                Value<Uint8List> deviceKey = const Value.absent(),
+                Value<String> ip = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int> expiresAtMs = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JoinRequestsCompanion(
+                id: id,
+                statusDigest: statusDigest,
+                name: name,
+                deviceName: deviceName,
+                model: model,
+                publicKey: publicKey,
+                deviceKey: deviceKey,
+                ip: ip,
+                country: country,
+                city: city,
+                createdAtMs: createdAtMs,
+                expiresAtMs: expiresAtMs,
+                state: state,
+                userId: userId,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required Uint8List statusDigest,
+                required String name,
+                required String deviceName,
+                required String model,
+                required Uint8List publicKey,
+                required Uint8List deviceKey,
+                required String ip,
+                Value<String?> country = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                required int createdAtMs,
+                required int expiresAtMs,
+                required String state,
+                Value<String?> userId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JoinRequestsCompanion.insert(
+                id: id,
+                statusDigest: statusDigest,
+                name: name,
+                deviceName: deviceName,
+                model: model,
+                publicKey: publicKey,
+                deviceKey: deviceKey,
+                ip: ip,
+                country: country,
+                city: city,
+                createdAtMs: createdAtMs,
+                expiresAtMs: expiresAtMs,
+                state: state,
+                userId: userId,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$JoinRequestsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({userId = false, deviceId = false, loginRequestsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (loginRequestsRefs) db.loginRequests,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (userId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.userId,
+                                    referencedTable:
+                                        $$JoinRequestsTableReferences
+                                            ._userIdTable(db),
+                                    referencedColumn:
+                                        $$JoinRequestsTableReferences
+                                            ._userIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (deviceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.deviceId,
+                                    referencedTable:
+                                        $$JoinRequestsTableReferences
+                                            ._deviceIdTable(db),
+                                    referencedColumn:
+                                        $$JoinRequestsTableReferences
+                                            ._deviceIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (loginRequestsRefs)
+                        await $_getPrefetchedData<
+                          JoinRequestRow,
+                          $JoinRequestsTable,
+                          LoginRequestRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$JoinRequestsTableReferences
+                              ._loginRequestsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$JoinRequestsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).loginRequestsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.joinRequestId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$JoinRequestsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AuthDatabase,
+      $JoinRequestsTable,
+      JoinRequestRow,
+      $$JoinRequestsTableFilterComposer,
+      $$JoinRequestsTableOrderingComposer,
+      $$JoinRequestsTableAnnotationComposer,
+      $$JoinRequestsTableCreateCompanionBuilder,
+      $$JoinRequestsTableUpdateCompanionBuilder,
+      (JoinRequestRow, $$JoinRequestsTableReferences),
+      JoinRequestRow,
+      PrefetchHooks Function({
+        bool userId,
+        bool deviceId,
+        bool loginRequestsRefs,
+      })
+    >;
 typedef $$LoginRequestsTableCreateCompanionBuilder =
     LoginRequestsCompanion Function({
       required String id,
@@ -6575,6 +8488,7 @@ typedef $$LoginRequestsTableCreateCompanionBuilder =
       Value<String?> userId,
       Value<String?> deviceId,
       Value<String?> phoneIp,
+      Value<String?> joinRequestId,
       Value<int> rowid,
     });
 typedef $$LoginRequestsTableUpdateCompanionBuilder =
@@ -6591,6 +8505,7 @@ typedef $$LoginRequestsTableUpdateCompanionBuilder =
       Value<String?> userId,
       Value<String?> deviceId,
       Value<String?> phoneIp,
+      Value<String?> joinRequestId,
       Value<int> rowid,
     });
 
@@ -6634,6 +8549,28 @@ final class $$LoginRequestsTableReferences
       $_db.devices,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_deviceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $JoinRequestsTable _joinRequestIdTable(_$AuthDatabase db) =>
+      db.joinRequests.createAlias(
+        $_aliasNameGenerator(
+          db.loginRequests.joinRequestId,
+          db.joinRequests.id,
+        ),
+      );
+
+  $$JoinRequestsTableProcessedTableManager? get joinRequestId {
+    final $_column = $_itemColumn<String>('join_request_id');
+    if ($_column == null) return null;
+    final manager = $$JoinRequestsTableTableManager(
+      $_db,
+      $_db.joinRequests,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_joinRequestIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -6737,6 +8674,29 @@ class $$LoginRequestsTableFilterComposer
           }) => $$DevicesTableFilterComposer(
             $db: $db,
             $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$JoinRequestsTableFilterComposer get joinRequestId {
+    final $$JoinRequestsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.joinRequestId,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableFilterComposer(
+            $db: $db,
+            $table: $db.joinRequests,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6851,6 +8811,29 @@ class $$LoginRequestsTableOrderingComposer
     );
     return composer;
   }
+
+  $$JoinRequestsTableOrderingComposer get joinRequestId {
+    final $$JoinRequestsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.joinRequestId,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableOrderingComposer(
+            $db: $db,
+            $table: $db.joinRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LoginRequestsTableAnnotationComposer
@@ -6943,6 +8926,29 @@ class $$LoginRequestsTableAnnotationComposer
     );
     return composer;
   }
+
+  $$JoinRequestsTableAnnotationComposer get joinRequestId {
+    final $$JoinRequestsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.joinRequestId,
+      referencedTable: $db.joinRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$JoinRequestsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.joinRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LoginRequestsTableTableManager
@@ -6958,7 +8964,11 @@ class $$LoginRequestsTableTableManager
           $$LoginRequestsTableUpdateCompanionBuilder,
           (LoginRequestRow, $$LoginRequestsTableReferences),
           LoginRequestRow,
-          PrefetchHooks Function({bool userId, bool deviceId})
+          PrefetchHooks Function({
+            bool userId,
+            bool deviceId,
+            bool joinRequestId,
+          })
         > {
   $$LoginRequestsTableTableManager(_$AuthDatabase db, $LoginRequestsTable table)
     : super(
@@ -6985,6 +8995,7 @@ class $$LoginRequestsTableTableManager
                 Value<String?> userId = const Value.absent(),
                 Value<String?> deviceId = const Value.absent(),
                 Value<String?> phoneIp = const Value.absent(),
+                Value<String?> joinRequestId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoginRequestsCompanion(
                 id: id,
@@ -6999,6 +9010,7 @@ class $$LoginRequestsTableTableManager
                 userId: userId,
                 deviceId: deviceId,
                 phoneIp: phoneIp,
+                joinRequestId: joinRequestId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7015,6 +9027,7 @@ class $$LoginRequestsTableTableManager
                 Value<String?> userId = const Value.absent(),
                 Value<String?> deviceId = const Value.absent(),
                 Value<String?> phoneIp = const Value.absent(),
+                Value<String?> joinRequestId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoginRequestsCompanion.insert(
                 id: id,
@@ -7029,6 +9042,7 @@ class $$LoginRequestsTableTableManager
                 userId: userId,
                 deviceId: deviceId,
                 phoneIp: phoneIp,
+                joinRequestId: joinRequestId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7039,60 +9053,80 @@ class $$LoginRequestsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({userId = false, deviceId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (userId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.userId,
-                                referencedTable: $$LoginRequestsTableReferences
-                                    ._userIdTable(db),
-                                referencedColumn: $$LoginRequestsTableReferences
-                                    ._userIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-                    if (deviceId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.deviceId,
-                                referencedTable: $$LoginRequestsTableReferences
-                                    ._deviceIdTable(db),
-                                referencedColumn: $$LoginRequestsTableReferences
-                                    ._deviceIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({userId = false, deviceId = false, joinRequestId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (userId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.userId,
+                                    referencedTable:
+                                        $$LoginRequestsTableReferences
+                                            ._userIdTable(db),
+                                    referencedColumn:
+                                        $$LoginRequestsTableReferences
+                                            ._userIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (deviceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.deviceId,
+                                    referencedTable:
+                                        $$LoginRequestsTableReferences
+                                            ._deviceIdTable(db),
+                                    referencedColumn:
+                                        $$LoginRequestsTableReferences
+                                            ._deviceIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (joinRequestId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.joinRequestId,
+                                    referencedTable:
+                                        $$LoginRequestsTableReferences
+                                            ._joinRequestIdTable(db),
+                                    referencedColumn:
+                                        $$LoginRequestsTableReferences
+                                            ._joinRequestIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -7109,7 +9143,7 @@ typedef $$LoginRequestsTableProcessedTableManager =
       $$LoginRequestsTableUpdateCompanionBuilder,
       (LoginRequestRow, $$LoginRequestsTableReferences),
       LoginRequestRow,
-      PrefetchHooks Function({bool userId, bool deviceId})
+      PrefetchHooks Function({bool userId, bool deviceId, bool joinRequestId})
     >;
 typedef $$RecoveryCodesTableCreateCompanionBuilder =
     RecoveryCodesCompanion Function({
@@ -7435,6 +9469,8 @@ class $AuthDatabaseManager {
       $$DeviceTokensTableTableManager(_db, _db.deviceTokens);
   $$SessionsTableTableManager get sessions =>
       $$SessionsTableTableManager(_db, _db.sessions);
+  $$JoinRequestsTableTableManager get joinRequests =>
+      $$JoinRequestsTableTableManager(_db, _db.joinRequests);
   $$LoginRequestsTableTableManager get loginRequests =>
       $$LoginRequestsTableTableManager(_db, _db.loginRequests);
   $$RecoveryCodesTableTableManager get recoveryCodes =>

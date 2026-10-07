@@ -8,6 +8,7 @@ import 'package:web_server/src/auth/token_digest.dart';
 import 'package:web_server/src/auth/utc_now.dart';
 import 'package:web_server/src/auth_db/auth_device.dart';
 import 'package:web_server/src/auth_db/auth_user.dart';
+import 'package:web_server/src/auth_db/challenge_purpose.dart';
 import 'package:web_server/src/auth_db/challenge_repository.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
 import 'package:web_server/src/auth_db/device_token_repository.dart';
@@ -65,6 +66,7 @@ class DeviceTokenService {
     await _challenges.insert(
       digest: digestToken(challenge),
       deviceId: deviceId,
+      purpose: ChallengePurpose.deviceToken,
       expiresAt: expiresAt,
     );
     return Ok(IssuedSecret(value: challenge, expiresAt: expiresAt));
@@ -87,6 +89,7 @@ class DeviceTokenService {
     final isConsumed = await _challenges.consume(
       digestToken(challenge),
       deviceId: device.id,
+      purpose: ChallengePurpose.deviceToken,
       now: now,
     );
     if (!isConsumed) return const Err(RequestExpired());

@@ -94,6 +94,65 @@ class LoginRequestRepository {
     return updated == 1;
   }
 
+  /// A még nem jóváhagyott, élő kérés `joinPending` lesz: a [joinRequestId]
+  /// kérelemre vár, [expiresAt] lejárattal (Addendum 5 M5); `true`, ha
+  /// sikerült.
+  Future<bool> markJoinPending(
+    String id, {
+    required String joinRequestId,
+    required DateTime now,
+    required DateTime expiresAt,
+  }) async {
+    final updated = await _awaitingApproval(id, now).write(
+      LoginRequestsCompanion(
+        state: Value(LoginRequestPhase.joinPending.name),
+        expiresAtMs: Value(toEpochMillis(expiresAt)),
+        joinRequestId: Value(joinRequestId),
+      ),
+    );
+    return updated == 1;
+  }
+
+  /// A [joinRequestId] kérelemre váró, élő kérés `approved` lesz a tag
+  /// fiókjával és új eszközével; `false`, ha a böngésző már nem vár.
+  Future<bool> approveJoined(
+    String joinRequestId, {
+    required String userId,
+    required String deviceId,
+    required String phoneIp,
+    required DateTime now,
+    required DateTime expiresAt,
+  }) async {
+    final updated =
+        await (_database.update(_database.loginRequests)..where(
+              (row) =>
+                  row.joinRequestId.equals(joinRequestId) &
+                  row.state.equals(LoginRequestPhase.joinPending.name) &
+                  row.expiresAtMs.isBiggerThanValue(toEpochMillis(now)),
+            ))
+            .write(
+              LoginRequestsCompanion(
+                state: Value(LoginRequestPhase.approved.name),
+                expiresAtMs: Value(toEpochMillis(expiresAt)),
+                userId: Value(userId),
+                deviceId: Value(deviceId),
+                phoneIp: Value(phoneIp),
+              ),
+            );
+    return updated == 1;
+  }
+
+  /// A [joinRequestId] kérelemre váró kérés törlése (elutasítás): a
+  /// böngésző következő lekérdezése `expired`.
+  Future<void> deleteJoinPending(String joinRequestId) async {
+    await (_database.delete(_database.loginRequests)..where(
+          (row) =>
+              row.joinRequestId.equals(joinRequestId) &
+              row.state.equals(LoginRequestPhase.joinPending.name),
+        ))
+        .go();
+  }
+
   /// A jóváhagyott, élő [id] kérés beváltása: a sora törlődik, és a
   /// beváltott kérés jön vissza; `null`, ha nem volt mit beváltani.
   Future<LoginRequestRecord?> redeem(
@@ -143,5 +202,6 @@ class LoginRequestRepository {
     userId: row.userId,
     deviceId: row.deviceId,
     phoneIp: row.phoneIp,
+    joinRequestId: row.joinRequestId,
   );
 }

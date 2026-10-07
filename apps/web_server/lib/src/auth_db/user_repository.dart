@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
 import 'package:web_server/src/auth_db/auth_user.dart';
@@ -24,6 +25,35 @@ class UserRepository {
       ..where((row) => row.id.equals(id));
     final row = await query.getSingleOrNull();
     return row == null ? null : authUserFromRow(row);
+  }
+
+  /// Minden fiók név (majd azonosító) szerint.
+  Future<List<AuthUser>> listAll() async {
+    final query = _database.select(_database.users)
+      ..orderBy([
+        (row) => OrderingTerm.asc(row.name),
+        (row) => OrderingTerm.asc(row.id),
+      ]);
+    return [for (final row in await query.get()) authUserFromRow(row)];
+  }
+
+  /// Az [id] fiók új [name]-mel; `null`, ha nincs ilyen fiók.
+  Future<AuthUser?> rename(String id, String name) async {
+    final rows =
+        await (_database.update(_database.users)
+              ..where((row) => row.id.equals(id)))
+            .writeReturning(UsersCompanion(name: Value(name)));
+    return rows.isEmpty ? null : authUserFromRow(rows.single);
+  }
+
+  /// Az [id] fiók törlése; a külső kulcsok az eszközeit, tokenjeit és
+  /// munkameneteit is viszik (ADR 0051 Addendum 5 M7). `true`, ha volt mit
+  /// törölni.
+  Future<bool> delete(String id) async {
+    final deleted = await (_database.delete(
+      _database.users,
+    )..where((row) => row.id.equals(id))).go();
+    return deleted == 1;
   }
 
   /// Új fiók; a visszaolvasott rekord.

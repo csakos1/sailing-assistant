@@ -50,13 +50,61 @@ class SessionRepository {
     final query = _database.select(_database.sessions)
       ..where((row) => row.tokenDigest.equals(tokenDigest));
     final row = await query.getSingleOrNull();
-    if (row == null) return null;
-    return SessionRecord(
-      id: row.id,
-      userId: row.userId,
-      createdAt: fromEpochMillis(row.createdAtMs),
-      lastSeenAt: fromEpochMillis(row.lastSeenAtMs),
-    );
+    return row == null ? null : _toRecord(row);
+  }
+
+  /// Az [id] munkamenet, vagy `null`, ha nincs ilyen.
+  Future<SessionRecord?> findById(String id) async {
+    final query = _database.select(_database.sessions)
+      ..where((row) => row.id.equals(id));
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _toRecord(row);
+  }
+
+  /// A még élő munkamenetek a fiók nevével, a legutóbb aktív elöl
+  /// (Addendum 5 M8); [userId]-vel csak az övéi.
+  ///
+  /// Élő az, amelyik az [idleCutoff] után volt aktív és a [createdCutoff]
+  /// után jött létre: a takarítás előtt lejárt sor sem látszik.
+  Future<List<WebSession>> listLive({
+    required DateTime idleCutoff,
+    required DateTime createdCutoff,
+    String? userId,
+  }) async {
+    final sessions = _database.sessions;
+    final users = _database.users;
+    var isVisible =
+        sessions.lastSeenAtMs.isBiggerThanValue(toEpochMillis(idleCutoff)) &
+        sessions.createdAtMs.isBiggerThanValue(toEpochMillis(createdCutoff));
+    if (userId != null) isVisible = isVisible & sessions.userId.equals(userId);
+    final query =
+        _database.select(sessions).join([
+            innerJoin(users, users.id.equalsExp(sessions.userId)),
+          ])
+          ..where(isVisible)
+          ..orderBy([
+            OrderingTerm.desc(sessions.lastSeenAtMs),
+            OrderingTerm.asc(sessions.id),
+          ]);
+    return [
+      for (final row in await query.get())
+        _toWebSession(row.readTable(sessions), row.readTable(users).name),
+    ];
+  }
+
+  /// Az [id] munkamenet törlése (kiléptetés); nem létezőnél sem hiba.
+  Future<void> deleteById(String id) async {
+    await (_database.delete(
+      _database.sessions,
+    )..where((row) => row.id.equals(id))).go();
+  }
+
+  /// A [deviceId] eszközzel jóváhagyott munkamenetek törlése (visszavonás,
+  /// Addendum 5 M7).
+  Future<void> deleteByDevice(String deviceId) async {
+    await (_database.delete(
+      _database.sessions,
+    )..where((row) => row.deviceId.equals(deviceId))).go();
   }
 
   /// Az [id] munkamenet utolsó aktivitása [now].
@@ -90,4 +138,25 @@ class SessionRepository {
         ))
         .go();
   }
+
+  SessionRecord _toRecord(SessionRow row) => SessionRecord(
+    id: row.id,
+    userId: row.userId,
+    createdAt: fromEpochMillis(row.createdAtMs),
+    lastSeenAt: fromEpochMillis(row.lastSeenAtMs),
+  );
+
+  WebSession _toWebSession(SessionRow row, String userName) => WebSession(
+    id: row.id,
+    userId: row.userId,
+    userName: userName,
+    method: LoginMethod.values.byName(row.method),
+    ip: row.ip,
+    browser: row.browser,
+    os: row.os,
+    country: row.country,
+    city: row.city,
+    createdAt: fromEpochMillis(row.createdAtMs),
+    lastSeenAt: fromEpochMillis(row.lastSeenAtMs),
+  );
 }

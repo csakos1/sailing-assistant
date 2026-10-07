@@ -11,9 +11,12 @@ final class AuthRateLimits {
     required this.approvals,
     required this.enrollments,
     required this.deviceChallenges,
+    required this.actionChallenges,
+    required this.joinRequests,
   });
 
-  /// A D8 számai: végpontonként IP-nként percenként 10.
+  /// A D8 számai: végpontonként IP-nként percenként 10, a csatlakozási
+  /// kérelem óránként 3 (Addendum 5 M12).
   factory AuthRateLimits.standard({DateTime Function() now = utcNow}) {
     RateLimiter perMinute() =>
         RateLimiter(limit: 10, window: const Duration(minutes: 1), now: now);
@@ -23,6 +26,12 @@ final class AuthRateLimits {
       approvals: perMinute(),
       enrollments: perMinute(),
       deviceChallenges: perMinute(),
+      actionChallenges: perMinute(),
+      joinRequests: RateLimiter(
+        limit: 3,
+        window: const Duration(hours: 1),
+        now: now,
+      ),
     );
   }
 
@@ -40,4 +49,10 @@ final class AuthRateLimits {
 
   /// Kihívás az eszköz-tokenhez (a token csak kihívással kérhető).
   final RateLimiter deviceChallenges;
+
+  /// Kihívás egy ujjlenyomatos művelethez.
+  final RateLimiter actionChallenges;
+
+  /// Csatlakozási kérelem a fiók nélküli telefonról.
+  final RateLimiter joinRequests;
 }

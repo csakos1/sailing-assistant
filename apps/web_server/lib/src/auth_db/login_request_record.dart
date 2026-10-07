@@ -17,6 +17,7 @@ final class LoginRequestRecord extends Equatable {
     this.userId,
     this.deviceId,
     this.phoneIp,
+    this.joinRequestId,
   });
 
   /// A kérés azonosítója (base64url, 128 bit).
@@ -46,6 +47,9 @@ final class LoginRequestRecord extends Equatable {
   /// A jóváhagyó telefon IP-je (a gyanús-jelzéshez, A2b).
   final String? phoneIp;
 
+  /// A csatlakozási kérelem, ha a kérés `joinPending` (Addendum 5 M5).
+  final String? joinRequestId;
+
   @override
   List<Object?> get props => [
     id,
@@ -57,6 +61,7 @@ final class LoginRequestRecord extends Equatable {
     userId,
     deviceId,
     phoneIp,
+    joinRequestId,
   ];
 
   // A kihívás ne kerüljön naplóba.

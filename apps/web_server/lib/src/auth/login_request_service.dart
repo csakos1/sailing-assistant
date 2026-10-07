@@ -106,7 +106,7 @@ class LoginRequestService {
     final request = await _requests.findLive(requestId, now: now);
     final isOpenable =
         request != null &&
-        request.phase != LoginRequestPhase.approved &&
+        _isAwaitingApproval(request.phase) &&
         constantTimeEquals(
           digestToken(challenge),
           digestToken(request.challenge),
@@ -139,7 +139,7 @@ class LoginRequestService {
     if (device == null || device.isRevoked) return const DeviceRevoked();
     final now = _now();
     final request = await _requests.findLive(requestId, now: now);
-    if (request == null || request.phase == LoginRequestPhase.approved) {
+    if (request == null || !_isAwaitingApproval(request.phase)) {
       return const RequestExpired();
     }
     final isSigned = verifyP256Signature(
@@ -188,6 +188,9 @@ class LoginRequestService {
     return switch (request.phase) {
       LoginRequestPhase.pending => _stateOnly(LoginRequestState.pending),
       LoginRequestPhase.opened => _stateOnly(LoginRequestState.opened),
+      LoginRequestPhase.joinPending => _stateOnly(
+        LoginRequestState.joinPending,
+      ),
       LoginRequestPhase.approved => await _redeem(
         requestId,
         now: now,
@@ -233,6 +236,11 @@ class LoginRequestService {
 
   String _newSecret() =>
       encodeBase64UrlUnpadded(_randomBytes(secretTokenLength));
+
+  // Egy `joinPending` kérés a csatlakozó telefoné: más nem nyithatja meg
+  // és nem hagyhatja jóvá (Addendum 5 M5).
+  static bool _isAwaitingApproval(LoginRequestPhase phase) =>
+      phase == LoginRequestPhase.pending || phase == LoginRequestPhase.opened;
 
   static LoginPollOutcome _stateOnly(LoginRequestState state) =>
       (status: LoginRequestStatus(state: state), session: null);

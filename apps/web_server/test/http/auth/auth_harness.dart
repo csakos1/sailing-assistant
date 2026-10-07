@@ -48,11 +48,12 @@ typedef BrowserSession = String;
 
 /// A hitelesítés tesztkörnyezete.
 final class AuthHarness {
-  /// Új környezet; a [rateLimit] a végpontonkénti korlát (alapból laza).
-  AuthHarness({int rateLimit = 1000}) {
+  /// Új környezet; a [rateLimit] a végpontonkénti korlát (alapból laza),
+  /// a [joinRateLimit] a csatlakozási kérelemé (alapból a [rateLimit]).
+  AuthHarness({int rateLimit = 1000, int? joinRateLimit}) {
     database = AuthDatabase(NativeDatabase.memory());
-    RateLimiter limiter() => RateLimiter(
-      limit: rateLimit,
+    RateLimiter limiter([int? limit]) => RateLimiter(
+      limit: limit ?? rateLimit,
       window: const Duration(minutes: 1),
       now: () => now,
     );
@@ -66,6 +67,8 @@ final class AuthHarness {
         approvals: limiter(),
         enrollments: limiter(),
         deviceChallenges: limiter(),
+        actionChallenges: limiter(),
+        joinRequests: limiter(joinRateLimit),
       ),
       now: () => now,
     );
@@ -295,6 +298,158 @@ final class AuthHarness {
       ),
     ),
   );
+
+  /// Az eszköz-tokent hordozó telefonos fejlécek.
+  Map<String, String> withToken(String deviceToken) => {
+    ...phoneClient,
+    'authorization': 'Bearer $deviceToken',
+  };
+
+  /// Egy ujjlenyomatos művelet aláírva: kihívás a [token] eszköz-tokennel,
+  /// és aláírás a [phone] aláíró kulcsával (vagy a [signer]-rel).
+  Future<SignedAction> signedAction(
+    TestPhone phone,
+    String deviceId,
+    String token, {
+    required DeviceAction kind,
+    required String target,
+    TestKey? signer,
+  }) async {
+    final challenge = await decodeOk(
+      await send(
+        'POST',
+        actionChallengesPath,
+        headers: withToken(token),
+      ),
+      decodeIssuedSecret,
+      status: 201,
+    );
+    return SignedAction(
+      challenge: challenge.value,
+      signature: (signer ?? phone.signingKey).sign(
+        deviceActionMessage(
+          origin: testOrigin,
+          deviceId: deviceId,
+          challenge: challenge.value,
+          action: kind,
+          target: target,
+        ),
+      ),
+    );
+  }
+
+  /// A csatlakozási kérelem törzse a [phone] kulcsaival a [qr] kérésre.
+  Map<String, Object?> joinBody(
+    TestPhone phone,
+    LoginQrPayload qr, {
+    String name = 'Dóri',
+    TestKey? signer,
+  }) {
+    final publicKey = phone.signingKey.spki;
+    final deviceKey = phone.deviceKey.spki;
+    final message = joinRequestMessage(
+      origin: testOrigin,
+      requestId: qr.requestId,
+      challenge: qr.challenge,
+      name: name,
+      publicKey: publicKey,
+      deviceKey: deviceKey,
+    );
+    return encodeJoinRequest(
+      JoinRequest(
+        requestId: qr.requestId,
+        challenge: qr.challenge,
+        name: name,
+        deviceName: '$name telefonja',
+        model: 'SM-S921B',
+        publicKey: publicKey,
+        deviceKey: deviceKey,
+        signature: (signer ?? phone.signingKey).sign(message),
+      ),
+    );
+  }
+
+  /// A [phone] csatlakozási kérelme a [qr] kérésre a [ip] címről.
+  Future<Response> submitJoin(
+    TestPhone phone,
+    LoginQrPayload qr, {
+    String name = 'Dóri',
+    String ip = phoneIp,
+  }) => send(
+    'POST',
+    joinRequestsPath,
+    json: joinBody(phone, qr, name: name),
+    ip: ip,
+  );
+
+  /// Az `owner` jóváhagyása a [joinRequestId] kérelemre, a [owner]
+  /// telefon aláírásával; [memberId] nélkül új tagként.
+  Future<Response> approveJoin(
+    TestPhone owner,
+    String ownerDeviceId,
+    String joinRequestId, {
+    String? memberId,
+    String? signedMemberId,
+  }) async {
+    final token = await deviceToken(owner, ownerDeviceId);
+    final action = await signedAction(
+      owner,
+      ownerDeviceId,
+      token,
+      kind: DeviceAction.approveJoin,
+      target: joinApprovalTarget(
+        joinRequestId: joinRequestId,
+        memberId: signedMemberId ?? memberId,
+      ),
+    );
+    return send(
+      'POST',
+      joinRequestApprovalPath(joinRequestId),
+      json: encodeJoinApproval(
+        JoinApproval(action: action, memberId: memberId),
+      ),
+      headers: withToken(token),
+    );
+  }
+
+  /// A kérelem állapota a [ticket] lekérdező tokenjével.
+  Future<JoinRequestStatus> joinStatus(JoinTicket ticket) async => decodeOk(
+    await send(
+      'POST',
+      joinRequestStatusPath(ticket.joinRequestId),
+      json: encodeJoinStatusQuery(ticket.statusToken),
+    ),
+    decodeJoinRequestStatus,
+  );
+
+  /// A [joiner] csatlakozik, és az `owner` ([owner], [ownerDeviceId])
+  /// jóváhagyja; a tag fiókja és az új eszköze.
+  Future<({String userId, String deviceId})> admitMember(
+    TestPhone owner,
+    String ownerDeviceId,
+    TestPhone joiner, {
+    String name = 'Dóri',
+    String? memberId,
+  }) async {
+    final (:qr, binding: _) = await openLoginRequest();
+    final ticket = await decodeOk(
+      await submitJoin(joiner, qr, name: name),
+      decodeJoinTicket,
+      status: 201,
+    );
+    final member = await decodeOk(
+      await approveJoin(
+        owner,
+        ownerDeviceId,
+        ticket.joinRequestId,
+        memberId: memberId,
+      ),
+      decodeMemberInfo,
+    );
+    final deviceId = (await joinStatus(ticket)).deviceId;
+    if (deviceId == null) throw StateError('jovahagyott kerelmet vartunk');
+    return (userId: member.account.userId, deviceId: deviceId);
+  }
 
   /// A teljes QR-belépés a [phone]-nal; a böngésző session cookie-ja.
   Future<BrowserSession> signIn(TestPhone phone, String deviceId) async {

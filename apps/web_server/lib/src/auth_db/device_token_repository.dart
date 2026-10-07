@@ -40,6 +40,14 @@ class DeviceTokenRepository {
     return (await query.getSingleOrNull())?.deviceId;
   }
 
+  /// A [deviceId] eszköz minden tokenjének törlése (visszavonás, Addendum 5
+  /// M7).
+  Future<void> deleteForDevice(String deviceId) async {
+    await (_database.delete(
+      _database.deviceTokens,
+    )..where((row) => row.deviceId.equals(deviceId))).go();
+  }
+
   /// A [now]-kor már lejárt tokenek törlése.
   Future<void> deleteExpired(DateTime now) async {
     await (_database.delete(_database.deviceTokens)..where(

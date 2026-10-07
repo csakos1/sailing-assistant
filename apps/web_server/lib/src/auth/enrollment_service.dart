@@ -1,11 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:drift/native.dart' show SqliteException;
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_server/src/auth/account_info_of.dart';
-import 'package:web_server/src/auth/constant_time.dart';
+import 'package:web_server/src/auth/new_device_keys.dart';
 import 'package:web_server/src/auth/p256_public_key.dart';
 import 'package:web_server/src/auth/p256_signature_verifier.dart';
 import 'package:web_server/src/auth/random_bytes.dart';
@@ -17,6 +16,7 @@ import 'package:web_server/src/auth_db/auth_user.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
 import 'package:web_server/src/auth_db/enrollment_repository.dart';
 import 'package:web_server/src/auth_db/recovery_code_repository.dart';
+import 'package:web_server/src/auth_db/sqlite_error.dart';
 import 'package:web_server/src/auth_db/user_repository.dart';
 import 'package:web_server/src/web_db/transaction_runner.dart';
 
@@ -71,11 +71,15 @@ class EnrollmentService {
   Future<Result<EnrollmentResult, ApiError>> enroll(
     EnrollmentRequest request,
   ) async {
-    final publicKey = P256PublicKey.tryParse(request.publicKey);
-    if (publicKey == null) return const Err(_invalidPublicKey);
-    if (P256PublicKey.tryParse(request.deviceKey) == null ||
-        constantTimeEquals(request.publicKey, request.deviceKey)) {
-      return const Err(_invalidDeviceKey);
+    final P256PublicKey publicKey;
+    switch (parseNewDeviceKeys(
+      publicKey: request.publicKey,
+      deviceKey: request.deviceKey,
+    )) {
+      case Err(:final error):
+        return Err(error);
+      case Ok(:final value):
+        publicKey = value;
     }
     final isSigned = verifyP256Signature(
       publicKey: publicKey,
@@ -108,7 +112,7 @@ class EnrollmentService {
     }
     final keys = [request.publicKey, request.deviceKey];
     if (await _devices.isAnyKeyInUse(keys)) {
-      throw const _EnrollmentRejected(_keyInUse);
+      throw const _EnrollmentRejected(keysInUseError);
     }
     final owner = await _ownerFor(enrollment.ownerName, now);
     final AuthDevice device;
@@ -122,10 +126,11 @@ class EnrollmentService {
         model: request.model,
         now: now,
       );
-    } on SqliteException {
+    } on Object catch (error) {
       // Két egyidejű regisztráció ugyanazzal a kulccsal: a második az
       // egyedi indexen akad el; ez is foglalt kulcs, nem szerverhiba.
-      throw const _EnrollmentRejected(_keyInUse);
+      if (!isSqliteError(error)) rethrow;
+      throw const _EnrollmentRejected(keysInUseError);
     }
     final codes = generateRecoveryCodes(_randomBytes);
     await _recoveryCodes.replaceAll(owner.id, [
@@ -160,21 +165,6 @@ class EnrollmentService {
     return _digestRecoveryCode(normalized);
   }
 }
-
-const ApiError _invalidPublicKey = MalformedRequest(
-  DecodeError(path: r'$.publicKey', expected: 'P-256 SubjectPublicKeyInfo'),
-);
-
-const ApiError _invalidDeviceKey = MalformedRequest(
-  DecodeError(
-    path: r'$.deviceKey',
-    expected: 'P-256 SubjectPublicKeyInfo other than publicKey',
-  ),
-);
-
-const ApiError _keyInUse = MalformedRequest(
-  DecodeError(path: r'$.publicKey', expected: 'keys not yet registered'),
-);
 
 // A tranzakción belüli elutasítás: a kivétel görgeti vissza a token
 // beváltását; az `enroll` alakítja `Err`-ré, kifelé nem jut.

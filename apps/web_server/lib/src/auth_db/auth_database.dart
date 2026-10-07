@@ -3,6 +3,7 @@ import 'package:web_server/src/auth_db/challenges_table.dart';
 import 'package:web_server/src/auth_db/device_tokens_table.dart';
 import 'package:web_server/src/auth_db/devices_table.dart';
 import 'package:web_server/src/auth_db/enrollments_table.dart';
+import 'package:web_server/src/auth_db/join_requests_table.dart';
 import 'package:web_server/src/auth_db/login_requests_table.dart';
 import 'package:web_server/src/auth_db/recovery_codes_table.dart';
 import 'package:web_server/src/auth_db/sessions_table.dart';
@@ -15,7 +16,8 @@ part 'auth_database.g.dart';
 /// Külön fájl a `web.sqlite`-tól: az S14 export azt másolja, a kulcsok és a
 /// jelszó-hash viszont nem kerülhetnek egy letölthető csomagba. A v1 séma
 /// a deploy (S8) előtt migráció nélkül bővül (Addendum 2 J7, Addendum 3
-/// K13): az A2b a csatlakozási kérelmekkel és a belépési eseményekkel.
+/// K13, Addendum 5 M10): az A2b-1 a csatlakozási kérelmekkel, az A2b-2 a
+/// belépési eseményekkel.
 @DriftDatabase(
   tables: [
     Users,
@@ -24,6 +26,7 @@ part 'auth_database.g.dart';
     Challenges,
     DeviceTokens,
     Sessions,
+    JoinRequests,
     LoginRequests,
     RecoveryCodes,
   ],

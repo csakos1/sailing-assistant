@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:test/test.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
+import 'package:web_server/src/auth_db/challenge_purpose.dart';
 import 'package:web_server/src/auth_db/challenge_repository.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
 import 'package:web_server/src/auth_db/login_request_phase.dart';
@@ -15,6 +16,7 @@ import 'package:web_server/src/auth_db/user_repository.dart';
 
 final DateTime _now = DateTime.utc(2026, 10, 7, 9, 0, 0, 500);
 const SessionOrigin _browser = (ip: '198.51.100.20', browser: null, os: null);
+const ChallengePurpose _token = ChallengePurpose.deviceToken;
 
 Uint8List _bytes(int value) => Uint8List.fromList(List.filled(32, value));
 
@@ -52,28 +54,70 @@ void main() {
       await challenges.insert(
         digest: _bytes(9),
         deviceId: 'd-1',
+        purpose: ChallengePurpose.deviceToken,
         expiresAt: expiresAt,
       );
     });
 
     test('hands a challenge out once, only to its device', () async {
       expect(
-        await challenges.consume(_bytes(9), deviceId: 'd-2', now: _now),
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-2',
+          purpose: _token,
+          now: _now,
+        ),
         isFalse,
       );
       expect(
-        await challenges.consume(_bytes(9), deviceId: 'd-1', now: _now),
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-1',
+          purpose: _token,
+          now: _now,
+        ),
         isTrue,
       );
       expect(
-        await challenges.consume(_bytes(9), deviceId: 'd-1', now: _now),
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-1',
+          purpose: _token,
+          now: _now,
+        ),
         isFalse,
+      );
+    });
+
+    test('refuses a challenge asked for another purpose', () async {
+      expect(
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-1',
+          purpose: ChallengePurpose.action,
+          now: _now,
+        ),
+        isFalse,
+      );
+      expect(
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-1',
+          purpose: _token,
+          now: _now,
+        ),
+        isTrue,
       );
     });
 
     test('refuses a challenge at its expiry', () async {
       expect(
-        await challenges.consume(_bytes(9), deviceId: 'd-1', now: expiresAt),
+        await challenges.consume(
+          _bytes(9),
+          deviceId: 'd-1',
+          purpose: _token,
+          now: expiresAt,
+        ),
         isFalse,
       );
     });

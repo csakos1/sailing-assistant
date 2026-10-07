@@ -11,6 +11,10 @@ enum LoginRequestPhase {
   /// Egy telefon megnyitotta, ujjlenyomatra vár.
   opened,
 
+  /// Egy fiók nélküli telefon csatlakozási kérelmet küldött; az `owner`
+  /// döntésére vár (Addendum 5 M5).
+  joinPending,
+
   /// Egy telefon jóváhagyta; a kötő-cookie-s böngésző beválthatja.
   approved,
 }

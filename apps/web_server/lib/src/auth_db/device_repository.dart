@@ -76,6 +76,17 @@ class DeviceRepository {
         .write(DevicesCompanion(lastUsedAtMs: Value(toEpochMillis(now))));
   }
 
+  /// Az aktív (vissza nem vont) eszközök, a legrégebbi elöl.
+  Future<List<AuthDevice>> listActive() async {
+    final query = _database.select(_database.devices)
+      ..where((row) => row.revokedAtMs.isNull())
+      ..orderBy([
+        (row) => OrderingTerm.asc(row.createdAtMs),
+        (row) => OrderingTerm.asc(row.id),
+      ]);
+    return [for (final row in await query.get()) _toDevice(row)];
+  }
+
   /// Minden eszköz a fiókjával, fióknév és regisztrációs idő szerint.
   Future<List<DeviceWithUser>> listAll() async {
     final devices = _database.devices;

@@ -73,6 +73,14 @@ final class TestPhone {
         '5d4c3b2a19087f6e5d4c3b2a19087f6e5d4c3b2a19087f6e5d4c3b2a19087f6e',
   );
 
+  /// Egy harmadik telefon (a csatlakozó tag a legtöbb tesztben).
+  factory TestPhone.third() => TestPhone(
+    signingKeyHex:
+        '1f841d0d50b3c4eca8529f5bf8a3716fe9d8e3b8a41d8f450eeba782dfc811ea',
+    deviceKeyHex:
+        '9de185790923ccd72e7e028470695b28b10ffb0d845f869888fab13065bbb718',
+  );
+
   /// Az ujjlenyomatos aláíró kulcs.
   final TestKey signingKey;
 

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
+import 'package:web_server/src/auth_db/challenge_purpose.dart';
 import 'package:web_server/src/auth_db/epoch_millis.dart';
 
 /// A `challenges` tábla olvasó-írója (ADR 0051 Addendum 3 K2, K3).
@@ -9,10 +10,12 @@ class ChallengeRepository {
 
   final AuthDatabase _database;
 
-  /// Új kihívás a [digest] hash-sel a [deviceId] eszköznek.
+  /// Új kihívás a [digest] hash-sel a [deviceId] eszköznek, a [purpose]
+  /// céljára.
   Future<void> insert({
     required Uint8List digest,
     required String deviceId,
+    required ChallengePurpose purpose,
     required DateTime expiresAt,
   }) async {
     await _database
@@ -21,19 +24,22 @@ class ChallengeRepository {
           ChallengesCompanion.insert(
             digest: digest,
             deviceId: deviceId,
+            purpose: purpose.name,
             expiresAtMs: toEpochMillis(expiresAt),
           ),
         );
   }
 
-  /// A [digest] kihívás felhasználása a [deviceId] eszköznek: `true`, ha
-  /// élt és most elhasználódott.
+  /// A [digest] kihívás felhasználása a [deviceId] eszköznek a [purpose]
+  /// céljára: `true`, ha élt és most elhasználódott.
   ///
   /// Egyetlen feltételes `DELETE`: két egyidejű beváltásból csak az egyik
-  /// sikerül, és egy más eszköznek szóló kihívás nem használható.
+  /// sikerül, és egy más eszköznek vagy más célra szóló kihívás nem
+  /// használható.
   Future<bool> consume(
     Uint8List digest, {
     required String deviceId,
+    required ChallengePurpose purpose,
     required DateTime now,
   }) async {
     final deleted =
@@ -41,6 +47,7 @@ class ChallengeRepository {
               (row) =>
                   row.digest.equals(digest) &
                   row.deviceId.equals(deviceId) &
+                  row.purpose.equals(purpose.name) &
                   row.expiresAtMs.isBiggerThanValue(toEpochMillis(now)),
             ))
             .go();
