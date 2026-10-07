@@ -1821,3 +1821,68 @@ mert a hivatalos idők megváltoztatják az ablakot (`refreshIfStale`, I4).
   nagyban a sor elején, utána az évek kicsiben, sorban; az „Összes"
   opció ilyenkor nem látszik.
 - **A kiválasztott év** nem kattintható (javaslat): nincs mit választani.
+
+## Addendum 8 — A napló AppBarja a 19d makett szerint (2026-10-07)
+
+A napló AppBarjára a vezérlők egyenként kerültek fel (L6, ADR 0049
+Addendum 1 P1, ADR 0050 Addendum 3 G1, ADR 0051 Addendum 1 H4), és hat
+különböző gombstílus, egyenetlen közök és egy elválasztó vonal maradt
+belőlük. A felhasználó a Claude Design 19-es csoportjából a **19d**
+változatot választotta.
+
+### Q1 — A választott változat (felhasználói döntés)
+
+- **19d:** a nézetváltó lekerül az évsávba, az AppBarban minden vezérlő
+  felirattal áll.
+- **A váltó függőlegesen középre kerül** (felhasználói kérés): a makettben
+  az évsáv aljához igazodik, és elcsúszottnak hat.
+
+### Q2 — A nézetváltó helye (javaslat)
+
+- Az évsáv jobb szélén áll, az évsor és a versenyszám együttes
+  magasságának közepén. A jobb széle az AppBar jobb szélső vezérlőjével
+  egy vonalban van (az oszlop jobb szélétől 12 px).
+- Az évsáv csak nem üres naplóban látszik, így a váltó is. Üres naplóban,
+  betöltés és hiba alatt nincs mit váltani. Ez felülírja a G1 „minden
+  állapotban látszik" pontját; az állása (K26) változatlanul megmarad.
+- A Statisztika-képernyő ugyanazt az évsávot mutatja, váltó nélkül.
+- A cellák betéte 12 px (a 14 helyett), a kinézete egyébként változatlan
+  (K32).
+- Billentyűzettel a váltó az AppBar gombjai és az évek után következik.
+  A ←/→ váltás fókuszban változatlan.
+
+### Q3 — Egy gombcsalád (a 19d szerint)
+
+- **Ghost gomb:** 36 px magas, ikon és felirat. Az ikon 18 px,
+  `onSurfaceVariant`; a felirat 13/600, `onSurface`. Betét 12 px, köz
+  8 px, hoverre `surfaceContainerHigh`, szögletes. Tooltip nincs, mert a
+  felirat kiírja.
+  - Ilyen a Statisztika, az Export és az Új verseny.
+- **Feltöltés:** 1 px `primary` keret, teal ikon és felirat, 14 px betét.
+  Üres naplóban kitöltött: `primary` háttér, `onPrimary` ikon és
+  felirat.
+- **Fiók:** ghost „Ákos ˅” (a név-menü, ADR 0051 Addendum 7 P7).
+
+### Q4 — Sorrend és közök
+
+- **Tulajdonos:** Statisztika · Export · Új verseny | Feltöltés | fiók.
+- **Legénység:** Statisztika | fiók.
+- A csoporton belüli köz 8 px, a csoportok közötti 16 px. Elválasztó
+  vonal nincs.
+
+### Q5 — Keskeny ablak (javaslat)
+
+- 960 px alatt a név-gomb ikon marad (ADR 0051 Addendum 7, pontosítás).
+- A makett szerint 800 px-en a felirattal is elférne, IBM Plex betűvel. A
+  tesztkörnyezet betűje azonban minden jelet 1 em szélesre rajzol, és a
+  800 px-es tulajdonosi sort egy widget-teszt ellenőrzi (H4). Ezzel a
+  betűvel a teljes név-gomb kb. 30 px-szel túlcsordulna.
+
+### Mit ír felül
+
+- **Addendum 1 G1 és Addendum 4 K32:** a váltó helye, és az, hogy minden
+  állapotban látszik.
+- **Addendum 5 L6:** a vezérlők stílusa.
+- **ADR 0049 Addendum 1 P1 és ADR 0050 Addendum 3 G1:** a Statisztika és
+  az Export ikon-gombjai most feliratos ghost gombok.
+- **ADR 0051 Addendum 1 H4:** a név előtti elválasztó vonal elmarad.
