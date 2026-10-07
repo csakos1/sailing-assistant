@@ -6,7 +6,6 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/app/file_download_provider.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
-import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_scroll_column.dart';
 import 'package:foretack_web/auth/account_menu.dart';
 import 'package:foretack_web/auth/session_provider.dart';
@@ -21,7 +20,7 @@ import 'package:foretack_web/race_log/race_log_view.dart';
 import 'package:foretack_web/race_log/table/race_table.dart';
 import 'package:foretack_web/race_log/table/race_table_items.dart';
 import 'package:foretack_web/race_log/table/race_table_sort_provider.dart';
-import 'package:foretack_web/race_log/widgets/log_app_bar_icon_button.dart';
+import 'package:foretack_web/race_log/widgets/log_app_bar_button.dart';
 import 'package:foretack_web/race_log/widgets/log_empty_message.dart';
 import 'package:foretack_web/race_log/widgets/log_load_error.dart';
 import 'package:foretack_web/race_log/widgets/log_period_band.dart';
@@ -54,16 +53,11 @@ class RaceLogScreen extends ConsumerWidget {
     return Scaffold(
       appBar: WebAppBar(
         title: l10n.logTitle,
+        // 19d (ADR 0048 Addendum 8): egy gombcsalád, csoporton belül 8,
+        // csoportok között 16 px. A nézetváltó az évsávban áll.
         actions: [
-          // A váltó minden állapotban látszik, és megtartja az állását (G1).
-          LogViewToggle(
-            mode: ref.watch(logViewModeProvider),
-            onChanged: (mode) =>
-                ref.read(logViewModeProvider.notifier).mode = mode,
-          ),
-          const SizedBox(width: 8),
-          LogAppBarIconButton(
-            tooltip: l10n.logStatistics,
+          LogAppBarButton(
+            label: l10n.logStatistics,
             icon: Icons.bar_chart,
             onPressed: () => unawaited(
               Navigator.of(context).push(
@@ -74,17 +68,18 @@ class RaceLogScreen extends ConsumerWidget {
             ),
           ),
           if (isOwner) ...[
+            const SizedBox(width: 8),
             // A böngésző tölti le; a hibát a letöltés-sávja jelzi (ADR 0050
             // Addendum 3 G2).
-            LogAppBarIconButton(
-              tooltip: l10n.logExport,
+            LogAppBarButton(
+              label: l10n.logExport,
               icon: Icons.download_outlined,
               onPressed: () => ref.read(fileDownloadProvider)(exportPath),
             ),
             const SizedBox(width: 8),
-            // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
-            // velük egy magas (Addendum 5 L6).
-            TextButton.icon(
+            LogAppBarButton(
+              label: l10n.logNewRace,
+              icon: Icons.add,
               onPressed: () => unawaited(
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -92,19 +87,15 @@ class RaceLogScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.logNewRace),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-              ).merge(_appBarControlStyle),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 16),
             _UploadButton(isLogEmpty: isLogEmpty),
           ],
-          const _AppBarDivider(),
-          // A jobb szélső elem az oszlop betétjén áll (G1).
+          const SizedBox(width: 16),
+          // A jobb szélső elem az oszlop jobb szélétől 12 px-re áll; a
+          // `WebAppBar` 8 px-et már ad.
           const Padding(
-            padding: EdgeInsets.only(right: 12),
+            padding: EdgeInsets.only(right: 4),
             child: AccountMenu(),
           ),
         ],
@@ -123,43 +114,6 @@ class RaceLogScreen extends ConsumerWidget {
   }
 }
 
-// Az AppBar vezérlőinek közös mérete és betűje (Addendum 5 L6). A weben
-// a gombok alapból kompakt sűrűséget kapnak (32 px), ezért a magasság és a
-// sűrűség itt rögzített, hogy a váltóval egy magasak legyenek.
-final ButtonStyle _appBarControlStyle = ButtonStyle(
-  minimumSize: const WidgetStatePropertyAll(
-    Size(0, WebLayout.appBarControlHeight),
-  ),
-  fixedSize: const WidgetStatePropertyAll(
-    Size.fromHeight(WebLayout.appBarControlHeight),
-  ),
-  padding: const WidgetStatePropertyAll(
-    EdgeInsets.symmetric(horizontal: 14),
-  ),
-  visualDensity: VisualDensity.standard,
-  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
-  textStyle: WidgetStatePropertyAll(
-    supportTextStyle.copyWith(fontWeight: FontWeight.w600),
-  ),
-);
-
-/// Függőleges elválasztó a vezérlők és a név-menü között (ADR 0051
-/// Addendum 1 H4).
-class _AppBarDivider extends StatelessWidget {
-  const _AppBarDivider();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: SizedBox(
-      width: 1,
-      height: 24,
-      child: ColoredBox(color: Theme.of(context).colorScheme.outline),
-    ),
-  );
-}
-
 /// A Feltöltés gomb (ADR 0048 Addendum 4 K23). Üres naplóban kitöltött,
 /// mert ott ez a fő akció (13b).
 class _UploadButton extends StatelessWidget {
@@ -168,31 +122,15 @@ class _UploadButton extends StatelessWidget {
   final bool isLogEmpty;
 
   @override
-  Widget build(BuildContext context) {
-    final label = Text(WebLocalizations.of(context)!.logUpload);
-    const icon = Icon(Icons.upload, size: 18);
-    void open() => unawaited(showImportDialog(context));
-    if (isLogEmpty) {
-      return FilledButton.icon(
-        onPressed: open,
-        icon: icon,
-        label: label,
-        style: _appBarControlStyle,
-      );
-    }
-    // A fő adatforrás: teal keret és felirat, a váltó szürke keretétől
-    // eltérően (Addendum 5 L6).
-    final primary = Theme.of(context).colorScheme.primary;
-    return OutlinedButton.icon(
-      onPressed: open,
-      icon: icon,
-      label: label,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: primary,
-        side: BorderSide(color: primary),
-      ).merge(_appBarControlStyle),
-    );
-  }
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: () => unawaited(showImportDialog(context)),
+    icon: const Icon(Icons.upload),
+    label: Text(WebLocalizations.of(context)!.logUpload),
+    style: logAppBarUploadStyle(
+      Theme.of(context).colorScheme,
+      isFilled: isLogEmpty,
+    ),
+  );
 }
 
 /// A részletező megnyitása (ADR 0048 Addendum 4 K7), `MaterialPageRoute`-tal.
@@ -220,7 +158,16 @@ class _RaceLogBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        LogPeriodBand(view: view),
+        LogPeriodBand(
+          view: view,
+          // A nézetváltó a listát vezérli, ezért a lista fején áll (ADR
+          // 0048 Addendum 8 Q2); az állása megmarad (K26).
+          trailing: LogViewToggle(
+            mode: mode,
+            onChanged: (selected) =>
+                ref.read(logViewModeProvider.notifier).mode = selected,
+          ),
+        ),
         WebColumn(
           child: RaceLogStatsStrip(
             cells: [

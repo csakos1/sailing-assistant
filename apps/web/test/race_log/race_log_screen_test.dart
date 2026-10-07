@@ -8,6 +8,8 @@ import 'package:foretack_web/api/archive_api_client.dart';
 import 'package:foretack_web/app/api_providers.dart';
 import 'package:foretack_web/app/file_download_provider.dart';
 import 'package:foretack_web/app/foretack_web_app.dart';
+import 'package:foretack_web/app/web_layout.dart';
+import 'package:foretack_web/race_log/widgets/log_view_toggle.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -135,20 +137,27 @@ void main() {
     expect(find.byType(RaceLogRow), findsNothing);
   });
 
-  Finder uploadButtonOf<T extends Widget>() => find.ancestor(
-    of: find.text('Feltöltés'),
-    matching: find.byType(T),
-  );
+  // A Feltoltes gomb stilusa nyugalmi allapotban (ADR 0048 Addendum 8 Q3).
+  ButtonStyle? uploadStyleOf(WidgetTester tester) => tester
+      .widget<TextButton>(
+        find.ancestor(
+          of: find.text('Feltöltés'),
+          matching: find.byWidgetPredicate((widget) => widget is TextButton),
+        ),
+      )
+      .style;
 
   testWidgets('fills the upload button in an empty archive', (tester) async {
     // ACT: ures naplo (13b)
     await pumpApp(tester, (request) => serving(const []));
 
     // ASSERT
+    final style = uploadStyleOf(tester);
     expect(
-      uploadButtonOf<FilledButton>(),
-      findsOneWidget,
+      style?.backgroundColor?.resolve(const {}),
+      foretackTheme.colorScheme.primary,
     );
+    expect(style?.side, isNull);
   });
 
   testWidgets('outlines the upload button next to races', (tester) async {
@@ -156,14 +165,24 @@ void main() {
     await pumpApp(tester, (request) => serving(summaries));
 
     // ASSERT
+    final style = uploadStyleOf(tester);
+    expect(style?.backgroundColor?.resolve(const {}), Colors.transparent);
     expect(
-      uploadButtonOf<FilledButton>(),
-      findsNothing,
+      style?.side?.resolve(const {})?.color,
+      foretackTheme.colorScheme.primary,
     );
-    expect(
-      uploadButtonOf<OutlinedButton>(),
-      findsOneWidget,
-    );
+  });
+
+  testWidgets('the view toggle sits centred in the year band', (tester) async {
+    // ACT
+    await pumpApp(tester, (request) => serving(summaries));
+
+    // ASSERT: az AppBar alatt, az evsor es a versenyszam kozepen (Q2)
+    final toggle = tester.getRect(find.byType(LogViewToggle));
+    final year = tester.getRect(find.text('2026'));
+    final count = tester.getRect(find.text('2 VERSENY'));
+    expect(toggle.top, greaterThanOrEqualTo(WebLayout.appBarHeight));
+    expect(toggle.center.dy, closeTo((year.top + count.bottom) / 2, 1));
   });
 
   testWidgets('downloads the export from the app bar', (tester) async {
@@ -176,7 +195,7 @@ void main() {
     );
 
     // ACT
-    await tester.tap(find.byTooltip('Export'));
+    await tester.tap(find.text('Export'));
     await tester.pump();
 
     // ASSERT

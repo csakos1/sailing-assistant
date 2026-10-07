@@ -67,10 +67,10 @@ void main() {
 
     // ASSERT
     expect(find.text('Gergo'), findsOneWidget);
-    expect(find.byTooltip('Statisztika'), findsOneWidget);
+    expect(find.text('Statisztika'), findsOneWidget);
     expect(find.text('Új verseny'), findsNothing);
     expect(find.text('Feltöltés'), findsNothing);
-    expect(find.byTooltip('Export'), findsNothing);
+    expect(find.text('Export'), findsNothing);
   });
 
   testWidgets('the menu names the crew role', (tester) async {

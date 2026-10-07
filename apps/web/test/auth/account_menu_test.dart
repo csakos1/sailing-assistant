@@ -80,8 +80,8 @@ void main() {
     expect(find.text('Akos'), findsNothing);
     expect(find.text('Új verseny'), findsOneWidget);
     expect(find.text('Feltöltés'), findsOneWidget);
-    expect(find.byTooltip('Statisztika'), findsOneWidget);
-    expect(find.byTooltip('Export'), findsOneWidget);
+    expect(find.text('Statisztika'), findsOneWidget);
+    expect(find.text('Export'), findsOneWidget);
     expect(tester.getRect(find.byType(AccountMenu)).right, lessThan(800));
   });
 

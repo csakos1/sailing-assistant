@@ -69,7 +69,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Statisztika'));
+    await tester.tap(find.text('Statisztika'));
     await tester.pumpAndSettle();
   }
 

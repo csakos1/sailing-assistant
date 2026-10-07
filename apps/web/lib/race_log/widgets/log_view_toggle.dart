@@ -5,8 +5,8 @@ import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_log/log_view_mode.dart';
 
-/// A napló `[Lista | Táblázat]` váltója az AppBarban (ADR 0048 Addendum 1
-/// G1, Addendum 4 K32).
+/// A napló `[Lista | Táblázat]` váltója az évsáv jobb szélén (ADR 0048
+/// Addendum 1 G1, Addendum 4 K32, Addendum 8 Q2).
 ///
 /// Rádiócsoport: egyetlen Tab-megálló, a ←/→ azonnal vált. Szögletes,
 /// az AppBar gombjaival egy magas (Addendum 5 L6), `surfaceContainer`
@@ -113,7 +113,7 @@ class _Segment extends StatelessWidget {
           // A csoport egy Tab-megálló: a cellák nem kapnak fókuszt.
           canRequestFocus: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Center(
               child: Text(
                 label,

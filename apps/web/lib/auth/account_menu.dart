@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_snack_bar.dart';
 import 'package:foretack_web/auth/session_provider.dart';
 import 'package:foretack_web/auth/session_state.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
+import 'package:foretack_web/race_log/widgets/log_app_bar_button.dart';
 import 'package:foretack_web/race_log/widgets/log_app_bar_icon_button.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
@@ -96,17 +96,10 @@ class AccountMenu extends ConsumerWidget {
           message: l10n.accountMenuTooltip,
           child: TextButton(
             onPressed: toggle,
-            style: TextButton.styleFrom(
-              foregroundColor: scheme.onSurface,
-              fixedSize: const Size.fromHeight(WebLayout.appBarControlHeight),
-              minimumSize: const Size(0, WebLayout.appBarControlHeight),
+            // A 19d ghost gombja; a lenyíló nyíl felől kisebb a betét.
+            style: logAppBarGhostStyle(
+              scheme,
               padding: const EdgeInsets.only(left: 12, right: 10),
-              visualDensity: VisualDensity.standard,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: const RoundedRectangleBorder(),
-              textStyle: supportTextStyle.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

@@ -10,6 +10,7 @@ import 'package:foretack_web/app/api_providers.dart';
 import 'package:foretack_web/app/foretack_web_app.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_log/table/race_table.dart';
+import 'package:foretack_web/race_log/widgets/log_view_toggle.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -124,8 +125,18 @@ void main() {
     // ARRANGE
     await pumpApp(tester);
 
-    // ACT: Tab a valtora, majd jobbra nyil.
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    // ACT: fokusz a valtora (az evsavban all, az AppBar gombjai utan,
+    // ADR 0048 Addendum 8 Q2), majd jobbra nyil.
+    Focus.of(
+      tester.element(
+        find
+            .descendant(
+              of: find.byType(LogViewToggle),
+              matching: find.byType(Container),
+            )
+            .first,
+      ),
+    ).requestFocus();
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
