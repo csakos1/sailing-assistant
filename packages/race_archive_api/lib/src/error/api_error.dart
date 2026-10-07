@@ -161,6 +161,28 @@ final class TooManyAttempts extends ApiError {
   List<Object?> get props => [retryAfterSeconds];
 }
 
+/// A belépési kérés, a kihívás vagy a regisztrációs token lejárt, már
+/// felhasználták, vagy nincs ilyen (ADR 0051 Addendum 4 L3). Az app
+/// „Lejárt QR-kód"-ot mutat (Addendum 1 H7).
+final class RequestExpired extends ApiError {
+  /// Lejárt kérés.
+  const RequestExpired();
+
+  @override
+  int get httpStatus => 410;
+}
+
+/// A telefon vissza van vonva, vagy a szerver nem ismeri (például a tagot
+/// eltávolították). Az app a 18d-5 panelt mutatja (Addendum 1 H7,
+/// Addendum 4 L3).
+final class DeviceRevoked extends ApiError {
+  /// Visszavont vagy ismeretlen eszköz.
+  const DeviceRevoked();
+
+  @override
+  int get httpStatus => 403;
+}
+
 /// Váratlan szerverhiba. Részletet szándékosan nem hordoz: az a szerver
 /// naplójába tartozik.
 final class InternalError extends ApiError {
@@ -206,6 +228,8 @@ Map<String, Object?> encodeApiError(ApiError error) => <String, Object?>{
       'code': _tooManyAttempts,
       'retryAfterSeconds': retryAfterSeconds,
     },
+    RequestExpired() => <String, Object?>{'code': _requestExpired},
+    DeviceRevoked() => <String, Object?>{'code': _deviceRevoked},
     InternalError() => <String, Object?>{'code': _internalError},
   },
 };
@@ -236,6 +260,8 @@ Result<ApiError, DecodeError> decodeApiError(Object? json) => runDecode(() {
     _tooManyAttempts => TooManyAttempts(
       reader.integerAtLeast('retryAfterSeconds', 1),
     ),
+    _requestExpired => const RequestExpired(),
+    _deviceRevoked => const DeviceRevoked(),
     _internalError => const InternalError(),
     _ => JsonReader.failAt(reader.childPath('code'), 'api error code'),
   };
@@ -253,3 +279,5 @@ const String _internalError = 'internalError';
 const String _notAuthenticated = 'notAuthenticated';
 const String _notAllowed = 'notAllowed';
 const String _tooManyAttempts = 'tooManyAttempts';
+const String _requestExpired = 'requestExpired';
+const String _deviceRevoked = 'deviceRevoked';

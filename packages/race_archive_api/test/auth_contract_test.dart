@@ -162,6 +162,7 @@ void main() {
 
   group('signed messages', () {
     final publicKey = Uint8List.fromList([0x30, 0x59, 0x30, 0x13]);
+    final deviceKey = Uint8List.fromList([0x30, 0x59, 0x30, 0x14]);
 
     test('joins the login approval fields with newlines in UTF-8', () {
       final message = loginApprovalMessage(
@@ -177,16 +178,17 @@ void main() {
       );
     });
 
-    test('binds the enrollment to the token and the public key', () {
+    test('binds the enrollment to the token and both public keys', () {
       final message = enrollmentMessage(
         origin: _origin,
         token: _token,
         publicKey: publicKey,
+        deviceKey: deviceKey,
       );
 
       expect(
         utf8.decode(message),
-        'foretack-enroll-v1\n$_origin\n$_token\nMFkwEw==',
+        'foretack-enroll-v1\n$_origin\n$_token\nMFkwEw==\nMFkwFA==',
       );
     });
 
@@ -197,16 +199,46 @@ void main() {
         challenge: _challenge,
         name: 'Dóri',
         publicKey: publicKey,
+        deviceKey: deviceKey,
       );
 
       expect(
         message,
         utf8.encode(
           'foretack-join-v1\n$_origin\n$_requestId\n$_challenge\nDóri\n'
-          'MFkwEw==',
+          'MFkwEw==\nMFkwFA==',
         ),
       );
       expect(message.contains(0xC3), isTrue);
+    });
+
+    test('signs the device token request with the challenge', () {
+      final message = deviceTokenMessage(
+        origin: _origin,
+        deviceId: 'device-1',
+        challenge: _challenge,
+      );
+
+      expect(
+        utf8.decode(message),
+        'foretack-device-v1\n$_origin\ndevice-1\n$_challenge',
+      );
+    });
+
+    test('names the action and its target in the action message', () {
+      final message = deviceActionMessage(
+        origin: _origin,
+        deviceId: 'device-1',
+        challenge: _challenge,
+        action: DeviceAction.revokeDevice,
+        target: 'device-2',
+      );
+
+      expect(
+        utf8.decode(message),
+        'foretack-action-v1\n$_origin\ndevice-1\n$_challenge\n'
+        'revokeDevice\ndevice-2',
+      );
     });
 
     test('refuses a field that would add a line', () {
@@ -217,6 +249,7 @@ void main() {
           challenge: _challenge,
           name: 'Dori\nadmin',
           publicKey: publicKey,
+          deviceKey: deviceKey,
         ),
         throwsArgumentError,
       );

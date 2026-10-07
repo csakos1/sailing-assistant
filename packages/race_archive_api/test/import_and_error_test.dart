@@ -69,6 +69,8 @@ void main() {
       const NotAuthenticated(),
       const NotAllowed(),
       const TooManyAttempts(240),
+      const RequestExpired(),
+      const DeviceRevoked(),
     ];
 
     for (final error in errors) {
@@ -108,6 +110,8 @@ void main() {
           401,
           403,
           429,
+          410,
+          403,
         ],
       );
     });
