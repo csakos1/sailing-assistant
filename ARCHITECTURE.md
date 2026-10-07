@@ -5606,6 +5606,14 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     elutasított kérelem a böngészőnek lejártként látszik; mindenki csak
     a saját nevét írhatja át; egy eszköz visszavonása a vele jóváhagyott
     munkameneteket is lezárja (Addendum 5).
+  - az A2b-2: tartalék belépés egy mezővel (jelszó vagy kód), minden
+    próbálkozás egy argon2id-ellenőrzéssel és azonos hibaválasszal, a
+    fiókra és IP-nként korlátozva; jelszó és kódok az appból,
+    ujjlenyomattal; belépési események és szalag (gyanús: tartalék, vagy
+    eltérő ország a böngésző és a telefon között), a kiléptetés nyugtáz;
+    csatlakozni csak `pending` belépési kérésre lehet; offline GeoIP a
+    `build_geoip` CLI-vel épített `geoip.sqlite`-ból, a `--geoip`
+    kapcsolóval (Addendum 6).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;

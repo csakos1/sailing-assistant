@@ -1236,3 +1236,184 @@ bontja; a K-pontokat nem írja felül, csak kitölti.
   A2b-2-ben (M10).
 - **H9:** az önkizárás ellen a szerver az éppen kérő eszközt nem vonja
   vissza, és `owner`-t nem távolít el (M7).
+
+## Addendum 6 — Az A2b-2 részletei (2026-10-07)
+
+Az A2b-2 előtt. Az N1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A K9–K11-et és a D6–D8-at tölti ki.
+
+### N1 — Négy döntés (felhasználói döntés)
+
+- **Csatlakozás csak `pending` belépési kérésre.** Ha egy regisztrált
+  telefon már megnyitotta (`opened`, 17c), a csatlakozás `RequestExpired`
+  (410, „Lejárt QR-kód"); a csatlakozó a következő QR-ral próbálja. Így
+  aki ugyanazt a QR-t látja, nem zavarhat meg egy folyamatban lévő
+  belépést. Felülírja az M3 „`pending` vagy `opened`" részét.
+- **A tartalék belépés várakozása a fiókra és IP-nként is él** (N3).
+  Egy támadó legfeljebb egy órára blokkolhatja a tartalékot; a
+  QR-belépés közben is megy.
+- **A szalag** a nyugtázatlan, 30 napnál nem régebbi gyanús belépéseket
+  mutatja (K9 szerint).
+- **GeoIP teljesen az A2b-2-ben:** `build_geoip` CLI és keresés a
+  szerveren; a VPS-es méret és a havi frissítés az S8-ban.
+
+### N2 — Tartalék belépés: a végpont (javaslat)
+
+- `POST /api/auth/fallback-login`, `X-Foretack-Client: web`, törzs
+  `{secret}` (jelszó vagy helyreállító kód, név nélkül, D6).
+- Siker: `200` + `AccountInfo` + `__Host-ft_session` cookie (a mód
+  `password` vagy `recoveryCode`); a böngésző korábbi sessionje lezárul,
+  mint a QR-belépésnél (L6).
+- Minden hiba **ugyanaz:** `401 NotAuthenticated`, azonos törzzsel. Nem
+  derül ki, hogy van-e jelszó, hogy kód volt-e, vagy hogy létezik-e
+  `owner`.
+- Az idő sem árulkodhat (K10): **minden** próbálkozás pontosan egy
+  argon2id-ellenőrzést futtat (az `owner` hash-ével, vagy ha nincs
+  jelszó vagy `owner`, egy rögzített hash-sel), és pontosan egy
+  kód-keresést (ha a szöveg kód alakú, a HMAC-hash-ével, különben egy
+  biztosan nem létező hash-sel). Siker, ha bármelyik egyezik; ha a
+  szöveg kód és egyezik, a kód elhasználódik (feltételes `UPDATE`, két
+  egyidejű beváltásból egy nyer).
+- A törzs legfeljebb 4 KiB, a szöveg legfeljebb 128 kódpont (a jelszó
+  felső korlátja, J4); hosszabbra is `401`, és az argon2id ekkor is
+  lefut (egy rögzített hash-sel), hogy az idő itt se különbözzön.
+
+### N3 — Tartalék belépés: a korlát (javaslat)
+
+- **IP-nként óránként 20** próbálkozás (sikeres is számít), D8.
+- **A fiókra:** 5 egymást követő hiba után minden újabb próbálkozás
+  előtt várni kell: 1, 2, 4, 8, 16, 32, majd 60 perc (felső korlát),
+  bármely IP-ről. Egy sikeres belépés nullázza. Mivel egy `owner` van,
+  ez egyetlen számláló.
+- A várakozás alatt a válasz `429 TooManyAttempts` + `Retry-After`, és
+  nem fut ellenőrzés (így a helyes jelszó sem enged be ilyenkor).
+- Memóriában (D8): a szerver újraindítása nullázza; ez elfogadott, mert
+  az újraindítás SSH-t kíván.
+
+### N4 — Jelszó és helyreállító kódok (javaslat, csak `owner`)
+
+- `POST /api/auth/account/password`, eszköz-tokennel, törzs
+  `{password, challenge, signature}`; `setPassword`, `target` = `-`
+  (K4). A jelszó `isAcceptablePassword` (12–128 kódpont, J4), különben
+  `MalformedRequest`; argon2id PHC-szöveg a `users.password_hash`-be, a
+  `password_set_at` most. Törölni nem lehet, csak cserélni (H9).
+- `POST /api/auth/account/recovery-codes`, eszköz-tokennel, törzs
+  `SignedAction`; `regenerateRecoveryCodes`, `target` = `-`. Válasz `201`
+  `{recoveryCodes: [10]}`, `no-store`; a régiek érvénytelenek.
+- `GET /api/auth/account/security`, eszköz-tokennel →
+  `AccountSecurity{passwordSetAt?, recoveryCodesLeft}` (18l: „beállítva:
+  <dátum>", „7/10").
+- A `crew` mindháromra `NotAllowed`.
+
+### N5 — Belépési események (javaslat)
+
+- Új tábla: `login_events(id, user_id, session_id?, method, ip, browser,
+  os, country, city, phone_country, is_suspicious, created_at_ms,
+  acknowledged_at_ms)`. A fiók törlése az eseményeit is viszi; a
+  munkamenet törlése után az esemény megmarad (`session_id` NULL).
+- Minden új session egy eseményt ír, ugyanabban a tranzakcióban.
+- **Gyanús** (K9): minden tartalék-belépés, és az a QR-belépés, ahol a
+  böngésző országa és a jóváhagyó telefon országa (a `phone_ip`-ből)
+  ismert és eltér. Csatlakozás utáni első belépésnél a telefon IP-je a
+  kérelemé (M5).
+- A takarítás a 30 napnál régebbi eseményeket törli.
+
+### N6 — Szalag és nyugtázás (javaslat)
+
+- `GET /api/auth/banner`, eszköz-tokennel → `LoginBanner{suspicious,
+  pendingJoinRequests}`. A `suspicious` a nyugtázatlan, ≤ 30 napos gyanús
+  események, a legújabb elöl (`owner`: mindenkié, `crew`: a sajátja);
+  elemenként `SuspiciousLogin{id, userId, userName, method, ip, browser?,
+  os?, country?, city?, createdAt, sessionId?}`. A `pendingJoinRequests`
+  az `owner`-nél az élő, el nem döntött kérelmek száma, a `crew`-nál 0.
+- `POST /api/auth/login-events/{id}/acknowledgement`, eszköz-tokennel →
+  `204`; az `owner` bármelyiket, a `crew` csak a sajátját (különben
+  `NotAllowed`); ismeretlen vagy már nyugtázott esemény is `204`.
+- Egy munkamenet kiléptetése (M8) a hozzá tartozó eseményt is
+  nyugtázza: a szalag „Kiléptetés" gombja (H8) így egy hívás.
+- A `WebSession` új mezője `isSuspicious` (a „Webes belépések" sorában a
+  figyelmeztető jel).
+
+### N7 — GeoIP: az adatbázis (javaslat)
+
+- `geoip.sqlite`: `ip_ranges(family INTEGER, start BLOB, end BLOB,
+  country TEXT, city TEXT)`, elsődleges kulcs `(family, start)`. A címek
+  big-endian bájtjai (IPv4 4, IPv6 16 bájt), így a BLOB-összevetés a
+  címek sorrendje. A keresés: a legnagyobb `start <= ip` sor a családban,
+  és ha a `end >= ip`, az a találat.
+- Az ország ISO 3166 kétbetűs kód (az app fordítja névre), a város a
+  DB-IP szövege; üres mező → `null`.
+- A fájlt a szerver csak olvassa (`sqlite3`, csak olvasható mód).
+
+### N8 — GeoIP: a `build_geoip` CLI (javaslat)
+
+- `dart run web_server:build_geoip --csv <dbip-city-lite-ÉÉÉÉ-HH.csv.gz>
+  --out <geoip.sqlite>`; a `.gz`-t maga bontja (`dart:io` `gzip`), sima
+  `.csv`-t is elfogad.
+- Az elvárt sor (DB-IP Lite City): `ip_start, ip_end, continent,
+  country, stateprov, city, latitude, longitude`, fejléc nélkül,
+  idézőjeles mezőkkel. **Más oszlopszám, érvénytelen cím, vegyes család
+  vagy fordított tartomány esetén leáll** (65), a sor számával: egy
+  formátumváltás így nem lesz csendben rossz hely.
+- Egy ideiglenes fájlba ír egy tranzakcióban, kötegelt beszúrással,
+  végül átnevezi; a meglévő `--out` csak a sikeres építés után cserélődik.
+  A kimenet: sorok száma családonként.
+- A DB-IP formátumát az első futás előtt egy valódi fájl első soraival
+  ellenőrizzük; ha eltér, ez a pont módosul.
+
+### N9 — GeoIP: a szerver (javaslat)
+
+- Új, opcionális kapcsoló: `--geoip <geoip.sqlite>`. Nélküle minden hely
+  `null` (ismeretlen), a szerver fut. **Megadva, de nem olvasható vagy
+  nem ilyen sémájú fájlnál a szerver nem indul** (66): egy elgépelt
+  útvonal így nem lesz csendes „ismeretlen hely".
+- Hol rögzül a hely: a belépési kérés nyitásakor (a böngésző országa és
+  városa; az `open` válaszában, az ujjlenyomat-ablak alcímében, H6), a
+  session létrejöttekor (`sessions.country`, `city`), a csatlakozási
+  kérelemnél (`join_requests.country`, `city`), és a jóváhagyó telefon
+  országa az eseményben (N5).
+- A `unknown` IP (L11) és a privát, loopback és link-local címek
+  keresés nélkül `null`.
+
+### N10 — Szerződés (javaslat)
+
+- Új DTO-k: `FallbackLogin{secret}` (redaktáló `toString`),
+  `PasswordChange{password, action}` (redaktáló), `IssuedRecoveryCodes`,
+  `AccountSecurity`, `LoginBanner`, `SuspiciousLogin`; a `WebSession`
+  `isSuspicious` mezővel (hiányzó kulcs = `false`).
+- Új útvonalak: `fallbackLoginPath`, `accountPasswordPath`,
+  `accountRecoveryCodesPath`, `accountSecurityPath`, `bannerPath`,
+  `loginEventAcknowledgementPath(id)`. Új hiba nincs.
+
+### N11 — Az `auth.sqlite` (javaslat)
+
+- Új tábla a `login_events`; a sémaverzió marad 1 (J7). A helyi
+  `auth.sqlite`-ot ezért újra törölni kell (mint az M10-nél).
+- A `geoip.sqlite` nem része az `auth.sqlite`-nak, és nincs a mentésben
+  (D10): újraépíthető.
+
+### N12 — Tesztek (javaslat)
+
+- A tartalék belépés: jelszó, kód (egyszer), rossz szöveg, jelszó nélküli
+  `owner`, nincs `owner`; azonos hibaválasz; a fiók-várakozás lépései az
+  órával (5 hiba után 1 perc, …, 60 perc felső korlát, nullázás
+  sikerkor); IP-korlát.
+- A jelszó és a kódok: csak `owner`, rossz aláírás, túl rövid jelszó,
+  újragenerálás után a régi kód nem jó.
+- Az események és a szalag: gyanús tartalék és országeltérés egy kis,
+  kézzel épített `geoip.sqlite`-tal; láthatóság; nyugtázás; a kiléptetés
+  nyugtáz; 30 nap után eltűnik.
+- A `build_geoip`: IPv4 és IPv6 sor, gzip, hibás sorok kilépési kóddal; a
+  keresés határesetei (tartomány eleje, vége, rés, másik család).
+
+### Mit pontosít
+
+- **M3:** csatlakozni csak `pending` belépési kérésre lehet (N1).
+- **D6, K10:** a tartalék belépés pontos menete (N2).
+- **D8:** a fiók-szintű várakozás lépései (N3).
+- **D7, K9:** a belépési események és a szalag (N5, N6); a kiléptetés
+  nyugtáz (N6).
+- **K11:** a `geoip.sqlite` és a `build_geoip` (N7, N8); a `--geoip`
+  hibás fájlra nem indul (N9).
+- **M8:** a `WebSession` `isSuspicious` mezőt kap (N6).
