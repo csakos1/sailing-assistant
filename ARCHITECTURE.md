@@ -5626,6 +5626,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     csatlakozás két részben (A4a, A4b); a fiókadat egy app-privát
     JSON-fájlban, nem a versenyek DB-jében; más origójú regisztrációs QR
     megerősítés után lecseréli a fiókot és a kulcsokat (Addendum 8).
+  - a csatlakozásnál a beírt név egy lejárt QR után megmarad, és egy
+    friss QR beolvasása után csak ujjlenyomat kell; a függő kérelmet az
+    app induláskor és előtérbe jövéskor kérdezi le, a döntést snackbar
+    jelzi; a fiók-fájl vagy fiókot, vagy függő kérelmet hord (Addendum 9).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;

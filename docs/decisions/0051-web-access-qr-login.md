@@ -1891,3 +1891,126 @@ pusholással hagyja jóvá).
   ugyanaz a QR 15 percen belül újra beolvasható.
 - **V9:** a 18d-5 „Csatlakozás kérése" gombja már az A4a-ban törli a
   helyi fiókot és a kulcsokat, és újra a beolvasót nyitja.
+
+## Addendum 9 — Az A4b részletei: a csatlakozás a telefonon (2026-10-08)
+
+Az A4b előtt. Az X1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A V9 (Addendum 8) és a 18e/18e-2 makett
+mellé teszi, ami a kód előtt kérdés volt.
+
+### X1 — Három döntés (felhasználói döntés)
+
+- **A QR 60 mp-e:** a fiók nélküli telefon nem nyitja meg a belépési
+  kérést (N1: csatlakozni csak `pending` kérésre lehet), ezért a kérés a
+  létrehozásától 60 mp-ig él, és a web a visszaszámlálás végén új QR-t
+  kér. A tagnak a beolvasástól átlagosan kb. 30 mp jut a névre és az
+  ujjlenyomatra. Ha kifut (`410`), a beírt név megmarad, és egy friss
+  QR beolvasása után az app űrlap nélkül, rögtön az ujjlenyomatot kéri
+  (X2). A szerver nem változik; a „foglaló" végpont (a kérés
+  meghosszabbítása a fiók nélküli telefonról) elvetve.
+- **A 18e-2 bezárása után:** az app induláskor és előtérbe jövéskor
+  egyszer, csendben lekérdezi a függő kérelmet, és a döntést egy
+  snackbar jelzi (X3).
+- **A névmező:** üres, autofókusszal; a telefon nevéből nem töltjük
+  elő (az Android-eszköznév többnyire a modell, nem személynév).
+
+### X2 — A név megőrzése (javaslat)
+
+- A 18e-ben beírt (normalizált) név a küldés előtt egy memóriabeli
+  „vázlatba" kerül (Riverpod, az app élettartamára; fájlba nem). A
+  vázlat sikeres küldés (18e-2) után törlődik; az app újraindítása is
+  törli.
+- A küldés bármely hibája (`410`, `429`, hálózat, foglalt kulcs)
+  megtartja a vázlatot. A `410` panelje a csatlakozásnál: „Lejárt
+  QR-kód" / „Olvasd be újra a QR-kódot; a neved megmaradt." + „Újra".
+- Fiók és `pendingJoin` nélkül, élő vázlattal egy belépési QR a 18e
+  helyett azonnal a kulcsokat és az ujjlenyomatot kéri, a vázlat
+  nevével.
+- Az elvetett ujjlenyomat a 18e-t mutatja (vázlatnál a vázlat nevével,
+  ott javítható), nem csendes bezárás, mert a felhasználó itt már adatot
+  írt be.
+
+### X3 — Lekérdezés a főképernyőn (javaslat)
+
+- A 18e-2 nyitva: 5 mp-enként (V9). Bezárva: a főképernyő indításkor és
+  minden `resumed` életciklus-váltáskor egyszer kérdez, ha van élő
+  `pendingJoin`; időzítő a 18e-2-n kívül nincs.
+- `approved`: a fiók a tárba, a `pendingJoin` törlődik, snackbar
+  „Csatlakoztál a Lola archívumához" (a 18e-2-ről is, a főképernyőre
+  váltás után).
+- `notApproved` vagy lejárt `pendingJoin` (az `expiresAt` a telefon
+  órája szerint elmúlt): a `pendingJoin` és a két kulcs törlődik,
+  snackbar „A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt."
+  (a 18e-2-n a V9 panelje).
+- `pending`, hálózati hiba, szerverhiba: csend (H11); a következő
+  indításkor újra.
+- A lekérdezés a `web_access` feature-ben él; a főképernyő csak egy
+  figyelő widgettel köti be, versenyes providert nem érint (V10).
+
+### X4 — A fiók-fájl alakja (javaslat, a V3 pontosítása)
+
+- A `web_account.json` vagy egy fiókot, vagy egy `pendingJoin`-t hord,
+  egyszerre sosem: `{"version":1,"origin","userId","name","role",
+  "deviceId"}` vagy `{"version":1,"pendingJoin":{"origin",
+  "joinRequestId","statusToken","expiresAt","name"}}`. Mindkettő együtt
+  → olvashatatlan (nincs fiók, naplósor, V3). A `version` marad 1.
+- A `pendingJoin` a `deviceName`-et nem tárolja: a 18e-2 „Telefon"
+  sora újra az eszközadatból jön (V8). Az „Elküldve" sor a
+  `expiresAt − 24 óra`.
+
+### X5 — Az útválasztás bővítése (javaslat, a V5 pontosítása)
+
+| Beolvasott | Helyi állapot | Mi történik |
+|---|---|---|
+| belépési QR | `pendingJoin`, azonos origó | a meglévő kérelem 18e-2-je |
+| belépési QR | `pendingJoin`, más origó | 18d-3 a függő kérelem hostjával |
+| belépési QR | nincs fiók, élő vázlat | ujjlenyomat a vázlat nevével (X2) |
+| belépési QR | nincs fiók | 18e (A4b; az A4a ideiglenes panelje megszűnik) |
+| regisztrációs QR | `pendingJoin` | regisztráció megerősítés nélkül; a függő kérelem és a kulcsok törlődnek |
+
+- A lejárt `pendingJoin` az útválasztás előtt törlődik (mintha nem
+  lenne).
+- A regisztrációs QR (V5) eldobja a vázlatot is.
+
+### X6 — Szövegek (javaslat)
+
+- 18e: AppBar „Csatlakozás"; „Csatlakozás a Lola archívumához"; a host
+  mono; „NEVED"; „Kérelem küldése" (tiltva, amíg a
+  `normalizeDisplayName` nem fogadja el a mezőt); hibás név → halk piros
+  sor „1–40 karakter, sortörés nélkül".
+- 18e-2: „KÉRELEM ELKÜLDVE"; „Várj a tulajdonos jóváhagyására"; Név,
+  Telefon, Elküldve (`ÓÓ:PP`), Lejár (mono `23 ó 59 p`); „Bezárás"
+  (csak bezár: szerveroldali visszavonás nincs, a kérelem 24 óra múlva
+  lejár).
+- Az ujjlenyomat-ablak: „Csatlakozás a Lola archívumához" / host (H6).
+
+### X7 — A dev-szkript és a Pixel-próba (javaslat)
+
+- A V12 három parancsa; az `approve-join` alapból új tagot hagy jóvá,
+  `--member <userId>` egy meglévő `crew` tag új telefonja.
+- A Pixel-próbához a tulajdonosi fiók lekerül a Pixelről: `revoke_device
+  --device <id>` a szerveren, és a `web_account.json` törlése `adb shell
+  run-as`-szal (a versenyek DB-je nem változik). A jóváhagyó a
+  dev-szkript tulajdonosi eszköze. A próba után a Pixel egy friss
+  CLI-QR-ral újra tulajdonos lesz (a V5 megerősítő dialógusán át), a
+  legénységi tagja `revoke_device`-szal visszavonható.
+
+### X8 — Tesztek (javaslat)
+
+- Egység: a kliens két új hívása; a kodek (fiók, `pendingJoin`, mindkettő
+  → olvashatatlan); a csatlakozás folyamata (siker, elvetett ujjlenyomat,
+  `410`, `429`, `400`); a lekérdezés kimenetei; az útválasztás X5 sorai.
+- Widget: 18e (tiltott gomb, hibás név, küldés → 18e-2); 18e-2 teszt-órával
+  (`pending` → `approved` → főképernyő + snackbar; `notApproved` →
+  panel); `410` → panel → új beolvasás → ujjlenyomat űrlap nélkül; a
+  főképernyő indításkori lekérdezése.
+
+### Mit pontosít
+
+- **V3:** a fiók és a `pendingJoin` kizárja egymást (X4).
+- **V5:** a `pendingJoin` és a vázlat sorai (X5); a beolvasott szöveg
+  a dekódolás előtt `trim()`-elődik, mert a `create_owner_enrollment`
+  kimenete záró sortöréssel kerül a `qrencode`-ba (A4a utáni javítás).
+- **V9:** a név megőrzése (X2), a lekérdezés a 18e-2-n kívül és a
+  snackbar (X3); az elvetett ujjlenyomat a csatlakozásnál a 18e-n hagy.
