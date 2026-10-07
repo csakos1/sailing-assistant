@@ -92,4 +92,12 @@ void main() {
     expect((otherServer as EnrollScan).replacing, account);
     expect(otherServer.payload.origin, otherOrigin);
   });
+
+  test('a trailing newline from the CLI pipe is ignored', () {
+    // Act
+    final route = routeScan('$enrollText\n', null);
+
+    // Assert
+    expect(route, isA<EnrollScan>());
+  });
 }

@@ -55,9 +55,12 @@ final class EnrollScan extends ScanRoute {
 
 /// A beolvasott [text] és a helyi [account] → [ScanRoute] (V5 táblája).
 ///
+/// A szöveg körüli szóközt és sortörést levágja: a CLI kimenete a
+/// `| qrencode` csövön át záró sortöréssel kerül a QR-be (D3).
+///
 /// Pure: a beolvasó képernyő csak végrehajtja a döntést.
 ScanRoute routeScan(String text, WebAccount? account) =>
-    switch (decodeQrPayload(text)) {
+    switch (decodeQrPayload(text.trim())) {
       Err(error: QrPayloadError.unsupportedVersion) => const ScanRejected(
         UnsupportedCode(),
       ),
