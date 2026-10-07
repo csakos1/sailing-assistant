@@ -4608,7 +4608,10 @@ A függőségi irányok:
   A hitelesítéshez (ADR 0051 Addendum 2 J10) külső csomagjai:
   `pointycastle` (ECDSA P-256), `cryptography` (argon2id) és `crypto`
   (SHA-256, HMAC).
-- `apps/phone` → `foretack_ui`.
+- `apps/phone` → `foretack_ui`, és a webes hozzáféréshez (ADR 0051
+  Addendum 8 V2) `race_archive_api`; külső csomagjai ehhez:
+  `biometric_signature` (Keystore-kulcsok, ujjlenyomat), `mobile_scanner`
+  (QR, beépített ML Kit), `http` és `device_info_plus`.
 - `foretack_ui` → `domain`, `shared` (a tokenek a domain enumjait, a
   widgetek a domain entitásait jelenítik meg; Addendum 4 E9, Addendum 5
   F3). A `data`-tól nem függ, ezért webre is fordul.
@@ -5619,6 +5622,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     bármely `401` után a belépő képernyő látszik; a QR-t a `qr` csomag
     kódolja, saját painter rajzolja; a `crew` elől a módosító vezérlők
     rejtve vannak, a név-menüben kijelentkezés (Addendum 7).
+  - a telefonon a regisztráció (CLI-s QR, 10 kód), a QR-belépés és a
+    csatlakozás két részben (A4a, A4b); a fiókadat egy app-privát
+    JSON-fájlban, nem a versenyek DB-jében; más origójú regisztrációs QR
+    megerősítés után lecseréli a fiókot és a kulcsokat (Addendum 8).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;

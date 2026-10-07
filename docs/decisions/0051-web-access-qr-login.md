@@ -1613,3 +1613,241 @@ pusholással hagyja jóvá).
   belépési QR-t (szövegként vagy a `zbarimg`-mel képből) pedig megnyit és
   jóváhagy. A kulcsai egy `0600`-s helyi fájlban vannak, ujjlenyomat
   nélkül, ezért éles szerveren nem használható.
+
+## Addendum 8 — Az A4 részletei: regisztráció, belépés, csatlakozás a telefonon (2026-10-07)
+
+Az A4 előtt. A V1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A makett 18a–18g (Addendum 1 H1, H5–H7,
+H11, H12) mellé teszi, ami a makettben nincs. A kezelő képernyők
+(18a-2, 18h–18l) az A5-ben jönnek.
+
+### V1 — Négy döntés (felhasználói döntés)
+
+- **Fiók-csere más origóra:** ha egy regisztrált telefon egy más
+  origójú regisztrációs QR-t (`foretack-enroll:`) olvas be, az app
+  megerősítést kér („Ez a telefon a localhost:8080-on van regisztrálva.
+  Lecseréled erre: archivum.example.hu?"). Igenre törli a helyi
+  fiókadatot és a két kulcsot, és újakkal regisztrál. Belépési QR-ral
+  ez sosem történik meg (az a 18d-3 hibát adja). Több szerver
+  párhuzamos kezelése v1-ben nincs.
+- **A fiók tára: saját JSON-fájl** az app privát könyvtárában (V3), új
+  függőség nélkül. Nem a versenyek Drift-DB-jében: egy fiók-csere vagy
+  egy visszavont eszköz takarítása versenyt nem érinthet.
+- **QR-olvasás: `mobile_scanner`, beépített ML Kit** (az alapérték):
+  +3–10 MB APK, de a beolvasás az első alkalommal is Play
+  Services-letöltés nélkül megy.
+- **Két rész + dev-szkript:** az **A4a** a függőségeket, a
+  `FlutterFragmentActivity`-t, a kliensréteget, az eszköz-tokent, a
+  regisztrációt a kódokkal és a QR-belépést hozza; az **A4b** a
+  csatlakozást. A `tools/dev/foretack_dev_phone.py` az A4b-ben
+  `join-requests`, `approve-join` és `reject-join` parancsot kap, így a
+  csatlakozás az A5 (a tulajdonos kezelő képernyői) előtt is végig
+  kipróbálható.
+
+### V2 — Függőségek és platform (javaslat)
+
+- Új függőségek az `apps/phone`-ban: `biometric_signature: ^13.2.0`
+  (H5), `mobile_scanner: ^7.4.2`, `http: ^1.2.2` (a webével azonos),
+  `device_info_plus: ^13.3.0`, és a `race_archive_api` (pure Dart, a
+  D11 szerint megengedett irány).
+- A `MainActivity` `FlutterFragmentActivity`-re vált (H5), egy önálló
+  `refactor(phone)` commitban, amely előtt DB-mentés, utána Pixel
+  smoke-teszt (élő verseny, rögzítés, óra) jön: egy hibás váltás a
+  versenyfunkciókat is érintené.
+- A manifest `CAMERA` engedélyt kap; a `mobile_scanner` futásidőben
+  kéri. Megtagadott engedélynél a beolvasó helyén: „A beolvasáshoz
+  kamera-engedély kell" + „Újra" és „Bezárás". A rendszer-beállítások
+  megnyitásához nem veszünk fel újabb csomagot.
+- A `minSdk` marad `flutter.minSdkVersion` (Flutter 3.41-en 24); a
+  `biometric_signature` 23-at, a többi legfeljebb 24-et kér.
+- A szerver felé menő HTTP a `dart:io` kliensén megy, amely az Android
+  Network Security Config-ját nem nézi, így a `http://localhost:8080`
+  (`adb reverse`) fejlesztői próba cleartext-beállítás nélkül megy. A
+  Pixel-próbán ellenőrizendő.
+
+### V3 — A fiók tára (javaslat)
+
+- Fájl: `web_account.json` a `getApplicationSupportDirectory()` alatt
+  (a `path_provider` már függőség). Tartalom:
+  `{"version":1,"origin","userId","name","role","deviceId"}`, és ha van,
+  `"pendingJoin":{"origin","joinRequestId","statusToken","expiresAt",
+  "name"}` (V9).
+- Írás: ideiglenes fájlba, utána `rename` (atomi csere); egy félbemaradt
+  írás nem hagy fél fájlt.
+- Olvasás: hiányzó fájl → nincs fiók. Olvashatatlan JSON vagy ismeretlen
+  `version` → nincs fiók, egy naplósorral; az app nem omlik össze, és a
+  következő regisztráció vagy csatlakozás felülírja (a kulcsokat is
+  újakra cseréli, V4).
+- A `statusToken` titok, de rövid életű (24 óra) és csak a kérelem
+  állapotát adja; a fájl app-privát, ezért külön titkosítás nem kell.
+- Egy `WebAccountStore` (olvas, ír, töröl) interfész mögött; a teszt
+  ideiglenes könyvtárral fut, és ellenőrzi, hogy a törlés csak ezt a
+  fájlt érinti.
+
+### V4 — A két kulcs (javaslat, a H5 és a K1 szerint)
+
+- Aliasok: `foretack-web` (aláíró: `requireAuthentication: true`,
+  `setInvalidatedByBiometricEnrollment: false`, `enforceBiometric:
+  false`, `useDeviceCredentials: false`) és `foretack-device` (csendes:
+  `requireAuthentication: false`). Mindkettő `SignatureType.ecdsa`,
+  a kulcs `KeyFormat.base64` (SPKI DER), az aláírás DER base64.
+- Regisztráció és csatlakozás előtt az app mindkét aliast törli és
+  újra létrehozza: egy korábbi, félbemaradt próbálkozás kulcsa így nem
+  maradhat meg egy új fiók mellett.
+- A plugin hívásai függvény-`typedef`-ek mögött vannak (kulcs
+  létrehozása, aláírás ujjlenyomattal, csendes aláírás, kulcsok
+  törlése), így a folyamatok Keystore nélkül, tesztben is futnak (D13).
+- A `keyNotFound` / `keyInvalidated` a 18d-5 panelt adja (H5, H7).
+
+### V5 — A beolvasás útválasztása (javaslat)
+
+A `decodeQrPayload` eredménye és a helyi állapot dönt:
+
+| Beolvasott | Helyi állapot | Mi történik |
+|---|---|---|
+| `notForetack` / `malformed` | bármi | „Ez nem Foretack-kód" (H7) |
+| `unsupportedVersion` | bármi | „Frissítsd a Foretack appot" (J2) |
+| belépési QR | fiók, azonos origó | QR-belépés (V6) |
+| belépési QR | fiók, más origó | 18d-3, mono hosttal |
+| belépési QR | nincs fiók, élő `pendingJoin` | a meglévő kérelem 18e-2-je (nem küld újat) |
+| belépési QR | nincs fiók | csatlakozás, 18e (A4b) |
+| regisztrációs QR | nincs fiók | regisztráció, 18f (V8) |
+| regisztrációs QR | fiók, más origó | megerősítés, majd csere (V1) |
+| regisztrációs QR | fiók, azonos origó | megerősítés („Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod."), majd új kulcsokkal regisztrál |
+
+- Az útválasztás egy pure függvény (bemenet: a dekódolt QR és a helyi
+  fiók), táblateszttel.
+- A beolvasó (18b) csak QR-formátumot keres, az első érvényes találatnál
+  megáll, és rezeg (`HapticFeedback`, csomag nélkül).
+
+### V6 — A QR-belépés (javaslat)
+
+1. Eszköz-token (V7), majd `POST …/{id}/open` a QR kihívásával →
+   `BrowserLoginDetails`.
+2. Ujjlenyomat-ablak a H6 szerint: „Belépés a Foretack webre" /
+   „Chrome · Linux · Budapest, HU" (a hiányzó részek kimaradnak).
+3. `loginApprovalMessage` aláírása az aláíró kulccsal →
+   `POST …/{id}/approval`.
+4. Siker: a beolvasó bezárul, a főképernyőn 4 mp-es snackbar (18d):
+   „Belépve a webre" + a mono böngészősor.
+
+Hibák a beolvasó alsó paneljén (18d-2…5, H7):
+
+| Hiba | Panel |
+|---|---|
+| `410 RequestExpired` | „Lejárt QR-kód" |
+| `403 DeviceRevoked`, `keyNotFound`, `keyInvalidated` | 18d-5 |
+| `429 TooManyAttempts` | „Próbáld újra N perc múlva" (percre felfelé, legalább 1) |
+| hálózat, időtúllépés (10 mp) | 18d-4 |
+| más szerverhiba | 18d-4 szövegével |
+
+- Ha a felhasználó az ujjlenyomat-ablakot elveti, a beolvasó csendben
+  bezárul (H6).
+
+### V7 — Eszköz-token (javaslat)
+
+- `POST /api/auth/device-challenges` → `foretack-device-v1` aláírása a
+  csendes kulccsal → `POST /api/auth/device-tokens`. A token csak
+  memóriában él, 15 percig; az app a lejárat előtt 1 perccel, vagy egy
+  `401` után egyszer újat kér.
+- A kérés minden módosító hívásnál `X-Foretack-Client: phone`, a
+  tokennel `Authorization: Bearer …` (K3).
+
+### V8 — A regisztráció (javaslat, A4a)
+
+- 18f: a QR után az app elkészíti a kulcsokat (V4), aláírja az
+  `enrollmentMessage`-et (ujjlenyomat, H6 „Telefon regisztrálása" / a
+  szerver hostja), és `POST /api/auth/enrollments`.
+- Eszköznév és típus a `device_info_plus`-ból: `deviceName` = a
+  `model` („Pixel 8"), `model` = `manufacturer` + `model` („Google
+  Pixel 8"); mindkettő a `normalizeDisplayName`-en át, üresnél
+  „Android".
+- A fiók csak a szerver sikeres válasza után íródik a tárba. Hibánál
+  nincs fiók; a token egy elutasított próbálkozásnál nem ég el (L5),
+  így ugyanaz a QR 15 percen belül újra beolvasható. Ha a szerver
+  beváltotta, de a válasz elveszett, új QR kell a CLI-ből.
+- 18g: a 10 kód csak memóriában, két oszlopban, `numeralMicroStyle`
+  (H12); „Másolás" a vágólapra teszi mind a tizet, „Elmentettem" zárja
+  le; vissza-gomb és vissza-gesztus nincs (`PopScope`). Ha az app
+  közben bezárul, a kódok elvesznek: újakat az A5 „Fiók és biztonság"
+  képernyője vagy a CLI-s újraregisztráció ad.
+
+### V9 — A csatlakozás (javaslat, A4b)
+
+- 18e: a szerver hostja mono, egy névmező (`normalizeDisplayName`,
+  1–40 kódpont), „Kérelem küldése" → kulcsok (V4) → ujjlenyomat (H6:
+  „Csatlakozás a Lola archívumához" / host) → `POST
+  /api/auth/join-requests`.
+- A `JoinTicket` a `pendingJoin`-ba kerül (V3), utána 18e-2:
+  „Kérelem elküldve", név, telefon, a 24 órás lejárat mono
+  visszaszámlálással.
+- Az app a `…/status`-t 5 mp-enként kérdezi, amíg a 18e-2 nyitva van,
+  és indításkor, ha van élő `pendingJoin`.
+  - `approved`: a fiók a válaszból (`AccountInfo`, `deviceId`) a tárba
+    kerül, a `pendingJoin` törlődik, az app a főképernyőre vált.
+  - `notApproved` vagy lejárt `pendingJoin`: a `pendingJoin` és a két
+    kulcs törlődik; egy panel: „A kérelmet nem hagyták jóvá, vagy
+    lejárt." + „Bezárás".
+- A küldés hibái: `410` → „Lejárt QR-kód" (a belépési kérés már nem
+  `pending`, N1); `429` → „Próbáld újra N perc múlva"; hálózat → 18d-4.
+- A 18d-5 „Csatlakozás kérése" gombja (`crew`) törli a fiókot és a
+  kulcsokat, és újra a beolvasót nyitja: a csatlakozáshoz egy friss
+  belépési QR kell. Az `owner`-nél a gomb helyett a „Regisztráld újra a
+  szerveren (CLI)" sor áll (H7).
+
+### V10 — Hol látszik az A4-ben (javaslat)
+
+- A főképernyő AppBarjában a QR-ikon a debug-ikonok előtt (H1). A ⋮
+  menü és a szalagok az A5-tel jönnek; az A4-ben nincs mit mögéjük
+  tenni.
+- A szerep és a név az A4-ben a tárból jön; a `GET /api/auth/me`-vel
+  való frissítés (H11) a szalaggal együtt az A5-ben.
+- A versenyfunkciók a fióktól függetlenek maradnak (H11): a
+  `web_access` feature egyetlen versenyes providert sem olvas és ír.
+
+### V11 — Rétegek (javaslat)
+
+- `apps/phone/lib/features/web_access/`: `data/` (a HTTP-kliens a
+  `race_archive_api` kodekjeivel, a JSON-tár, a plugin-adapterek),
+  `application/` (Riverpod: fiók, eszköz-token, a belépés, regisztráció
+  és csatlakozás folyamata), `presentation/` (18b–18g).
+- A folyamatok a V4 `typedef`-jeit és egy `http.Client`-et kapnak;
+  tesztben `MockClient` és hamis aláíró. A domain nem változik (D11).
+- A szövegek az app ARB-jében (H6, H7 és a V-pontok szövegei).
+
+### V12 — A dev-szkript bővítése (javaslat, A4b)
+
+- `join-requests`: a függő kérelmek listája (`GET
+  /api/auth/join-requests`).
+- `approve-join <id> [--member <userId>]`: akció-kihívás →
+  `deviceActionMessage` (`approveJoin`, `joinApprovalTarget`) →
+  `POST …/approval`.
+- `reject-join <id>`: `POST …/rejection`.
+- Továbbra is csak fejlesztéshez; a tulajdonosi állapot ugyanaz a
+  `0600`-s fájl.
+
+### V13 — Tesztek és próba (javaslat)
+
+- Egységtesztek: a V5 útválasztás táblája; a JSON-tár (hiányzó,
+  hibás, ismeretlen verzió, atomi írás, a törlés csak a saját fájlt
+  érinti); a kliens `MockClient`-tel (fejlécek, kodekek, hibák
+  leképezése); a V6–V9 folyamatai hamis kulcsműveletekkel (ujjlenyomat
+  elvetése, `keyNotFound`, `410`, `403`, `429`, hálózat).
+- Widget-tesztek: 18e-2 lekérdezése teszt-órával (`approved`,
+  `notApproved`); 18g vissza nélkül; a hibapanelek szövegei.
+- Pixel-próba: `adb reverse tcp:8080 tcp:8080`, origó
+  `http://localhost:8080`; regisztráció a CLI QR-jával, belépés a webre,
+  visszavonás (`revoke_device`) → 18d-5, csatlakozás a dev-szkript
+  jóváhagyásával. A YDWG Wi-Fi-jén egy belépés-próba (a szerver felé
+  menő kérés a mobilneten megy-e, és az NMEA-kapcsolat nem szakad-e meg).
+
+### Mit pontosít
+
+- **H1:** a ⋮ menü az A5-tel jelenik meg (V10).
+- **H5:** két alias (`foretack-web`, `foretack-device`, K1), és a
+  kulcsok minden regisztráció és csatlakozás előtt újak (V4).
+- **H7:** a 18d-5 „Csatlakozás kérése" a beolvasót nyitja, mert a 18e
+  egy friss belépési QR-t igényel (V9).
+- **D11:** a fiókadat helye egy app-privát JSON-fájl (V3); a QR-olvasó
+  a `mobile_scanner` beépített ML Kit-tel (V1).
