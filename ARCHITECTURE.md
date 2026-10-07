@@ -5585,9 +5585,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
   - a telefonon a főképernyő AppBarjában QR-beolvasás gomb, a webes
     hozzáférés képernyői a ⋮ menüből; egy build mindenkinek, a
     versenyfunkciók fiók és internet nélkül is működnek (Addendum 1);
-  - a kulcs a `biometric_signature` (13.2.0) P-256 kulcsa, minden
-    aláírás ujjlenyomatot kér; ujjlenyomat-változás nem érvényteleníti,
-    attesztáció nincs (Addendum 1 H5).
+  - a telefonnak két P-256 kulcsa van a `biometric_signature`-ben
+    (13.2.0): az aláíró kulcs minden aláíráshoz ujjlenyomatot kér
+    (belépés, jóváhagyás, romboló művelet), a csendes eszközkulcs egy
+    15 perces eszköz-tokent kér a szalaghoz és a listákhoz;
+    ujjlenyomat-változás nem érvényteleníti őket, attesztáció nincs
+    (Addendum 1 H5, Addendum 3 K1–K4);
   - a szerver csak a tokenek hash-ét tárolja, a jelszót argon2id-vel,
     a helyreállító kódokat egy `0600`-s titok-fájl HMAC-jével; két CLI
     (`create_owner_enrollment`, `revoke_device`) kezeli a VPS-en az

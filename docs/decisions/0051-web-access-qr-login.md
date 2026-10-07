@@ -715,3 +715,169 @@ foretack-enroll-v1        foretack-join-v1
   (`K7Q2M-9XWPD`) a `9` miatt nem érvényes; ez csak mintaadat.
 - A `UserRole` (`owner`, `crew`) már a szerződésben van, mert az A2 `me`
   végpontja és az app is ezt használja.
+
+## Addendum 3 — Az A2 terve: két kulcs, végpontok, két rész (2026-10-07)
+
+Az A2 előtt. A K1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható.
+
+### K1 — Két kulcs a telefonon (felhasználói döntés)
+
+- **Aláíró kulcs** (`foretack-web`, a mostani): minden aláíráshoz
+  ujjlenyomat kell. Ezzel megy a QR-belépés, a regisztráció, a
+  csatlakozás és minden jóváhagyó vagy romboló művelet (K4).
+- **Eszközkulcs** (`foretack-device`, `requireAuthentication: false`):
+  szintén Keystore, nem exportálható, de nem kér ujjlenyomatot. Ezzel a
+  telefon egy rövid életű eszköz-tokent kér (K3) a szalaghoz, a
+  listákhoz, a „Rendben"-hez és a kiléptetéshez.
+- Mindkettő P-256 SubjectPublicKeyInfo; a regisztráció és a csatlakozás
+  mindkettőt felküldi, és az aláíró kulccsal aláírja (K2). A `devices`
+  tábla új, egyedi oszlopa a `device_key`.
+- Egy ellopott **és feloldott** telefonon az eszközkulccsal a listák
+  láthatók és munkamenetek kiléptethetők; jóváhagyni, visszavonni,
+  eltávolítani és jelszót állítani ujjlenyomat nélkül nem lehet.
+
+### K2 — Az aláírt üzenetek bővülése (javaslat)
+
+- `foretack-enroll-v1` és `foretack-join-v1`: az aláíró kulcs sora után
+  egy új sor, az eszközkulcs base64(SPKI)-ja.
+- Új üzenet az eszköz-tokenhez, az **eszközkulccsal** aláírva:
+  `foretack-device-v1`, `<origin>`, `<deviceId>`, `<challenge>`.
+- Új üzenet a K4 műveleteihez, az **aláíró kulccsal** (ujjlenyomattal):
+  `foretack-action-v1`, `<origin>`, `<deviceId>`, `<challenge>`,
+  `<action>`, `<target>`. Az `action` a művelet neve (K4), a `target`
+  az érintett azonosító (vagy `-`).
+- A kihívás mindkettőnél a szerveré: egyszer használatos, 60 mp-ig él,
+  és csak annak az eszköznek szól, amelyik kérte (`challenges` tábla).
+
+### K3 — Eszköz-token (javaslat)
+
+- `POST /api/auth/device-challenges` (`deviceId`) → kihívás; utána
+  `POST /api/auth/device-tokens` (`deviceId`, `challenge`, aláírás) →
+  256 bites token, **15 percig** él. A DB csak a hash-ét tárolja.
+- A telefon `Authorization: Bearer <token>` és `X-Foretack-Client:
+  phone` fejléccel hív. Minden kérésnél ellenőrizzük, hogy az eszköz nincs
+  visszavonva és a fiók létezik: egy visszavonás azonnal hat.
+- Az eszköz `last_used_at` mezője tokenkéréskor frissül.
+
+### K4 — Mi kér ujjlenyomatot (javaslat)
+
+| Művelet (`action`) | `target` | Ujjlenyomat |
+|---|---|---|
+| QR-belépés (D4) | — | igen (`foretack-login-v1`) |
+| Csatlakozási kérelem jóváhagyása (`approveJoin`) | `<kérelem>:<new vagy userId>` | igen |
+| Eszköz visszavonása (`revokeDevice`) | `<deviceId>` | igen |
+| Tag eltávolítása (`removeUser`) | `<userId>` | igen |
+| Jelszó beállítása (`setPassword`) | `-` | igen |
+| Kódok újragenerálása (`regenerateRecoveryCodes`) | `-` | igen |
+| Szalag, listák, kiléptetés, „Rendben", elutasítás, átnevezés | — | nem (eszköz-token) |
+
+### K5 — A belépési kérés életútja (javaslat)
+
+- `pending` (60 mp) → `opened` (az app a K3-tokennel megnyitotta; az
+  utolsó megnyitástól 60 mp, H2) → `approved` (az aláírás után 60 mp-ig
+  váltható be) → beváltva. Lejárt kérés: `expired`.
+- Fiók nélküli app csatlakozásakor a kérés `joinPending` lesz, és **10
+  percig** él (D3). Ha közben az `owner` jóváhagyja, a következő
+  lekérdezéskor a böngésző az új (vagy a meglévő) tag sessionjét kapja.
+- A böngésző a kötő-cookie-val **POST**-tal kérdez (a beváltás ír, és a
+  `GET` nem ír, ADR 0047). Csak az a böngésző kap sessiont, amelyik a
+  kötő-cookie-t hordozza; a kérés ezzel elhasználódik.
+- A jóváhagyáskor rögzül a telefon kérésének IP-je és országa (a
+  gyanús-jelzéshez, K9).
+
+### K6 — Végpontok (javaslat)
+
+Web (session-cookie vagy kötő-cookie, `X-Foretack-Client: web` a
+módosító kéréseken):
+
+| Végpont | Mire |
+|---|---|
+| `POST /api/auth/login-requests` | új kérés; válasz: QR-szöveg, lejárat; kötő-cookie |
+| `POST /api/auth/login-requests/{id}/poll` | állapot; `approved`-nál session-cookie |
+| `POST /api/auth/fallback-login` | jelszó vagy helyreállító kód (A2b) |
+| `POST /api/auth/logout` | a session törlése, a cookie-k törlése |
+| `GET /api/auth/me` | név, szerep (sessionnel vagy eszköz-tokennel) |
+
+Telefon (`X-Foretack-Client: phone`):
+
+| Végpont | Hitelesítés |
+|---|---|
+| `POST /api/auth/enrollments` | a regisztrációs token + aláírás; válasz: fiók, eszköz, 10 kód |
+| `POST /api/auth/device-challenges`, `/device-tokens` | eszközkulcs (K3) |
+| `POST /api/auth/login-requests/{id}/open` | eszköz-token + a QR kihívása; válasz: böngésző, IP, hely |
+| `POST /api/auth/login-requests/{id}/approval` | aláíró kulcs (`foretack-login-v1`) |
+| `POST /api/auth/action-challenges` | eszköz-token; kihívás a K4-hez |
+| `POST /api/auth/join-requests` | aláíró kulcs (`foretack-join-v1`); válasz: kérelem + lekérdező token (A2b) |
+| `POST /api/auth/join-requests/{id}/status` | a lekérdező token (A2b) |
+| a K4 többi művelete, a listák, a szalag | eszköz-token (+ aláírás, ha a K4 kéri) (A2b) |
+
+### K7 — Kapcsolók és middleware (javaslat)
+
+- A szerver új, **kötelező** kapcsolói: `--origin` (kanonikus, az
+  üzenetekbe és a QR-ba kerül), `--auth-db`, `--auth-secret`. Az
+  opcionális `--geoip` nélkül a hely ismeretlen (A2b). Hitelesítés nélküli
+  üzemmód nincs, lokálisan is így fut.
+- Sorrend: naplózás → kivételfogó → kliensfejléc-őr → hitelesítés →
+  szerep → router. A web végpontjain a fejléc `web`, a telefonéin
+  `phone`.
+- Az `/api/*` az auth belépési végpontjain kívül session nélkül 401. A
+  `crew` az archívumból csak `GET`-et kap, az exportot nem (403).
+- A session a D5 szerint: 7 nap tétlenség, legfeljebb 90 nap; a
+  `last_seen_at` legfeljebb óránként íródik.
+
+### K8 — Próbálkozás-korlát (javaslat)
+
+- Memóriában, kulcsonként csúszó ablakkal (a D8 számai); a kliens IP-je
+  az `X-Forwarded-For` utolsó eleméből, de csak `127.0.0.1`-ről jövő
+  kérésnél.
+- 429-nél a válasz `TooManyAttempts` és `Retry-After`.
+
+### K9 — Belépési események és gyanús belépés (javaslat, A2b)
+
+- Minden új session egy eseményt ír (mód, IP, ország, város, böngésző).
+- Gyanús: minden tartalék-belépés, és az a QR-belépés, ahol a böngésző
+  és a jóváhagyó telefon országa ismert és eltér.
+- A szalag a nyugtázatlan, 30 napnál nem régebbi gyanús eseményeket
+  mutatja (az `owner`-nél mindenkiét, a `crew`-nál a sajátjait), plusz
+  az `owner`-nél a függő kérelmek számát.
+
+### K10 — Tartalék belépés (javaslat, A2b)
+
+- A beírt szöveg előbb helyreállító kódként próbálódik (ha a
+  `normalizeRecoveryCode` elfogadja), utána jelszóként. Egy hibás
+  próbálkozás egyszer számít.
+- Az idő nem árulhatja el, mi történt: jelszó nélküli fióknál is lefut
+  egy argon2id-ellenőrzés egy rögzített hash-sel.
+
+### K11 — A böngésző leírása és a hely (javaslat, A2b)
+
+- A User-Agentből saját, kis elemző: Chrome, Edge, Firefox, Safari,
+  Opera, illetve Windows, macOS, Linux, Android, iOS, ChromeOS. A
+  Windows-verzió a User-Agentből nem olvasható ki, ezért csak „Windows"
+  (a makett „Windows 11"-e így nem lesz).
+- `geoip.sqlite`: `ip_ranges(family, start, end, country, city)`, a
+  címek big-endian BLOB-ként, így IPv4-re és IPv6-ra ugyanaz a
+  lekérdezés. Egy `build_geoip` CLI építi a DB-IP Lite City CSV-ből.
+
+### K12 — Két rész (javaslat)
+
+Az A2 egyben kb. a kétszerese lenne a mostani legnagyobb szeletnek, és
+a review is ennyivel gyengébb lenne. Ezért két tarballban jön:
+- **A2a:** a K2 szerződés-változás, kihívások, eszköz-token, a regisztráció
+  végpontja (a 10 kóddal), a belépési kérés teljes útja, session,
+  kijelentkezés, `me`, a middleware-lánc, a próbálkozás-korlát, a
+  kapcsolók.
+- **A2b:** csatlakozás és legénység-kezelés, munkamenet-lista és
+  kiléptetés, szalag és nyugtázás, tartalék belépés, jelszó, kódok
+  újragenerálása, átnevezés, User-Agent és GeoIP.
+
+A hátralévő szeletek így: A2a, A2b, A3, A4, A5, S8.
+
+### K13 — Az `auth.sqlite` v1 új táblái (javaslat)
+
+`challenges`, `device_tokens`, `sessions`, `login_requests` (A2a);
+`join_requests`, `recovery_codes`, `login_events` (a `recovery_codes`
+már az A2a-ban, mert a regisztráció kódot ad). A `devices` új oszlopa a
+`device_key`. Éles adat nincs, ezért migráció nélkül (J7).
