@@ -1570,3 +1570,46 @@ H12) mellé teszi, ami a makettben nincs.
 - **H11, D9:** a web szerep szerint rejt, és bármely `401` a belépő
   képernyőre visz (P2, P3).
 - **D11:** a QR-rajzoló a `qr` csomag + saját painter (P1, P6).
+
+### Pontosítás a kód után (2026-10-07)
+
+Az A3 kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **P2:** a `sessionProvider` állapota egy sealed `SessionState`
+  (`SignedIn` a fiókkal, `SignedOut` az `isExpired` jelzővel), nem
+  `AccountInfo?`: a halk sorhoz az okot is hordozni kell. A szerep az
+  `isOwnerProvider`, a fiók azonosítója a `signedInUserIdProvider`. Az
+  archívum kliense az utóbbit figyeli, így fiókváltáskor (belépés,
+  lejárat, kijelentkezés) újraépül, és egy lejárat előtti `401` hibája
+  nem ragad be a következő belépésre.
+- **P3:** a `SessionAwareClient` az archívum kliensén ül, a hitelesítés
+  kliense nem kapja. A feltöltés a böngésző `XMLHttpRequest`-jén megy,
+  ezért a feltöltő saját burkot kap. Az export rejtett `<a download>`-dal
+  tölt le: ennek `401`-ét a web nem látja, a böngésző letöltés-sávja
+  sikertelen letöltésként mutatja (mint a `409`-et, ADR 0050 G2).
+- **P4:** ha egy új belépési kérés nem nyitható (hálózat vagy
+  szerverhiba), a QR helyén „Nincs kapcsolat a szerverrel" áll, és a web
+  5 mp múlva újra próbál, `429`-nél a `Retry-After` után. A
+  visszaszámlálás másodperces ütemekből áll, nem a gép órájából; egy
+  háttérbe tett lapon a böngésző ritkítja az ütemeket, de a kérés valódi
+  lejáratát úgyis a `poll` mondja meg. Egy senki által be nem olvasott,
+  a szerver szerint lejárt QR jelzés nélkül cserélődik.
+- **P5:** egy szerverhiba (nem `401` és nem `429`) is „Nincs kapcsolat a
+  szerverrel"; a beírt szöveg ilyenkor megmarad.
+- **P7:** ha a kijelentkezés nem éri el a szervert, a web belépve marad,
+  és egy snackbar szól („Nem sikerült kijelentkezni. Próbáld újra."): a
+  session-cookie `HttpOnly`, a web nem tudja törölni, és egy idegen gépen
+  a kijelentkezett kép félrevezető lenne. A `crew` az üres naplóban
+  feltöltésre hívás nélküli szöveget kap. Az üres eredmény sora nála is
+  látszik, de nem nyit szerkesztőt. 960 px-nél keskenyebb ablakban a
+  név-gomb egy 36 px-es ikon (a név a tooltipben és a panel fejében),
+  hogy a tulajdonos sora 800 px-en is elférjen (H4); szélesebben a név
+  látszik, 160 px-nél levágva.
+- **P8:** a telefon nélküli helyi próbához a
+  `tools/dev/foretack_dev_phone.py` (csak fejlesztéshez, a szerverbe és
+  a telefonra nem kerül): a `create_owner_enrollment` QR-szövegével
+  tulajdonosként regisztrál és kiírja a 10 helyreállító kódot, egy webes
+  belépési QR-t (szövegként vagy a `zbarimg`-mel képből) pedig megnyit és
+  jóváhagy. A kulcsai egy `0600`-s helyi fájlban vannak, ujjlenyomat
+  nélkül, ezért éles szerveren nem használható.
