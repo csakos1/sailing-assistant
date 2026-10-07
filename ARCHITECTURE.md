@@ -5595,6 +5595,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     a helyreállító kódokat egy `0600`-s titok-fájl HMAC-jével; két CLI
     (`create_owner_enrollment`, `revoke_device`) kezeli a VPS-en az
     `owner` telefonját (Addendum 2).
+  - a szerver új, kötelező kapcsolói: `--origin`, `--auth-db`,
+    `--auth-secret`; a `/api/auth/*` végpontok a session-őr előtt, az
+    archívum mögötte fut (`AuthApi`); minden `owner`-regisztráció 10 új
+    helyreállító kódot ad; próbálkozás-korlát IP-nként percenként 10
+    (Addendum 4).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;

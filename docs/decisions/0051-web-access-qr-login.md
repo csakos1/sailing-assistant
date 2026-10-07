@@ -881,3 +881,159 @@ A hátralévő szeletek így: A2a, A2b, A3, A4, A5, S8.
 `join_requests`, `recovery_codes`, `login_events` (a `recovery_codes`
 már az A2a-ban, mert a regisztráció kódot ad). A `devices` új oszlopa a
 `device_key`. Éles adat nincs, ezért migráció nélkül (J7).
+
+## Addendum 4 — Az A2a részletei (2026-10-07)
+
+Az A2a kódjával együtt. Mind Claude javaslata („javaslat"); a
+felhasználó az A2a pusholásával hagyja jóvá, és az A2b előtt még
+visszavonhatók. Az Addendum 3-at nem írja felül, csak kitölti.
+
+### L1 — A szerződés (javaslat)
+
+- Új DTO-k a `race_archive_api`-ban: `AccountInfo`, `LoginRequestTicket`,
+  `LoginRequestStatus` (`pending`, `opened`, `joinPending`, `signedIn`,
+  `expired`), `BrowserLoginDetails`, `EnrollmentRequest`,
+  `EnrollmentResult`, `IssuedSecret` (kihívás vagy eszköz-token),
+  `SignedDeviceRequest`, és a `LoginMethod` (`qr`, `password`,
+  `recoveryCode`, a D7 munkamenet-sorához).
+- Az útvonalak az `auth_routes.dart`-ban; a K6 végpontjai közül az A2a a
+  `login-requests` (nyitás, `poll`, `open`, `approval`), az
+  `enrollments`, a `device-challenges`, a `device-tokens`, a `me` és a
+  `logout` végpontot hozza.
+- Az `action-challenges` az A2b-be kerül: csak a K4 műveletei
+  használják, azok pedig ott jönnek. A `challenges` tábla akkor kap egy
+  `purpose` oszlopot (éles adat előtt, migráció nélkül, J7).
+
+### L2 — Kódolás a dróton (javaslat)
+
+- A kulcs és az aláírás **szabványos base64**, csak a kanonikus alak (a
+  `biometric_signature` így adja, H5). A titkok (token, kihívás) a QR-hoz
+  hasonlóan base64url-ek, és a dekóder a hosszukat is nézi (32 bájt; a
+  kérés-azonosító 16).
+- Az eszköz neve és típusa a dekódoláskor a `normalizeDisplayName`
+  szerint egységesül (levágva, vezérlő- és láthatatlan karakter nélkül).
+- Az időpontok UTC epoch-milliszekundumban, mint az archívum többi
+  végpontján.
+
+### L3 — Két új hiba és a meglévők használata (javaslat)
+
+| Hiba | HTTP | Mikor | Az appban |
+|---|---|---|---|
+| `RequestExpired` (új) | 410 | a kérés, a kihívás vagy a token lejárt, elhasználódott vagy nincs | „Lejárt QR-kód" (H7) |
+| `DeviceRevoked` (új) | 403 | az eszköz vissza van vonva, vagy a szerver nem ismeri (pl. a tagot eltávolították) | 18d-5 |
+| `NotAuthenticated` | 401 | hibás aláírás, hiányzó vagy lejárt eszköz-token vagy session | új token / újra belépés |
+| `MalformedRequest` | 400 | nem P-256 kulcs, a két kulcs azonos, már regisztrált kulcs | — |
+
+### L4 — A kliensfejléc (javaslat)
+
+A `requireClientHeader` mindenhol a `web` és a `phone` értéket is
+elfogadja. A CSRF-védelem a fejléc puszta jelenlétéből jön (egy idegen
+oldal nem tehet egyedi fejlécet a kérésébe), ezért nem kell
+végpontonként szétválasztani.
+
+### L5 — A regisztráció (javaslat)
+
+- Sorrend: a két kulcs alakja → az aláírás (DB nélkül) → egy
+  tranzakcióban a token beváltása, a kulcsok egyedisége, a fiók, az
+  eszköz és a kódok. Egy elutasítás a tranzakciót visszagörgeti, így
+  egy hibás próbálkozás **nem égeti el a tokent**.
+- Egy kulcs csak egyszer lehet a rendszerben, akár aláíró, akár
+  eszközkulcsként; a két kulcs nem lehet azonos.
+- **Minden `owner`-regisztráció új 10 kódot ad, a régiek
+  érvénytelenek.** Az új telefon csak most mutathatja meg őket (18g), a
+  régieket pedig nem tudja.
+- Ha két, még név szerinti token közül a második akkor váltódik be,
+  amikor az `owner` már létezik, a telefon az ő új eszköze lesz (a token
+  csak a VPS-en adható ki, tehát az `owner`-é).
+- Egy más origóra kiadott token `RequestExpired`.
+
+### L6 — A belépési kérés (javaslat)
+
+- A `login_requests` sor a kihívást nyíltan tárolja (az ellenőrzés az
+  aláírt üzenetet ebből rakja össze; a QR-ban amúgy is nyilvános), a
+  kötő-tokennek csak a hash-ét. A beváltott kérés sora törlődik.
+- A megnyitáshoz eszköz-token **és** a QR kihívása kell: a telefon ezzel
+  bizonyítja, hogy a QR-t látta, nem csak az azonosítót. Hogy melyik
+  aktív telefon nyitja meg, az nem számít, és nem is rögzül.
+- A jóváhagyás `pending` és `opened` kérésre is mehet; egy kérés csak
+  egyszer hagyható jóvá. A jóváhagyás is frissíti az eszköz
+  `last_used_at`-ját.
+- A beváltáskor a jóváhagyó eszközt újra nézzük: ha közben visszavonták,
+  a böngésző nem kap sessiont (`expired`). Ha a böngészőnek már volt
+  sessionje, az a beváltáskor lezárul.
+- A `poll` egy ismeretlen, lejárt vagy más böngészőhöz kötött kérésre
+  `expired`-et ad (200), így egy idegen böngésző semmit nem tud meg. A
+  jóváhagyott kérést a következő `poll` váltja be: a web a jóváhagyást
+  nem látja külön állapotként, rögtön `signedIn`-t kap.
+- A böngésző IP-je, böngészője és OS-e a kérés nyitásakor rögzül; ezt
+  kapja a telefon a megnyitáskor. Ország és város az A2b-ig `null`.
+
+### L7 — Próbálkozás-korlát (javaslat)
+
+- IP-nként percenként 10, végpontonként külön számlálva: új belépési
+  kérés, megnyitás, jóváhagyás, regisztráció, eszköz-kihívás.
+- Az eszköz-token nincs külön korlátozva (kihívás nélkül nem kérhető);
+  a `poll` sem (kötő-cookie kell hozzá, és a web 1,5 mp-enként kérdez).
+- 429-nél `TooManyAttempts` és `Retry-After`, felfelé kerekített
+  másodpercben.
+
+### L8 — Session és cookie-k (javaslat)
+
+- `__Host-ft_session`: `Path=/`, `Secure`, `HttpOnly`, `SameSite=Strict`,
+  `Max-Age` 90 nap. A 7 nap tétlenséget a szerver érvényesíti, a
+  `last_seen_at` legfeljebb óránként íródik, így megújításkor új cookie
+  nem kell.
+- `__Host-ft_login` (kötő-cookie): ugyanígy, `Max-Age` 10 perc (a
+  `joinPending` miatt, A2b); a beváltáskor törlődik.
+- A `Secure` cookie-t a Chrome és a Firefox a `http://localhost`-on is
+  elfogadja, így a helyi próba HTTPS nélkül megy.
+- A kijelentkezés mindig `204`, és törli a cookie-t; a titkot hordozó
+  válaszok `Cache-Control: no-store`-ral mennek.
+- A `crew` az archívumból `GET`-et és `HEAD`-et kap.
+- Az archívum az A2a-ban csak sessionnel érhető el, eszköz-tokennel
+  nem. A `me`-nél ha van `Authorization` fejléc, az dönt: egy hibás
+  token nem esik vissza a cookie-ra.
+
+### L9 — Összekötés és takarítás (javaslat)
+
+- A `buildArchiveApiHandler` a fejléc-őr után a `/api/auth/` alatti
+  kéréseket az auth-routernek adja, minden mást a session-őrön át az
+  archívumnak. Az összekötést az `AuthApi` végzi; a szerver és a
+  HTTP-tesztek ugyanezt használják.
+- A lejárt kérések, kihívások, tokenek és sessionök sorait a szerver
+  10 percenként törli; egy takarítási hiba csak naplóba kerül. Az
+  ellenőrzések amúgy is az időt nézik, a takarítás csak a DB méretét
+  tartja kordában.
+
+### L10 — A szerver kapcsolói és kilépési kódjai (javaslat)
+
+- `--origin` csak kanonikus alakban (különben 64), `--auth-db` csak
+  létező fájlra (különben 66: a DB-t a `create_owner_enrollment` hozza
+  létre `0600`-s joggal, a szerver nem), `--auth-secret` olvashatatlan
+  fájlra 66, laza jogra vagy 32 bájtnál rövidebb tartalomra 78.
+- Az A1-gyel létrehozott `auth.sqlite`-ból hiányzik az új tábla és a
+  `device_key` oszlop: éles adat még nincs (J7), ezért törölni kell, és a
+  `create_owner_enrollment` újra létrehozza.
+
+### L11 — A kliens IP-je és a böngésző (javaslat)
+
+- Az `X-Forwarded-For` utolsó eleme csak loopbackről (`127.0.0.1`,
+  `::1`) jövő kérésnél számít, és csak ha valódi IP-cím.
+- A korlát kulcsa a teljes IP-cím, IPv6-nál is. Egy /64-es
+  előtag-kulcs erősebb lenne; ha a VPS-en IPv6-os visszaélés látszik,
+  külön döntés.
+- A próbálkozás-korlát 4096 kulcs fölött ablakonként legfeljebb egyszer
+  takarít, hogy sok cím mellett se fusson minden hívásnál.
+- A K11 User-Agent-elemzője már az A2a-ba kerül, mert a megnyitás
+  válasza (az ujjlenyomat-ablak alcíme) igényli. A GeoIP marad az A2b-ben.
+
+### Mit pontosít
+
+- **K3:** a jóváhagyás is frissíti a `last_used_at`-ot (L6).
+- **K5:** a jóváhagyás `pending` kérésre is mehet (L6).
+- **K6:** az `action-challenges` az A2b-be kerül (L1).
+- **K7:** a kliensfejléc értéke bárhol `web` vagy `phone` (L4); a `crew`
+  `HEAD`-et is kap (L8).
+- **K8:** a loopback a `::1` is (L11).
+- **K11:** a User-Agent-elemző az A2a része (L11).
+- **K13:** a `challenges` tábla `purpose` oszlop nélkül indul (L1).
