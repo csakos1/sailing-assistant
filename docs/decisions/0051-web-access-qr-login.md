@@ -1851,3 +1851,43 @@ Hibák a beolvasó alsó paneljén (18d-2…5, H7):
   egy friss belépési QR-t igényel (V9).
 - **D11:** a fiókadat helye egy app-privát JSON-fájl (V3); a QR-olvasó
   a `mobile_scanner` beépített ML Kit-tel (V1).
+
+### Pontosítás a kód után (A4a, 2026-10-07)
+
+Az A4a kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **V2:** a `mobile_scanner` saját manifestje is hozza a `CAMERA`
+  engedélyt; az app manifestjében mégis kiírjuk, hogy a jogosultság a
+  repóban látszódjon. A beolvasó az alapértelmezett (`normal`)
+  felismerési sebességgel fut: a `noDuplicates` egy „Újra" után
+  ugyanazt a kódot nem adná újra; a második találatot az app maga szűri.
+- **V4:** a plugin a kulcsot és az aláírást nyers DER-ként adja
+  (`KeyFormat.raw`, `SignatureFormat.raw`), így nincs base64-kör. A
+  plugin hibakódjai (az aláíró kulcs létrehozása előtt az app
+  megnézi, van-e beállított ujjlenyomat, mert a Keystore különben
+  általános hibát adna): elvetett vagy a rendszer által megszakított ablak →
+  csendes bezárás; `keyNotFound` / `keyInvalidated` → 18d-5; nincs
+  ujjlenyomat vagy képernyőzár → „Nincs beállított ujjlenyomat"; zárolt
+  érzékelő → „Az ujjlenyomat zárolva"; minden más → „Nem sikerült
+  aláírni". Ez a három panel a 18d-2 mintáját követi.
+- **V5:** az A4b-ig egy fiók nélküli telefon belépési QR-ja egy
+  ideiglenes panelt kap („Ez a telefon nincs regisztrálva"); az A4b a
+  csatlakozással cseréli.
+- **V6:** a megnyitás egy `401` után egyszer új eszköz-tokennel
+  újrapróbál; a második `401` és bármely `NotAuthenticated` a 18d-5
+  panelt adja (a szerver nem fogadja el a telefon kulcsát). A
+  regisztráció hibái tulajdonosként jelennek meg (regisztrációs QR-t
+  csak a tulajdonos kap); egy lejárt regisztrációs kódnál a panel a
+  szerveren kért új kódra utal, nem a weboldalra. Egy váratlan
+  platformhiba (pl. a plugin csatornája) a „Nem sikerült aláírni"
+  panelt adja, hogy a beolvasó ne ragadjon a folyamatjelzőn. A siker
+  snackbarja lebegő, `surfaceContainerHigh` alapon (az M3 alapja világos
+  lenne a sötét témában).
+- **V8:** a fiók-csere dialógusa alatt a kamera áll, és nincs
+  folyamatjelző a dialógus mögött. A megerősítés után a régi helyi fiók
+  és a kulcsok azonnal törlődnek; ha utána az ujjlenyomat-ablakot
+  elveti, vagy a szerver elutasít, a telefon fiók nélkül marad, és
+  ugyanaz a QR 15 percen belül újra beolvasható.
+- **V9:** a 18d-5 „Csatlakozás kérése" gombja már az A4a-ban törli a
+  helyi fiókot és a kulcsokat, és újra a beolvasót nyitja.
