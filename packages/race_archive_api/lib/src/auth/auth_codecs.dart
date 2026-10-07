@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:race_archive_api/src/auth/account_info.dart';
-import 'package:race_archive_api/src/auth/base64url.dart';
+import 'package:race_archive_api/src/auth/auth_json_fields.dart';
 import 'package:race_archive_api/src/auth/browser_login_details.dart';
-import 'package:race_archive_api/src/auth/display_name.dart';
 import 'package:race_archive_api/src/auth/enrollment_request.dart';
 import 'package:race_archive_api/src/auth/enrollment_result.dart';
 import 'package:race_archive_api/src/auth/issued_secret.dart';
@@ -12,7 +10,6 @@ import 'package:race_archive_api/src/auth/login_request_status.dart';
 import 'package:race_archive_api/src/auth/login_request_ticket.dart';
 import 'package:race_archive_api/src/auth/qr_payload.dart';
 import 'package:race_archive_api/src/auth/signed_device_request.dart';
-import 'package:race_archive_api/src/auth/user_role.dart';
 import 'package:race_archive_api/src/json/decode_error.dart';
 import 'package:race_archive_api/src/json/json_reader.dart';
 import 'package:shared/shared.dart';
@@ -32,7 +29,7 @@ Map<String, Object?> encodeAccountInfo(AccountInfo account) =>
 
 /// JSON → [AccountInfo].
 Result<AccountInfo, DecodeError> decodeAccountInfo(Object? json) =>
-    runDecode(() => _readAccountInfo(JsonReader.root(json)));
+    runDecode(() => readAccountInfo(JsonReader.root(json)));
 
 /// [LoginRequestTicket] → JSON (`POST /api/auth/login-requests`).
 Map<String, Object?> encodeLoginRequestTicket(LoginRequestTicket ticket) =>
@@ -48,7 +45,7 @@ Result<LoginRequestTicket, DecodeError> decodeLoginRequestTicket(
 ) => runDecode(() {
   final reader = JsonReader.root(json);
   return LoginRequestTicket(
-    requestId: _secret(reader, 'requestId', loginRequestIdLength),
+    requestId: readSecret(reader, 'requestId', loginRequestIdLength),
     qrText: reader.nonEmptyString('qrText'),
     expiresAt: reader.utcMillis('expiresAt'),
   );
@@ -82,7 +79,7 @@ Result<LoginRequestStatus, DecodeError> decodeLoginRequestStatus(
   }
   return LoginRequestStatus(
     state: state,
-    account: accountReader == null ? null : _readAccountInfo(accountReader),
+    account: accountReader == null ? null : readAccountInfo(accountReader),
   );
 });
 
@@ -131,12 +128,12 @@ Result<EnrollmentRequest, DecodeError> decodeEnrollmentRequest(
 ) => runDecode(() {
   final reader = JsonReader.root(json);
   return EnrollmentRequest(
-    token: _secret(reader, 'token', secretTokenLength),
-    publicKey: _bytes(reader, 'publicKey'),
-    deviceKey: _bytes(reader, 'deviceKey'),
-    deviceName: _displayName(reader, 'deviceName'),
-    model: _displayName(reader, 'model'),
-    signature: _bytes(reader, 'signature'),
+    token: readSecret(reader, 'token', secretTokenLength),
+    publicKey: readBytes(reader, 'publicKey'),
+    deviceKey: readBytes(reader, 'deviceKey'),
+    deviceName: readDisplayName(reader, 'deviceName'),
+    model: readDisplayName(reader, 'model'),
+    signature: readBytes(reader, 'signature'),
   );
 });
 
@@ -153,7 +150,7 @@ Result<EnrollmentResult, DecodeError> decodeEnrollmentResult(Object? json) =>
     runDecode(() {
       final reader = JsonReader.root(json);
       return EnrollmentResult(
-        account: _readAccountInfo(reader.object('account')),
+        account: readAccountInfo(reader.object('account')),
         deviceId: reader.nonEmptyString('deviceId'),
         recoveryCodes: reader.list('recoveryCodes', _readCode),
       );
@@ -171,7 +168,7 @@ Result<IssuedSecret, DecodeError> decodeIssuedSecret(Object? json) =>
     runDecode(() {
       final reader = JsonReader.root(json);
       return IssuedSecret(
-        value: _secret(reader, 'value', secretTokenLength),
+        value: readSecret(reader, 'value', secretTokenLength),
         expiresAt: reader.utcMillis('expiresAt'),
       );
     });
@@ -193,9 +190,9 @@ Result<SignedDeviceRequest, DecodeError> decodeSignedDeviceRequest(
   return SignedDeviceRequest(
     deviceId: reader.nonEmptyString('deviceId'),
     challenge: hasChallenge
-        ? _secret(reader, 'challenge', secretTokenLength)
+        ? readSecret(reader, 'challenge', secretTokenLength)
         : null,
-    signature: _bytes(reader, 'signature'),
+    signature: readBytes(reader, 'signature'),
   );
 });
 
@@ -215,41 +212,10 @@ Map<String, Object?> encodeLoginRequestOpening(String challenge) =>
 /// JSON → a QR kihívása.
 Result<String, DecodeError> decodeLoginRequestOpening(Object? json) =>
     runDecode(
-      () => _secret(JsonReader.root(json), 'challenge', secretTokenLength),
+      () => readSecret(JsonReader.root(json), 'challenge', secretTokenLength),
     );
-
-AccountInfo _readAccountInfo(JsonReader reader) => AccountInfo(
-  userId: reader.nonEmptyString('userId'),
-  name: reader.nonEmptyString('name'),
-  role: reader.enumByName('role', UserRole.values),
-);
 
 String _readCode(Object? item, String path) {
   if (item is String && item.isNotEmpty) return item;
   JsonReader.failAt(path, 'non-empty string');
 }
-
-// Egy base64url titok a megadott bájthosszal; minden más hiba még a
-// DB-keresés előtt.
-String _secret(JsonReader reader, String key, int length) {
-  final value = reader.string(key);
-  if (decodeBase64UrlUnpadded(value)?.length == length) return value;
-  JsonReader.failAt(reader.childPath(key), 'base64url of $length bytes');
-}
-
-// Szabványos base64, csak a kanonikus alak: egy aláírásnak és egy
-// kulcsnak így egy szöveges alakja van.
-Uint8List _bytes(JsonReader reader, String key) {
-  final value = reader.nonEmptyString(key);
-  try {
-    final bytes = base64.decode(value);
-    if (base64.encode(bytes) == value) return bytes;
-  } on FormatException {
-    // Lent hibaként jelezzük.
-  }
-  JsonReader.failAt(reader.childPath(key), 'canonical base64');
-}
-
-String _displayName(JsonReader reader, String key) =>
-    normalizeDisplayName(reader.string(key)) ??
-    JsonReader.failAt(reader.childPath(key), 'display name');

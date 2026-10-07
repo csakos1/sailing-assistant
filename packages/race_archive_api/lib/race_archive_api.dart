@@ -7,6 +7,7 @@
 library;
 
 export 'package:race_archive_api/src/api_routes.dart';
+export 'package:race_archive_api/src/auth/access_management_codecs.dart';
 export 'package:race_archive_api/src/auth/account_info.dart';
 export 'package:race_archive_api/src/auth/auth_codecs.dart';
 export 'package:race_archive_api/src/auth/auth_routes.dart';
@@ -16,15 +17,24 @@ export 'package:race_archive_api/src/auth/display_name.dart';
 export 'package:race_archive_api/src/auth/enrollment_request.dart';
 export 'package:race_archive_api/src/auth/enrollment_result.dart';
 export 'package:race_archive_api/src/auth/issued_secret.dart';
+export 'package:race_archive_api/src/auth/join_approval.dart';
+export 'package:race_archive_api/src/auth/join_request.dart';
+export 'package:race_archive_api/src/auth/join_request_status.dart';
+export 'package:race_archive_api/src/auth/join_ticket.dart';
 export 'package:race_archive_api/src/auth/login_method.dart';
 export 'package:race_archive_api/src/auth/login_request_status.dart';
 export 'package:race_archive_api/src/auth/login_request_ticket.dart';
+export 'package:race_archive_api/src/auth/member_device.dart';
+export 'package:race_archive_api/src/auth/member_info.dart';
 export 'package:race_archive_api/src/auth/password_rules.dart';
+export 'package:race_archive_api/src/auth/pending_join_request.dart';
 export 'package:race_archive_api/src/auth/qr_payload.dart';
+export 'package:race_archive_api/src/auth/signed_action.dart';
 export 'package:race_archive_api/src/auth/signed_device_request.dart';
 export 'package:race_archive_api/src/auth/signed_messages.dart';
 export 'package:race_archive_api/src/auth/user_role.dart';
 export 'package:race_archive_api/src/auth/web_origin.dart';
+export 'package:race_archive_api/src/auth/web_session.dart';
 export 'package:race_archive_api/src/error/api_error.dart';
 export 'package:race_archive_api/src/import/import_rejection.dart'
     show

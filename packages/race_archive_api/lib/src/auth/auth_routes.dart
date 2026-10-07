@@ -40,3 +40,50 @@ const String logoutPath = '/api/auth/logout';
 
 String _loginRequestPath(String requestId) =>
     '$loginRequestsPath/${Uri.encodeComponent(requestId)}';
+
+/// Kihívás egy ujjlenyomatos művelethez (Addendum 5 M2): `POST`,
+/// eszköz-tokennel.
+const String actionChallengesPath = '/api/auth/action-challenges';
+
+/// Csatlakozási kérelem (`POST`, a fiók nélküli app), illetve az el nem
+/// döntött kérelmek listája (`GET`, az `owner` eszköz-tokenjével).
+const String joinRequestsPath = '/api/auth/join-requests';
+
+/// A kérelem állapota a lekérdező tokennel: `POST`.
+String joinRequestStatusPath(String joinRequestId) =>
+    '${_joinRequestPath(joinRequestId)}/status';
+
+/// A kérelem jóváhagyása: `POST`, aláírással.
+String joinRequestApprovalPath(String joinRequestId) =>
+    '${_joinRequestPath(joinRequestId)}/approval';
+
+/// A kérelem elutasítása: `POST`, eszköz-tokennel.
+String joinRequestRejectionPath(String joinRequestId) =>
+    '${_joinRequestPath(joinRequestId)}/rejection';
+
+/// A fiókok és az aktív eszközeik: `GET`, az `owner` eszköz-tokenjével.
+const String membersPath = '/api/auth/members';
+
+/// Egy tag eltávolítása: `POST`, aláírással.
+String memberRemovalPath(String userId) =>
+    '$membersPath/${Uri.encodeComponent(userId)}/removal';
+
+/// A regisztrált telefonok útvonal-előtagja.
+const String devicesPath = '/api/auth/devices';
+
+/// Egy eszköz visszavonása: `POST`, aláírással.
+String deviceRevocationPath(String deviceId) =>
+    '$devicesPath/${Uri.encodeComponent(deviceId)}/revocation';
+
+/// A webes munkamenetek: `GET`, eszköz-tokennel.
+const String sessionsPath = '/api/auth/sessions';
+
+/// Egy munkamenet kiléptetése: `DELETE`, eszköz-tokennel.
+String sessionPath(String sessionId) =>
+    '$sessionsPath/${Uri.encodeComponent(sessionId)}';
+
+/// A saját név átírása: `POST`, eszköz-tokennel.
+const String accountNamePath = '/api/auth/account/name';
+
+String _joinRequestPath(String joinRequestId) =>
+    '$joinRequestsPath/${Uri.encodeComponent(joinRequestId)}';
