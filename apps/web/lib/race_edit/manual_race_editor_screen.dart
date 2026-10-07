@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_snack_bar.dart';
+import 'package:foretack_web/auth/session_provider.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_edit/editor_problems.dart';
@@ -83,7 +84,9 @@ class _ManualRaceEditorState extends ConsumerState<ManualRaceEditorScreen> {
       title: _isNew ? l10n.newRaceTitle : l10n.editManualTitle,
       header: const ManualEditorHeader(),
       actions: [
-        if (!_isNew)
+        // A szerkesztő csak a tulajdonos ceruzájáról nyílik; a törlés így is
+        // a szerepet nézi (ADR 0051 Addendum 7 P7).
+        if (!_isNew && ref.watch(isOwnerProvider))
           IconButton(
             tooltip: l10n.editDeleteTooltip,
             icon: const Icon(Icons.delete_outline),

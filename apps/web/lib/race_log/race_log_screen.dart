@@ -8,6 +8,8 @@ import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_column.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_scroll_column.dart';
+import 'package:foretack_web/auth/account_menu.dart';
+import 'package:foretack_web/auth/session_provider.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/race_detail/race_detail_screen.dart';
 import 'package:foretack_web/race_edit/manual_race_editor_screen.dart';
@@ -45,6 +47,9 @@ class RaceLogScreen extends ConsumerWidget {
     final l10n = WebLocalizations.of(context)!;
     final logState = ref.watch(raceLogViewProvider);
     final isLogEmpty = logState.valueOrNull?.isEmpty ?? false;
+    // A módosítás belépési pontjai csak a tulajdonosé (ADR 0051 Addendum 7
+    // P7); a szerver a `crew` kéréseit amúgy is elutasítja.
+    final isOwner = ref.watch(isOwnerProvider);
 
     return Scaffold(
       appBar: WebAppBar(
@@ -68,35 +73,39 @@ class RaceLogScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // A böngésző tölti le; a hibát a letöltés-sávja jelzi (ADR 0050
-          // Addendum 3 G2).
-          LogAppBarIconButton(
-            tooltip: l10n.logExport,
-            icon: Icons.download_outlined,
-            onPressed: () => ref.read(fileDownloadProvider)(exportPath),
-          ),
-          const SizedBox(width: 8),
-          // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
-          // velük egy magas (Addendum 5 L6).
-          TextButton.icon(
-            onPressed: () => unawaited(
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ManualRaceEditorScreen(),
+          if (isOwner) ...[
+            // A böngésző tölti le; a hibát a letöltés-sávja jelzi (ADR 0050
+            // Addendum 3 G2).
+            LogAppBarIconButton(
+              tooltip: l10n.logExport,
+              icon: Icons.download_outlined,
+              onPressed: () => ref.read(fileDownloadProvider)(exportPath),
+            ),
+            const SizedBox(width: 8),
+            // Keret nélküli gomb: a váltótól és a Feltöltéstől is eltér, de
+            // velük egy magas (Addendum 5 L6).
+            TextButton.icon(
+              onPressed: () => unawaited(
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ManualRaceEditorScreen(),
+                  ),
                 ),
               ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.logNewRace),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+              ).merge(_appBarControlStyle),
             ),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(l10n.logNewRace),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
-            ).merge(_appBarControlStyle),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            // A jobb szélső gomb az oszlop betétjén áll (G1).
-            padding: const EdgeInsets.only(right: 12),
-            child: _UploadButton(isLogEmpty: isLogEmpty),
+            const SizedBox(width: 8),
+            _UploadButton(isLogEmpty: isLogEmpty),
+          ],
+          const _AppBarDivider(),
+          // A jobb szélső elem az oszlop betétjén áll (G1).
+          const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: AccountMenu(),
           ),
         ],
       ),
@@ -134,6 +143,22 @@ final ButtonStyle _appBarControlStyle = ButtonStyle(
     supportTextStyle.copyWith(fontWeight: FontWeight.w600),
   ),
 );
+
+/// Függőleges elválasztó a vezérlők és a név-menü között (ADR 0051
+/// Addendum 1 H4).
+class _AppBarDivider extends StatelessWidget {
+  const _AppBarDivider();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: SizedBox(
+      width: 1,
+      height: 24,
+      child: ColoredBox(color: Theme.of(context).colorScheme.outline),
+    ),
+  );
+}
 
 /// A Feltöltés gomb (ADR 0048 Addendum 4 K23). Üres naplóban kitöltött,
 /// mert ott ez a fő akció (13b).

@@ -8,6 +8,7 @@ import 'package:foretack_web/api/api_failure.dart';
 import 'package:foretack_web/app/web_app_bar.dart';
 import 'package:foretack_web/app/web_layout.dart';
 import 'package:foretack_web/app/web_scroll_column.dart';
+import 'package:foretack_web/auth/session_provider.dart';
 import 'package:foretack_web/l10n/web_localizations.dart';
 import 'package:foretack_web/polar/polar_providers.dart';
 import 'package:foretack_web/polar/widgets/polar_detail_block.dart';
@@ -49,7 +50,12 @@ class RaceDetailScreen extends ConsumerWidget {
     // (ADR 0049 Addendum 5 W2). A listen nem építi újra a képernyőt.
     ref.listen(racePolarProvider(raceId), (_, _) {});
     final loaded = detail.valueOrNull?.summary;
-    final openEditor = loaded == null ? null : _editorOpener(context, loaded);
+    // A szerkesztés csak a tulajdonosé (ADR 0051 Addendum 7 P7): a `crew`
+    // sem a ceruzát, sem az üres eredmény szerkesztőt nyitó sorát nem kapja.
+    final isOwner = ref.watch(isOwnerProvider);
+    final openEditor = loaded == null || !isOwner
+        ? null
+        : _editorOpener(context, loaded);
 
     return Scaffold(
       appBar: WebAppBar(
@@ -78,7 +84,7 @@ class RaceDetailScreen extends ConsumerWidget {
         ),
         data: (detail) => _DetailBody(
           detail: detail,
-          onEdit: _editorOpener(context, detail.summary),
+          onEdit: isOwner ? _editorOpener(context, detail.summary) : null,
         ),
       ),
     );
