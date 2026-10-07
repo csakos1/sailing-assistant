@@ -14,6 +14,7 @@ import 'package:web_server/src/auth_db/login_request_phase.dart';
 import 'package:web_server/src/auth_db/login_request_repository.dart';
 import 'package:web_server/src/auth_db/session_repository.dart';
 import 'package:web_server/src/auth_db/user_repository.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 
 /// Egy új belépési kérés: a webnek szóló jegy és a kötő-token, amely a
 /// cookie-ba kerül.
@@ -42,6 +43,7 @@ class LoginRequestService {
     required DeviceRepository devices,
     required SessionService sessions,
     required RandomBytes randomBytes,
+    GeoIpLookup geoIp = withoutGeoIp,
     DateTime Function() now = utcNow,
   }) : _origin = origin,
        _requests = requests,
@@ -49,6 +51,7 @@ class LoginRequestService {
        _devices = devices,
        _sessions = sessions,
        _randomBytes = randomBytes,
+       _geoIp = geoIp,
        _now = now;
 
   final String _origin;
@@ -57,6 +60,7 @@ class LoginRequestService {
   final DeviceRepository _devices;
   final SessionService _sessions;
   final RandomBytes _randomBytes;
+  final GeoIpLookup _geoIp;
   final DateTime Function() _now;
 
   /// Új kérés a [browser] böngészőnek.
@@ -118,11 +122,15 @@ class LoginRequestService {
       expiresAt: now.add(loginRequestStepLifetime),
     );
     if (!isOpened) return const Err(RequestExpired());
+    // A hely az ujjlenyomat-ablak alcímébe kerül (H6, Addendum 6 N9).
+    final location = _geoIp(request.browser.ip);
     return Ok(
       BrowserLoginDetails(
         ip: request.browser.ip,
         browser: request.browser.browser,
         os: request.browser.os,
+        country: location.country,
+        city: location.city,
       ),
     );
   }
@@ -221,6 +229,7 @@ class LoginRequestService {
       method: LoginMethod.qr,
       origin: browser,
       deviceId: deviceId,
+      phoneIp: redeemed.phoneIp,
     );
     return (
       status: LoginRequestStatus(

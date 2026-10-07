@@ -7,6 +7,7 @@ import 'package:web_server/src/auth/join_decision_service.dart';
 import 'package:web_server/src/auth/join_request_service.dart';
 import 'package:web_server/src/auth/login_request_service.dart';
 import 'package:web_server/src/auth/member_service.dart';
+import 'package:web_server/src/auth/password_hasher.dart';
 import 'package:web_server/src/auth/random_bytes.dart';
 import 'package:web_server/src/auth/session_directory.dart';
 import 'package:web_server/src/auth/session_service.dart';
@@ -18,13 +19,16 @@ import 'package:web_server/src/auth_db/device_revocation.dart';
 import 'package:web_server/src/auth_db/device_token_repository.dart';
 import 'package:web_server/src/auth_db/enrollment_repository.dart';
 import 'package:web_server/src/auth_db/join_request_repository.dart';
+import 'package:web_server/src/auth_db/login_event_repository.dart';
 import 'package:web_server/src/auth_db/login_request_repository.dart';
 import 'package:web_server/src/auth_db/recovery_code_repository.dart';
 import 'package:web_server/src/auth_db/session_repository.dart';
 import 'package:web_server/src/auth_db/user_repository.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 import 'package:web_server/src/http/auth/access_management_handlers.dart';
 import 'package:web_server/src/http/auth/account_handler.dart';
 import 'package:web_server/src/http/auth/account_name_handler.dart';
+import 'package:web_server/src/http/auth/account_protection_assembly.dart';
 import 'package:web_server/src/http/auth/action_challenge_handler.dart';
 import 'package:web_server/src/http/auth/archive_access_guard.dart';
 import 'package:web_server/src/http/auth/auth_rate_limits.dart';
@@ -59,15 +63,21 @@ final class AuthApi {
     required RecoveryCodeDigest digestRecoveryCode,
     required AuthRateLimits rateLimits,
     RandomBytes randomBytes = secureRandomBytes,
+    GeoIpLookup geoIp = withoutGeoIp,
+    PasswordHasher? passwordHasher,
     DateTime Function() now = utcNow,
   }) {
     final users = UserRepository(database);
     final devices = DeviceRepository(database);
     final sessionRows = SessionRepository(database);
+    final events = LoginEventRepository(database);
     final sessions = SessionService(
       sessions: sessionRows,
       users: users,
+      events: events,
+      runInTransaction: database.transaction,
       randomBytes: randomBytes,
+      geoIp: geoIp,
       now: now,
     );
     final challenges = ChallengeRepository(database);
@@ -89,6 +99,7 @@ final class AuthApi {
       devices: devices,
       sessions: sessions,
       randomBytes: randomBytes,
+      geoIp: geoIp,
       now: now,
     );
     final enrollments = EnrollmentService(
@@ -111,6 +122,7 @@ final class AuthApi {
       devices: devices,
       runInTransaction: database.transaction,
       randomBytes: randomBytes,
+      geoIp: geoIp,
       now: now,
     );
     final actions = DeviceActionService(
@@ -153,13 +165,31 @@ final class AuthApi {
         authenticateDevice: authenticateDevice,
       ),
       sessions: SessionListHandler(
-        directory: SessionDirectory(sessions: sessionRows, now: now),
+        directory: SessionDirectory(
+          sessions: sessionRows,
+          events: events,
+          now: now,
+        ),
         authenticateDevice: authenticateDevice,
       ),
       accountName: AccountNameHandler(
         service: AccountNameService(users: users),
         authenticateDevice: authenticateDevice,
       ),
+    );
+    final protection = assembleAccountProtection(
+      database: database,
+      users: users,
+      sessions: sessions,
+      actions: actions,
+      authenticateDevice: authenticateDevice,
+      joinRequests: joinRequestRows,
+      events: events,
+      digestRecoveryCode: digestRecoveryCode,
+      hasher: passwordHasher ?? PasswordHasher(randomBytes: randomBytes),
+      fallbackLimiter: rateLimits.fallbackLogins,
+      randomBytes: randomBytes,
+      now: now,
     );
     return AuthApi._(
       router: buildAuthRouter(
@@ -184,6 +214,7 @@ final class AuthApi {
           authenticateDevice: authenticateDevice,
         ),
         management: management,
+        protection: protection.handlers,
       ),
       requireAccess: requireArchiveAccess(sessions),
       deleteExpired: () async {
@@ -191,6 +222,7 @@ final class AuthApi {
         await joinRequestRows.deleteExpired(now());
         await deviceTokens.deleteExpired();
         await sessions.deleteExpired();
+        await protection.deleteExpired();
       },
     );
   }

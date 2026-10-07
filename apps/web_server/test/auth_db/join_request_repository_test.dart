@@ -35,6 +35,7 @@ NewJoinRequest _request(String id, int key) => (
   publicKey: _bytes(key),
   deviceKey: _bytes(key + 1),
   ip: '203.0.113.7',
+  location: (country: 'HU', city: 'Budapest'),
 );
 
 void main() {

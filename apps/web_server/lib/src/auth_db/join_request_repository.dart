@@ -3,6 +3,7 @@ import 'package:web_server/src/auth_db/auth_database.dart';
 import 'package:web_server/src/auth_db/epoch_millis.dart';
 import 'package:web_server/src/auth_db/join_request_phase.dart';
 import 'package:web_server/src/auth_db/join_request_record.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 
 /// Egy új csatlakozási kérelem adatai, ahogy a telefon beküldte.
 typedef NewJoinRequest = ({
@@ -14,6 +15,7 @@ typedef NewJoinRequest = ({
   Uint8List publicKey,
   Uint8List deviceKey,
   String ip,
+  GeoLocation location,
 });
 
 /// A `join_requests` tábla olvasó-írója (ADR 0051 Addendum 5 M3, M6).
@@ -44,6 +46,8 @@ class JoinRequestRepository {
             publicKey: request.publicKey,
             deviceKey: request.deviceKey,
             ip: request.ip,
+            country: Value(request.location.country),
+            city: Value(request.location.city),
             createdAtMs: toEpochMillis(now),
             expiresAtMs: toEpochMillis(expiresAt),
             state: JoinRequestPhase.pending.name,

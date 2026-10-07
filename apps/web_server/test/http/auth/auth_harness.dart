@@ -7,12 +7,14 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 import 'package:shelf/shelf.dart';
 import 'package:web_server/src/auth/owner_enrollment.dart';
+import 'package:web_server/src/auth/password_hasher.dart';
 import 'package:web_server/src/auth/random_bytes.dart';
 import 'package:web_server/src/auth/rate_limiter.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
 import 'package:web_server/src/auth_db/enrollment_repository.dart';
 import 'package:web_server/src/auth_db/user_repository.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 import 'package:web_server/src/http/auth/auth_api.dart';
 import 'package:web_server/src/http/auth/auth_cookies.dart';
 import 'package:web_server/src/http/auth/auth_rate_limits.dart';
@@ -43,14 +45,31 @@ const Map<String, String> webClient = {
 Uint8List fakeRecoveryDigest(String code) =>
     Uint8List.fromList(utf8.encode('digest:$code'));
 
+/// Olcsó argon2id a tesztekhez: a kódút ugyanaz, csak a költség kicsi
+/// (a szerver a `recommended` paraméterekkel fut).
+const PasswordHasher testPasswordHasher = PasswordHasher(
+  randomBytes: secureRandomBytes,
+  parameters: PasswordHashParameters(
+    memoryKiB: 8,
+    iterations: 1,
+    parallelism: 1,
+  ),
+);
+
 /// Egy belépett böngésző: a session cookie értéke.
 typedef BrowserSession = String;
 
 /// A hitelesítés tesztkörnyezete.
 final class AuthHarness {
   /// Új környezet; a [rateLimit] a végpontonkénti korlát (alapból laza),
-  /// a [joinRateLimit] a csatlakozási kérelemé (alapból a [rateLimit]).
-  AuthHarness({int rateLimit = 1000, int? joinRateLimit}) {
+  /// a [joinRateLimit] a csatlakozási kérelemé (alapból a [rateLimit]). A
+  /// [locations] az IP-címek helye (a GeoIP helyett); ami nincs benne,
+  /// ismeretlen.
+  AuthHarness({
+    int rateLimit = 1000,
+    int? joinRateLimit,
+    Map<String, GeoLocation> locations = const {},
+  }) {
     database = AuthDatabase(NativeDatabase.memory());
     RateLimiter limiter([int? limit]) => RateLimiter(
       limit: limit ?? rateLimit,
@@ -69,7 +88,10 @@ final class AuthHarness {
         deviceChallenges: limiter(),
         actionChallenges: limiter(),
         joinRequests: limiter(joinRateLimit),
+        fallbackLogins: limiter(),
       ),
+      geoIp: (ip) => locations[ip] ?? unknownLocation,
+      passwordHasher: testPasswordHasher,
       now: () => now,
     );
   }
@@ -449,6 +471,40 @@ final class AuthHarness {
     final deviceId = (await joinStatus(ticket)).deviceId;
     if (deviceId == null) throw StateError('jovahagyott kerelmet vartunk');
     return (userId: member.account.userId, deviceId: deviceId);
+  }
+
+  /// Tartalék belépés a böngészőből a [secret]-tel.
+  Future<Response> fallbackLogin(String secret, {String ip = browserIp}) =>
+      send(
+        'POST',
+        fallbackLoginPath,
+        json: encodeFallbackLogin(FallbackLogin(secret)),
+        ip: ip,
+        headers: webClient,
+      );
+
+  /// Az `owner` új jelszava a [phone] aláírásával.
+  Future<Response> setPassword(
+    TestPhone phone,
+    String deviceId,
+    String password,
+  ) async {
+    final token = await deviceToken(phone, deviceId);
+    final action = await signedAction(
+      phone,
+      deviceId,
+      token,
+      kind: DeviceAction.setPassword,
+      target: '-',
+    );
+    return send(
+      'POST',
+      accountPasswordPath,
+      json: encodePasswordChange(
+        PasswordChange(password: password, action: action),
+      ),
+      headers: withToken(token),
+    );
   }
 
   /// A teljes QR-belépés a [phone]-nal; a böngésző session cookie-ja.

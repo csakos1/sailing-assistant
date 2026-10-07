@@ -299,6 +299,16 @@ void main() {
     );
   });
 
+  test('refuses to join a login request a phone already opened', () async {
+    final (:qr, binding: _) = await harness.openLoginRequest();
+    final ownerToken = await harness.deviceToken(owner, ownerDeviceId);
+    expect200(await harness.open(qr, ownerToken));
+
+    final response = await harness.submitJoin(joiner, qr);
+
+    expect(await errorOf(response), const RequestExpired());
+  });
+
   test('refuses a second request on the same login request', () async {
     final (:qr, binding: _) = await harness.openLoginRequest();
     await submit(qr);

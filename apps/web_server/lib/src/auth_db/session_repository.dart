@@ -3,6 +3,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:web_server/src/auth_db/auth_database.dart';
 import 'package:web_server/src/auth_db/epoch_millis.dart';
 import 'package:web_server/src/auth_db/session_record.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 
 /// Egy új munkamenet böngésző-adatai (ADR 0051 D7).
 typedef SessionOrigin = ({String ip, String? browser, String? os});
@@ -23,6 +24,7 @@ class SessionRepository {
     required SessionOrigin origin,
     required DateTime now,
     String? deviceId,
+    GeoLocation location = unknownLocation,
   }) async {
     final nowMillis = toEpochMillis(now);
     await _database
@@ -37,6 +39,8 @@ class SessionRepository {
             ip: origin.ip,
             browser: Value(origin.browser),
             os: Value(origin.os),
+            country: Value(location.country),
+            city: Value(location.city),
             createdAtMs: nowMillis,
             lastSeenAtMs: nowMillis,
           ),
@@ -61,8 +65,9 @@ class SessionRepository {
     return row == null ? null : _toRecord(row);
   }
 
-  /// A még élő munkamenetek a fiók nevével, a legutóbb aktív elöl
-  /// (Addendum 5 M8); [userId]-vel csak az övéi.
+  /// A még élő munkamenetek a fiók nevével és a gyanús-jelzéssel, a
+  /// legutóbb aktív elöl (Addendum 5 M8, Addendum 6 N6); [userId]-vel csak
+  /// az övéi.
   ///
   /// Élő az, amelyik az [idleCutoff] után volt aktív és a [createdCutoff]
   /// után jött létre: a takarítás előtt lejárt sor sem látszik.
@@ -73,6 +78,7 @@ class SessionRepository {
   }) async {
     final sessions = _database.sessions;
     final users = _database.users;
+    final events = _database.loginEvents;
     var isVisible =
         sessions.lastSeenAtMs.isBiggerThanValue(toEpochMillis(idleCutoff)) &
         sessions.createdAtMs.isBiggerThanValue(toEpochMillis(createdCutoff));
@@ -80,6 +86,7 @@ class SessionRepository {
     final query =
         _database.select(sessions).join([
             innerJoin(users, users.id.equalsExp(sessions.userId)),
+            leftOuterJoin(events, events.sessionId.equalsExp(sessions.id)),
           ])
           ..where(isVisible)
           ..orderBy([
@@ -88,7 +95,11 @@ class SessionRepository {
           ]);
     return [
       for (final row in await query.get())
-        _toWebSession(row.readTable(sessions), row.readTable(users).name),
+        _toWebSession(
+          row.readTable(sessions),
+          row.readTable(users).name,
+          isSuspicious: row.readTableOrNull(events)?.isSuspicious ?? false,
+        ),
     ];
   }
 
@@ -146,7 +157,11 @@ class SessionRepository {
     lastSeenAt: fromEpochMillis(row.lastSeenAtMs),
   );
 
-  WebSession _toWebSession(SessionRow row, String userName) => WebSession(
+  WebSession _toWebSession(
+    SessionRow row,
+    String userName, {
+    required bool isSuspicious,
+  }) => WebSession(
     id: row.id,
     userId: row.userId,
     userName: userName,
@@ -158,5 +173,6 @@ class SessionRepository {
     city: row.city,
     createdAt: fromEpochMillis(row.createdAtMs),
     lastSeenAt: fromEpochMillis(row.lastSeenAtMs),
+    isSuspicious: isSuspicious,
   );
 }

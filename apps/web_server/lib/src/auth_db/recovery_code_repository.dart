@@ -9,6 +9,36 @@ class RecoveryCodeRepository {
 
   final AuthDatabase _database;
 
+  /// A [userId] fiók [codeDigest] kódjának felhasználása [now]-kor: `true`,
+  /// ha élt (még nem használták) és most elhasználódott (Addendum 6 N2).
+  ///
+  /// Egyetlen feltételes `UPDATE`: két egyidejű beváltásból egy nyer.
+  Future<bool> consume(
+    Uint8List codeDigest, {
+    required String userId,
+    required DateTime now,
+  }) async {
+    final updated =
+        await (_database.update(_database.recoveryCodes)..where(
+              (row) =>
+                  row.codeDigest.equals(codeDigest) &
+                  row.userId.equals(userId) &
+                  row.usedAtMs.isNull(),
+            ))
+            .write(RecoveryCodesCompanion(usedAtMs: Value(toEpochMillis(now))));
+    return updated == 1;
+  }
+
+  /// A [userId] fiók még fel nem használt kódjainak száma (18l).
+  Future<int> countUnused(String userId) async {
+    final codes = _database.recoveryCodes;
+    final count = codes.codeDigest.count();
+    final query = _database.selectOnly(codes)
+      ..addColumns([count])
+      ..where(codes.userId.equals(userId) & codes.usedAtMs.isNull());
+    return (await query.getSingle()).read(count) ?? 0;
+  }
+
   /// A [userId] fiók összes kódjának cseréje a [digests] hash-ekre.
   ///
   /// A régi kódok (a felhasználtak is) törlődnek, így egy új készlet után

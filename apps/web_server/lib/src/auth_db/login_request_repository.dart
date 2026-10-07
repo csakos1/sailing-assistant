@@ -94,7 +94,7 @@ class LoginRequestRepository {
     return updated == 1;
   }
 
-  /// A még nem jóváhagyott, élő kérés `joinPending` lesz: a [joinRequestId]
+  /// A még meg nem nyitott, élő kérés `joinPending` lesz: a [joinRequestId]
   /// kérelemre vár, [expiresAt] lejárattal (Addendum 5 M5); `true`, ha
   /// sikerült.
   Future<bool> markJoinPending(
@@ -103,13 +103,22 @@ class LoginRequestRepository {
     required DateTime now,
     required DateTime expiresAt,
   }) async {
-    final updated = await _awaitingApproval(id, now).write(
-      LoginRequestsCompanion(
-        state: Value(LoginRequestPhase.joinPending.name),
-        expiresAtMs: Value(toEpochMillis(expiresAt)),
-        joinRequestId: Value(joinRequestId),
-      ),
-    );
+    // Csak még meg nem nyitott kérés (Addendum 6 N1); a szolgáltatás is
+    // nézi, itt a feltételes `UPDATE` is őrzi.
+    final updated =
+        await (_database.update(_database.loginRequests)..where(
+              (row) =>
+                  row.id.equals(id) &
+                  row.state.equals(LoginRequestPhase.pending.name) &
+                  row.expiresAtMs.isBiggerThanValue(toEpochMillis(now)),
+            ))
+            .write(
+              LoginRequestsCompanion(
+                state: Value(LoginRequestPhase.joinPending.name),
+                expiresAtMs: Value(toEpochMillis(expiresAt)),
+                joinRequestId: Value(joinRequestId),
+              ),
+            );
     return updated == 1;
   }
 

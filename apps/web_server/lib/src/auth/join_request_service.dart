@@ -16,6 +16,7 @@ import 'package:web_server/src/auth_db/join_request_repository.dart';
 import 'package:web_server/src/auth_db/login_request_phase.dart';
 import 'package:web_server/src/auth_db/login_request_repository.dart';
 import 'package:web_server/src/auth_db/user_repository.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 import 'package:web_server/src/web_db/transaction_runner.dart';
 
 /// Egyszerre legfeljebb ennyi élő, el nem döntött kérelem lehet (ADR 0051
@@ -44,6 +45,7 @@ class JoinRequestService {
     required DeviceRepository devices,
     required TransactionRunner runInTransaction,
     required RandomBytes randomBytes,
+    GeoIpLookup geoIp = withoutGeoIp,
     DateTime Function() now = utcNow,
   }) : _origin = origin,
        _joinRequests = joinRequests,
@@ -52,6 +54,7 @@ class JoinRequestService {
        _devices = devices,
        _runInTransaction = runInTransaction,
        _randomBytes = randomBytes,
+       _geoIp = geoIp,
        _now = now;
 
   final String _origin;
@@ -61,6 +64,7 @@ class JoinRequestService {
   final DeviceRepository _devices;
   final TransactionRunner _runInTransaction;
   final RandomBytes _randomBytes;
+  final GeoIpLookup _geoIp;
   final DateTime Function() _now;
 
   /// A [request] kérelem az [ip] címről; siker esetén a telefon jegye.
@@ -126,8 +130,9 @@ class JoinRequestService {
     final login = await _loginRequests.findLive(request.requestId, now: now);
     final isJoinable =
         login != null &&
-        (login.phase == LoginRequestPhase.pending ||
-            login.phase == LoginRequestPhase.opened) &&
+        // Csak még meg nem nyitott kérésre: egy regisztrált telefon
+        // folyamatban lévő belépését nem lehet megzavarni (Addendum 6 N1).
+        login.phase == LoginRequestPhase.pending &&
         constantTimeEquals(
           digestToken(request.challenge),
           digestToken(login.challenge),
@@ -157,6 +162,7 @@ class JoinRequestService {
         publicKey: request.publicKey,
         deviceKey: request.deviceKey,
         ip: ip,
+        location: _geoIp(ip),
       ),
       now: now,
       expiresAt: expiresAt,

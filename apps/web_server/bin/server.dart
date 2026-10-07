@@ -14,6 +14,8 @@ import 'package:web_server/src/export/database_snapshot.dart';
 import 'package:web_server/src/export/history_exporter.dart';
 import 'package:web_server/src/export/stale_export_cleanup.dart';
 import 'package:web_server/src/export/vacuum_into.dart';
+import 'package:web_server/src/geoip/geo_ip_database.dart';
+import 'package:web_server/src/geoip/geo_location.dart';
 import 'package:web_server/src/http/archive_api.dart';
 import 'package:web_server/src/http/auth/auth_api.dart';
 import 'package:web_server/src/http/auth/auth_rate_limits.dart';
@@ -58,7 +60,8 @@ import 'package:web_server/src/web_server_version.dart';
 //     --auth-db /var/lib/foretack/auth.sqlite \
 //     --auth-secret /var/lib/foretack/auth-secret \
 //     --polar /var/lib/foretack/foretack.pol \
-//     --stw-corrections /var/lib/foretack/stw-corrections.json
+//     --stw-corrections /var/lib/foretack/stw-corrections.json \
+//     --geoip /var/lib/foretack/geoip.sqlite
 
 const _defaultPort = 8087;
 const int _defaultMaxImportBytes = 4 * 1024 * 1024 * 1024;
@@ -108,6 +111,12 @@ Future<void> main(List<String> arguments) async {
     ..addOption(
       'stw-corrections',
       help: 'Az STW-korrekciók JSON-fájlja (ADR 0049 D6); opcionális.',
+    )
+    ..addOption(
+      'geoip',
+      help:
+          'A build_geoip által épített geoip.sqlite; nélküle a belépések '
+          'helye ismeretlen.',
     );
 
   final ArgResults options;
@@ -153,6 +162,27 @@ Future<void> main(List<String> arguments) async {
       return;
   }
 
+  // Egy megadott, de hibás GeoIP-fájl nem lehet csendben „ismeretlen hely"
+  // (ADR 0051 Addendum 6 N9).
+  GeoIpDatabase? geoIpDatabase;
+  final geoIpPath = options.option('geoip');
+  if (geoIpPath != null) {
+    final missingGeoIp = missingFileLines({'geoip': geoIpPath});
+    if (missingGeoIp.isNotEmpty) {
+      missingGeoIp.forEach(stderr.writeln);
+      exitCode = 66;
+      return;
+    }
+    switch (GeoIpDatabase.open(geoIpPath)) {
+      case Ok(:final value):
+        geoIpDatabase = value;
+      case Err(:final error):
+        stderr.writeln('--geoip: nem olvasható GeoIP-adatbázis: $error');
+        exitCode = 66;
+        return;
+    }
+  }
+
   // A defaultsTo miatt a host a parse után nem lehet null.
   final host = options.option('host')!;
   final tempRootPath = options.option('temp-root');
@@ -176,6 +206,7 @@ Future<void> main(List<String> arguments) async {
     origin: origin,
     digestRecoveryCode: authSecret.digestRecoveryCode,
     rateLimits: AuthRateLimits.standard(),
+    geoIp: geoIpDatabase?.lookup ?? withoutGeoIp,
   );
 
   final races = RaceRepositoryImpl(archive);
@@ -352,6 +383,7 @@ Future<void> main(List<String> arguments) async {
   await archive.close();
   await webDatabase.close();
   await authDatabase.close();
+  geoIpDatabase?.close();
 }
 
 void _log(String message) => stderr.writeln(message);

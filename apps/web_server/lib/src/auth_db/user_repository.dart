@@ -56,6 +56,33 @@ class UserRepository {
     return deleted == 1;
   }
 
+  /// Az [id] fiók jelszavának PHC-hash-e, vagy `null`, ha nincs jelszó vagy
+  /// fiók (csak a tartalék belépés olvassa, Addendum 6 N2).
+  Future<String?> passwordHashOf(String id) async {
+    final query = _database.select(_database.users)
+      ..where((row) => row.id.equals(id));
+    return (await query.getSingleOrNull())?.passwordHash;
+  }
+
+  /// Az [id] fiók új jelszó-hash-e [now] beállítási idővel; `true`, ha volt
+  /// ilyen fiók.
+  Future<bool> setPasswordHash(
+    String id,
+    String passwordHash, {
+    required DateTime now,
+  }) async {
+    final updated =
+        await (_database.update(
+          _database.users,
+        )..where((row) => row.id.equals(id))).write(
+          UsersCompanion(
+            passwordHash: Value(passwordHash),
+            passwordSetAtMs: Value(toEpochMillis(now)),
+          ),
+        );
+    return updated == 1;
+  }
+
   /// Új fiók; a visszaolvasott rekord.
   ///
   /// Második `owner` beszúrásakor a DB egyedi indexe hibát dob: a hívó a

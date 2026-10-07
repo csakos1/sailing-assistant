@@ -4725,6 +4725,776 @@ class RecoveryCodesCompanion extends UpdateCompanion<RecoveryCodeRow> {
   }
 }
 
+class $LoginEventsTable extends LoginEvents
+    with TableInfo<$LoginEventsTable, LoginEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoginEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sessions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ipMeta = const VerificationMeta('ip');
+  @override
+  late final GeneratedColumn<String> ip = GeneratedColumn<String>(
+    'ip',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _browserMeta = const VerificationMeta(
+    'browser',
+  );
+  @override
+  late final GeneratedColumn<String> browser = GeneratedColumn<String>(
+    'browser',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _osMeta = const VerificationMeta('os');
+  @override
+  late final GeneratedColumn<String> os = GeneratedColumn<String>(
+    'os',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+    'city',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _phoneCountryMeta = const VerificationMeta(
+    'phoneCountry',
+  );
+  @override
+  late final GeneratedColumn<String> phoneCountry = GeneratedColumn<String>(
+    'phone_country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isSuspiciousMeta = const VerificationMeta(
+    'isSuspicious',
+  );
+  @override
+  late final GeneratedColumn<bool> isSuspicious = GeneratedColumn<bool>(
+    'is_suspicious',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_suspicious" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _acknowledgedAtMsMeta = const VerificationMeta(
+    'acknowledgedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> acknowledgedAtMs = GeneratedColumn<int>(
+    'acknowledged_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    sessionId,
+    method,
+    ip,
+    browser,
+    os,
+    country,
+    city,
+    phoneCountry,
+    isSuspicious,
+    createdAtMs,
+    acknowledgedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'login_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoginEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_methodMeta);
+    }
+    if (data.containsKey('ip')) {
+      context.handle(_ipMeta, ip.isAcceptableOrUnknown(data['ip']!, _ipMeta));
+    } else if (isInserting) {
+      context.missing(_ipMeta);
+    }
+    if (data.containsKey('browser')) {
+      context.handle(
+        _browserMeta,
+        browser.isAcceptableOrUnknown(data['browser']!, _browserMeta),
+      );
+    }
+    if (data.containsKey('os')) {
+      context.handle(_osMeta, os.isAcceptableOrUnknown(data['os']!, _osMeta));
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+        _cityMeta,
+        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+      );
+    }
+    if (data.containsKey('phone_country')) {
+      context.handle(
+        _phoneCountryMeta,
+        phoneCountry.isAcceptableOrUnknown(
+          data['phone_country']!,
+          _phoneCountryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_suspicious')) {
+      context.handle(
+        _isSuspiciousMeta,
+        isSuspicious.isAcceptableOrUnknown(
+          data['is_suspicious']!,
+          _isSuspiciousMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_isSuspiciousMeta);
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('acknowledged_at_ms')) {
+      context.handle(
+        _acknowledgedAtMsMeta,
+        acknowledgedAtMs.isAcceptableOrUnknown(
+          data['acknowledged_at_ms']!,
+          _acknowledgedAtMsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LoginEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoginEventRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      ),
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      )!,
+      ip: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ip'],
+      )!,
+      browser: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}browser'],
+      ),
+      os: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}os'],
+      ),
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      city: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city'],
+      ),
+      phoneCountry: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone_country'],
+      ),
+      isSuspicious: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_suspicious'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      acknowledgedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}acknowledged_at_ms'],
+      ),
+    );
+  }
+
+  @override
+  $LoginEventsTable createAlias(String alias) {
+    return $LoginEventsTable(attachedDatabase, alias);
+  }
+}
+
+class LoginEventRow extends DataClass implements Insertable<LoginEventRow> {
+  final String id;
+  final String userId;
+  final String? sessionId;
+  final String method;
+  final String ip;
+  final String? browser;
+  final String? os;
+  final String? country;
+  final String? city;
+  final String? phoneCountry;
+  final bool isSuspicious;
+  final int createdAtMs;
+  final int? acknowledgedAtMs;
+  const LoginEventRow({
+    required this.id,
+    required this.userId,
+    this.sessionId,
+    required this.method,
+    required this.ip,
+    this.browser,
+    this.os,
+    this.country,
+    this.city,
+    this.phoneCountry,
+    required this.isSuspicious,
+    required this.createdAtMs,
+    this.acknowledgedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    if (!nullToAbsent || sessionId != null) {
+      map['session_id'] = Variable<String>(sessionId);
+    }
+    map['method'] = Variable<String>(method);
+    map['ip'] = Variable<String>(ip);
+    if (!nullToAbsent || browser != null) {
+      map['browser'] = Variable<String>(browser);
+    }
+    if (!nullToAbsent || os != null) {
+      map['os'] = Variable<String>(os);
+    }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || city != null) {
+      map['city'] = Variable<String>(city);
+    }
+    if (!nullToAbsent || phoneCountry != null) {
+      map['phone_country'] = Variable<String>(phoneCountry);
+    }
+    map['is_suspicious'] = Variable<bool>(isSuspicious);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    if (!nullToAbsent || acknowledgedAtMs != null) {
+      map['acknowledged_at_ms'] = Variable<int>(acknowledgedAtMs);
+    }
+    return map;
+  }
+
+  LoginEventsCompanion toCompanion(bool nullToAbsent) {
+    return LoginEventsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      sessionId: sessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionId),
+      method: Value(method),
+      ip: Value(ip),
+      browser: browser == null && nullToAbsent
+          ? const Value.absent()
+          : Value(browser),
+      os: os == null && nullToAbsent ? const Value.absent() : Value(os),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      phoneCountry: phoneCountry == null && nullToAbsent
+          ? const Value.absent()
+          : Value(phoneCountry),
+      isSuspicious: Value(isSuspicious),
+      createdAtMs: Value(createdAtMs),
+      acknowledgedAtMs: acknowledgedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acknowledgedAtMs),
+    );
+  }
+
+  factory LoginEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoginEventRow(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      sessionId: serializer.fromJson<String?>(json['sessionId']),
+      method: serializer.fromJson<String>(json['method']),
+      ip: serializer.fromJson<String>(json['ip']),
+      browser: serializer.fromJson<String?>(json['browser']),
+      os: serializer.fromJson<String?>(json['os']),
+      country: serializer.fromJson<String?>(json['country']),
+      city: serializer.fromJson<String?>(json['city']),
+      phoneCountry: serializer.fromJson<String?>(json['phoneCountry']),
+      isSuspicious: serializer.fromJson<bool>(json['isSuspicious']),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+      acknowledgedAtMs: serializer.fromJson<int?>(json['acknowledgedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'sessionId': serializer.toJson<String?>(sessionId),
+      'method': serializer.toJson<String>(method),
+      'ip': serializer.toJson<String>(ip),
+      'browser': serializer.toJson<String?>(browser),
+      'os': serializer.toJson<String?>(os),
+      'country': serializer.toJson<String?>(country),
+      'city': serializer.toJson<String?>(city),
+      'phoneCountry': serializer.toJson<String?>(phoneCountry),
+      'isSuspicious': serializer.toJson<bool>(isSuspicious),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+      'acknowledgedAtMs': serializer.toJson<int?>(acknowledgedAtMs),
+    };
+  }
+
+  LoginEventRow copyWith({
+    String? id,
+    String? userId,
+    Value<String?> sessionId = const Value.absent(),
+    String? method,
+    String? ip,
+    Value<String?> browser = const Value.absent(),
+    Value<String?> os = const Value.absent(),
+    Value<String?> country = const Value.absent(),
+    Value<String?> city = const Value.absent(),
+    Value<String?> phoneCountry = const Value.absent(),
+    bool? isSuspicious,
+    int? createdAtMs,
+    Value<int?> acknowledgedAtMs = const Value.absent(),
+  }) => LoginEventRow(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    sessionId: sessionId.present ? sessionId.value : this.sessionId,
+    method: method ?? this.method,
+    ip: ip ?? this.ip,
+    browser: browser.present ? browser.value : this.browser,
+    os: os.present ? os.value : this.os,
+    country: country.present ? country.value : this.country,
+    city: city.present ? city.value : this.city,
+    phoneCountry: phoneCountry.present ? phoneCountry.value : this.phoneCountry,
+    isSuspicious: isSuspicious ?? this.isSuspicious,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    acknowledgedAtMs: acknowledgedAtMs.present
+        ? acknowledgedAtMs.value
+        : this.acknowledgedAtMs,
+  );
+  LoginEventRow copyWithCompanion(LoginEventsCompanion data) {
+    return LoginEventRow(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      method: data.method.present ? data.method.value : this.method,
+      ip: data.ip.present ? data.ip.value : this.ip,
+      browser: data.browser.present ? data.browser.value : this.browser,
+      os: data.os.present ? data.os.value : this.os,
+      country: data.country.present ? data.country.value : this.country,
+      city: data.city.present ? data.city.value : this.city,
+      phoneCountry: data.phoneCountry.present
+          ? data.phoneCountry.value
+          : this.phoneCountry,
+      isSuspicious: data.isSuspicious.present
+          ? data.isSuspicious.value
+          : this.isSuspicious,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      acknowledgedAtMs: data.acknowledgedAtMs.present
+          ? data.acknowledgedAtMs.value
+          : this.acknowledgedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginEventRow(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('method: $method, ')
+          ..write('ip: $ip, ')
+          ..write('browser: $browser, ')
+          ..write('os: $os, ')
+          ..write('country: $country, ')
+          ..write('city: $city, ')
+          ..write('phoneCountry: $phoneCountry, ')
+          ..write('isSuspicious: $isSuspicious, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('acknowledgedAtMs: $acknowledgedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    sessionId,
+    method,
+    ip,
+    browser,
+    os,
+    country,
+    city,
+    phoneCountry,
+    isSuspicious,
+    createdAtMs,
+    acknowledgedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoginEventRow &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.sessionId == this.sessionId &&
+          other.method == this.method &&
+          other.ip == this.ip &&
+          other.browser == this.browser &&
+          other.os == this.os &&
+          other.country == this.country &&
+          other.city == this.city &&
+          other.phoneCountry == this.phoneCountry &&
+          other.isSuspicious == this.isSuspicious &&
+          other.createdAtMs == this.createdAtMs &&
+          other.acknowledgedAtMs == this.acknowledgedAtMs);
+}
+
+class LoginEventsCompanion extends UpdateCompanion<LoginEventRow> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String?> sessionId;
+  final Value<String> method;
+  final Value<String> ip;
+  final Value<String?> browser;
+  final Value<String?> os;
+  final Value<String?> country;
+  final Value<String?> city;
+  final Value<String?> phoneCountry;
+  final Value<bool> isSuspicious;
+  final Value<int> createdAtMs;
+  final Value<int?> acknowledgedAtMs;
+  final Value<int> rowid;
+  const LoginEventsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.method = const Value.absent(),
+    this.ip = const Value.absent(),
+    this.browser = const Value.absent(),
+    this.os = const Value.absent(),
+    this.country = const Value.absent(),
+    this.city = const Value.absent(),
+    this.phoneCountry = const Value.absent(),
+    this.isSuspicious = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.acknowledgedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LoginEventsCompanion.insert({
+    required String id,
+    required String userId,
+    this.sessionId = const Value.absent(),
+    required String method,
+    required String ip,
+    this.browser = const Value.absent(),
+    this.os = const Value.absent(),
+    this.country = const Value.absent(),
+    this.city = const Value.absent(),
+    this.phoneCountry = const Value.absent(),
+    required bool isSuspicious,
+    required int createdAtMs,
+    this.acknowledgedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       method = Value(method),
+       ip = Value(ip),
+       isSuspicious = Value(isSuspicious),
+       createdAtMs = Value(createdAtMs);
+  static Insertable<LoginEventRow> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? sessionId,
+    Expression<String>? method,
+    Expression<String>? ip,
+    Expression<String>? browser,
+    Expression<String>? os,
+    Expression<String>? country,
+    Expression<String>? city,
+    Expression<String>? phoneCountry,
+    Expression<bool>? isSuspicious,
+    Expression<int>? createdAtMs,
+    Expression<int>? acknowledgedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (sessionId != null) 'session_id': sessionId,
+      if (method != null) 'method': method,
+      if (ip != null) 'ip': ip,
+      if (browser != null) 'browser': browser,
+      if (os != null) 'os': os,
+      if (country != null) 'country': country,
+      if (city != null) 'city': city,
+      if (phoneCountry != null) 'phone_country': phoneCountry,
+      if (isSuspicious != null) 'is_suspicious': isSuspicious,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (acknowledgedAtMs != null) 'acknowledged_at_ms': acknowledgedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LoginEventsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<String?>? sessionId,
+    Value<String>? method,
+    Value<String>? ip,
+    Value<String?>? browser,
+    Value<String?>? os,
+    Value<String?>? country,
+    Value<String?>? city,
+    Value<String?>? phoneCountry,
+    Value<bool>? isSuspicious,
+    Value<int>? createdAtMs,
+    Value<int?>? acknowledgedAtMs,
+    Value<int>? rowid,
+  }) {
+    return LoginEventsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      sessionId: sessionId ?? this.sessionId,
+      method: method ?? this.method,
+      ip: ip ?? this.ip,
+      browser: browser ?? this.browser,
+      os: os ?? this.os,
+      country: country ?? this.country,
+      city: city ?? this.city,
+      phoneCountry: phoneCountry ?? this.phoneCountry,
+      isSuspicious: isSuspicious ?? this.isSuspicious,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      acknowledgedAtMs: acknowledgedAtMs ?? this.acknowledgedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (ip.present) {
+      map['ip'] = Variable<String>(ip.value);
+    }
+    if (browser.present) {
+      map['browser'] = Variable<String>(browser.value);
+    }
+    if (os.present) {
+      map['os'] = Variable<String>(os.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (phoneCountry.present) {
+      map['phone_country'] = Variable<String>(phoneCountry.value);
+    }
+    if (isSuspicious.present) {
+      map['is_suspicious'] = Variable<bool>(isSuspicious.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (acknowledgedAtMs.present) {
+      map['acknowledged_at_ms'] = Variable<int>(acknowledgedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('method: $method, ')
+          ..write('ip: $ip, ')
+          ..write('browser: $browser, ')
+          ..write('os: $os, ')
+          ..write('country: $country, ')
+          ..write('city: $city, ')
+          ..write('phoneCountry: $phoneCountry, ')
+          ..write('isSuspicious: $isSuspicious, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('acknowledgedAtMs: $acknowledgedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AuthDatabase extends GeneratedDatabase {
   _$AuthDatabase(QueryExecutor e) : super(e);
   $AuthDatabaseManager get managers => $AuthDatabaseManager(this);
@@ -4737,6 +5507,7 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
   late final $JoinRequestsTable joinRequests = $JoinRequestsTable(this);
   late final $LoginRequestsTable loginRequests = $LoginRequestsTable(this);
   late final $RecoveryCodesTable recoveryCodes = $RecoveryCodesTable(this);
+  late final $LoginEventsTable loginEvents = $LoginEventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4751,6 +5522,7 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
     joinRequests,
     loginRequests,
     recoveryCodes,
+    loginEvents,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4830,6 +5602,20 @@ abstract class _$AuthDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('recovery_codes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'users',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('login_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('login_events', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -4945,6 +5731,24 @@ final class $$UsersTableReferences
     ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_recoveryCodesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$LoginEventsTable, List<LoginEventRow>>
+  _loginEventsRefsTable(_$AuthDatabase db) => MultiTypedResultKey.fromTable(
+    db.loginEvents,
+    aliasName: $_aliasNameGenerator(db.users.id, db.loginEvents.userId),
+  );
+
+  $$LoginEventsTableProcessedTableManager get loginEventsRefs {
+    final manager = $$LoginEventsTableTableManager(
+      $_db,
+      $_db.loginEvents,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_loginEventsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -5105,6 +5909,31 @@ class $$UsersTableFilterComposer extends Composer<_$AuthDatabase, $UsersTable> {
           }) => $$RecoveryCodesTableFilterComposer(
             $db: $db,
             $table: $db.recoveryCodes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> loginEventsRefs(
+    Expression<bool> Function($$LoginEventsTableFilterComposer f) f,
+  ) {
+    final $$LoginEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginEvents,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.loginEvents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5312,6 +6141,31 @@ class $$UsersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> loginEventsRefs<T extends Object>(
+    Expression<T> Function($$LoginEventsTableAnnotationComposer a) f,
+  ) {
+    final $$LoginEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginEvents,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.loginEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$UsersTableTableManager
@@ -5333,6 +6187,7 @@ class $$UsersTableTableManager
             bool joinRequestsRefs,
             bool loginRequestsRefs,
             bool recoveryCodesRefs,
+            bool loginEventsRefs,
           })
         > {
   $$UsersTableTableManager(_$AuthDatabase db, $UsersTable table)
@@ -5395,6 +6250,7 @@ class $$UsersTableTableManager
                 joinRequestsRefs = false,
                 loginRequestsRefs = false,
                 recoveryCodesRefs = false,
+                loginEventsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5404,6 +6260,7 @@ class $$UsersTableTableManager
                     if (joinRequestsRefs) db.joinRequests,
                     if (loginRequestsRefs) db.loginRequests,
                     if (recoveryCodesRefs) db.recoveryCodes,
+                    if (loginEventsRefs) db.loginEvents,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5509,6 +6366,27 @@ class $$UsersTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (loginEventsRefs)
+                        await $_getPrefetchedData<
+                          UserRow,
+                          $UsersTable,
+                          LoginEventRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._loginEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).loginEventsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5535,6 +6413,7 @@ typedef $$UsersTableProcessedTableManager =
         bool joinRequestsRefs,
         bool loginRequestsRefs,
         bool recoveryCodesRefs,
+        bool loginEventsRefs,
       })
     >;
 typedef $$DevicesTableCreateCompanionBuilder =
@@ -7290,6 +8169,24 @@ final class $$SessionsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$LoginEventsTable, List<LoginEventRow>>
+  _loginEventsRefsTable(_$AuthDatabase db) => MultiTypedResultKey.fromTable(
+    db.loginEvents,
+    aliasName: $_aliasNameGenerator(db.sessions.id, db.loginEvents.sessionId),
+  );
+
+  $$LoginEventsTableProcessedTableManager get loginEventsRefs {
+    final manager = $$LoginEventsTableTableManager(
+      $_db,
+      $_db.loginEvents,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_loginEventsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$SessionsTableFilterComposer
@@ -7395,6 +8292,31 @@ class $$SessionsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> loginEventsRefs(
+    Expression<bool> Function($$LoginEventsTableFilterComposer f) f,
+  ) {
+    final $$LoginEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginEvents,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.loginEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -7594,6 +8516,31 @@ class $$SessionsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> loginEventsRefs<T extends Object>(
+    Expression<T> Function($$LoginEventsTableAnnotationComposer a) f,
+  ) {
+    final $$LoginEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loginEvents,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoginEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.loginEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SessionsTableTableManager
@@ -7609,7 +8556,11 @@ class $$SessionsTableTableManager
           $$SessionsTableUpdateCompanionBuilder,
           (SessionRow, $$SessionsTableReferences),
           SessionRow,
-          PrefetchHooks Function({bool userId, bool deviceId})
+          PrefetchHooks Function({
+            bool userId,
+            bool deviceId,
+            bool loginEventsRefs,
+          })
         > {
   $$SessionsTableTableManager(_$AuthDatabase db, $SessionsTable table)
     : super(
@@ -7690,60 +8641,85 @@ class $$SessionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({userId = false, deviceId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (userId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.userId,
-                                referencedTable: $$SessionsTableReferences
-                                    ._userIdTable(db),
-                                referencedColumn: $$SessionsTableReferences
-                                    ._userIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-                    if (deviceId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.deviceId,
-                                referencedTable: $$SessionsTableReferences
-                                    ._deviceIdTable(db),
-                                referencedColumn: $$SessionsTableReferences
-                                    ._deviceIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({userId = false, deviceId = false, loginEventsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (loginEventsRefs) db.loginEvents,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (userId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.userId,
+                                    referencedTable: $$SessionsTableReferences
+                                        ._userIdTable(db),
+                                    referencedColumn: $$SessionsTableReferences
+                                        ._userIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (deviceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.deviceId,
+                                    referencedTable: $$SessionsTableReferences
+                                        ._deviceIdTable(db),
+                                    referencedColumn: $$SessionsTableReferences
+                                        ._deviceIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (loginEventsRefs)
+                        await $_getPrefetchedData<
+                          SessionRow,
+                          $SessionsTable,
+                          LoginEventRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._loginEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).loginEventsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -7760,7 +8736,7 @@ typedef $$SessionsTableProcessedTableManager =
       $$SessionsTableUpdateCompanionBuilder,
       (SessionRow, $$SessionsTableReferences),
       SessionRow,
-      PrefetchHooks Function({bool userId, bool deviceId})
+      PrefetchHooks Function({bool userId, bool deviceId, bool loginEventsRefs})
     >;
 typedef $$JoinRequestsTableCreateCompanionBuilder =
     JoinRequestsCompanion Function({
@@ -9453,6 +10429,572 @@ typedef $$RecoveryCodesTableProcessedTableManager =
       RecoveryCodeRow,
       PrefetchHooks Function({bool userId})
     >;
+typedef $$LoginEventsTableCreateCompanionBuilder =
+    LoginEventsCompanion Function({
+      required String id,
+      required String userId,
+      Value<String?> sessionId,
+      required String method,
+      required String ip,
+      Value<String?> browser,
+      Value<String?> os,
+      Value<String?> country,
+      Value<String?> city,
+      Value<String?> phoneCountry,
+      required bool isSuspicious,
+      required int createdAtMs,
+      Value<int?> acknowledgedAtMs,
+      Value<int> rowid,
+    });
+typedef $$LoginEventsTableUpdateCompanionBuilder =
+    LoginEventsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<String?> sessionId,
+      Value<String> method,
+      Value<String> ip,
+      Value<String?> browser,
+      Value<String?> os,
+      Value<String?> country,
+      Value<String?> city,
+      Value<String?> phoneCountry,
+      Value<bool> isSuspicious,
+      Value<int> createdAtMs,
+      Value<int?> acknowledgedAtMs,
+      Value<int> rowid,
+    });
+
+final class $$LoginEventsTableReferences
+    extends BaseReferences<_$AuthDatabase, $LoginEventsTable, LoginEventRow> {
+  $$LoginEventsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $UsersTable _userIdTable(_$AuthDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.loginEvents.userId, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<String>('user_id')!;
+
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SessionsTable _sessionIdTable(_$AuthDatabase db) =>
+      db.sessions.createAlias(
+        $_aliasNameGenerator(db.loginEvents.sessionId, db.sessions.id),
+      );
+
+  $$SessionsTableProcessedTableManager? get sessionId {
+    final $_column = $_itemColumn<String>('session_id');
+    if ($_column == null) return null;
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$LoginEventsTableFilterComposer
+    extends Composer<_$AuthDatabase, $LoginEventsTable> {
+  $$LoginEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ip => $composableBuilder(
+    column: $table.ip,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get browser => $composableBuilder(
+    column: $table.browser,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get os => $composableBuilder(
+    column: $table.os,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phoneCountry => $composableBuilder(
+    column: $table.phoneCountry,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSuspicious => $composableBuilder(
+    column: $table.isSuspicious,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get acknowledgedAtMs => $composableBuilder(
+    column: $table.acknowledgedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SessionsTableFilterComposer get sessionId {
+    final $$SessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoginEventsTableOrderingComposer
+    extends Composer<_$AuthDatabase, $LoginEventsTable> {
+  $$LoginEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ip => $composableBuilder(
+    column: $table.ip,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get browser => $composableBuilder(
+    column: $table.browser,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get os => $composableBuilder(
+    column: $table.os,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phoneCountry => $composableBuilder(
+    column: $table.phoneCountry,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSuspicious => $composableBuilder(
+    column: $table.isSuspicious,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get acknowledgedAtMs => $composableBuilder(
+    column: $table.acknowledgedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SessionsTableOrderingComposer get sessionId {
+    final $$SessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoginEventsTableAnnotationComposer
+    extends Composer<_$AuthDatabase, $LoginEventsTable> {
+  $$LoginEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<String> get ip =>
+      $composableBuilder(column: $table.ip, builder: (column) => column);
+
+  GeneratedColumn<String> get browser =>
+      $composableBuilder(column: $table.browser, builder: (column) => column);
+
+  GeneratedColumn<String> get os =>
+      $composableBuilder(column: $table.os, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<String> get phoneCountry => $composableBuilder(
+    column: $table.phoneCountry,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSuspicious => $composableBuilder(
+    column: $table.isSuspicious,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get acknowledgedAtMs => $composableBuilder(
+    column: $table.acknowledgedAtMs,
+    builder: (column) => column,
+  );
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SessionsTableAnnotationComposer get sessionId {
+    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoginEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AuthDatabase,
+          $LoginEventsTable,
+          LoginEventRow,
+          $$LoginEventsTableFilterComposer,
+          $$LoginEventsTableOrderingComposer,
+          $$LoginEventsTableAnnotationComposer,
+          $$LoginEventsTableCreateCompanionBuilder,
+          $$LoginEventsTableUpdateCompanionBuilder,
+          (LoginEventRow, $$LoginEventsTableReferences),
+          LoginEventRow,
+          PrefetchHooks Function({bool userId, bool sessionId})
+        > {
+  $$LoginEventsTableTableManager(_$AuthDatabase db, $LoginEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LoginEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LoginEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LoginEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String?> sessionId = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<String> ip = const Value.absent(),
+                Value<String?> browser = const Value.absent(),
+                Value<String?> os = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                Value<String?> phoneCountry = const Value.absent(),
+                Value<bool> isSuspicious = const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int?> acknowledgedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoginEventsCompanion(
+                id: id,
+                userId: userId,
+                sessionId: sessionId,
+                method: method,
+                ip: ip,
+                browser: browser,
+                os: os,
+                country: country,
+                city: city,
+                phoneCountry: phoneCountry,
+                isSuspicious: isSuspicious,
+                createdAtMs: createdAtMs,
+                acknowledgedAtMs: acknowledgedAtMs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                Value<String?> sessionId = const Value.absent(),
+                required String method,
+                required String ip,
+                Value<String?> browser = const Value.absent(),
+                Value<String?> os = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                Value<String?> phoneCountry = const Value.absent(),
+                required bool isSuspicious,
+                required int createdAtMs,
+                Value<int?> acknowledgedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoginEventsCompanion.insert(
+                id: id,
+                userId: userId,
+                sessionId: sessionId,
+                method: method,
+                ip: ip,
+                browser: browser,
+                os: os,
+                country: country,
+                city: city,
+                phoneCountry: phoneCountry,
+                isSuspicious: isSuspicious,
+                createdAtMs: createdAtMs,
+                acknowledgedAtMs: acknowledgedAtMs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LoginEventsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({userId = false, sessionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (userId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.userId,
+                                referencedTable: $$LoginEventsTableReferences
+                                    ._userIdTable(db),
+                                referencedColumn: $$LoginEventsTableReferences
+                                    ._userIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (sessionId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sessionId,
+                                referencedTable: $$LoginEventsTableReferences
+                                    ._sessionIdTable(db),
+                                referencedColumn: $$LoginEventsTableReferences
+                                    ._sessionIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LoginEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AuthDatabase,
+      $LoginEventsTable,
+      LoginEventRow,
+      $$LoginEventsTableFilterComposer,
+      $$LoginEventsTableOrderingComposer,
+      $$LoginEventsTableAnnotationComposer,
+      $$LoginEventsTableCreateCompanionBuilder,
+      $$LoginEventsTableUpdateCompanionBuilder,
+      (LoginEventRow, $$LoginEventsTableReferences),
+      LoginEventRow,
+      PrefetchHooks Function({bool userId, bool sessionId})
+    >;
 
 class $AuthDatabaseManager {
   final _$AuthDatabase _db;
@@ -9475,4 +11017,6 @@ class $AuthDatabaseManager {
       $$LoginRequestsTableTableManager(_db, _db.loginRequests);
   $$RecoveryCodesTableTableManager get recoveryCodes =>
       $$RecoveryCodesTableTableManager(_db, _db.recoveryCodes);
+  $$LoginEventsTableTableManager get loginEvents =>
+      $$LoginEventsTableTableManager(_db, _db.loginEvents);
 }

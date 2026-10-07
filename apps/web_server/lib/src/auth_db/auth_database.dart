@@ -4,6 +4,7 @@ import 'package:web_server/src/auth_db/device_tokens_table.dart';
 import 'package:web_server/src/auth_db/devices_table.dart';
 import 'package:web_server/src/auth_db/enrollments_table.dart';
 import 'package:web_server/src/auth_db/join_requests_table.dart';
+import 'package:web_server/src/auth_db/login_events_table.dart';
 import 'package:web_server/src/auth_db/login_requests_table.dart';
 import 'package:web_server/src/auth_db/recovery_codes_table.dart';
 import 'package:web_server/src/auth_db/sessions_table.dart';
@@ -29,6 +30,7 @@ part 'auth_database.g.dart';
     JoinRequests,
     LoginRequests,
     RecoveryCodes,
+    LoginEvents,
   ],
 )
 class AuthDatabase extends _$AuthDatabase {
