@@ -1417,3 +1417,34 @@ kód előtt még visszavonható. A K9–K11-et és a D6–D8-at tölti ki.
 - **K11:** a `geoip.sqlite` és a `build_geoip` (N7, N8); a `--geoip`
   hibás fájlra nem indul (N9).
 - **M8:** a `WebSession` `isSuspicious` mezőt kap (N6).
+
+### Pontosítás a valódi DB-IP fájl alapján (az A2b-2-vel)
+
+A felhasználó a `dbip-city-lite-2026-10.csv.gz`-t (86 MB) letöltötte, és
+megnézte az első sorait. Ez az N7–N8-at pontosítja:
+
+- A sorok formátuma egyezik az N8-cal (8 oszlop, fejléc nélkül), de **a
+  mezők csak szükség szerint idézőjelesek** (`"South Brisbane"`,
+  `Wenquan`), és az idézőjelen belül vessző vagy kettőspont is lehet
+  (`"San Diego (Mid-City:City Heights)"`). Ezért a CLI egy RFC 4180-es
+  sorolvasót használ, nem `split`-et.
+- A fenntartott tartományok országa `ZZ` (`0.0.0.0,0.255.255.255,ZZ,ZZ,,,0,0`):
+  ezt az építés ismeretlen országként tárolja.
+- Az `end` SQL kulcsszó, ezért a tábla oszlopai `range_start` és
+  `range_end`.
+- A CSV-ben az IPv4-be ágyazott IPv6 címek (`::ffff:a.b.c.d`) az IPv6
+  családban maradnak; csak a keresés bontja ki őket IPv4-re.
+
+A review alapján még:
+
+- **N3, párhuzamos próbálkozások:** a próbálkozást az ellenőrzés előtt,
+  szinkron le kell foglalni. Egyszerre legfeljebb annyi futhat, ahány hiba
+  még belefér az 5-be, a várakozás után pedig egyszerre egy. Különben egy
+  párhuzamos sorozat a hibák rögzítése előtt átjutna. A foglaltság miatt
+  elutasított próbálkozás `429`, 1 mp-es `Retry-After`-rel.
+- **N5:** egy 30 napnál régebbi, de még élő munkamenet (legfeljebb 90 nap)
+  eseménye már törlődött, ezért a „Webes belépések" sorában a gyanús-jel
+  nem látszik. Ez elfogadott: a szalag is csak 30 napot mutat.
+- **N8:** a `build_geoip` az ismétlődő tartomány-kezdetet elutasítja, az
+  egymást átfedő tartományokat nem ellenőrzi (a DB-IP ilyet nem ad). Egy
+  hibás gzip vagy UTF-8 65, egy nem írható kimenet 73.
