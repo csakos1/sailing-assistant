@@ -831,6 +831,324 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Hajó középre'**
   String get safetyMapRecentre;
+
+  /// A főképernyő AppBar-gombja: a webes belépés QR-beolvasója (ADR 0051 H1).
+  ///
+  /// In hu, this message translates to:
+  /// **'QR-kód beolvasása'**
+  String get webScanTooltip;
+
+  /// A beolvasó felirata a kereső alatt (18b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldal QR-kódját'**
+  String get webScanHint;
+
+  /// A beolvasó, ha a kamera-engedélyt megtagadták (Addendum 8 V2).
+  ///
+  /// In hu, this message translates to:
+  /// **'A beolvasáshoz kamera-engedély kell'**
+  String get webScanCameraDenied;
+
+  /// A beolvasó, ha a kamera más okból nem indult.
+  ///
+  /// In hu, this message translates to:
+  /// **'A kamera nem indult el'**
+  String get webScanCameraFailed;
+
+  /// Hibapanel gomb: újra beolvas.
+  ///
+  /// In hu, this message translates to:
+  /// **'Újra'**
+  String get webScanRetry;
+
+  /// Hibapanel gomb: bezárja a beolvasót.
+  ///
+  /// In hu, this message translates to:
+  /// **'Bezárás'**
+  String get webScanClose;
+
+  /// Hibapanel cím: a beolvasott kód nem Foretack-kód (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez nem Foretack-kód'**
+  String get webScanNotForetackTitle;
+
+  /// Hibapanel szöveg a nem Foretack-kódhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldalon vagy a szerveren mutatott kódot.'**
+  String get webScanNotForetackMessage;
+
+  /// Hibapanel cím: ezt a kódot egy újabb app érti (J2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Frissítsd a Foretack appot'**
+  String get webScanUnsupportedTitle;
+
+  /// Hibapanel szöveg az ismeretlen kódverzióhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ezt a kódot az app egy újabb verziója érti.'**
+  String get webScanUnsupportedMessage;
+
+  /// Hibapanel cím: lejárt vagy felhasznált kérés (18d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Lejárt QR-kód'**
+  String get webScanExpiredTitle;
+
+  /// Hibapanel szöveg a lejárt kódhoz (18d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldalon látható új kódot.'**
+  String get webScanExpiredMessage;
+
+  /// Hibapanel szöveg a lejárt regisztrációs kódhoz: azt a VPS-es CLI adja, nem a weboldal.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérj új regisztrációs kódot a szerveren (CLI).'**
+  String get webScanExpiredEnrollMessage;
+
+  /// Hibapanel cím: más szerver belépési QR-ja (18d-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez nem a te Foretack-szervered'**
+  String get webScanForeignTitle;
+
+  /// Hibapanel szöveg (18d-3); utána a szerver hostja monóval.
+  ///
+  /// In hu, this message translates to:
+  /// **'A kód ehhez tartozik:'**
+  String get webScanForeignMessage;
+
+  /// Hibapanel cím: a szerver nem érhető el (18d-4).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs hálózat'**
+  String get webScanNoConnectionTitle;
+
+  /// Hibapanel szöveg a hálózati hibához (18d-4).
+  ///
+  /// In hu, this message translates to:
+  /// **'A belépéshez a telefonnak el kell érnie a szervert.'**
+  String get webScanNoConnectionMessage;
+
+  /// Hibapanel cím: a szerver 429-cel válaszolt (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Túl sok próbálkozás'**
+  String get webScanTooManyTitle;
+
+  /// Hibapanel cím: visszavont eszköz vagy elveszett kulcs (18d-5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon vissza lett vonva'**
+  String get webScanRevokedTitle;
+
+  /// Hibapanel szöveg a legénység visszavont telefonján (18d-5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérj új csatlakozást; a tulajdonos hagyja jóvá.'**
+  String get webScanRevokedCrewMessage;
+
+  /// Hibapanel szöveg a tulajdonos visszavont telefonján (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Regisztráld újra a telefont a szerveren (CLI).'**
+  String get webScanRevokedOwnerMessage;
+
+  /// Hibapanel gomb (18d-5): törli a helyi fiókot, és újra beolvas.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás kérése'**
+  String get webScanRequestJoin;
+
+  /// Hibapanel cím: a telefonon nincs ujjlenyomat.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs beállított ujjlenyomat'**
+  String get webScanBiometricsUnavailableTitle;
+
+  /// Hibapanel szöveg: nincs ujjlenyomat.
+  ///
+  /// In hu, this message translates to:
+  /// **'Az aláíráshoz ujjlenyomat kell. Állíts be egyet a telefon beállításaiban.'**
+  String get webScanBiometricsUnavailableMessage;
+
+  /// Hibapanel cím: túl sok sikertelen ujjlenyomat-próba.
+  ///
+  /// In hu, this message translates to:
+  /// **'Az ujjlenyomat zárolva'**
+  String get webScanLockedOutTitle;
+
+  /// Hibapanel szöveg a zárolt biometriához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Túl sok sikertelen próba. Oldd fel a telefont, és próbáld újra.'**
+  String get webScanLockedOutMessage;
+
+  /// Hibapanel cím: váratlan aláírási hiba.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült aláírni'**
+  String get webScanSigningFailedTitle;
+
+  /// Hibapanel szöveg a váratlan aláírási hibához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Próbáld újra.'**
+  String get webScanSigningFailedMessage;
+
+  /// Hibapanel cím: fiók nélküli telefon olvasott be belépési QR-t (az A4b előtt).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon nincs regisztrálva'**
+  String get webScanNotRegisteredTitle;
+
+  /// Hibapanel szöveg a fiók nélküli telefonhoz (az A4b előtt).
+  ///
+  /// In hu, this message translates to:
+  /// **'A legénység csatlakozása az app következő frissítésével jön.'**
+  String get webScanNotRegisteredMessage;
+
+  /// Az ujjlenyomat-ablak címe a QR-belépéskor (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés a Foretack webre'**
+  String get webPromptLoginTitle;
+
+  /// Az ujjlenyomat-ablak címe az első regisztrációkor (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon regisztrálása'**
+  String get webPromptEnrollTitle;
+
+  /// Az ujjlenyomat-ablak megszakító gombja (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webPromptCancel;
+
+  /// Snackbar a főképernyőn a sikeres QR-belépés után (18d).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépve a webre'**
+  String get webLoginDone;
+
+  /// Megerősítő dialógus címe: a telefon már regisztrálva van (Addendum 8 V1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók cseréje'**
+  String get webReplaceTitle;
+
+  /// Megerősítés, ha ugyanarra a szerverre regisztrálunk újra (V5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod.'**
+  String get webReplaceSameMessage;
+
+  /// Megerősítő dialógus: nem cserél.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webReplaceCancel;
+
+  /// Megerősítő dialógus: törli a helyi fiókot és a kulcsokat, és regisztrál.
+  ///
+  /// In hu, this message translates to:
+  /// **'Folytatás'**
+  String get webReplaceConfirm;
+
+  /// A regisztráció utáni képernyő AppBar-címe (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Regisztráció'**
+  String get webEnrollTitle;
+
+  /// Szerep-címke verzálul (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'TULAJDONOS'**
+  String get webRoleOwner;
+
+  /// Szerep-címke verzálul (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'LEGÉNYSÉG'**
+  String get webRoleCrew;
+
+  /// A regisztráció utáni képernyő főcíme (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon regisztrálva'**
+  String get webEnrollDone;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szerver'**
+  String get webEnrollServer;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webEnrollAccount;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon'**
+  String get webEnrollPhone;
+
+  /// A 18f egyetlen gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Tovább a helyreállító kódokhoz'**
+  String get webEnrollToCodes;
+
+  /// A kódok képernyőjének címe (18g).
+  ///
+  /// In hu, this message translates to:
+  /// **'Helyreállító kódok'**
+  String get webCodesTitle;
+
+  /// Figyelmeztetés a kódok fölött (18g).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csak most látszanak. Mentsd el őket biztos helyre — mindegyik egyszer használható.'**
+  String get webCodesNote;
+
+  /// A 18g gombja: a kódok a vágólapra.
+  ///
+  /// In hu, this message translates to:
+  /// **'Másolás'**
+  String get webCodesCopy;
+
+  /// Snackbar a kódok másolása után.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kódok a vágólapon'**
+  String get webCodesCopied;
+
+  /// A 18g záró gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Elmentettem'**
+  String get webCodesSaved;
+
+  /// Hibapanel szöveg a 429-hez; a perc felfelé kerekítve, legalább 1 (H7, H10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Próbáld újra {minutes} perc múlva.'**
+  String webScanTooManyMessage(int minutes);
+
+  /// Megerősítés, ha más origójú regisztrációs QR-t olvasott be a regisztrált telefon (Addendum 8 V1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?'**
+  String webReplaceForeignMessage(String current, String next);
 }
 
 class _AppLocalizationsDelegate

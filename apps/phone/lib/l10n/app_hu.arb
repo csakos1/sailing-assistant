@@ -540,5 +540,230 @@
   "safetyMapRecentre": "Hajó középre",
   "@safetyMapRecentre": {
     "description": "A biztonsági térkép gombja: a kamera visszatér a hajóra."
+  },
+  "webScanTooltip": "QR-kód beolvasása",
+  "@webScanTooltip": {
+    "description": "A főképernyő AppBar-gombja: a webes belépés QR-beolvasója (ADR 0051 H1)."
+  },
+  "webScanHint": "Olvasd be a weboldal QR-kódját",
+  "@webScanHint": {
+    "description": "A beolvasó felirata a kereső alatt (18b)."
+  },
+  "webScanCameraDenied": "A beolvasáshoz kamera-engedély kell",
+  "@webScanCameraDenied": {
+    "description": "A beolvasó, ha a kamera-engedélyt megtagadták (Addendum 8 V2)."
+  },
+  "webScanCameraFailed": "A kamera nem indult el",
+  "@webScanCameraFailed": {
+    "description": "A beolvasó, ha a kamera más okból nem indult."
+  },
+  "webScanRetry": "Újra",
+  "@webScanRetry": {
+    "description": "Hibapanel gomb: újra beolvas."
+  },
+  "webScanClose": "Bezárás",
+  "@webScanClose": {
+    "description": "Hibapanel gomb: bezárja a beolvasót."
+  },
+  "webScanNotForetackTitle": "Ez nem Foretack-kód",
+  "@webScanNotForetackTitle": {
+    "description": "Hibapanel cím: a beolvasott kód nem Foretack-kód (H7)."
+  },
+  "webScanNotForetackMessage": "Olvasd be a weboldalon vagy a szerveren mutatott kódot.",
+  "@webScanNotForetackMessage": {
+    "description": "Hibapanel szöveg a nem Foretack-kódhoz."
+  },
+  "webScanUnsupportedTitle": "Frissítsd a Foretack appot",
+  "@webScanUnsupportedTitle": {
+    "description": "Hibapanel cím: ezt a kódot egy újabb app érti (J2)."
+  },
+  "webScanUnsupportedMessage": "Ezt a kódot az app egy újabb verziója érti.",
+  "@webScanUnsupportedMessage": {
+    "description": "Hibapanel szöveg az ismeretlen kódverzióhoz."
+  },
+  "webScanExpiredTitle": "Lejárt QR-kód",
+  "@webScanExpiredTitle": {
+    "description": "Hibapanel cím: lejárt vagy felhasznált kérés (18d-2)."
+  },
+  "webScanExpiredMessage": "Olvasd be a weboldalon látható új kódot.",
+  "@webScanExpiredMessage": {
+    "description": "Hibapanel szöveg a lejárt kódhoz (18d-2)."
+  },
+  "webScanExpiredEnrollMessage": "Kérj új regisztrációs kódot a szerveren (CLI).",
+  "@webScanExpiredEnrollMessage": {
+    "description": "Hibapanel szöveg a lejárt regisztrációs kódhoz: azt a VPS-es CLI adja, nem a weboldal."
+  },
+  "webScanForeignTitle": "Ez nem a te Foretack-szervered",
+  "@webScanForeignTitle": {
+    "description": "Hibapanel cím: más szerver belépési QR-ja (18d-3)."
+  },
+  "webScanForeignMessage": "A kód ehhez tartozik:",
+  "@webScanForeignMessage": {
+    "description": "Hibapanel szöveg (18d-3); utána a szerver hostja monóval."
+  },
+  "webScanNoConnectionTitle": "Nincs hálózat",
+  "@webScanNoConnectionTitle": {
+    "description": "Hibapanel cím: a szerver nem érhető el (18d-4)."
+  },
+  "webScanNoConnectionMessage": "A belépéshez a telefonnak el kell érnie a szervert.",
+  "@webScanNoConnectionMessage": {
+    "description": "Hibapanel szöveg a hálózati hibához (18d-4)."
+  },
+  "webScanTooManyTitle": "Túl sok próbálkozás",
+  "@webScanTooManyTitle": {
+    "description": "Hibapanel cím: a szerver 429-cel válaszolt (H7)."
+  },
+  "webScanRevokedTitle": "Ez a telefon vissza lett vonva",
+  "@webScanRevokedTitle": {
+    "description": "Hibapanel cím: visszavont eszköz vagy elveszett kulcs (18d-5)."
+  },
+  "webScanRevokedCrewMessage": "Kérj új csatlakozást; a tulajdonos hagyja jóvá.",
+  "@webScanRevokedCrewMessage": {
+    "description": "Hibapanel szöveg a legénység visszavont telefonján (18d-5)."
+  },
+  "webScanRevokedOwnerMessage": "Regisztráld újra a telefont a szerveren (CLI).",
+  "@webScanRevokedOwnerMessage": {
+    "description": "Hibapanel szöveg a tulajdonos visszavont telefonján (H7)."
+  },
+  "webScanRequestJoin": "Csatlakozás kérése",
+  "@webScanRequestJoin": {
+    "description": "Hibapanel gomb (18d-5): törli a helyi fiókot, és újra beolvas."
+  },
+  "webScanBiometricsUnavailableTitle": "Nincs beállított ujjlenyomat",
+  "@webScanBiometricsUnavailableTitle": {
+    "description": "Hibapanel cím: a telefonon nincs ujjlenyomat."
+  },
+  "webScanBiometricsUnavailableMessage": "Az aláíráshoz ujjlenyomat kell. Állíts be egyet a telefon beállításaiban.",
+  "@webScanBiometricsUnavailableMessage": {
+    "description": "Hibapanel szöveg: nincs ujjlenyomat."
+  },
+  "webScanLockedOutTitle": "Az ujjlenyomat zárolva",
+  "@webScanLockedOutTitle": {
+    "description": "Hibapanel cím: túl sok sikertelen ujjlenyomat-próba."
+  },
+  "webScanLockedOutMessage": "Túl sok sikertelen próba. Oldd fel a telefont, és próbáld újra.",
+  "@webScanLockedOutMessage": {
+    "description": "Hibapanel szöveg a zárolt biometriához."
+  },
+  "webScanSigningFailedTitle": "Nem sikerült aláírni",
+  "@webScanSigningFailedTitle": {
+    "description": "Hibapanel cím: váratlan aláírási hiba."
+  },
+  "webScanSigningFailedMessage": "Próbáld újra.",
+  "@webScanSigningFailedMessage": {
+    "description": "Hibapanel szöveg a váratlan aláírási hibához."
+  },
+  "webScanNotRegisteredTitle": "Ez a telefon nincs regisztrálva",
+  "@webScanNotRegisteredTitle": {
+    "description": "Hibapanel cím: fiók nélküli telefon olvasott be belépési QR-t (az A4b előtt)."
+  },
+  "webScanNotRegisteredMessage": "A legénység csatlakozása az app következő frissítésével jön.",
+  "@webScanNotRegisteredMessage": {
+    "description": "Hibapanel szöveg a fiók nélküli telefonhoz (az A4b előtt)."
+  },
+  "webPromptLoginTitle": "Belépés a Foretack webre",
+  "@webPromptLoginTitle": {
+    "description": "Az ujjlenyomat-ablak címe a QR-belépéskor (H6)."
+  },
+  "webPromptEnrollTitle": "Telefon regisztrálása",
+  "@webPromptEnrollTitle": {
+    "description": "Az ujjlenyomat-ablak címe az első regisztrációkor (H6)."
+  },
+  "webPromptCancel": "Mégse",
+  "@webPromptCancel": {
+    "description": "Az ujjlenyomat-ablak megszakító gombja (H6)."
+  },
+  "webLoginDone": "Belépve a webre",
+  "@webLoginDone": {
+    "description": "Snackbar a főképernyőn a sikeres QR-belépés után (18d)."
+  },
+  "webReplaceTitle": "Fiók cseréje",
+  "@webReplaceTitle": {
+    "description": "Megerősítő dialógus címe: a telefon már regisztrálva van (Addendum 8 V1)."
+  },
+  "webReplaceSameMessage": "Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod.",
+  "@webReplaceSameMessage": {
+    "description": "Megerősítés, ha ugyanarra a szerverre regisztrálunk újra (V5)."
+  },
+  "webReplaceCancel": "Mégse",
+  "@webReplaceCancel": {
+    "description": "Megerősítő dialógus: nem cserél."
+  },
+  "webReplaceConfirm": "Folytatás",
+  "@webReplaceConfirm": {
+    "description": "Megerősítő dialógus: törli a helyi fiókot és a kulcsokat, és regisztrál."
+  },
+  "webEnrollTitle": "Regisztráció",
+  "@webEnrollTitle": {
+    "description": "A regisztráció utáni képernyő AppBar-címe (18f)."
+  },
+  "webRoleOwner": "TULAJDONOS",
+  "@webRoleOwner": {
+    "description": "Szerep-címke verzálul (18f)."
+  },
+  "webRoleCrew": "LEGÉNYSÉG",
+  "@webRoleCrew": {
+    "description": "Szerep-címke verzálul (18f)."
+  },
+  "webEnrollDone": "Telefon regisztrálva",
+  "@webEnrollDone": {
+    "description": "A regisztráció utáni képernyő főcíme (18f)."
+  },
+  "webEnrollServer": "Szerver",
+  "@webEnrollServer": {
+    "description": "Sor-címke a 18f-en."
+  },
+  "webEnrollAccount": "Fiók",
+  "@webEnrollAccount": {
+    "description": "Sor-címke a 18f-en."
+  },
+  "webEnrollPhone": "Telefon",
+  "@webEnrollPhone": {
+    "description": "Sor-címke a 18f-en."
+  },
+  "webEnrollToCodes": "Tovább a helyreállító kódokhoz",
+  "@webEnrollToCodes": {
+    "description": "A 18f egyetlen gombja."
+  },
+  "webCodesTitle": "Helyreállító kódok",
+  "@webCodesTitle": {
+    "description": "A kódok képernyőjének címe (18g)."
+  },
+  "webCodesNote": "Csak most látszanak. Mentsd el őket biztos helyre — mindegyik egyszer használható.",
+  "@webCodesNote": {
+    "description": "Figyelmeztetés a kódok fölött (18g)."
+  },
+  "webCodesCopy": "Másolás",
+  "@webCodesCopy": {
+    "description": "A 18g gombja: a kódok a vágólapra."
+  },
+  "webCodesCopied": "Kódok a vágólapon",
+  "@webCodesCopied": {
+    "description": "Snackbar a kódok másolása után."
+  },
+  "webCodesSaved": "Elmentettem",
+  "@webCodesSaved": {
+    "description": "A 18g záró gombja."
+  },
+  "webScanTooManyMessage": "Próbáld újra {minutes} perc múlva.",
+  "@webScanTooManyMessage": {
+    "description": "Hibapanel szöveg a 429-hez; a perc felfelé kerekítve, legalább 1 (H7, H10).",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "webReplaceForeignMessage": "Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?",
+  "@webReplaceForeignMessage": {
+    "description": "Megerősítés, ha más origójú regisztrációs QR-t olvasott be a regisztrált telefon (Addendum 8 V1).",
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "next": {
+        "type": "String"
+      }
+    }
   }
 }

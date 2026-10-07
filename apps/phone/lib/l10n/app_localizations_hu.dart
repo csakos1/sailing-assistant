@@ -412,4 +412,180 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get safetyMapRecentre => 'Hajó középre';
+
+  @override
+  String get webScanTooltip => 'QR-kód beolvasása';
+
+  @override
+  String get webScanHint => 'Olvasd be a weboldal QR-kódját';
+
+  @override
+  String get webScanCameraDenied => 'A beolvasáshoz kamera-engedély kell';
+
+  @override
+  String get webScanCameraFailed => 'A kamera nem indult el';
+
+  @override
+  String get webScanRetry => 'Újra';
+
+  @override
+  String get webScanClose => 'Bezárás';
+
+  @override
+  String get webScanNotForetackTitle => 'Ez nem Foretack-kód';
+
+  @override
+  String get webScanNotForetackMessage =>
+      'Olvasd be a weboldalon vagy a szerveren mutatott kódot.';
+
+  @override
+  String get webScanUnsupportedTitle => 'Frissítsd a Foretack appot';
+
+  @override
+  String get webScanUnsupportedMessage =>
+      'Ezt a kódot az app egy újabb verziója érti.';
+
+  @override
+  String get webScanExpiredTitle => 'Lejárt QR-kód';
+
+  @override
+  String get webScanExpiredMessage =>
+      'Olvasd be a weboldalon látható új kódot.';
+
+  @override
+  String get webScanExpiredEnrollMessage =>
+      'Kérj új regisztrációs kódot a szerveren (CLI).';
+
+  @override
+  String get webScanForeignTitle => 'Ez nem a te Foretack-szervered';
+
+  @override
+  String get webScanForeignMessage => 'A kód ehhez tartozik:';
+
+  @override
+  String get webScanNoConnectionTitle => 'Nincs hálózat';
+
+  @override
+  String get webScanNoConnectionMessage =>
+      'A belépéshez a telefonnak el kell érnie a szervert.';
+
+  @override
+  String get webScanTooManyTitle => 'Túl sok próbálkozás';
+
+  @override
+  String get webScanRevokedTitle => 'Ez a telefon vissza lett vonva';
+
+  @override
+  String get webScanRevokedCrewMessage =>
+      'Kérj új csatlakozást; a tulajdonos hagyja jóvá.';
+
+  @override
+  String get webScanRevokedOwnerMessage =>
+      'Regisztráld újra a telefont a szerveren (CLI).';
+
+  @override
+  String get webScanRequestJoin => 'Csatlakozás kérése';
+
+  @override
+  String get webScanBiometricsUnavailableTitle =>
+      'Nincs beállított ujjlenyomat';
+
+  @override
+  String get webScanBiometricsUnavailableMessage =>
+      'Az aláíráshoz ujjlenyomat kell. Állíts be egyet a telefon beállításaiban.';
+
+  @override
+  String get webScanLockedOutTitle => 'Az ujjlenyomat zárolva';
+
+  @override
+  String get webScanLockedOutMessage =>
+      'Túl sok sikertelen próba. Oldd fel a telefont, és próbáld újra.';
+
+  @override
+  String get webScanSigningFailedTitle => 'Nem sikerült aláírni';
+
+  @override
+  String get webScanSigningFailedMessage => 'Próbáld újra.';
+
+  @override
+  String get webScanNotRegisteredTitle => 'Ez a telefon nincs regisztrálva';
+
+  @override
+  String get webScanNotRegisteredMessage =>
+      'A legénység csatlakozása az app következő frissítésével jön.';
+
+  @override
+  String get webPromptLoginTitle => 'Belépés a Foretack webre';
+
+  @override
+  String get webPromptEnrollTitle => 'Telefon regisztrálása';
+
+  @override
+  String get webPromptCancel => 'Mégse';
+
+  @override
+  String get webLoginDone => 'Belépve a webre';
+
+  @override
+  String get webReplaceTitle => 'Fiók cseréje';
+
+  @override
+  String get webReplaceSameMessage =>
+      'Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod.';
+
+  @override
+  String get webReplaceCancel => 'Mégse';
+
+  @override
+  String get webReplaceConfirm => 'Folytatás';
+
+  @override
+  String get webEnrollTitle => 'Regisztráció';
+
+  @override
+  String get webRoleOwner => 'TULAJDONOS';
+
+  @override
+  String get webRoleCrew => 'LEGÉNYSÉG';
+
+  @override
+  String get webEnrollDone => 'Telefon regisztrálva';
+
+  @override
+  String get webEnrollServer => 'Szerver';
+
+  @override
+  String get webEnrollAccount => 'Fiók';
+
+  @override
+  String get webEnrollPhone => 'Telefon';
+
+  @override
+  String get webEnrollToCodes => 'Tovább a helyreállító kódokhoz';
+
+  @override
+  String get webCodesTitle => 'Helyreállító kódok';
+
+  @override
+  String get webCodesNote =>
+      'Csak most látszanak. Mentsd el őket biztos helyre — mindegyik egyszer használható.';
+
+  @override
+  String get webCodesCopy => 'Másolás';
+
+  @override
+  String get webCodesCopied => 'Kódok a vágólapon';
+
+  @override
+  String get webCodesSaved => 'Elmentettem';
+
+  @override
+  String webScanTooManyMessage(int minutes) {
+    return 'Próbáld újra $minutes perc múlva.';
+  }
+
+  @override
+  String webReplaceForeignMessage(String current, String next) {
+    return 'Ez a telefon a(z) $current szerveren van regisztrálva. Lecseréled erre: $next?';
+  }
 }

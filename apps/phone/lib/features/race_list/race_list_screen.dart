@@ -12,6 +12,8 @@ import 'package:phone/features/race_list/widgets/list_action_bar.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
+import 'package:phone/features/web_access/presentation/qr_scan_screen.dart';
+import 'package:phone/features/web_access/presentation/web_login_snack_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_list_provider.dart';
 
@@ -25,7 +27,8 @@ import 'package:phone/providers/race_list_provider.dart';
 /// modalba kerülnek. Ha nincs befejezett verseny, a gomb **letiltva** marad
 /// és nem tűnik el, különben a sáv felezése ugrálna.
 ///
-/// Az AppBar-action a Fázis 3 debug raw-viewer; debug-buildben mellette a
+/// Az AppBar első gombja a webes QR-beolvasó (ADR 0051 Addendum 1 H1),
+/// utána a Fázis 3 debug raw-viewer; debug-buildben mellette a
 /// háttér-engine verifikáló képernyője. Az `AppLocalizations.of(context)!`
 /// biztonságos: a `MaterialApp` regisztrálja a delegátorokat.
 class RaceListScreen extends ConsumerWidget {
@@ -64,6 +67,16 @@ class RaceListScreen extends ConsumerWidget {
     );
   }
 
+  // A webes QR-beolvasó (ADR 0051 Addendum 1 H1); sikeres belépés után a
+  // főképernyő mutatja a snackbart (18d).
+  Future<void> _openScanner(BuildContext context) async {
+    final details = await QrScanScreen.open(context);
+    if (details == null || !context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(webLoginSnackBar(context, details));
+  }
+
   void _openEngineDebug(BuildContext context) {
     unawaited(
       Navigator.of(context).push(
@@ -84,6 +97,14 @@ class RaceListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.listTitle, style: homeTitleStyle),
         actions: [
+          IconButton(
+            onPressed: () => unawaited(_openScanner(context)),
+            icon: Icon(
+              Icons.qr_code_scanner,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            tooltip: l10n.webScanTooltip,
+          ),
           // Csak debug-buildben: a 7-bg-b háttér-engine verifikáló képernyője.
           if (kDebugMode)
             IconButton(
