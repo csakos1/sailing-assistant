@@ -17,6 +17,7 @@ final class WebSession extends Equatable {
     this.os,
     this.country,
     this.city,
+    this.isSuspicious = false,
   });
 
   /// A munkamenet azonosítója (a kiléptetéshez).
@@ -52,6 +53,9 @@ final class WebSession extends Equatable {
   /// Az utolsó aktivitás (UTC, legfeljebb óránként frissül).
   final DateTime lastSeenAt;
 
+  /// Gyanúsnak jelölt belépés-e (Addendum 6 N5, N6).
+  final bool isSuspicious;
+
   @override
   List<Object?> get props => [
     id,
@@ -65,5 +69,6 @@ final class WebSession extends Equatable {
     city,
     createdAt,
     lastSeenAt,
+    isSuspicious,
   ];
 }

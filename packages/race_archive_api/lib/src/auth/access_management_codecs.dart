@@ -149,7 +149,7 @@ Map<String, Object?> encodeSignedAction(SignedAction action) =>
 
 /// JSON → [SignedAction].
 Result<SignedAction, DecodeError> decodeSignedAction(Object? json) =>
-    runDecode(() => _readSignedAction(JsonReader.root(json)));
+    runDecode(() => readSignedAction(JsonReader.root(json)));
 
 /// [JoinApproval] → JSON (`POST …/approval`).
 Map<String, Object?> encodeJoinApproval(JoinApproval approval) =>
@@ -165,7 +165,7 @@ Result<JoinApproval, DecodeError> decodeJoinApproval(Object? json) =>
       final hasMember = reader.optionalString('memberId') != null;
       return JoinApproval(
         memberId: hasMember ? reader.nonEmptyString('memberId') : null,
-        action: _readSignedAction(reader),
+        action: readSignedAction(reader),
       );
     });
 
@@ -242,11 +242,6 @@ PendingJoinRequest _readPending(JsonReader reader) => PendingJoinRequest(
   expiresAt: reader.utcMillis('expiresAt'),
 );
 
-SignedAction _readSignedAction(JsonReader reader) => SignedAction(
-  challenge: readSecret(reader, 'challenge', secretTokenLength),
-  signature: readBytes(reader, 'signature'),
-);
-
 Map<String, Object?> _deviceJson(MemberDevice device) => <String, Object?>{
   'id': device.id,
   'name': device.name,
@@ -284,6 +279,7 @@ Map<String, Object?> _sessionJson(WebSession session) => <String, Object?>{
   'city': session.city,
   'createdAt': session.createdAt.millisecondsSinceEpoch,
   'lastSeenAt': session.lastSeenAt.millisecondsSinceEpoch,
+  'isSuspicious': session.isSuspicious,
 };
 
 WebSession _readSession(JsonReader reader) => WebSession(
@@ -298,4 +294,5 @@ WebSession _readSession(JsonReader reader) => WebSession(
   city: reader.optionalString('city'),
   createdAt: reader.utcMillis('createdAt'),
   lastSeenAt: reader.utcMillis('lastSeenAt'),
+  isSuspicious: reader.optionalBoolean('isSuspicious', fallback: false),
 );

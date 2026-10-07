@@ -87,3 +87,25 @@ const String accountNamePath = '/api/auth/account/name';
 
 String _joinRequestPath(String joinRequestId) =>
     '$joinRequestsPath/${Uri.encodeComponent(joinRequestId)}';
+
+/// Tartalék belépés a weben jelszóval vagy kóddal (Addendum 6 N2): `POST`.
+const String fallbackLoginPath = '/api/auth/fallback-login';
+
+/// A tartalék-jelszó beállítása: `POST`, aláírással.
+const String accountPasswordPath = '/api/auth/account/password';
+
+/// A helyreállító kódok újragenerálása: `POST`, aláírással.
+const String accountRecoveryCodesPath = '/api/auth/account/recovery-codes';
+
+/// A tartalék belépés állapota: `GET`, eszköz-tokennel.
+const String accountSecurityPath = '/api/auth/account/security';
+
+/// A szalag: `GET`, eszköz-tokennel.
+const String bannerPath = '/api/auth/banner';
+
+/// A belépési események útvonal-előtagja.
+const String loginEventsPath = '/api/auth/login-events';
+
+/// Egy gyanús belépés nyugtázása: `POST`, eszköz-tokennel.
+String loginEventAcknowledgementPath(String eventId) =>
+    '$loginEventsPath/${Uri.encodeComponent(eventId)}/acknowledgement';

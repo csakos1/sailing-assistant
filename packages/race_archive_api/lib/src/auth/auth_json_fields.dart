@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:race_archive_api/src/auth/account_info.dart';
 import 'package:race_archive_api/src/auth/base64url.dart';
 import 'package:race_archive_api/src/auth/display_name.dart';
+import 'package:race_archive_api/src/auth/qr_payload.dart';
+import 'package:race_archive_api/src/auth/signed_action.dart';
 import 'package:race_archive_api/src/auth/user_role.dart';
 import 'package:race_archive_api/src/json/json_reader.dart';
 
@@ -37,6 +39,13 @@ Uint8List readBytes(JsonReader reader, String key) {
   }
   JsonReader.failAt(reader.childPath(key), 'canonical base64');
 }
+
+/// Egy aláírt művelet (`challenge`, `signature`) ugyanabból az
+/// objektumból.
+SignedAction readSignedAction(JsonReader reader) => SignedAction(
+  challenge: readSecret(reader, 'challenge', secretTokenLength),
+  signature: readBytes(reader, 'signature'),
+);
 
 /// Egy megjelenítendő név a `normalizeDisplayName` szerint egységesítve.
 String readDisplayName(JsonReader reader, String key) =>

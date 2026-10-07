@@ -97,6 +97,14 @@ final class JsonReader {
     _fail(key, 'boolean');
   }
 
+  /// Opcionális logikai érték: a hiányzó kulcs és a `null` [fallback].
+  bool optionalBoolean(String key, {required bool fallback}) {
+    final value = _map[key];
+    if (value == null) return fallback;
+    if (value is bool) return value;
+    _fail(key, 'boolean or null');
+  }
+
   /// Kötelező egész szám.
   int integer(String key) => _asInt(_map[key]) ?? _fail(key, 'integer');
 
