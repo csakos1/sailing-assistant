@@ -28,6 +28,16 @@ Parancsok:
   reject-join <kérelem-id>
       Egy kérelem elutasítása; a telefon „nincs jóváhagyva"-t kap.
 
+  join <qr-szöveg> --name <név> | join --image <png> --name <név>
+      Fiók nélküli „telefonként" csatlakozási kérelmet küld egy webes
+      belépési QR-ral (ADR 0051 Addendum 10 Z14). Külön állapotfájllal
+      használd, hogy a tulajdonosi ne íródjon felül, pl.
+      `--state ~/.config/foretack-dev-phone/crew.json`.
+
+  join-status
+      A kérelem állapota; jóváhagyás után az állapotfájl fiókot kap, és
+      ugyanazzal a `--state`-tel az `approve` legénységként léptet be.
+
 Függőség: a `cryptography` csomag (Arch: `pacman -S python-cryptography`).
 """
 
@@ -117,7 +127,7 @@ def load_key(text: str) -> ec.EllipticCurvePrivateKey:
 
 
 def save_state(path: Path, state: dict[str, str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     # A kulcsok titkok: csak a felhasználó olvashatja.
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     # Egy korábbi, lazább jogú fájl módját is szigorítja.
@@ -128,7 +138,7 @@ def save_state(path: Path, state: dict[str, str]) -> None:
 
 def load_state(path: Path) -> dict[str, str]:
     if not path.exists():
-        sys.exit(f"Nincs regisztrált teszt-telefon: {path} (előbb: enroll).")
+        sys.exit(f"Nincs teszt-telefon: {path} (előbb: enroll vagy join).")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -203,6 +213,8 @@ def post_json(
 
 def device_token(state: dict[str, str]) -> str:
     """15 perces eszköz-token az eszközkulccsal (Addendum 3 K3)."""
+    if "deviceId" not in state:
+        sys.exit("A teszt-telefonnak még nincs fiókja (join-status).")
     origin, device_id = state["origin"], state["deviceId"]
     challenge = post_json(
         origin, "/api/auth/device-challenges", {"deviceId": device_id}
@@ -349,8 +361,8 @@ def join_requests(args: argparse.Namespace) -> None:
 
 def approve_join(args: argparse.Namespace) -> None:
     state = load_state(args.state)
-    origin, device_id = state["origin"], state["deviceId"]
     token = device_token(state)
+    origin, device_id = state["origin"], state["deviceId"]
     challenge = str(
         post_json(origin, "/api/auth/action-challenges", {}, token=token)["value"]
     )
@@ -386,6 +398,101 @@ def reject_join(args: argparse.Namespace) -> None:
     print("Elutasítva.")
 
 
+def display_name(text: str) -> str:
+    """A név nagyjából a szerver `normalizeDisplayName` szabálya szerint:
+    levágva, 1–40 karakter, vezérlőjel nélkül. A szerver a levágott nevet
+    ellenőrzi az aláírásban, ezért a levágás itt kötelező."""
+    name = text.strip()
+    has_control = any(ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F for c in name)
+    if not 1 <= len(name) <= 40 or has_control:
+        sys.exit("A név 1–40 karakter legyen, sortörés és vezérlőjel nélkül.")
+    return name
+
+
+def join(args: argparse.Namespace) -> None:
+    name = display_name(args.name)
+    # Egy fiókos állapotfájl (a tulajdonosi is) nem íródhat felül; egy
+    # függő vagy elutasított kérelemé igen, hogy újra lehessen kérni.
+    if args.state.exists() and "deviceId" in load_state(args.state):
+        sys.exit(
+            f"Az állapotfájlnak már van fiókja: {args.state}. A "
+            "csatlakozáshoz adj meg egy másikat a --state-tel."
+        )
+    payload = read_qr(qr_text_of(args), LOGIN_PREFIX)
+    origin = payload["origin"]
+    request_id, challenge = payload["requestId"], payload["challenge"]
+    signing = ec.generate_private_key(ec.SECP256R1())
+    device = ec.generate_private_key(ec.SECP256R1())
+    message = canonical(
+        [
+            "foretack-join-v1",
+            origin,
+            request_id,
+            challenge,
+            name,
+            b64(spki(signing)),
+            b64(spki(device)),
+        ]
+    )
+    ticket = post_json(
+        origin,
+        "/api/auth/join-requests",
+        {
+            "requestId": request_id,
+            "challenge": challenge,
+            "name": name,
+            "deviceName": args.device_name,
+            "model": f"Dev ({platform.system()})",
+            "publicKey": b64(spki(signing)),
+            "deviceKey": b64(spki(device)),
+            "signature": sign(signing, message),
+        },
+    )
+    save_state(
+        args.state,
+        {
+            "origin": origin,
+            "joinRequestId": str(ticket["joinRequestId"]),
+            "statusToken": str(ticket["statusToken"]),
+            "signingKey": pem(signing),
+            "deviceKey": pem(device),
+        },
+    )
+    print(f"Kérelem elküldve: {ticket['joinRequestId']} — {origin}")
+    print(f"Lejár: {local_minute(ticket.get('expiresAt'))}; állapot: {args.state}")
+
+
+def join_status(args: argparse.Namespace) -> None:
+    state = load_state(args.state)
+    if "deviceId" in state:
+        print(f"Már csatlakozott: eszköz {state['deviceId']}.")
+        return
+    if "joinRequestId" not in state:
+        sys.exit("Az állapotfájlban nincs csatlakozási kérelem.")
+    status = post_json(
+        state["origin"],
+        f"/api/auth/join-requests/{state['joinRequestId']}/status",
+        {"statusToken": state["statusToken"]},
+    )
+    phase = status.get("state")
+    if phase != "approved":
+        print(f"Állapot: {phase}")
+        if phase == "notApproved":
+            print("Elutasítva vagy lejárt: küldj új kérelmet a join paranccsal.")
+        return
+    account = status.get("account")
+    if not isinstance(account, dict):
+        sys.exit("A jóváhagyott válaszban nincs fiók.")
+    state["deviceId"] = str(status["deviceId"])
+    for key in ("joinRequestId", "statusToken"):
+        state.pop(key, None)
+    save_state(args.state, state)
+    print(
+        f"Jóváhagyva: {account['name']} ({account['role']}), "
+        f"eszköz {state['deviceId']}."
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -418,6 +525,14 @@ def main() -> None:
     )
     reject_join_parser.add_argument("id", help="a kérelem azonosítója")
     reject_join_parser.set_defaults(run=reject_join)
+    join_parser = commands.add_parser("join", help="csatlakozás legénységként")
+    join_parser.add_argument("qr", nargs="?", help="a belépési QR szövege")
+    join_parser.add_argument("--image", type=Path, help="képernyőkép a QR-ról")
+    join_parser.add_argument("--name", required=True, help="a tag neve")
+    join_parser.add_argument("--device-name", default="Dev telefon")
+    join_parser.set_defaults(run=join)
+    status_parser = commands.add_parser("join-status", help="a kérelem állapota")
+    status_parser.set_defaults(run=join_status)
     args = parser.parse_args()
     args.run(args)
 
