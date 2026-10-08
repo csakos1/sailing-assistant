@@ -2014,3 +2014,27 @@ mellé teszi, ami a kód előtt kérdés volt.
   kimenete záró sortöréssel kerül a `qrencode`-ba (A4a utáni javítás).
 - **V9:** a név megőrzése (X2), a lekérdezés a 18e-2-n kívül és a
   snackbar (X3); az elvetett ujjlenyomat a csatlakozásnál a 18e-n hagy.
+
+### Pontosítás a kód után (A4b, 2026-10-08)
+
+Az A4b kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **X3:** a 18e-2 csak előtérben kérdez: háttérbe kerüléskor a 5 mp-es
+  lekérdezés leáll (akkumulátor), előtérbe jövéskor azonnal kérdez és
+  újraindul. Egy tár- vagy platformhiba csak naplósor, a következő ütem
+  újra próbálja.
+- **X5:** egy függő kérelem mellett beolvasott más szerver belépési QR-ja
+  a 18d-3 panelt a **beolvasott kód** hostjával mutatja (nem a függő
+  kérelemével), mert a panel szövege („A kód ehhez tartozik:") a kódról
+  szól; így a fiókos esettel azonos.
+- **X2:** a lejárt kód panelje a kód fajtája szerint szól (belépés,
+  regisztráció, csatlakozás); a csatlakozásnál „Olvasd be újra a
+  QR-kódot; a neved megmaradt.". Ha a csatlakozó telefon kulcsa
+  elveszett (ritka platformhiba), a legénység visszavont-panelje jön.
+- **X2:** a 18e küldése közben egy váratlan platform- vagy fájlhiba a
+  beolvasó „Nem sikerült aláírni" paneljét adja; a képernyő nem ragad a
+  folyamatjelzőn, és a név megmarad.
+- **X3:** ritkán, ha a főképernyő indításkori lekérdezése és a 18e-2
+  első lekérdezése egyszerre fut, a jóváhagyás snackbarja kétszer
+  jelenhet meg; a fiók egyszer, helyesen mentődik. Elfogadva.
