@@ -2303,3 +2303,24 @@ A gomb mindenhol „Mégse".
 - **N4:** az `AccountSecurity` a kódok generálási idejével (Z12).
 - **X3:** a `PendingJoinWatcher` helyett egy általános frissítő (Z5).
 - **Addendum 9 pontosítása (gombok):** a romboló változat (Z9).
+
+### Pontosítás a kód után (A5a, 2026-10-08)
+
+Az A5a kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **Z1, Z7:** a függő kérelmek szalagja (18h-1) és a ⋮ menü
+  „Legénység" sora az A5b-vel jön, mert a céljuk, a „Legénység"
+  képernyő is ott készül. Az A5a menüjében csak a „Webes belépések" áll.
+- **Z4:** a visszavont telefon sora nem „Részletek"-re nyit, hanem
+  rögtön a 18d-5 szövegét és (a legénységnél) a „Csatlakozás kérése"
+  gombot mutatja: egy panel egyetlen gombért fölösleges lépés. A
+  visszavont jelzés egy új fiókig megmarad; egy közben jött hálózati
+  hiba nem törli.
+- **Z5:** egy művelet (nyugtázás, kiléptetés) után a szalag mindig új
+  lekérdezéssel frissül, nem egy előtte indult, még futó lekérdezést
+  vár meg (az a régi szalagot hozná). Ha csak a `/me` bukik el, a friss
+  szalag megmarad.
+- **Z14:** a dev-szkript `join` a nevet levágja és ellenőrzi (1–40
+  karakter, vezérlőjel nélkül), mert a szerver a levágott névvel
+  ellenőrzi az aláírást.
