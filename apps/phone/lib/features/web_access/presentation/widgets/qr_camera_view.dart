@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// Egy kamera-nézet, amely a beolvasott QR-szöveget az [onCode]-nak adja,
@@ -126,9 +127,9 @@ class _CameraError extends StatelessWidget {
                   color: scheme.onSurfaceVariant,
                 ),
               ),
-              OutlinedButton(
+              WebActionButton.secondary(
+                label: l10n.webScanRetry,
                 onPressed: onRetry,
-                child: Text(l10n.webScanRetry),
               ),
             ],
           ),

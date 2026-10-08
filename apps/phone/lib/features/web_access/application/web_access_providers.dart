@@ -4,7 +4,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:phone/features/web_access/application/device_token_source.dart';
 import 'package:phone/features/web_access/application/enrollment_flow.dart';
 import 'package:phone/features/web_access/application/join_flow.dart';
-import 'package:phone/features/web_access/application/join_name_draft.dart';
 import 'package:phone/features/web_access/application/join_status_check.dart';
 import 'package:phone/features/web_access/application/pending_join_notifier.dart';
 import 'package:phone/features/web_access/application/qr_login_flow.dart';
@@ -74,11 +73,6 @@ final pendingJoinProvider =
       PendingJoinNotifier.new,
     );
 
-/// A csatlakozáshoz beírt név, amíg a kérelem el nem ment (X2).
-final joinNameDraftProvider = NotifierProvider<JoinNameDraft, String?>(
-  JoinNameDraft.new,
-);
-
 /// Az eszköz-token forrása a mentett fiókhoz; fiók nélkül `null`. A
 /// fiók változásakor újraépül, így egy régi fiók tokenje nem marad meg.
 final deviceTokenSourceProvider = Provider<DeviceTokenSource?>((ref) {
@@ -115,18 +109,15 @@ final enrollmentFlowProvider = Provider<EnrollmentFlow>((ref) {
   );
 });
 
-/// A csatlakozás folyamata (V9, X2).
-final joinFlowProvider = Provider<JoinFlow>((ref) {
-  final draft = ref.watch(joinNameDraftProvider.notifier);
-  return JoinFlow(
+/// A csatlakozás folyamata (V9).
+final joinFlowProvider = Provider<JoinFlow>(
+  (ref) => JoinFlow(
     clientFor: (origin) => ref.read(webAccessApiClientProvider(origin)),
     keys: ref.watch(webKeyOperationsProvider),
     readIdentity: ref.watch(readDeviceIdentityProvider),
     savePendingJoin: ref.watch(pendingJoinProvider.notifier).save,
-    rememberName: draft.remember,
-    forgetName: draft.forget,
-  );
-});
+  ),
+);
 
 /// A függő kérelem lekérdezése (V9, X3).
 final joinStatusCheckProvider = Provider<JoinStatusCheck>(

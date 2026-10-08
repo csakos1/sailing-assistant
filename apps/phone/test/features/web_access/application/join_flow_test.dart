@@ -14,7 +14,6 @@ void main() {
   late FakeWebServer server;
   late FakeKeys keys;
   late MemoryWebAccountStore store;
-  late String? draft;
   late JoinFlow flow;
 
   const prompt = BiometricPromptText(
@@ -26,15 +25,12 @@ void main() {
     server = FakeWebServer();
     keys = FakeKeys();
     store = MemoryWebAccountStore();
-    draft = null;
     flow = JoinFlow(
       clientFor: (origin) => WebAccessApiClient(server.client, origin: origin),
       keys: keys.operations,
       readIdentity: () async =>
           (deviceName: 'Pixel 7a', model: 'Google Pixel 7a'),
       savePendingJoin: store.writePendingJoin,
-      rememberName: (name) => draft = name,
-      forgetName: () => draft = null,
     );
     server.routes[joinRequestsPath] = (_) => joinTicketResponse();
   });
@@ -91,15 +87,7 @@ void main() {
     );
   });
 
-  test('forgets the kept name only after a successful request', () async {
-    // Act
-    await run();
-
-    // Assert
-    expect(draft, isNull);
-  });
-
-  test('a dismissed fingerprint keeps the name and sends nothing', () async {
+  test('a dismissed fingerprint sends nothing', () async {
     // Arrange
     keys.biometricFailure = KeyOperationFailure.canceled;
 
@@ -108,12 +96,11 @@ void main() {
 
     // Assert
     expect(failureOf(result), KeyOperationFailure.canceled);
-    expect(draft, 'Gergő');
     expect(server.requests, isEmpty);
     expect(store.pendingJoin, isNull);
   });
 
-  test('an expired login request keeps the name for the next code', () async {
+  test('an expired login request saves nothing', () async {
     // Arrange
     server.routes[joinRequestsPath] = (_) =>
         errorResponse(const RequestExpired());
@@ -123,11 +110,10 @@ void main() {
 
     // Assert
     expect(serverErrorOf(result), const RequestExpired());
-    expect(draft, 'Gergő');
     expect(store.pendingJoin, isNull);
   });
 
-  test('too many requests keep the name and pass the wait on', () async {
+  test('too many requests pass the wait on', () async {
     // Arrange
     server.routes[joinRequestsPath] = (_) =>
         errorResponse(const TooManyAttempts(90));
@@ -137,7 +123,6 @@ void main() {
 
     // Assert
     expect(serverErrorOf(result), const TooManyAttempts(90));
-    expect(draft, 'Gergő');
   });
 
   test('a rejected request body saves nothing', () async {

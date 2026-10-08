@@ -14,6 +14,7 @@ import 'package:phone/features/web_access/data/web_account.dart';
 import 'package:phone/features/web_access/presentation/join_pending_screen.dart';
 import 'package:phone/features/web_access/presentation/join_request_screen.dart';
 import 'package:phone/features/web_access/presentation/registration_done_screen.dart';
+import 'package:phone/features/web_access/presentation/web_access_log.dart';
 import 'package:phone/features/web_access/presentation/web_access_prompts.dart';
 import 'package:phone/features/web_access/presentation/widgets/qr_camera_view.dart';
 import 'package:phone/features/web_access/presentation/widgets/qr_finder.dart';
@@ -34,6 +35,11 @@ enum _ScanPhase { scanning, paused, working, problem }
 /// űrlap fölötte nyílik, a beküldött kérelem a 18e-2-re vált), vagy
 /// hibapanel. Egy elvetett ujjlenyomat-ablak után a belépésnél csendben
 /// bezárul (H6), a csatlakozásnál az űrlap marad (Addendum 9 X2).
+///
+/// A csatlakozó neve a beolvasó állapota, ezért a beolvasó bezárásával
+/// elvész (X2): a 18e-ről a kamerára visszalépve a következő beolvasás az
+/// űrlapot ezzel tölti ki; egy elküldött, de el nem ment név után űrlap
+/// nélkül az ujjlenyomat jön.
 class QrScanScreen extends ConsumerStatefulWidget {
   /// A beolvasó.
   const QrScanScreen({super.key});
@@ -55,6 +61,10 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
   _ScanPhase _phase = _ScanPhase.scanning;
   ScanProblem? _problem;
 
+  // A 18e mezőjének utolsó szövege és az utoljára elküldött név (X2).
+  String? _typedName;
+  String? _sentName;
+
   Future<void> _onCode(String text) async {
     if (_phase != _ScanPhase.scanning) return;
     setState(() => _phase = _ScanPhase.working);
@@ -64,12 +74,11 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
       if (!mounted) return;
       final livePending = await _livePendingJoin();
       if (!mounted) return;
-      final savedName = ref.read(joinNameDraftProvider);
       final route = routeScan(
         text,
         stored,
         pendingJoin: livePending,
-        draftName: savedName,
+        draftName: _sentName,
       );
       switch (route) {
         case ScanRejected(:final problem):
@@ -82,12 +91,13 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
           await _signIn(payload, account);
         case EnrollScan(:final payload, :final replacing):
           // A regisztráció a csatlakozás megőrzött nevét is eldobja (X5).
-          ref.read(joinNameDraftProvider.notifier).forget();
+          _forgetNames();
           await _enroll(payload, replacing);
       }
-    } on Exception {
+    } on Exception catch (exception) {
       // Váratlan platform- vagy fájlhiba (pl. a plugin csatornája): a
       // beolvasó ne ragadjon a folyamatjelzőn.
+      logWebAccessException(exception);
       if (mounted) _show(const SigningFailed());
     }
   }
@@ -189,11 +199,11 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     return null;
   }
 
-  // Csatlakozás: megőrzött név nélkül az űrlap, vele rögtön az ujjlenyomat
-  // (X2).
+  // Csatlakozás: elküldött név nélkül az űrlap (a beírt szöveggel), vele
+  // rögtön az ujjlenyomat (X2).
   Future<void> _join(LoginQrPayload payload, String? draftName) async {
     if (draftName == null) {
-      await _openJoinForm(payload);
+      await _openJoinForm(payload, initialName: _typedName);
       return;
     }
     final prompt = joinPromptText(
@@ -204,6 +214,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     final result = await ref
         .read(joinFlowProvider)
         .run(payload, name: draftName, prompt: prompt);
+    if (result case Err(:final error)) logWebAccessError(error);
     if (!mounted) return;
     switch (joinSubmissionOf(result)) {
       case JoinSubmitted(:final pending):
@@ -223,8 +234,20 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     setState(() => _phase = _ScanPhase.paused);
     final submission = await Navigator.of(context).push<JoinSubmission>(
       MaterialPageRoute<JoinSubmission>(
-        builder: (_) =>
-            JoinRequestScreen(payload: payload, initialName: initialName),
+        builder: (_) => JoinRequestScreen(
+          payload: payload,
+          initialName: initialName,
+          onNameChanged: (text) {
+            _typedName = text;
+            // Egy átírt név már nem az elküldött: a következő beolvasás az
+            // űrlapot hozza, nem a régi névvel kér ujjlenyomatot.
+            if (normalizeDisplayName(text) != _sentName) _sentName = null;
+          },
+          onNameSent: (name) {
+            _sentName = name;
+            _typedName = name;
+          },
+        ),
       ),
     );
     if (!mounted) return;
@@ -248,11 +271,17 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     );
   }
 
+  void _forgetNames() {
+    _typedName = null;
+    _sentName = null;
+  }
+
   void _fail(
     WebAccessError error, {
     required bool isOwner,
     ScanKind kind = ScanKind.login,
   }) {
+    logWebAccessError(error);
     final problem = scanProblemOf(error, isOwner: isOwner, kind: kind);
     if (problem == null) {
       Navigator.of(context).pop();

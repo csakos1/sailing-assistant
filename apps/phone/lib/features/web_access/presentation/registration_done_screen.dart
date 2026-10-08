@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/web_access/application/enrollment_flow.dart';
 import 'package:phone/features/web_access/presentation/recovery_codes_screen.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_bottom_bar.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_detail_row.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -83,9 +84,9 @@ class RegistrationDoneScreen extends StatelessWidget {
         ),
         bottomNavigationBar: WebBottomBar(
           children: [
-            FilledButton(
+            WebActionButton.primary(
+              label: l10n.webEnrollToCodes,
               onPressed: () => _openCodes(context),
-              child: Text(l10n.webEnrollToCodes),
             ),
           ],
         ),

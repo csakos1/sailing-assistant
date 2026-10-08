@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/web_access/application/scan_problem.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// A beolvasó alsó hibapanelje (ADR 0051 Addendum 1 H7, makett
@@ -79,19 +80,19 @@ class ScanProblemPanel extends StatelessWidget {
               _Message(message: text.message, mono: text.mono),
               const SizedBox(height: 16),
               Row(
-                spacing: 8,
+                spacing: 10,
                 children: [
                   if (primary != null)
                     Expanded(
-                      child: FilledButton(
+                      child: WebActionButton.primary(
+                        label: primary.$1,
                         onPressed: primary.$2,
-                        child: Text(primary.$1),
                       ),
                     ),
                   if (primary == null) const Spacer(),
-                  OutlinedButton(
+                  WebActionButton.secondary(
+                    label: l10n.webScanClose,
                     onPressed: onClose,
-                    child: Text(l10n.webScanClose),
                   ),
                 ],
               ),

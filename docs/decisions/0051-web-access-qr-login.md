@@ -2038,3 +2038,25 @@ pusholással hagyja jóvá).
 - **X3:** ritkán, ha a főképernyő indításkori lekérdezése és a 18e-2
   első lekérdezése egyszerre fut, a jóváhagyás snackbarja kétszer
   jelenhet meg; a fiók egyszer, helyesen mentődik. Elfogadva.
+
+### Pontosítás a Pixel-próba után (2026-10-08)
+
+A felhasználó döntése a próba alapján, és a gombok a makett szerint.
+
+- **X2:** a név a **beolvasó nyitva tartásáig** él, a beolvasó állapota
+  (nem app-szintű provider). A 18e-ről a kamerára visszalépve megmarad:
+  a következő beolvasás a 18e-t ezzel tölti ki. Egy elküldött, de el nem
+  ment név (elvetett ujjlenyomat, `410`, `429`, hálózat) után a
+  következő beolvasás űrlap nélkül az ujjlenyomatot kéri, hacsak a 18e-n
+  közben át nem írta (akkor az űrlap jön az új névvel). A beolvasó
+  bezárása (vissza a főképernyőre, vagy egy panel „Bezárás"-a) mindkettőt
+  eldobja, így egy későbbi beolvasás nem kér váratlanul ujjlenyomatot.
+- **X6:** a webes hozzáférés gombjai (18d-2…5, 18e, 18e-2, 18f, 18g és a
+  kamera hibája) a makett szerint: 48 px magas, lekerekítés nélkül,
+  14/600 felirat; az elsődleges teal (`primary`/`onPrimary`), a
+  másodlagos átlátszó, 1 px-es `outline` kerettel; köztük 10 px, a sáv
+  20 px-es margón belül. A tiltott gomb 35 %-ra halványul (makett 13g),
+  a dolgozó forgót mutat, és nem halványul (13h).
+- **V6:** a „Nincs hálózat" panel mögötti hibát az app a konzolra is
+  kiírja (`web_access: …`, a `flutter run` és a logcat látja), az
+  elvetett ujjlenyomat-ablakot nem; a hibák szövege titkot nem tartalmaz.

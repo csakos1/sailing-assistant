@@ -10,34 +10,27 @@ import 'package:shared/shared.dart';
 /// Egy fiók nélküli telefon csatlakozási kérelme (ADR 0051 D3, Addendum 8
 /// V9, Addendum 9 X2).
 ///
-/// A név előbb a vázlatba kerül, hogy egy lejárt QR után ne kelljen újra
-/// beírni; utána két új kulcs, ujjlenyomatos aláírás és a beküldés jön.
-/// A függő kérelem csak a sikeres válasz után kerül a tárba, és ekkor a
-/// vázlat törlődik.
+/// Két új kulcs, ujjlenyomatos aláírás és a beküldés. A függő kérelem csak
+/// a sikeres válasz után kerül a tárba. A név megőrzése a beolvasó dolga
+/// (X2): az a beolvasó nyitva tartásáig él.
 class JoinFlow {
   /// Folyamat a [_clientFor] kliensekkel, a [_keys] kulcsműveletekkel, a
   /// [_readIdentity] telefonadatokkal; a kérelmet a [_savePendingJoin]
-  /// menti, a nevet a [_rememberName] őrzi meg és a [_forgetName] dobja el.
+  /// menti.
   JoinFlow({
     required WebAccessClientFor clientFor,
     required WebKeyOperations keys,
     required ReadDeviceIdentity readIdentity,
     required Future<void> Function(PendingJoin pending) savePendingJoin,
-    required void Function(String name) rememberName,
-    required void Function() forgetName,
   }) : _clientFor = clientFor,
        _keys = keys,
        _readIdentity = readIdentity,
-       _savePendingJoin = savePendingJoin,
-       _rememberName = rememberName,
-       _forgetName = forgetName;
+       _savePendingJoin = savePendingJoin;
 
   final WebAccessClientFor _clientFor;
   final WebKeyOperations _keys;
   final ReadDeviceIdentity _readIdentity;
   final Future<void> Function(PendingJoin pending) _savePendingJoin;
-  final void Function(String name) _rememberName;
-  final void Function() _forgetName;
 
   /// Csatlakozási kérelem a [payload] belépési kéréshez a [name] névvel;
   /// a [prompt] az ujjlenyomat-ablak szövege (H6).
@@ -53,7 +46,6 @@ class JoinFlow {
     if (normalized == null) {
       throw ArgumentError.value(name, 'name', 'not a display name');
     }
-    _rememberName(normalized);
     await _keys.deleteKeys();
     final Uint8List publicKey;
     switch (await _keys.createKey(WebKeyRole.signing)) {
@@ -105,7 +97,6 @@ class JoinFlow {
           name: normalized,
         );
         await _savePendingJoin(pending);
-        _forgetName();
         return Ok(pending);
       case Err(:final error):
         return Err(ApiCallFailed(error));

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_bottom_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
@@ -84,13 +85,13 @@ class RecoveryCodesScreen extends StatelessWidget {
         ),
         bottomNavigationBar: WebBottomBar(
           children: [
-            OutlinedButton(
+            WebActionButton.secondary(
+              label: l10n.webCodesCopy,
               onPressed: () => unawaited(_copy(context)),
-              child: Text(l10n.webCodesCopy),
             ),
-            FilledButton(
+            WebActionButton.primary(
+              label: l10n.webCodesSaved,
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.webCodesSaved),
             ),
           ],
         ),

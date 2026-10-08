@@ -9,6 +9,7 @@ import 'package:phone/features/web_access/application/web_access_providers.dart'
 import 'package:phone/features/web_access/data/pending_join.dart';
 import 'package:phone/features/web_access/presentation/join_formatters.dart';
 import 'package:phone/features/web_access/presentation/web_join_snack_bar.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_bottom_bar.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_detail_row.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -165,9 +166,9 @@ class _JoinPendingScreenState extends ConsumerState<JoinPendingScreen>
       ),
       bottomNavigationBar: WebBottomBar(
         children: [
-          OutlinedButton(
+          WebActionButton.secondary(
+            label: l10n.webScanClose,
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.webScanClose),
           ),
         ],
       ),

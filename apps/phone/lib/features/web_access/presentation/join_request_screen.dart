@@ -8,10 +8,13 @@ import 'package:phone/features/web_access/application/join_submission.dart';
 import 'package:phone/features/web_access/application/scan_problem.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/features/web_access/data/web_account.dart';
+import 'package:phone/features/web_access/presentation/web_access_log.dart';
 import 'package:phone/features/web_access/presentation/web_access_prompts.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_bottom_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
+import 'package:shared/shared.dart';
 
 /// A csatlakozási kérelem űrlapja (ADR 0051 D3, makett 18e, Addendum 8 V9,
 /// Addendum 9 X1, X2, X6).
@@ -20,11 +23,16 @@ import 'package:race_archive_api/race_archive_api.dart';
 /// ujjlenyomatot és a szerverhívást futtatja; az eredmény a beolvasóhoz
 /// tér vissza (`JoinSubmitted` vagy `JoinFailed`). Egy elvetett
 /// ujjlenyomat-ablak után a képernyő marad, a beírt névvel.
+///
+/// A nevet a beolvasó őrzi (X2): a mező minden változását az
+/// [onNameChanged], a küldött nevet az [onNameSent] kapja meg.
 class JoinRequestScreen extends ConsumerStatefulWidget {
   /// Űrlap a [payload] belépési kéréshez; az [initialName] egy megőrzött
   /// név (X2).
   const JoinRequestScreen({
     required this.payload,
+    required this.onNameChanged,
+    required this.onNameSent,
     this.initialName,
     super.key,
   });
@@ -34,6 +42,12 @@ class JoinRequestScreen extends ConsumerStatefulWidget {
 
   /// A mező kezdő szövege, ha van megőrzött név.
   final String? initialName;
+
+  /// A mező szövege minden változáskor (a visszalépéshez a kamerára).
+  final ValueChanged<String> onNameChanged;
+
+  /// A normalizált név a küldés előtt (az azonnali újrapróbához).
+  final ValueChanged<String> onNameSent;
 
   /// A felső korlát a mezőben: a szerver 40 kódpontot fogad el, de a
   /// gépelés közben ennél valamivel több is beférhet, hogy a hibasor
@@ -53,7 +67,9 @@ class _JoinRequestScreenState extends ConsumerState<JoinRequestScreen> {
   bool get _isNameValid => normalizeDisplayName(_name.text) != null;
 
   Future<void> _submit() async {
-    if (_isSending || !_isNameValid) return;
+    final name = normalizeDisplayName(_name.text);
+    if (_isSending || name == null) return;
+    widget.onNameSent(name);
     setState(() => _isSending = true);
     final prompt = joinPromptText(
       // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
@@ -64,11 +80,13 @@ class _JoinRequestScreenState extends ConsumerState<JoinRequestScreen> {
     try {
       final result = await ref
           .read(joinFlowProvider)
-          .run(widget.payload, name: _name.text, prompt: prompt);
+          .run(widget.payload, name: name, prompt: prompt);
+      if (result case Err(:final error)) logWebAccessError(error);
       submission = joinSubmissionOf(result);
-    } on Exception {
+    } on Exception catch (exception) {
       // Váratlan platform- vagy fájlhiba: a képernyő ne ragadjon a
       // folyamatjelzőn, a beolvasó a hibapanelt mutatja.
+      logWebAccessException(exception);
       if (mounted) Navigator.of(context).pop(const JoinFailed(SigningFailed()));
       return;
     }
@@ -126,7 +144,10 @@ class _JoinRequestScreenState extends ConsumerState<JoinRequestScreen> {
               inputFormatters: [
                 LengthLimitingTextInputFormatter(JoinRequestScreen.inputLimit),
               ],
-              onChanged: (_) => setState(() {}),
+              onChanged: (text) {
+                widget.onNameChanged(text);
+                setState(() {});
+              },
               onSubmitted: (_) => unawaited(_submit()),
             ),
             if (isInvalid)
@@ -141,16 +162,10 @@ class _JoinRequestScreenState extends ConsumerState<JoinRequestScreen> {
         ),
         bottomNavigationBar: WebBottomBar(
           children: [
-            FilledButton(
-              onPressed: _isNameValid && !_isSending
-                  ? () => unawaited(_submit())
-                  : null,
-              child: _isSending
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.webJoinSubmit),
+            WebActionButton.primary(
+              label: l10n.webJoinSubmit,
+              isBusy: _isSending,
+              onPressed: _isNameValid ? () => unawaited(_submit()) : null,
             ),
           ],
         ),

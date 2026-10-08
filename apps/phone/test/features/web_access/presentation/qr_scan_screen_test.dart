@@ -287,6 +287,80 @@ void main() {
       expect(server.requestsTo(joinRequestsPath), isEmpty);
     });
 
+    testWidgets('a typed name survives going back to the camera', (
+      tester,
+    ) async {
+      // Arrange
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      await tester.enterText(find.byType(TextField), 'Gergő');
+      await tester.pump();
+
+      // Act
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert: the form is back with the name, nothing was signed
+      expect(find.widgetWithText(TextField, 'Gergő'), findsOneWidget);
+      expect(keys.prompts, isEmpty);
+    });
+
+    testWidgets('a sent name skips the form until the scanner closes', (
+      tester,
+    ) async {
+      // Arrange
+      keys.biometricFailure = KeyOperationFailure.canceled;
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      await send(tester, 'Gergő');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      // Act: back on the camera, the next code asks for the fingerprint
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(keys.prompts, hasLength(2));
+      expect(find.widgetWithText(TextField, 'Gergő'), findsOneWidget);
+
+      // Act: closing the scanner forgets the name
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('result: none'), findsOneWidget);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(keys.prompts, hasLength(2));
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Gergő'), findsNothing);
+    });
+
+    testWidgets('a corrected name brings the form back, not the old one', (
+      tester,
+    ) async {
+      // Arrange
+      keys.biometricFailure = KeyOperationFailure.canceled;
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      await send(tester, 'Gergő');
+      await tester.enterText(find.byType(TextField), 'Gábor');
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      // Act
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(keys.prompts, hasLength(1));
+      expect(find.widgetWithText(TextField, 'Gábor'), findsOneWidget);
+    });
+
     testWidgets('a name the server would refuse blocks sending', (
       tester,
     ) async {
