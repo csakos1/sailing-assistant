@@ -1000,18 +1000,6 @@ abstract class AppLocalizations {
   /// **'Próbáld újra.'**
   String get webScanSigningFailedMessage;
 
-  /// Hibapanel cím: fiók nélküli telefon olvasott be belépési QR-t (az A4b előtt).
-  ///
-  /// In hu, this message translates to:
-  /// **'Ez a telefon nincs regisztrálva'**
-  String get webScanNotRegisteredTitle;
-
-  /// Hibapanel szöveg a fiók nélküli telefonhoz (az A4b előtt).
-  ///
-  /// In hu, this message translates to:
-  /// **'A legénység csatlakozása az app következő frissítésével jön.'**
-  String get webScanNotRegisteredMessage;
-
   /// Az ujjlenyomat-ablak címe a QR-belépéskor (H6).
   ///
   /// In hu, this message translates to:
@@ -1137,6 +1125,108 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Elmentettem'**
   String get webCodesSaved;
+
+  /// Hibapanel a lejárt QR-hoz csatlakozás közben: a beírt név megmarad (Addendum 9 X2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be újra a QR-kódot; a neved megmaradt.'**
+  String get webScanExpiredJoinMessage;
+
+  /// Az ujjlenyomat-ablak címe a csatlakozási kérelemhez; alcíme a szerver hostja (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás a Lola archívumához'**
+  String get webPromptJoinTitle;
+
+  /// A 18e és 18e-2 képernyő AppBar-címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás'**
+  String get webJoinTitle;
+
+  /// A 18e főcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás a Lola archívumához'**
+  String get webJoinHeading;
+
+  /// A 18e névmezőjének szekció-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'NEVED'**
+  String get webJoinNameLabel;
+
+  /// Halk hibasor a 18e névmezője alatt, ha a név nem elfogadható (X6).
+  ///
+  /// In hu, this message translates to:
+  /// **'1–40 karakter, sortörés nélkül'**
+  String get webJoinNameInvalid;
+
+  /// A 18e küldés-gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérelem küldése'**
+  String get webJoinSubmit;
+
+  /// A 18e-2 állapot-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉRELEM ELKÜLDVE'**
+  String get webJoinSentLabel;
+
+  /// A 18e-2 főcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'Várj a tulajdonos jóváhagyására'**
+  String get webJoinWaiting;
+
+  /// A 18e-2 adatsora: a beküldött név.
+  ///
+  /// In hu, this message translates to:
+  /// **'Név'**
+  String get webJoinName;
+
+  /// A 18e-2 adatsora: a telefon neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon'**
+  String get webJoinPhone;
+
+  /// A 18e-2 adatsora: a beküldés ideje (ÓÓ:PP).
+  ///
+  /// In hu, this message translates to:
+  /// **'Elküldve'**
+  String get webJoinSentAt;
+
+  /// A 18e-2 adatsora: a kérelem lejáratáig hátralévő idő.
+  ///
+  /// In hu, this message translates to:
+  /// **'Lejár'**
+  String get webJoinExpiresIn;
+
+  /// A 18e-2 állapota elutasítás vagy lejárat után (V9).
+  ///
+  /// In hu, this message translates to:
+  /// **'A kérelmet nem hagyták jóvá, vagy lejárt.'**
+  String get webJoinNotApproved;
+
+  /// Snackbar a jóváhagyott csatlakozásról (X3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakoztál a Lola archívumához'**
+  String get webJoinApprovedNotice;
+
+  /// Snackbar az elutasított vagy lejárt csatlakozásról (X3).
+  ///
+  /// In hu, this message translates to:
+  /// **'A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt.'**
+  String get webJoinNotApprovedNotice;
+
+  /// A 18e-2 lejárati ideje órában és percben (mono).
+  ///
+  /// In hu, this message translates to:
+  /// **'{hours} ó {minutes} p'**
+  String webJoinRemaining(int hours, int minutes);
 
   /// Hibapanel szöveg a 429-hez; a perc felfelé kerekítve, legalább 1 (H7, H10).
   ///

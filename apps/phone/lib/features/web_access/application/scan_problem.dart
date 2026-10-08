@@ -6,6 +6,19 @@ import 'package:phone/features/web_access/data/web_api_failure.dart';
 import 'package:phone/features/web_access/data/web_key_operations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
+/// Milyen kódot olvasott be a telefon: a lejárt kód panelje ettől
+/// függően mondja, honnan jön az új (ADR 0051 Addendum 9 X2).
+enum ScanKind {
+  /// Belépési QR egy regisztrált telefonon.
+  login,
+
+  /// Regisztrációs (CLI-s) QR.
+  enrollment,
+
+  /// Belépési QR egy fiók nélküli telefonon: csatlakozás.
+  join,
+}
+
 /// Amit a beolvasó alsó hibapanelje mond (ADR 0051 Addendum 1 H7, makett
 /// 18d-2…5, Addendum 8 V5–V6).
 @immutable
@@ -25,12 +38,12 @@ final class UnsupportedCode extends ScanProblem {
 
 /// Lejárt vagy már felhasznált kérés (18d-2).
 final class ExpiredCode extends ScanProblem {
-  /// Lejárt kód; az [isEnrollment] a regisztrációs (CLI-s) kód.
-  const ExpiredCode({this.isEnrollment = false});
+  /// Lejárt kód; a [kind] mondja, milyen kód volt.
+  const ExpiredCode({this.kind = ScanKind.login});
 
-  /// Regisztrációs kód-e: annak az újat a szerveren kell kérni, nem a
-  /// weboldalon.
-  final bool isEnrollment;
+  /// A kód fajtája: a regisztrációs kódhoz az újat a szerveren kell kérni,
+  /// a csatlakozásnál a beírt név megmarad (X2).
+  final ScanKind kind;
 }
 
 /// Egy másik szerver belépési QR-ja (18d-3).
@@ -80,27 +93,22 @@ final class SigningFailed extends ScanProblem {
   const SigningFailed();
 }
 
-/// Fiók nélküli telefon olvasott be belépési QR-t. A csatlakozás az A4b
-/// szelettel jön; addig ez a panel áll a helyén.
-final class NotRegistered extends ScanProblem {
-  const NotRegistered();
-}
-
 /// Egy folyamat [error] hibája → a panel, vagy `null`, ha a felhasználó
 /// maga vetette el az ujjlenyomat-ablakot (csendes bezárás, H6).
 ///
-/// Az [isOwner] a visszavont-panelhez kell. A `NotAuthenticated` is
+/// Az [isOwner] a visszavont-panelhez, a [kind] a lejárt kód szövegéhez
+/// kell. A `NotAuthenticated` is
 /// visszavonásnak számít: egy újrakért eszköz-token után ez azt jelenti,
 /// hogy a szerver nem fogadja el a telefon kulcsát.
 ScanProblem? scanProblemOf(
   WebAccessError error, {
   required bool isOwner,
-  bool isEnrollment = false,
+  ScanKind kind = ScanKind.login,
 }) => switch (error) {
   ApiCallFailed(:final failure) => _apiProblemOf(
     failure,
     isOwner: isOwner,
-    isEnrollment: isEnrollment,
+    kind: kind,
   ),
   KeyOperationFailed(:final failure) => switch (failure) {
     KeyOperationFailure.canceled => null,
@@ -116,11 +124,9 @@ ScanProblem? scanProblemOf(
 ScanProblem _apiProblemOf(
   WebApiFailure failure, {
   required bool isOwner,
-  required bool isEnrollment,
+  required ScanKind kind,
 }) => switch (failure) {
-  WebServerFailure(error: RequestExpired()) => ExpiredCode(
-    isEnrollment: isEnrollment,
-  ),
+  WebServerFailure(error: RequestExpired()) => ExpiredCode(kind: kind),
   WebServerFailure(error: DeviceRevoked() || NotAuthenticated()) =>
     DeviceRevokedProblem(isOwner: isOwner),
   WebServerFailure(error: TooManyAttempts(:final retryAfterSeconds)) =>

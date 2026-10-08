@@ -9,10 +9,13 @@ import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
+import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/providers/race_track_stats_provider.dart';
 import 'package:phone/providers/track_sample_reader_provider.dart';
+
+import '../web_access/web_access_fakes.dart';
 
 void main() {
   const mark = Mark(
@@ -45,6 +48,9 @@ void main() {
                 (raceId) async => null,
           ),
           raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
+          // A fokepernyo a fuggo csatlakozasi kerelmet figyeli; enelkul a
+          // valodi fiok-fajlt keresne.
+          pendingJoinStoreProvider.overrideWithValue(MemoryWebAccountStore()),
         ],
         child: MaterialApp(
           theme: foretackTheme,

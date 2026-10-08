@@ -653,14 +653,6 @@
   "@webScanSigningFailedMessage": {
     "description": "Hibapanel szöveg a váratlan aláírási hibához."
   },
-  "webScanNotRegisteredTitle": "Ez a telefon nincs regisztrálva",
-  "@webScanNotRegisteredTitle": {
-    "description": "Hibapanel cím: fiók nélküli telefon olvasott be belépési QR-t (az A4b előtt)."
-  },
-  "webScanNotRegisteredMessage": "A legénység csatlakozása az app következő frissítésével jön.",
-  "@webScanNotRegisteredMessage": {
-    "description": "Hibapanel szöveg a fiók nélküli telefonhoz (az A4b előtt)."
-  },
   "webPromptLoginTitle": "Belépés a Foretack webre",
   "@webPromptLoginTitle": {
     "description": "Az ujjlenyomat-ablak címe a QR-belépéskor (H6)."
@@ -744,6 +736,82 @@
   "webCodesSaved": "Elmentettem",
   "@webCodesSaved": {
     "description": "A 18g záró gombja."
+  },
+  "webScanExpiredJoinMessage": "Olvasd be újra a QR-kódot; a neved megmaradt.",
+  "@webScanExpiredJoinMessage": {
+    "description": "Hibapanel a lejárt QR-hoz csatlakozás közben: a beírt név megmarad (Addendum 9 X2)."
+  },
+  "webPromptJoinTitle": "Csatlakozás a Lola archívumához",
+  "@webPromptJoinTitle": {
+    "description": "Az ujjlenyomat-ablak címe a csatlakozási kérelemhez; alcíme a szerver hostja (H6)."
+  },
+  "webJoinTitle": "Csatlakozás",
+  "@webJoinTitle": {
+    "description": "A 18e és 18e-2 képernyő AppBar-címe."
+  },
+  "webJoinHeading": "Csatlakozás a Lola archívumához",
+  "@webJoinHeading": {
+    "description": "A 18e főcíme."
+  },
+  "webJoinNameLabel": "NEVED",
+  "@webJoinNameLabel": {
+    "description": "A 18e névmezőjének szekció-címkéje."
+  },
+  "webJoinNameInvalid": "1–40 karakter, sortörés nélkül",
+  "@webJoinNameInvalid": {
+    "description": "Halk hibasor a 18e névmezője alatt, ha a név nem elfogadható (X6)."
+  },
+  "webJoinSubmit": "Kérelem küldése",
+  "@webJoinSubmit": {
+    "description": "A 18e küldés-gombja."
+  },
+  "webJoinSentLabel": "KÉRELEM ELKÜLDVE",
+  "@webJoinSentLabel": {
+    "description": "A 18e-2 állapot-címkéje."
+  },
+  "webJoinWaiting": "Várj a tulajdonos jóváhagyására",
+  "@webJoinWaiting": {
+    "description": "A 18e-2 főcíme."
+  },
+  "webJoinName": "Név",
+  "@webJoinName": {
+    "description": "A 18e-2 adatsora: a beküldött név."
+  },
+  "webJoinPhone": "Telefon",
+  "@webJoinPhone": {
+    "description": "A 18e-2 adatsora: a telefon neve."
+  },
+  "webJoinSentAt": "Elküldve",
+  "@webJoinSentAt": {
+    "description": "A 18e-2 adatsora: a beküldés ideje (ÓÓ:PP)."
+  },
+  "webJoinExpiresIn": "Lejár",
+  "@webJoinExpiresIn": {
+    "description": "A 18e-2 adatsora: a kérelem lejáratáig hátralévő idő."
+  },
+  "webJoinNotApproved": "A kérelmet nem hagyták jóvá, vagy lejárt.",
+  "@webJoinNotApproved": {
+    "description": "A 18e-2 állapota elutasítás vagy lejárat után (V9)."
+  },
+  "webJoinApprovedNotice": "Csatlakoztál a Lola archívumához",
+  "@webJoinApprovedNotice": {
+    "description": "Snackbar a jóváhagyott csatlakozásról (X3)."
+  },
+  "webJoinNotApprovedNotice": "A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt.",
+  "@webJoinNotApprovedNotice": {
+    "description": "Snackbar az elutasított vagy lejárt csatlakozásról (X3)."
+  },
+  "webJoinRemaining": "{hours} ó {minutes} p",
+  "@webJoinRemaining": {
+    "description": "A 18e-2 lejárati ideje órában és percben (mono).",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "webScanTooManyMessage": "Próbáld újra {minutes} perc múlva.",
   "@webScanTooManyMessage": {

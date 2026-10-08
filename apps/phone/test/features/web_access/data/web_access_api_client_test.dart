@@ -62,6 +62,57 @@ void main() {
     });
   });
 
+  group('join requests', () {
+    test('a join request is posted and answered with a ticket', () async {
+      // Arrange
+      server.routes[joinRequestsPath] = (_) => joinTicketResponse();
+      final request = JoinRequest(
+        requestId: testRequestId,
+        challenge: testChallenge,
+        name: 'Gergő',
+        deviceName: 'Pixel 7a',
+        model: 'Google Pixel 7a',
+        publicKey: FakeKeys.signingKey,
+        deviceKey: FakeKeys.deviceKey,
+        signature: FakeKeys.biometricSignature,
+      );
+
+      // Act
+      final result = await client.submitJoinRequest(request);
+
+      // Assert
+      final ticket = (result as Ok<JoinTicket, WebApiFailure>).value;
+      expect(ticket.statusToken, testStatusToken);
+      final sent = server.requests.single;
+      expect(sent.headers[clientHeaderName], clientHeaderPhoneValue);
+      expect(FakeWebServer.bodyOf(sent), encodeJoinRequest(request));
+    });
+
+    test('the status query sends only the status token', () async {
+      // Arrange
+      server.routes[joinRequestStatusPath(testJoinRequestId)] = (_) =>
+          joinStatusResponse(JoinRequestState.pending);
+
+      // Act
+      final result = await client.joinRequestStatus(
+        testJoinRequestId,
+        statusToken: testStatusToken,
+      );
+
+      // Assert
+      expect(
+        result,
+        const Ok<JoinRequestStatus, WebApiFailure>(
+          JoinRequestStatus(state: JoinRequestState.pending),
+        ),
+      );
+      expect(
+        FakeWebServer.bodyOf(server.requests.single),
+        {'statusToken': testStatusToken},
+      );
+    });
+  });
+
   group('responses', () {
     test('an approval answered with 204 is a success', () async {
       // Arrange

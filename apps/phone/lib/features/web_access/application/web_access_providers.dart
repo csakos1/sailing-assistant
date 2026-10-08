@@ -3,11 +3,17 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:phone/features/web_access/application/device_token_source.dart';
 import 'package:phone/features/web_access/application/enrollment_flow.dart';
+import 'package:phone/features/web_access/application/join_flow.dart';
+import 'package:phone/features/web_access/application/join_name_draft.dart';
+import 'package:phone/features/web_access/application/join_status_check.dart';
+import 'package:phone/features/web_access/application/pending_join_notifier.dart';
 import 'package:phone/features/web_access/application/qr_login_flow.dart';
 import 'package:phone/features/web_access/application/web_account_notifier.dart';
 import 'package:phone/features/web_access/data/biometric_web_key_operations.dart';
 import 'package:phone/features/web_access/data/device_identity.dart';
 import 'package:phone/features/web_access/data/file_web_account_store.dart';
+import 'package:phone/features/web_access/data/pending_join.dart';
+import 'package:phone/features/web_access/data/pending_join_store.dart';
 import 'package:phone/features/web_access/data/web_access_api_client.dart';
 import 'package:phone/features/web_access/data/web_account.dart';
 import 'package:phone/features/web_access/data/web_account_store.dart';
@@ -46,11 +52,32 @@ final webAccountStoreProvider = Provider<WebAccountStore>(
   (ref) => FileWebAccountStore(getApplicationSupportDirectory),
 );
 
+/// A függő csatlakozási kérelem tára: ugyanaz a fájl (Addendum 9 X4).
+final pendingJoinStoreProvider = Provider<PendingJoinStore>(
+  (ref) => FileWebAccountStore(getApplicationSupportDirectory),
+);
+
+/// A telefon neve és típusa egyszer kiolvasva (a 18e-2 „Telefon" sora).
+final deviceIdentityProvider = FutureProvider<DeviceIdentity>(
+  (ref) => ref.watch(readDeviceIdentityProvider)(),
+);
+
 /// A telefon webes fiókja, vagy `null`, ha nincs.
 final webAccountProvider =
     AsyncNotifierProvider<WebAccountNotifier, WebAccount?>(
       WebAccountNotifier.new,
     );
+
+/// A telefon függő csatlakozási kérelme, vagy `null`, ha nincs.
+final pendingJoinProvider =
+    AsyncNotifierProvider<PendingJoinNotifier, PendingJoin?>(
+      PendingJoinNotifier.new,
+    );
+
+/// A csatlakozáshoz beírt név, amíg a kérelem el nem ment (X2).
+final joinNameDraftProvider = NotifierProvider<JoinNameDraft, String?>(
+  JoinNameDraft.new,
+);
 
 /// Az eszköz-token forrása a mentett fiókhoz; fiók nélkül `null`. A
 /// fiók változásakor újraépül, így egy régi fiók tokenje nem marad meg.
@@ -87,3 +114,27 @@ final enrollmentFlowProvider = Provider<EnrollmentFlow>((ref) {
     clearAccount: accounts.clear,
   );
 });
+
+/// A csatlakozás folyamata (V9, X2).
+final joinFlowProvider = Provider<JoinFlow>((ref) {
+  final draft = ref.watch(joinNameDraftProvider.notifier);
+  return JoinFlow(
+    clientFor: (origin) => ref.read(webAccessApiClientProvider(origin)),
+    keys: ref.watch(webKeyOperationsProvider),
+    readIdentity: ref.watch(readDeviceIdentityProvider),
+    savePendingJoin: ref.watch(pendingJoinProvider.notifier).save,
+    rememberName: draft.remember,
+    forgetName: draft.forget,
+  );
+});
+
+/// A függő kérelem lekérdezése (V9, X3).
+final joinStatusCheckProvider = Provider<JoinStatusCheck>(
+  (ref) => JoinStatusCheck(
+    clientFor: (origin) => ref.read(webAccessApiClientProvider(origin)),
+    saveAccount: ref.watch(webAccountProvider.notifier).save,
+    clearPendingJoin: ref.watch(pendingJoinProvider.notifier).clear,
+    deleteKeys: ref.watch(webKeyOperationsProvider).deleteKeys,
+    now: ref.watch(clockProvider),
+  ),
+);

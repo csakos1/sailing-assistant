@@ -144,11 +144,13 @@ _PanelText _textOf(ScanProblem problem, AppLocalizations l10n) =>
         message: l10n.webScanUnsupportedMessage,
         mono: null,
       ),
-      ExpiredCode(:final isEnrollment) => (
+      ExpiredCode(:final kind) => (
         title: l10n.webScanExpiredTitle,
-        message: isEnrollment
-            ? l10n.webScanExpiredEnrollMessage
-            : l10n.webScanExpiredMessage,
+        message: switch (kind) {
+          ScanKind.login => l10n.webScanExpiredMessage,
+          ScanKind.enrollment => l10n.webScanExpiredEnrollMessage,
+          ScanKind.join => l10n.webScanExpiredJoinMessage,
+        },
         mono: null,
       ),
       ForeignServer(:final host) => (
@@ -186,11 +188,6 @@ _PanelText _textOf(ScanProblem problem, AppLocalizations l10n) =>
       SigningFailed() => (
         title: l10n.webScanSigningFailedTitle,
         message: l10n.webScanSigningFailedMessage,
-        mono: null,
-      ),
-      NotRegistered() => (
-        title: l10n.webScanNotRegisteredTitle,
-        message: l10n.webScanNotRegisteredMessage,
         mono: null,
       ),
     };

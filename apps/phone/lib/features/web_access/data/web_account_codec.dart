@@ -19,10 +19,14 @@ Map<String, Object?> encodeWebAccount(WebAccount account) => <String, Object?>{
 ///
 /// Ismeretlen verzió, hiányzó vagy rossz típusú mező, nem kanonikus origó
 /// vagy ismeretlen szerep mind `null`: a hívó ezt „nincs fiók"-nak veszi,
-/// és a következő regisztráció vagy csatlakozás felülírja.
+/// és a következő regisztráció vagy csatlakozás felülírja. Egy függő
+/// kérelmet hordó fájl sem fiók.
 WebAccount? decodeWebAccount(Object? json) {
   if (json is! Map<String, Object?>) return null;
   if (json['version'] != webAccountFileVersion) return null;
+  // A fiók és a függő kérelem kizárja egymást (Addendum 9 X4). A kulcs a
+  // `pendingJoinKey` szövege; itt literál, mert az a kodek ezt importálja.
+  if (json.containsKey('pendingJoin')) return null;
   final origin = _text(json['origin']);
   final userId = _text(json['userId']);
   final name = _text(json['name']);

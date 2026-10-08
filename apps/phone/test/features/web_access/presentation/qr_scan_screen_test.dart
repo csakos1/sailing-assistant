@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -8,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/features/web_access/data/web_key_operations.dart';
+import 'package:phone/features/web_access/presentation/join_pending_screen.dart';
 import 'package:phone/features/web_access/presentation/qr_scan_screen.dart';
 import 'package:phone/features/web_access/presentation/widgets/qr_camera_view.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -61,13 +63,14 @@ void main() {
       ProviderScope(
         overrides: [
           webAccountStoreProvider.overrideWithValue(store),
+          pendingJoinStoreProvider.overrideWithValue(store),
           webHttpClientProvider.overrideWithValue(server.client),
           webKeyOperationsProvider.overrideWithValue(keys.operations),
           readDeviceIdentityProvider.overrideWithValue(
             () async => (deviceName: 'Pixel 8', model: 'Google Pixel 8'),
           ),
           qrCameraBuilderProvider.overrideWithValue(fakeCamera),
-          clockProvider.overrideWithValue(() => DateTime.utc(2026, 10, 7, 11)),
+          clockProvider.overrideWithValue(() => testNow),
         ],
         child: MaterialApp(
           theme: foretackTheme,
@@ -183,6 +186,189 @@ void main() {
     expect(find.text('Csatlakozás kérése'), findsNothing);
     expect(find.text('Újra'), findsNothing);
     expect(find.text('Bezárás'), findsOneWidget);
+  });
+
+  group('joining', () {
+    final statusPath = joinRequestStatusPath(testJoinRequestId);
+    final sendButton = find.widgetWithText(FilledButton, 'Kérelem küldése');
+
+    setUp(() {
+      store.account = null;
+      server.routes[joinRequestsPath] = (_) => joinTicketResponse();
+      server.routes[statusPath] = (_) =>
+          joinStatusResponse(JoinRequestState.pending);
+    });
+
+    Future<void> send(WidgetTester tester, String name) async {
+      await tester.enterText(find.byType(TextField), name);
+      await tester.pump();
+      await tester.tap(sendButton);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a fresh phone sends a request and is let in on approval', (
+      tester,
+    ) async {
+      // Arrange
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      expect(find.text('Csatlakozás a Lola archívumához'), findsOneWidget);
+      expect(tester.widget<FilledButton>(sendButton).onPressed, isNull);
+
+      // Act
+      await send(tester, 'Gergő');
+
+      // Assert
+      expect(find.text('KÉRELEM ELKÜLDVE'), findsOneWidget);
+      expect(find.text('Gergő'), findsOneWidget);
+      expect(find.text('Pixel 8'), findsOneWidget);
+      expect(find.text('23 ó 30 p'), findsOneWidget);
+      expect(store.pendingJoin, testPendingJoin());
+      expect(keys.prompts.single.title, 'Csatlakozás a Lola archívumához');
+      expect(keys.prompts.single.subtitle, 'localhost:8080');
+
+      // Act
+      server.routes[statusPath] = (_) =>
+          joinStatusResponse(JoinRequestState.approved);
+      await tester.pump(JoinPendingScreen.pollInterval);
+      await tester.pumpAndSettle();
+
+      // Assert
+      expect(find.byType(JoinPendingScreen), findsNothing);
+      expect(find.text('Csatlakoztál a Lola archívumához'), findsOneWidget);
+      expect(store.account?.account.role, UserRole.crew);
+      expect(store.pendingJoin, isNull);
+    });
+
+    testWidgets('an expired code keeps the name for a one-touch retry', (
+      tester,
+    ) async {
+      // Arrange
+      server.routes[joinRequestsPath] = (_) =>
+          errorResponse(const RequestExpired());
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      await send(tester, 'Gergő');
+      expect(find.text('Lejárt QR-kód'), findsOneWidget);
+      expect(
+        find.text('Olvasd be újra a QR-kódot; a neved megmaradt.'),
+        findsOneWidget,
+      );
+
+      // Act
+      server.routes[joinRequestsPath] = (_) => joinTicketResponse();
+      await tester.tap(find.text('Újra'));
+      await tester.pumpAndSettle();
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('KÉRELEM ELKÜLDVE'), findsOneWidget);
+      expect(keys.prompts, hasLength(2));
+      final sent = server.requestsTo(joinRequestsPath).last;
+      expect(FakeWebServer.bodyOf(sent)['name'], 'Gergő');
+    });
+
+    testWidgets('a dismissed fingerprint stays on the form with the name', (
+      tester,
+    ) async {
+      // Arrange
+      keys.biometricFailure = KeyOperationFailure.canceled;
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Act
+      await send(tester, 'Gergő');
+
+      // Assert
+      expect(find.text('Csatlakozás a Lola archívumához'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Gergő'), findsOneWidget);
+      expect(tester.widget<FilledButton>(sendButton).onPressed, isNotNull);
+      expect(server.requestsTo(joinRequestsPath), isEmpty);
+    });
+
+    testWidgets('a name the server would refuse blocks sending', (
+      tester,
+    ) async {
+      // Arrange
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Act
+      await tester.enterText(find.byType(TextField), 'G' * 41);
+      await tester.pump();
+
+      // Assert
+      expect(find.text('1–40 karakter, sortörés nélkül'), findsOneWidget);
+      expect(tester.widget<FilledButton>(sendButton).onPressed, isNull);
+    });
+
+    testWidgets('a pending request reopens instead of sending a new one', (
+      tester,
+    ) async {
+      // Arrange
+      store.pendingJoin = testPendingJoin();
+      await pumpHost(tester);
+
+      // Act
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(find.text('KÉRELEM ELKÜLDVE'), findsOneWidget);
+      expect(server.requestsTo(joinRequestsPath), isEmpty);
+      expect(server.requestsTo(statusPath), hasLength(1));
+    });
+
+    testWidgets('the pending screen pauses polling in the background', (
+      tester,
+    ) async {
+      // Arrange
+      Future<void> lifecycle(AppLifecycleState state) =>
+          tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+            SystemChannels.lifecycle.name,
+            SystemChannels.lifecycle.codec.encodeMessage(state.toString()),
+            (_) {},
+          );
+      store.pendingJoin = testPendingJoin();
+      await pumpHost(tester);
+      await scan(tester, encodeQrPayload(loginPayload()));
+      expect(server.requestsTo(statusPath), hasLength(1));
+
+      // Act
+      await lifecycle(AppLifecycleState.paused);
+      await tester.pump(JoinPendingScreen.pollInterval * 3);
+
+      // Assert
+      expect(server.requestsTo(statusPath), hasLength(1));
+
+      // Act
+      await lifecycle(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      // Assert
+      expect(server.requestsTo(statusPath), hasLength(2));
+    });
+
+    testWidgets('a refused request says so and drops the keys', (
+      tester,
+    ) async {
+      // Arrange
+      store.pendingJoin = testPendingJoin();
+      server.routes[statusPath] = (_) =>
+          joinStatusResponse(JoinRequestState.notApproved);
+      await pumpHost(tester);
+
+      // Act
+      await scan(tester, encodeQrPayload(loginPayload()));
+
+      // Assert
+      expect(
+        find.text('A kérelmet nem hagyták jóvá, vagy lejárt.'),
+        findsOneWidget,
+      );
+      expect(store.pendingJoin, isNull);
+      expect(keys.calls, contains('delete'));
+    });
   });
 
   group('registration', () {

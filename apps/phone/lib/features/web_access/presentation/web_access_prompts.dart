@@ -23,3 +23,12 @@ BiometricPromptText enrollPromptText(AppLocalizations l10n, String origin) =>
       subtitle: hostOfOrigin(origin),
       cancel: l10n.webPromptCancel,
     );
+
+/// Az ujjlenyomat-ablak a csatlakozási kérelemhez: „Csatlakozás a Lola
+/// archívumához" / a szerver hostja (H6).
+BiometricPromptText joinPromptText(AppLocalizations l10n, String origin) =>
+    BiometricPromptText(
+      title: l10n.webPromptJoinTitle,
+      subtitle: hostOfOrigin(origin),
+      cancel: l10n.webPromptCancel,
+    );

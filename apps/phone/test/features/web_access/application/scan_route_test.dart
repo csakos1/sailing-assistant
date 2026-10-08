@@ -68,6 +68,54 @@ void main() {
 
     // Assert
     expect(route, isA<JoinScan>());
+    expect((route as JoinScan).draftName, isNull);
+  });
+
+  test('a kept name skips the form on the next login code', () {
+    // Act
+    final route = routeScan(loginText, null, draftName: 'Gergő');
+
+    // Assert
+    expect((route as JoinScan).draftName, 'Gergő');
+    expect(route.payload, loginPayload());
+  });
+
+  test('a pending join of the same server reopens that request', () {
+    // Arrange
+    final pending = testPendingJoin();
+
+    // Act
+    final route = routeScan(
+      loginText,
+      null,
+      pendingJoin: pending,
+      draftName: 'Gergő',
+    );
+
+    // Assert
+    expect(route, isA<PendingJoinScan>());
+    expect((route as PendingJoinScan).pending, pending);
+  });
+
+  test('a code of another server beside a pending join names that server', () {
+    // Act
+    final route = routeScan(
+      foreignLoginText,
+      null,
+      pendingJoin: testPendingJoin(),
+    );
+
+    // Assert
+    final problem = (route as ScanRejected).problem;
+    expect((problem as ForeignServer).host, 'archivum.example.hu');
+  });
+
+  test('an enrollment code drops a pending join without asking', () {
+    // Act
+    final route = routeScan(enrollText, null, pendingJoin: testPendingJoin());
+
+    // Assert
+    expect((route as EnrollScan).replacing, isNull);
   });
 
   test('an enrollment code on a fresh phone registers it', () {

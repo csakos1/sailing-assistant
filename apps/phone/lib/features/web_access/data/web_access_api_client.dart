@@ -9,7 +9,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 
 /// A telefon hívásai a webes archívum hitelesítési végpontjaira (ADR 0051
-/// Addendum 3 K6, Addendum 8 V6–V8).
+/// Addendum 3 K6, Addendum 8 V6–V9).
 ///
 /// Csak fordít: a `race_archive_api` kodekjeivel kódol és dekódol,
 /// `Result`-ot ad, kivételt nem. Minden kérés a telefon kliensfejlécét
@@ -91,6 +91,23 @@ class WebAccessApiClient {
       Err(:final error) => Err(error),
     };
   }
+
+  /// Egy fiók nélküli telefon csatlakozási kérelme (`POST
+  /// /api/auth/join-requests`, ADR 0051 Addendum 5 M3); a siker `201`.
+  Future<Result<JoinTicket, WebApiFailure>> submitJoinRequest(
+    JoinRequest request,
+  ) => _post(joinRequestsPath, encodeJoinRequest(request), decodeJoinTicket);
+
+  /// Egy csatlakozási kérelem állapota a lekérdező tokennel (`POST
+  /// /api/auth/join-requests/{id}/status`, M4).
+  Future<Result<JoinRequestStatus, WebApiFailure>> joinRequestStatus(
+    String joinRequestId, {
+    required String statusToken,
+  }) => _post(
+    joinRequestStatusPath(joinRequestId),
+    encodeJoinStatusQuery(statusToken),
+    decodeJoinRequestStatus,
+  );
 
   Future<Result<T, WebApiFailure>> _post<T>(
     String path,

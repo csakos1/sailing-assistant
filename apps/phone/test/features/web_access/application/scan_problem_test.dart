@@ -23,11 +23,23 @@ void main() {
       final problem = scanProblemOf(
         const ApiCallFailed(WebServerFailure(RequestExpired())),
         isOwner: true,
-        isEnrollment: true,
+        kind: ScanKind.enrollment,
       );
 
       // Assert
-      expect((problem! as ExpiredCode).isEnrollment, isTrue);
+      expect((problem! as ExpiredCode).kind, ScanKind.enrollment);
+    });
+
+    test('an expired code while joining keeps the join kind', () {
+      // Act
+      final problem = scanProblemOf(
+        const ApiCallFailed(WebServerFailure(RequestExpired())),
+        isOwner: false,
+        kind: ScanKind.join,
+      );
+
+      // Assert
+      expect((problem! as ExpiredCode).kind, ScanKind.join);
     });
 
     test('a revoked device or a rejected token is a revoked phone', () {

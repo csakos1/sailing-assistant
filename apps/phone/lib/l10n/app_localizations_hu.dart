@@ -508,13 +508,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get webScanSigningFailedMessage => 'Próbáld újra.';
 
   @override
-  String get webScanNotRegisteredTitle => 'Ez a telefon nincs regisztrálva';
-
-  @override
-  String get webScanNotRegisteredMessage =>
-      'A legénység csatlakozása az app következő frissítésével jön.';
-
-  @override
   String get webPromptLoginTitle => 'Belépés a Foretack webre';
 
   @override
@@ -578,6 +571,61 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get webCodesSaved => 'Elmentettem';
+
+  @override
+  String get webScanExpiredJoinMessage =>
+      'Olvasd be újra a QR-kódot; a neved megmaradt.';
+
+  @override
+  String get webPromptJoinTitle => 'Csatlakozás a Lola archívumához';
+
+  @override
+  String get webJoinTitle => 'Csatlakozás';
+
+  @override
+  String get webJoinHeading => 'Csatlakozás a Lola archívumához';
+
+  @override
+  String get webJoinNameLabel => 'NEVED';
+
+  @override
+  String get webJoinNameInvalid => '1–40 karakter, sortörés nélkül';
+
+  @override
+  String get webJoinSubmit => 'Kérelem küldése';
+
+  @override
+  String get webJoinSentLabel => 'KÉRELEM ELKÜLDVE';
+
+  @override
+  String get webJoinWaiting => 'Várj a tulajdonos jóváhagyására';
+
+  @override
+  String get webJoinName => 'Név';
+
+  @override
+  String get webJoinPhone => 'Telefon';
+
+  @override
+  String get webJoinSentAt => 'Elküldve';
+
+  @override
+  String get webJoinExpiresIn => 'Lejár';
+
+  @override
+  String get webJoinNotApproved => 'A kérelmet nem hagyták jóvá, vagy lejárt.';
+
+  @override
+  String get webJoinApprovedNotice => 'Csatlakoztál a Lola archívumához';
+
+  @override
+  String get webJoinNotApprovedNotice =>
+      'A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt.';
+
+  @override
+  String webJoinRemaining(int hours, int minutes) {
+    return '$hours ó $minutes p';
+  }
 
   @override
   String webScanTooManyMessage(int minutes) {

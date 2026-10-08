@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/web_access/application/join_submission.dart';
 import 'package:phone/features/web_access/application/scan_problem.dart';
 import 'package:phone/features/web_access/application/scan_route.dart';
 import 'package:phone/features/web_access/application/web_access_error.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
+import 'package:phone/features/web_access/data/pending_join.dart';
 import 'package:phone/features/web_access/data/web_account.dart';
+import 'package:phone/features/web_access/presentation/join_pending_screen.dart';
+import 'package:phone/features/web_access/presentation/join_request_screen.dart';
 import 'package:phone/features/web_access/presentation/registration_done_screen.dart';
 import 'package:phone/features/web_access/presentation/web_access_prompts.dart';
 import 'package:phone/features/web_access/presentation/widgets/qr_camera_view.dart';
@@ -18,16 +22,18 @@ import 'package:phone/l10n/app_localizations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 
-// A `confirming` a fiók-csere dialógusa alatt: a kamera áll, de nincs
-// folyamatjelző a dialógus mögött.
-enum _ScanPhase { scanning, confirming, working, problem }
+// A `paused` a fiók-csere dialógusa és a csatlakozási űrlap alatt: a
+// kamera áll, de nincs folyamatjelző mögöttük.
+enum _ScanPhase { scanning, paused, working, problem }
 
 /// A webes QR-beolvasó (ADR 0051 D3–D4, makett 18b–18d, Addendum 8 V5).
 ///
 /// A beolvasott kódot a `routeScan` dönti el; a képernyő csak végrehajtja:
 /// belépés (sikerre a kérő böngésző adataival zár, a főképernyő
-/// snackbart mutat), regisztráció (a 18f-re vált), vagy hibapanel. Egy
-/// elvetett ujjlenyomat-ablak után csendben bezárul (H6).
+/// snackbart mutat), regisztráció (a 18f-re vált), csatlakozás (a 18e
+/// űrlap fölötte nyílik, a beküldött kérelem a 18e-2-re vált), vagy
+/// hibapanel. Egy elvetett ujjlenyomat-ablak után a belépésnél csendben
+/// bezárul (H6), a csatlakozásnál az űrlap marad (Addendum 9 X2).
 class QrScanScreen extends ConsumerStatefulWidget {
   /// A beolvasó.
   const QrScanScreen({super.key});
@@ -56,14 +62,27 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     try {
       final stored = await ref.read(webAccountProvider.future);
       if (!mounted) return;
-      switch (routeScan(text, stored)) {
+      final livePending = await _livePendingJoin();
+      if (!mounted) return;
+      final savedName = ref.read(joinNameDraftProvider);
+      final route = routeScan(
+        text,
+        stored,
+        pendingJoin: livePending,
+        draftName: savedName,
+      );
+      switch (route) {
         case ScanRejected(:final problem):
           _show(problem);
-        case JoinScan():
-          _show(const NotRegistered());
+        case PendingJoinScan(:final pending):
+          _openPending(pending);
+        case JoinScan(:final payload, :final draftName):
+          await _join(payload, draftName);
         case LoginScan(:final payload, :final account):
           await _signIn(payload, account);
         case EnrollScan(:final payload, :final replacing):
+          // A regisztráció a csatlakozás megőrzött nevét is eldobja (X5).
+          ref.read(joinNameDraftProvider.notifier).forget();
           await _enroll(payload, replacing);
       }
     } on Exception {
@@ -75,9 +94,10 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
 
   Future<void> _signIn(LoginQrPayload payload, WebAccount account) async {
     final flow = ref.read(qrLoginFlowProvider);
-    // A fiók a beolvasáskor megvolt; ha közben eltűnt, mintha nem lenne.
+    // A fiók a beolvasáskor megvolt; ha közben eltűnt, a telefon nem tud
+    // aláírni, mint egy visszavont eszköz: a panel új csatlakozást kínál.
     if (flow == null) {
-      _show(const NotRegistered());
+      _show(const DeviceRevokedProblem(isOwner: false));
       return;
     }
     // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
@@ -97,7 +117,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
 
   Future<void> _enroll(EnrollQrPayload payload, WebAccount? replacing) async {
     if (replacing != null) {
-      setState(() => _phase = _ScanPhase.confirming);
+      setState(() => _phase = _ScanPhase.paused);
       if (!await _confirmReplace(payload, replacing)) {
         _resume();
         return;
@@ -127,7 +147,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
         );
       case Err(:final error):
         // Regisztrációs QR-t csak a tulajdonos kap (a CLI-ből, D3).
-        _fail(error, isOwner: true, isEnrollment: true);
+        _fail(error, isOwner: true, kind: ScanKind.enrollment);
     }
   }
 
@@ -159,16 +179,81 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     return isConfirmed ?? false;
   }
 
+  // Az élő függő kérelem; a lejártat a kulcsaival együtt eldobja (X5).
+  Future<PendingJoin?> _livePendingJoin() async {
+    final pending = await ref.read(pendingJoinProvider.future);
+    if (pending == null || !mounted) return null;
+    final check = ref.read(joinStatusCheckProvider);
+    if (!check.isExpired(pending)) return pending;
+    await check.discard();
+    return null;
+  }
+
+  // Csatlakozás: megőrzött név nélkül az űrlap, vele rögtön az ujjlenyomat
+  // (X2).
+  Future<void> _join(LoginQrPayload payload, String? draftName) async {
+    if (draftName == null) {
+      await _openJoinForm(payload);
+      return;
+    }
+    final prompt = joinPromptText(
+      // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
+      AppLocalizations.of(context)!,
+      payload.origin,
+    );
+    final result = await ref
+        .read(joinFlowProvider)
+        .run(payload, name: draftName, prompt: prompt);
+    if (!mounted) return;
+    switch (joinSubmissionOf(result)) {
+      case JoinSubmitted(:final pending):
+        _openPending(pending);
+      case JoinCanceled():
+        // Az elvetett ujjlenyomat után a név az űrlapon javítható.
+        await _openJoinForm(payload, initialName: draftName);
+      case JoinFailed(:final problem):
+        _show(problem);
+    }
+  }
+
+  Future<void> _openJoinForm(
+    LoginQrPayload payload, {
+    String? initialName,
+  }) async {
+    setState(() => _phase = _ScanPhase.paused);
+    final submission = await Navigator.of(context).push<JoinSubmission>(
+      MaterialPageRoute<JoinSubmission>(
+        builder: (_) =>
+            JoinRequestScreen(payload: payload, initialName: initialName),
+      ),
+    );
+    if (!mounted) return;
+    switch (submission) {
+      case JoinSubmitted(:final pending):
+        _openPending(pending);
+      case JoinFailed(:final problem):
+        _show(problem);
+      case JoinCanceled() || null:
+        _resume();
+    }
+  }
+
+  void _openPending(PendingJoin pending) {
+    unawaited(
+      Navigator.of(context).pushReplacement<void, BrowserLoginDetails>(
+        MaterialPageRoute<void>(
+          builder: (_) => JoinPendingScreen(pending: pending),
+        ),
+      ),
+    );
+  }
+
   void _fail(
     WebAccessError error, {
     required bool isOwner,
-    bool isEnrollment = false,
+    ScanKind kind = ScanKind.login,
   }) {
-    final problem = scanProblemOf(
-      error,
-      isOwner: isOwner,
-      isEnrollment: isEnrollment,
-    );
+    final problem = scanProblemOf(error, isOwner: isOwner, kind: kind);
     if (problem == null) {
       Navigator.of(context).pop();
     } else {

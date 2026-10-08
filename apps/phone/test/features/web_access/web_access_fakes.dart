@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:phone/features/web_access/data/pending_join.dart';
+import 'package:phone/features/web_access/data/pending_join_store.dart';
 import 'package:phone/features/web_access/data/web_account.dart';
 import 'package:phone/features/web_access/data/web_account_store.dart';
 import 'package:phone/features/web_access/data/web_key_operations.dart';
@@ -39,6 +41,62 @@ WebAccount testAccount({
   account: AccountInfo(userId: 'user-1', name: 'Ákos', role: role),
   deviceId: testDeviceId,
 );
+
+final String testJoinRequestId = encodeBase64UrlUnpadded(
+  List<int>.filled(joinRequestIdLength, 4),
+);
+final String testStatusToken = encodeBase64UrlUnpadded(
+  List<int>.filled(secretTokenLength, 6),
+);
+
+/// A tesztek ora-pillanata; a kerelem ehhez kepest jar le.
+final DateTime testNow = DateTime.utc(2026, 10, 7, 11);
+
+PendingJoin testPendingJoin({
+  String origin = testOrigin,
+  DateTime? expiresAt,
+}) => PendingJoin(
+  origin: origin,
+  joinRequestId: testJoinRequestId,
+  statusToken: testStatusToken,
+  expiresAt: expiresAt ?? DateTime.utc(2026, 10, 8, 10, 30),
+  name: 'Gergő',
+);
+
+/// A szerver valasza egy bekuldott csatlakozasi kerelemre.
+http.Response joinTicketResponse({DateTime? expiresAt}) => jsonResponse(
+  encodeJoinTicket(
+    JoinTicket(
+      joinRequestId: testJoinRequestId,
+      statusToken: testStatusToken,
+      expiresAt: expiresAt ?? DateTime.utc(2026, 10, 8, 10, 30),
+    ),
+  ),
+  status: 201,
+);
+
+/// A szerver valasza a kerelem lekerdezesere.
+http.Response joinStatusResponse(
+  JoinRequestState state, {
+  String deviceId = 'device-7',
+}) {
+  final isApproved = state == JoinRequestState.approved;
+  return jsonResponse(
+    encodeJoinRequestStatus(
+      JoinRequestStatus(
+        state: state,
+        account: isApproved
+            ? const AccountInfo(
+                userId: 'crew-1',
+                name: 'Gergő',
+                role: UserRole.crew,
+              )
+            : null,
+        deviceId: isApproved ? deviceId : null,
+      ),
+    ),
+  );
+}
 
 LoginQrPayload loginPayload({String origin = testOrigin}) => LoginQrPayload(
   origin: origin,
@@ -95,11 +153,12 @@ class FakeWebServer {
       requests.where((request) => request.url.path == path).toList();
 }
 
-/// Memoriabeli fiok-tar.
-class MemoryWebAccountStore implements WebAccountStore {
+/// Memoriabeli fiok-tar: mint a fajl, vagy fiokot, vagy kerelmet hord.
+class MemoryWebAccountStore implements WebAccountStore, PendingJoinStore {
   MemoryWebAccountStore([this.account]);
 
   WebAccount? account;
+  PendingJoin? pendingJoin;
   int deletes = 0;
 
   @override
@@ -108,12 +167,23 @@ class MemoryWebAccountStore implements WebAccountStore {
   @override
   Future<void> write(WebAccount account) async {
     this.account = account;
+    pendingJoin = null;
+  }
+
+  @override
+  Future<PendingJoin?> readPendingJoin() async => pendingJoin;
+
+  @override
+  Future<void> writePendingJoin(PendingJoin pending) async {
+    pendingJoin = pending;
+    account = null;
   }
 
   @override
   Future<void> delete() async {
     deletes++;
     account = null;
+    pendingJoin = null;
   }
 }
 
