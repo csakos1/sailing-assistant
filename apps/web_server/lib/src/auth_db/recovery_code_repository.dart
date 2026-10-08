@@ -39,6 +39,21 @@ class RecoveryCodeRepository {
     return (await query.getSingle()).read(count) ?? 0;
   }
 
+  /// Mikor készült a [userId] fiók mostani kódkészlete (Addendum 10 Z12);
+  /// `null`, ha nincs kódja.
+  ///
+  /// A tíz kód egyszerre készül ([replaceAll]), ezért a legkésőbbi
+  /// létrehozás a készleté; a felhasznált kódok is számítanak, mert a
+  /// készlet akkor is ugyanaz.
+  Future<DateTime?> latestCreatedAt(String userId) async {
+    final codes = _database.recoveryCodes;
+    final latest = codes.createdAtMs.max();
+    final query = _database.selectOnly(codes)
+      ..addColumns([latest])
+      ..where(codes.userId.equals(userId));
+    return fromOptionalEpochMillis((await query.getSingle()).read(latest));
+  }
+
   /// A [userId] fiók összes kódjának cseréje a [digests] hash-ekre.
   ///
   /// A régi kódok (a felhasználtak is) törlődnek, így egy új készlet után

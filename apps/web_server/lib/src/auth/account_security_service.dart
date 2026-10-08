@@ -49,7 +49,7 @@ class AccountSecurityService {
   final RandomBytes _randomBytes;
   final DateTime Function() _now;
 
-  /// A jelszó és a kódok állapota a 18l-hez.
+  /// A jelszó és a kódok állapota a 18l-hez, a kódkészlet idejével (Z12).
   Future<Result<AccountSecurity, ApiError>> security(
     DeviceCaller caller,
   ) async {
@@ -58,6 +58,9 @@ class AccountSecurityService {
       AccountSecurity(
         passwordSetAt: caller.user.passwordSetAt,
         recoveryCodesLeft: await _recoveryCodes.countUnused(caller.user.id),
+        recoveryCodesGeneratedAt: await _recoveryCodes.latestCreatedAt(
+          caller.user.id,
+        ),
       ),
     );
   }

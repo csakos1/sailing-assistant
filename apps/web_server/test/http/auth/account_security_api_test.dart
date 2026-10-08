@@ -55,7 +55,13 @@ void main() {
       decodeAccountSecurity,
     );
 
-    expect(security, const AccountSecurity(recoveryCodesLeft: 10));
+    expect(
+      security,
+      AccountSecurity(
+        recoveryCodesLeft: 10,
+        recoveryCodesGeneratedAt: harness.now,
+      ),
+    );
   });
 
   test('sets the password and reports when', () async {
@@ -128,6 +134,8 @@ void main() {
   test('replaces every recovery code', () async {
     // ARRANGE
     final oldCode = enrollment.recoveryCodes.first;
+    final enrolledAt = harness.now;
+    harness.advance(const Duration(days: 3));
 
     // ACT
     final codes = await decodeOk(
@@ -150,6 +158,9 @@ void main() {
       decodeAccountSecurity,
     );
     expect(security.recoveryCodesLeft, 9);
+    // A felhasznalt kod sem tolja el a keszlet idejet (Z12).
+    expect(security.recoveryCodesGeneratedAt, harness.now);
+    expect(security.recoveryCodesGeneratedAt, isNot(enrolledAt));
   });
 
   test('keeps every setting from the crew', () async {
