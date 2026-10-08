@@ -18,6 +18,16 @@ Parancsok:
       Egy webes belépési QR-t megnyit és jóváhagy. A böngésző QR-ját
       képként a `zbarimg` (Arch: `pacman -S zbar`) olvassa ki.
 
+  join-requests
+      A függő csatlakozási kérelmek listája (a tulajdonos nevében).
+
+  approve-join <kérelem-id> [--member <userId>]
+      Egy kérelem jóváhagyása: alapból új tag, a `--member`-rel egy
+      meglévő legénységi tag új telefonja (ADR 0051 Addendum 5 M6).
+
+  reject-join <kérelem-id>
+      Egy kérelem elutasítása; a telefon „nincs jóváhagyva"-t kap.
+
 Függőség: a `cryptography` csomag (Arch: `pacman -S python-cryptography`).
 """
 
@@ -32,6 +42,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 try:
@@ -152,6 +163,29 @@ def post(
     except urllib.error.URLError as error:
         sys.exit(f"{path}: a szerver nem érhető el ({error.reason}).")
     return json.loads(raw) if raw else None
+
+
+def get_json(origin: str, path: str, token: str) -> dict[str, object]:
+    """JSON-GET eszköz-tokennel; hibánál a választ kiírja és kilép."""
+    request = urllib.request.Request(
+        origin + path,
+        headers={
+            "authorization": f"Bearer {token}",
+            "x-foretack-client": "phone",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            result = json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", "replace")
+        sys.exit(f"{path}: HTTP {error.code} {detail}")
+    except urllib.error.URLError as error:
+        sys.exit(f"{path}: a szerver nem érhető el ({error.reason}).")
+    if not isinstance(result, dict):
+        sys.exit(f"{path}: váratlan, nem objektum válasz.")
+    return result
 
 
 def post_json(
@@ -281,6 +315,77 @@ def approve(args: argparse.Namespace) -> None:
     print("Jóváhagyva: a böngésző a következő lekérdezéssel belép.")
 
 
+def local_minute(epoch_ms: object) -> str:
+    """Egy UTC epoch-ms időpont helyi időben, percre."""
+    if not isinstance(epoch_ms, int):
+        return "?"
+    return datetime.fromtimestamp(epoch_ms / 1000).strftime("%Y-%m-%d %H:%M")
+
+
+def join_requests(args: argparse.Namespace) -> None:
+    state = load_state(args.state)
+    token = device_token(state)
+    listed = get_json(state["origin"], "/api/auth/join-requests", token)
+    requests = listed.get("joinRequests")
+    if not isinstance(requests, list) or not requests:
+        print("Nincs függő csatlakozási kérelem.")
+        return
+    for request in requests:
+        if not isinstance(request, dict):
+            continue
+        place = ", ".join(
+            str(part)
+            for part in (request.get("city"), request.get("country"))
+            if part
+        )
+        print(f"{request['id']}")
+        print(f"  {request['name']} · {request['deviceName']} ({request['model']})")
+        print(f"  {request['ip']} {place}".rstrip())
+        print(
+            f"  beküldve {local_minute(request.get('createdAt'))}, "
+            f"lejár {local_minute(request.get('expiresAt'))}"
+        )
+
+
+def approve_join(args: argparse.Namespace) -> None:
+    state = load_state(args.state)
+    origin, device_id = state["origin"], state["deviceId"]
+    token = device_token(state)
+    challenge = str(
+        post_json(origin, "/api/auth/action-challenges", {}, token=token)["value"]
+    )
+    # A cél „<kérelem>:new" vagy „<kérelem>:<tag>" (joinApprovalTarget).
+    member = args.member or None
+    target = f"{args.id}:{member or 'new'}"
+    message = canonical(
+        ["foretack-action-v1", origin, device_id, challenge, "approveJoin", target]
+    )
+    body: dict[str, object] = {
+        "challenge": challenge,
+        "signature": sign(load_key(state["signingKey"]), message),
+    }
+    if member is not None:
+        body["memberId"] = member
+    approved = post_json(
+        origin, f"/api/auth/join-requests/{args.id}/approval", body, token=token
+    )
+    account = approved.get("account")
+    name = account.get("name") if isinstance(account, dict) else "?"
+    print(f"Jóváhagyva: {name}. A várakozó böngésző a következő lekérdezéssel belép.")
+
+
+def reject_join(args: argparse.Namespace) -> None:
+    state = load_state(args.state)
+    token = device_token(state)
+    post(
+        state["origin"],
+        f"/api/auth/join-requests/{args.id}/rejection",
+        {},
+        token=token,
+    )
+    print("Elutasítva.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -298,6 +403,21 @@ def main() -> None:
     approve_parser.add_argument("qr", nargs="?", help="a belépési QR szövege")
     approve_parser.add_argument("--image", type=Path, help="képernyőkép a QR-ról")
     approve_parser.set_defaults(run=approve)
+    list_parser = commands.add_parser("join-requests", help="függő kérelmek")
+    list_parser.set_defaults(run=join_requests)
+    approve_join_parser = commands.add_parser(
+        "approve-join", help="csatlakozási kérelem jóváhagyása"
+    )
+    approve_join_parser.add_argument("id", help="a kérelem azonosítója")
+    approve_join_parser.add_argument(
+        "--member", help="egy meglévő legénységi tag azonosítója"
+    )
+    approve_join_parser.set_defaults(run=approve_join)
+    reject_join_parser = commands.add_parser(
+        "reject-join", help="csatlakozási kérelem elutasítása"
+    )
+    reject_join_parser.add_argument("id", help="a kérelem azonosítója")
+    reject_join_parser.set_defaults(run=reject_join)
     args = parser.parse_args()
     args.run(args)
 
