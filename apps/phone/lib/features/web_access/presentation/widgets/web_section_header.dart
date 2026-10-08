@@ -13,6 +13,9 @@ class WebSectionHeader extends StatelessWidget {
   /// A csoport elemeinek száma; `null`-nál nincs szám.
   final int? count;
 
+  /// A címke legfeljebb ekkora része a sornak; a maradék a vonalé.
+  static const double maximumLabelShare = 0.7;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -21,33 +24,44 @@ class WebSectionHeader extends StatelessWidget {
     final number = count;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      child: Row(
-        spacing: 10,
-        children: [
-          // Egy hosszú név ne tolja ki a vonalat és a számot.
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: sectionLabelStyle.copyWith(
-                color: scheme.onSurfaceVariant,
+      child: LayoutBuilder(
+        // A címke nem `Flexible`: egy `Flexible` és egy `Expanded` a szabad
+        // helyet felezi, és a vonal a sor közepén véget érne. Egy hosszú
+        // név a korlátnál levágódik.
+        builder: (context, constraints) => Row(
+          spacing: 10,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * maximumLabelShare,
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: sectionLabelStyle.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Divider(
-              height: 1,
-              thickness: 1,
-              color: scheme.outlineVariant,
+            Expanded(
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: scheme.outlineVariant,
+              ),
             ),
-          ),
-          if (number != null)
-            Text(
-              '$number',
-              style: railNumberStyle.copyWith(color: tones.low),
-            ),
-        ],
+            if (number != null)
+              Text(
+                '$number',
+                style: railNumberStyle.copyWith(color: tones.low),
+              )
+            else
+              // Szám nélkül a vonal 10 px-szel a margó előtt ér véget
+              // (makett 18l).
+              const SizedBox(width: 0),
+          ],
+        ),
       ),
     );
   }
