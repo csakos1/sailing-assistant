@@ -272,4 +272,112 @@ void main() {
       expect(body['publicKey'], base64Encode(FakeKeys.signingKey));
     });
   });
+
+  group('management calls', () {
+    test('the account is read with a bearer GET and no body', () async {
+      // Arrange
+      server.routes[mePath] = (_) => meResponse(name: 'Ákos Új');
+
+      // Act
+      final result = await client.fetchAccount(deviceToken: testDeviceToken);
+
+      // Assert
+      expect(
+        result,
+        const Ok<AccountInfo, WebApiFailure>(
+          AccountInfo(userId: 'user-1', name: 'Ákos Új', role: UserRole.owner),
+        ),
+      );
+      final request = server.requests.single;
+      expect(request.method, 'GET');
+      expect(request.headers['authorization'], 'Bearer $testDeviceToken');
+      expect(request.headers[clientHeaderName], clientHeaderPhoneValue);
+      expect(request.headers.containsKey('content-type'), isFalse);
+      expect(request.body, isEmpty);
+    });
+
+    test('the banner and the sessions decode their lists', () async {
+      // Arrange
+      final login = testSuspiciousLogin();
+      final session = testSession();
+      server.routes[bannerPath] = (_) =>
+          bannerResponse(suspicious: [login], pendingJoinRequests: 2);
+      server.routes[sessionsPath] = (_) => sessionsResponse([session]);
+
+      // Act
+      final banner = await client.fetchBanner(deviceToken: testDeviceToken);
+      final sessions = await client.listSessions(
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(
+        banner,
+        Ok<LoginBanner, WebApiFailure>(
+          LoginBanner(suspicious: [login], pendingJoinRequests: 2),
+        ),
+      );
+      expect(
+        switch (sessions) {
+          Ok(:final value) => value,
+          Err() => null,
+        },
+        [session],
+      );
+    });
+
+    test('ending a session is a DELETE answered with 204', () async {
+      // Arrange
+      server.routes[sessionPath('session-1')] = (_) => http.Response('', 204);
+
+      // Act
+      final result = await client.endSession(
+        'session-1',
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(result, isA<Ok<void, WebApiFailure>>());
+      expect(server.requests.single.method, 'DELETE');
+    });
+
+    test('acknowledging a login is a body-less POST', () async {
+      // Arrange
+      final path = loginEventAcknowledgementPath('event-1');
+      server.routes[path] = (_) => http.Response('', 204);
+
+      // Act
+      final result = await client.acknowledgeLoginEvent(
+        'event-1',
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(result, isA<Ok<void, WebApiFailure>>());
+      final request = server.requests.single;
+      expect(request.method, 'POST');
+      expect(request.body, isEmpty);
+      expect(request.headers[clientHeaderName], clientHeaderPhoneValue);
+    });
+
+    test('an action challenge is posted with the bearer token', () async {
+      // Arrange
+      server.routes[actionChallengesPath] = (_) =>
+          jsonResponse(issuedJson(testChallenge), status: 201);
+
+      // Act
+      final result = await client.issueActionChallenge(
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(switch (result) {
+        Ok(:final value) => value.value,
+        Err() => null,
+      }, testChallenge);
+      final request = server.requests.single;
+      expect(request.headers['authorization'], 'Bearer $testDeviceToken');
+      expect(FakeWebServer.bodyOf(request), isEmpty);
+    });
+  });
 }

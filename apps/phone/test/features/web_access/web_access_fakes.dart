@@ -227,3 +227,82 @@ class FakeKeys {
     deleteKeys: () async => calls.add('delete'),
   );
 }
+
+/// Az eszkoz-token utvonalai: a kihivas es a token (V7).
+void serveDeviceTokens(FakeWebServer server) {
+  server.routes[deviceChallengesPath] = (_) =>
+      jsonResponse(issuedJson(testChallenge));
+  server.routes[deviceTokensPath] = (_) =>
+      jsonResponse(issuedJson(testDeviceToken), status: 201);
+}
+
+/// Egy webes munkamenet; a fiok a teszt-fiok, ha mas nincs megadva.
+WebSession testSession({
+  String id = 'session-1',
+  String userId = 'user-1',
+  String userName = 'Ákos',
+  LoginMethod method = LoginMethod.qr,
+  bool isSuspicious = false,
+  DateTime? createdAt,
+  DateTime? lastSeenAt,
+}) => WebSession(
+  id: id,
+  userId: userId,
+  userName: userName,
+  method: method,
+  ip: '84.236.10.20',
+  browser: 'Firefox',
+  os: 'Linux',
+  country: 'HU',
+  city: 'Budapest',
+  createdAt: createdAt ?? DateTime.utc(2026, 10, 7, 7, 12),
+  lastSeenAt: lastSeenAt ?? DateTime.utc(2026, 10, 7, 10, 58),
+  isSuspicious: isSuspicious,
+);
+
+/// Egy gyanus belepes a szalagon.
+SuspiciousLogin testSuspiciousLogin({
+  String id = 'event-1',
+  String userId = 'user-1',
+  String userName = 'Ákos',
+  LoginMethod method = LoginMethod.password,
+  String? sessionId = 'session-9',
+}) => SuspiciousLogin(
+  id: id,
+  userId: userId,
+  userName: userName,
+  method: method,
+  ip: '185.220.1.2',
+  browser: 'Chrome',
+  os: 'Windows',
+  country: 'AT',
+  city: 'Wien',
+  createdAt: DateTime.utc(2026, 10, 7, 9, 32),
+  sessionId: sessionId,
+);
+
+/// A szalag valasza.
+http.Response bannerResponse({
+  List<SuspiciousLogin> suspicious = const [],
+  int pendingJoinRequests = 0,
+}) => jsonResponse(
+  encodeLoginBanner(
+    LoginBanner(
+      suspicious: suspicious,
+      pendingJoinRequests: pendingJoinRequests,
+    ),
+  ),
+);
+
+/// A `/me` valasza a teszt-fiokkal (vagy a megadottal).
+http.Response meResponse({
+  String userId = 'user-1',
+  String name = 'Ákos',
+  UserRole role = UserRole.owner,
+}) => jsonResponse(
+  encodeAccountInfo(AccountInfo(userId: userId, name: name, role: role)),
+);
+
+/// A munkamenet-lista valasza.
+http.Response sessionsResponse(List<WebSession> sessions) =>
+    jsonResponse(encodeWebSessions(sessions));

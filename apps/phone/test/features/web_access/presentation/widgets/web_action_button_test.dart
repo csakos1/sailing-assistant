@@ -90,4 +90,37 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('Kérelem küldése'), findsNothing);
   });
+
+  testWidgets('the destructive button has an error border', (tester) async {
+    // Arrange
+    await pumpButton(
+      tester,
+      WebActionButton.destructive(label: 'Kiléptetés', onPressed: () {}),
+    );
+    final context = tester.element(find.byType(WebActionButton));
+
+    // Act
+    final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
+
+    // Assert
+    expect(
+      button.style?.side?.resolve(const {})?.color,
+      Theme.of(context).colorScheme.error,
+    );
+  });
+
+  testWidgets('the compact button is 40 px tall', (tester) async {
+    // Act
+    await pumpButton(
+      tester,
+      WebActionButton.secondary(
+        label: 'Rendben',
+        isCompact: true,
+        onPressed: () {},
+      ),
+    );
+
+    // Assert
+    expect(tester.getSize(find.byType(OutlinedButton)).height, 40);
+  });
 }

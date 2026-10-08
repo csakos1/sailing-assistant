@@ -34,6 +34,7 @@ void main() {
       activeRace(id, name).finish(at: clock);
 
   Future<void> pumpList(WidgetTester tester, List<Race> races) {
+    final webStore = MemoryWebAccountStore();
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -48,9 +49,10 @@ void main() {
                 (raceId) async => null,
           ),
           raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
-          // A fokepernyo a fuggo csatlakozasi kerelmet figyeli; enelkul a
-          // valodi fiok-fajlt keresne.
-          pendingJoinStoreProvider.overrideWithValue(MemoryWebAccountStore()),
+          // A fokepernyo a webes allapotot frissiti (fuggo kerelem, fiok,
+          // szalag); enelkul a valodi fiok-fajlt keresne.
+          pendingJoinStoreProvider.overrideWithValue(webStore),
+          webAccountStoreProvider.overrideWithValue(webStore),
         ],
         child: MaterialApp(
           theme: foretackTheme,

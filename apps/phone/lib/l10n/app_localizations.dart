@@ -1239,6 +1239,216 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?'**
   String webReplaceForeignMessage(String current, String next);
+
+  /// A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes hozzáférés'**
+  String get webMenuTooltip;
+
+  /// A ⋮ menü szekció-címkéje, verzál (makett 18a-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'WEBES HOZZÁFÉRÉS'**
+  String get webMenuSection;
+
+  /// A ⋮ menü sora: a webes munkamenetek (18i/18j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webMenuSessions;
+
+  /// Gyanús belépés szalagja: tartalék-jelszó (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés jelszóval'**
+  String get webBannerPassword;
+
+  /// Gyanús belépés szalagja: helyreállító kód (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés helyreállító kóddal'**
+  String get webBannerRecoveryCode;
+
+  /// Gyanús belépés szalagja: QR más országból (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés más országból'**
+  String get webBannerForeignCountry;
+
+  /// Más felhasználó gyanús belépése: a név elöl (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} · {title}'**
+  String webBannerOtherUser(String name, String title);
+
+  /// Kettőnél több gyanús belépés egy sorban (H8, Z7).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} gyanús belépés'**
+  String webBannerAggregate(int count);
+
+  /// A gyanús belépés nyugtázása (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rendben'**
+  String get webBannerAcknowledge;
+
+  /// A gyanús belépés munkamenetének lezárása (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kiléptetés'**
+  String get webBannerSignOut;
+
+  /// A 18i/18j képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webSessionsTitle;
+
+  /// A saját csoport fejléce a 18i-ben, verzál névvel.
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} · TE'**
+  String webSessionsSelf(String name);
+
+  /// Gyanús munkamenet: tartalék mód (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Tartalék-belépés'**
+  String get webSessionsFallback;
+
+  /// Gyanús munkamenet: QR más országból (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés más országból'**
+  String get webSessionsForeignCountry;
+
+  /// A munkamenet kezdete (18i).
+  ///
+  /// In hu, this message translates to:
+  /// **'belépett {when}'**
+  String webSessionsSignedIn(String when);
+
+  /// A munkamenet utolsó aktivitása (18i).
+  ///
+  /// In hu, this message translates to:
+  /// **'aktív {ago}'**
+  String webSessionsActive(String ago);
+
+  /// A munkamenet lezárása (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kiléptetés'**
+  String get webSessionsSignOut;
+
+  /// Üres lista a 18i/18j-ben (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs aktív webes belépés'**
+  String get webSessionsEmpty;
+
+  /// A GeoIP-forrás feltüntetése (D7, CC BY 4.0).
+  ///
+  /// In hu, this message translates to:
+  /// **'IP-hely: DB-IP'**
+  String get webSessionsGeoIp;
+
+  /// Mód-címke: QR-belépés (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'QR'**
+  String get webModeQr;
+
+  /// Mód-címke: jelszó (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'JELSZÓ'**
+  String get webModePassword;
+
+  /// Mód-címke: helyreállító kód (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÓD'**
+  String get webModeRecoveryCode;
+
+  /// Ha a böngésző és az OS sem ismert (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ismeretlen böngésző'**
+  String get webUnknownBrowser;
+
+  /// Betöltési vagy műveleti hiba: a szerver nem érhető el (H11, Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs kapcsolat a szerverrel'**
+  String get webNoConnection;
+
+  /// Egy döntés már nem érvényes (410, Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez már nem érvényes'**
+  String get webNoLongerValid;
+
+  /// Egyéb hiba egy műveletnél (Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült'**
+  String get webActionFailed;
+
+  /// Mai időpont (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'ma {time}'**
+  String webTimeToday(String time);
+
+  /// Tegnapi időpont (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'tegnap {time}'**
+  String webTimeYesterday(String time);
+
+  /// Idei dátum, pl. okt. 3. (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{month} {day}.'**
+  String webTimeThisYear(String month, int day);
+
+  /// Korábbi évi dátum, pl. 2025. aug. 30. (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month} {day}.'**
+  String webTimeOlder(int year, String month, int day);
+
+  /// A tizenkét hónap rövid neve januártól, |-vel elválasztva (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'jan.|febr.|márc.|ápr.|máj.|jún.|júl.|aug.|szept.|okt.|nov.|dec.'**
+  String get webMonthsShort;
+
+  /// Eltelt idő 1 perc alatt (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'most'**
+  String get webAgoNow;
+
+  /// Eltelt idő percben (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} perce'**
+  String webAgoMinutes(int count);
+
+  /// Eltelt idő órában (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} órája'**
+  String webAgoHours(int count);
+
+  /// Eltelt idő napban (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} napja'**
+  String webAgoDays(int count);
 }
 
 class _AppLocalizationsDelegate

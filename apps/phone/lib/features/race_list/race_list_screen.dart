@@ -12,9 +12,13 @@ import 'package:phone/features/race_list/widgets/list_action_bar.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
-import 'package:phone/features/web_access/presentation/pending_join_watcher.dart';
+import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/features/web_access/presentation/qr_scan_screen.dart';
+import 'package:phone/features/web_access/presentation/web_access_banners.dart';
+import 'package:phone/features/web_access/presentation/web_access_menu.dart';
+import 'package:phone/features/web_access/presentation/web_access_refresher.dart';
 import 'package:phone/features/web_access/presentation/web_login_snack_bar.dart';
+import 'package:phone/features/web_access/presentation/web_sessions_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_list_provider.dart';
 
@@ -30,8 +34,10 @@ import 'package:phone/providers/race_list_provider.dart';
 ///
 /// Az AppBar első gombja a webes QR-beolvasó (ADR 0051 Addendum 1 H1),
 /// utána a Fázis 3 debug raw-viewer; debug-buildben mellette a
-/// háttér-engine verifikáló képernyője. A törzset a függő csatlakozási
-/// kérelem figyelője öleli (ADR 0051 Addendum 9 X3). Az
+/// háttér-engine verifikáló képernyője, a végén a webes hozzáférés ⋮
+/// menüje (ADR 0051 Addendum 10 Z6). A törzset a webes állapot frissítője
+/// öleli, a lista fölött a szalagokkal (Addendum 9 X3, Addendum 10 Z5,
+/// Z7). Az
 /// `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
 /// regisztrálja a delegátorokat.
 class RaceListScreen extends ConsumerWidget {
@@ -80,6 +86,21 @@ class RaceListScreen extends ConsumerWidget {
     ).showSnackBar(webLoginSnackBar(context, details));
   }
 
+  // A webes kezelőképernyők; visszatérve a szalag frissül (Z5), hogy egy
+  // kiléptetett munkamenet gyanús jelzése azonnal eltűnjön.
+  Future<void> _openWebAccess(
+    BuildContext context,
+    WidgetRef ref,
+    WebAccessMenuItem item,
+  ) async {
+    switch (item) {
+      case WebAccessMenuItem.sessions:
+        await WebSessionsScreen.open(context);
+    }
+    if (!context.mounted) return;
+    await ref.read(webAccessStatusProvider.notifier).refresh();
+  }
+
   void _openEngineDebug(BuildContext context) {
     unawaited(
       Navigator.of(context).push(
@@ -120,11 +141,20 @@ class RaceListScreen extends ConsumerWidget {
             icon: const Icon(Icons.bug_report_outlined),
             tooltip: l10n.viewerTitle,
           ),
+          WebAccessMenu(
+            onSelected: (item) => unawaited(_openWebAccess(context, ref, item)),
+          ),
         ],
       ),
-      body: PendingJoinWatcher(
+      body: WebAccessRefresher(
         child: Column(
           children: [
+            WebAccessBanners(
+              onOpenSessions: () => unawaited(
+                _openWebAccess(context, ref, WebAccessMenuItem.sessions),
+              ),
+              onOpenScanner: () => unawaited(_openScanner(context)),
+            ),
             Expanded(
               child: races.when(
                 loading: () => const Center(child: CircularProgressIndicator()),

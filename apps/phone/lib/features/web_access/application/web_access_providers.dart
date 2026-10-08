@@ -1,13 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:phone/features/web_access/application/authorized_call.dart';
 import 'package:phone/features/web_access/application/device_token_source.dart';
 import 'package:phone/features/web_access/application/enrollment_flow.dart';
 import 'package:phone/features/web_access/application/join_flow.dart';
 import 'package:phone/features/web_access/application/join_status_check.dart';
 import 'package:phone/features/web_access/application/pending_join_notifier.dart';
 import 'package:phone/features/web_access/application/qr_login_flow.dart';
+import 'package:phone/features/web_access/application/signed_action_runner.dart';
+import 'package:phone/features/web_access/application/web_access_status.dart';
+import 'package:phone/features/web_access/application/web_access_status_notifier.dart';
 import 'package:phone/features/web_access/application/web_account_notifier.dart';
+import 'package:phone/features/web_access/application/web_sessions_notifier.dart';
 import 'package:phone/features/web_access/data/biometric_web_key_operations.dart';
 import 'package:phone/features/web_access/data/device_identity.dart';
 import 'package:phone/features/web_access/data/file_web_account_store.dart';
@@ -129,3 +134,34 @@ final joinStatusCheckProvider = Provider<JoinStatusCheck>(
     now: ref.watch(clockProvider),
   ),
 );
+
+/// Eszköz-tokenes hívások a mentett fiókhoz (Addendum 10 Z3); fiók nélkül
+/// `null`.
+final authorizedCallProvider = Provider<AuthorizedCall?>((ref) {
+  final tokens = ref.watch(deviceTokenSourceProvider);
+  return tokens == null ? null : AuthorizedCall(tokens);
+});
+
+/// Az ujjlenyomatos műveletek aláírója (Z3); fiók nélkül `null`.
+final signedActionRunnerProvider = Provider<SignedActionRunner?>((ref) {
+  final calls = ref.watch(authorizedCallProvider);
+  if (calls == null) return null;
+  return SignedActionRunner(
+    client: ref.watch(webAccessApiClientProvider(calls.tokens.account.origin)),
+    calls: calls,
+    signWithBiometrics: ref.watch(webKeyOperationsProvider).signWithBiometrics,
+  );
+});
+
+/// A főképernyő szalagja és a visszavont jelzés (Z4, Z5).
+final webAccessStatusProvider =
+    NotifierProvider<WebAccessStatusNotifier, WebAccessStatus>(
+      WebAccessStatusNotifier.new,
+    );
+
+/// A webes munkamenetek, amíg a „Webes belépések" nyitva van (Z10).
+final AutoDisposeAsyncNotifierProvider<WebSessionsNotifier, WebSessionsLoad>
+webSessionsProvider =
+    AsyncNotifierProvider.autoDispose<WebSessionsNotifier, WebSessionsLoad>(
+      WebSessionsNotifier.new,
+    );

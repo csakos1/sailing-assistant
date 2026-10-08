@@ -833,5 +833,217 @@
         "type": "String"
       }
     }
+  },
+  "webMenuTooltip": "Webes hozzáférés",
+  "@webMenuTooltip": {
+    "description": "A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6)."
+  },
+  "webMenuSection": "WEBES HOZZÁFÉRÉS",
+  "@webMenuSection": {
+    "description": "A ⋮ menü szekció-címkéje, verzál (makett 18a-2)."
+  },
+  "webMenuSessions": "Webes belépések",
+  "@webMenuSessions": {
+    "description": "A ⋮ menü sora: a webes munkamenetek (18i/18j)."
+  },
+  "webBannerPassword": "Belépés jelszóval",
+  "@webBannerPassword": {
+    "description": "Gyanús belépés szalagja: tartalék-jelszó (H8)."
+  },
+  "webBannerRecoveryCode": "Belépés helyreállító kóddal",
+  "@webBannerRecoveryCode": {
+    "description": "Gyanús belépés szalagja: helyreállító kód (H8)."
+  },
+  "webBannerForeignCountry": "Belépés más országból",
+  "@webBannerForeignCountry": {
+    "description": "Gyanús belépés szalagja: QR más országból (H8)."
+  },
+  "webBannerOtherUser": "{name} · {title}",
+  "@webBannerOtherUser": {
+    "description": "Más felhasználó gyanús belépése: a név elöl (H8).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "webBannerAggregate": "{count} gyanús belépés",
+  "@webBannerAggregate": {
+    "description": "Kettőnél több gyanús belépés egy sorban (H8, Z7).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webBannerAcknowledge": "Rendben",
+  "@webBannerAcknowledge": {
+    "description": "A gyanús belépés nyugtázása (H8)."
+  },
+  "webBannerSignOut": "Kiléptetés",
+  "@webBannerSignOut": {
+    "description": "A gyanús belépés munkamenetének lezárása (H8)."
+  },
+  "webSessionsTitle": "Webes belépések",
+  "@webSessionsTitle": {
+    "description": "A 18i/18j képernyő címe."
+  },
+  "webSessionsSelf": "{name} · TE",
+  "@webSessionsSelf": {
+    "description": "A saját csoport fejléce a 18i-ben, verzál névvel.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webSessionsFallback": "Tartalék-belépés",
+  "@webSessionsFallback": {
+    "description": "Gyanús munkamenet: tartalék mód (Z10)."
+  },
+  "webSessionsForeignCountry": "Belépés más országból",
+  "@webSessionsForeignCountry": {
+    "description": "Gyanús munkamenet: QR más országból (Z10)."
+  },
+  "webSessionsSignedIn": "belépett {when}",
+  "@webSessionsSignedIn": {
+    "description": "A munkamenet kezdete (18i).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "webSessionsActive": "aktív {ago}",
+  "@webSessionsActive": {
+    "description": "A munkamenet utolsó aktivitása (18i).",
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "webSessionsSignOut": "Kiléptetés",
+  "@webSessionsSignOut": {
+    "description": "A munkamenet lezárása (H9)."
+  },
+  "webSessionsEmpty": "Nincs aktív webes belépés",
+  "@webSessionsEmpty": {
+    "description": "Üres lista a 18i/18j-ben (Z10)."
+  },
+  "webSessionsGeoIp": "IP-hely: DB-IP",
+  "@webSessionsGeoIp": {
+    "description": "A GeoIP-forrás feltüntetése (D7, CC BY 4.0)."
+  },
+  "webModeQr": "QR",
+  "@webModeQr": {
+    "description": "Mód-címke: QR-belépés (H9)."
+  },
+  "webModePassword": "JELSZÓ",
+  "@webModePassword": {
+    "description": "Mód-címke: jelszó (H9)."
+  },
+  "webModeRecoveryCode": "KÓD",
+  "@webModeRecoveryCode": {
+    "description": "Mód-címke: helyreállító kód (H9)."
+  },
+  "webUnknownBrowser": "Ismeretlen böngésző",
+  "@webUnknownBrowser": {
+    "description": "Ha a böngésző és az OS sem ismert (Z8)."
+  },
+  "webNoConnection": "Nincs kapcsolat a szerverrel",
+  "@webNoConnection": {
+    "description": "Betöltési vagy műveleti hiba: a szerver nem érhető el (H11, Z3)."
+  },
+  "webNoLongerValid": "Ez már nem érvényes",
+  "@webNoLongerValid": {
+    "description": "Egy döntés már nem érvényes (410, Z3)."
+  },
+  "webActionFailed": "Nem sikerült",
+  "@webActionFailed": {
+    "description": "Egyéb hiba egy műveletnél (Z3)."
+  },
+  "webTimeToday": "ma {time}",
+  "@webTimeToday": {
+    "description": "Mai időpont (Z8).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "webTimeYesterday": "tegnap {time}",
+  "@webTimeYesterday": {
+    "description": "Tegnapi időpont (Z8).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "webTimeThisYear": "{month} {day}.",
+  "@webTimeThisYear": {
+    "description": "Idei dátum, pl. okt. 3. (Z8).",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "webTimeOlder": "{year}. {month} {day}.",
+  "@webTimeOlder": {
+    "description": "Korábbi évi dátum, pl. 2025. aug. 30. (Z8).",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "webMonthsShort": "jan.|febr.|márc.|ápr.|máj.|jún.|júl.|aug.|szept.|okt.|nov.|dec.",
+  "@webMonthsShort": {
+    "description": "A tizenkét hónap rövid neve januártól, |-vel elválasztva (Z8)."
+  },
+  "webAgoNow": "most",
+  "@webAgoNow": {
+    "description": "Eltelt idő 1 perc alatt (Z8)."
+  },
+  "webAgoMinutes": "{count} perce",
+  "@webAgoMinutes": {
+    "description": "Eltelt idő percben (Z8).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webAgoHours": "{count} órája",
+  "@webAgoHours": {
+    "description": "Eltelt idő órában (Z8).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webAgoDays": "{count} napja",
+  "@webAgoDays": {
+    "description": "Eltelt idő napban (Z8).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

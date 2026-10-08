@@ -636,4 +636,134 @@ class AppLocalizationsHu extends AppLocalizations {
   String webReplaceForeignMessage(String current, String next) {
     return 'Ez a telefon a(z) $current szerveren van regisztrálva. Lecseréled erre: $next?';
   }
+
+  @override
+  String get webMenuTooltip => 'Webes hozzáférés';
+
+  @override
+  String get webMenuSection => 'WEBES HOZZÁFÉRÉS';
+
+  @override
+  String get webMenuSessions => 'Webes belépések';
+
+  @override
+  String get webBannerPassword => 'Belépés jelszóval';
+
+  @override
+  String get webBannerRecoveryCode => 'Belépés helyreállító kóddal';
+
+  @override
+  String get webBannerForeignCountry => 'Belépés más országból';
+
+  @override
+  String webBannerOtherUser(String name, String title) {
+    return '$name · $title';
+  }
+
+  @override
+  String webBannerAggregate(int count) {
+    return '$count gyanús belépés';
+  }
+
+  @override
+  String get webBannerAcknowledge => 'Rendben';
+
+  @override
+  String get webBannerSignOut => 'Kiléptetés';
+
+  @override
+  String get webSessionsTitle => 'Webes belépések';
+
+  @override
+  String webSessionsSelf(String name) {
+    return '$name · TE';
+  }
+
+  @override
+  String get webSessionsFallback => 'Tartalék-belépés';
+
+  @override
+  String get webSessionsForeignCountry => 'Belépés más országból';
+
+  @override
+  String webSessionsSignedIn(String when) {
+    return 'belépett $when';
+  }
+
+  @override
+  String webSessionsActive(String ago) {
+    return 'aktív $ago';
+  }
+
+  @override
+  String get webSessionsSignOut => 'Kiléptetés';
+
+  @override
+  String get webSessionsEmpty => 'Nincs aktív webes belépés';
+
+  @override
+  String get webSessionsGeoIp => 'IP-hely: DB-IP';
+
+  @override
+  String get webModeQr => 'QR';
+
+  @override
+  String get webModePassword => 'JELSZÓ';
+
+  @override
+  String get webModeRecoveryCode => 'KÓD';
+
+  @override
+  String get webUnknownBrowser => 'Ismeretlen böngésző';
+
+  @override
+  String get webNoConnection => 'Nincs kapcsolat a szerverrel';
+
+  @override
+  String get webNoLongerValid => 'Ez már nem érvényes';
+
+  @override
+  String get webActionFailed => 'Nem sikerült';
+
+  @override
+  String webTimeToday(String time) {
+    return 'ma $time';
+  }
+
+  @override
+  String webTimeYesterday(String time) {
+    return 'tegnap $time';
+  }
+
+  @override
+  String webTimeThisYear(String month, int day) {
+    return '$month $day.';
+  }
+
+  @override
+  String webTimeOlder(int year, String month, int day) {
+    return '$year. $month $day.';
+  }
+
+  @override
+  String get webMonthsShort =>
+      'jan.|febr.|márc.|ápr.|máj.|jún.|júl.|aug.|szept.|okt.|nov.|dec.';
+
+  @override
+  String get webAgoNow => 'most';
+
+  @override
+  String webAgoMinutes(int count) {
+    return '$count perce';
+  }
+
+  @override
+  String webAgoHours(int count) {
+    return '$count órája';
+  }
+
+  @override
+  String webAgoDays(int count) {
+    return '$count napja';
+  }
 }

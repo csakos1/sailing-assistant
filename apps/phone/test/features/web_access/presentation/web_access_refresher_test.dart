@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
-import 'package:phone/features/web_access/presentation/pending_join_watcher.dart';
+import 'package:phone/features/web_access/presentation/web_access_refresher.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:race_archive_api/race_archive_api.dart';
@@ -26,7 +26,7 @@ void main() {
         joinStatusResponse(JoinRequestState.pending);
   });
 
-  Future<void> pumpWatcher(WidgetTester tester) async {
+  Future<void> pumpRefresher(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -41,7 +41,7 @@ void main() {
           localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
-            body: PendingJoinWatcher(child: Text('home')),
+            body: WebAccessRefresher(child: Text('home')),
           ),
         ),
       ),
@@ -63,7 +63,7 @@ void main() {
 
   testWidgets('an undecided request stays quiet on start', (tester) async {
     // Act
-    await pumpWatcher(tester);
+    await pumpRefresher(tester);
 
     // Assert
     expect(server.requestsTo(statusPath), hasLength(1));
@@ -73,7 +73,7 @@ void main() {
 
   testWidgets('an approval seen on resume is announced', (tester) async {
     // Arrange
-    await pumpWatcher(tester);
+    await pumpRefresher(tester);
     server.routes[statusPath] = (_) =>
         joinStatusResponse(JoinRequestState.approved);
 
@@ -94,7 +94,7 @@ void main() {
         joinStatusResponse(JoinRequestState.notApproved);
 
     // Act
-    await pumpWatcher(tester);
+    await pumpRefresher(tester);
 
     // Assert
     expect(
@@ -110,9 +110,66 @@ void main() {
     store.pendingJoin = null;
 
     // Act
-    await pumpWatcher(tester);
+    await pumpRefresher(tester);
 
     // Assert
     expect(server.requests, isEmpty);
+  });
+
+  group('with an account', () {
+    setUp(() {
+      store
+        ..pendingJoin = null
+        ..account = testAccount();
+      serveDeviceTokens(server);
+      server.routes[bannerPath] = (_) =>
+          bannerResponse(suspicious: [testSuspiciousLogin()]);
+      server.routes[mePath] = (_) => meResponse();
+    });
+
+    testWidgets('the banner and the account are fetched on start', (
+      tester,
+    ) async {
+      // Act
+      await pumpRefresher(tester);
+
+      // Assert
+      expect(server.requestsTo(bannerPath), hasLength(1));
+      expect(server.requestsTo(mePath), hasLength(1));
+      expect(server.requestsTo(statusPath), isEmpty);
+    });
+
+    testWidgets('coming back to the foreground fetches again', (
+      tester,
+    ) async {
+      // Arrange
+      await pumpRefresher(tester);
+
+      // Act
+      await bringToForeground(tester);
+      await tester.pumpAndSettle();
+
+      // Assert
+      expect(server.requestsTo(bannerPath), hasLength(2));
+    });
+  });
+
+  testWidgets('an approved join fetches the banner of the new account', (
+    tester,
+  ) async {
+    // Arrange
+    serveDeviceTokens(server);
+    server.routes[bannerPath] = (_) => bannerResponse();
+    server.routes[mePath] = (_) =>
+        meResponse(userId: 'crew-1', name: 'Gergő', role: UserRole.crew);
+    server.routes[statusPath] = (_) =>
+        joinStatusResponse(JoinRequestState.approved);
+
+    // Act
+    await pumpRefresher(tester);
+
+    // Assert
+    expect(store.account?.deviceId, 'device-7');
+    expect(server.requestsTo(bannerPath), hasLength(1));
   });
 }
