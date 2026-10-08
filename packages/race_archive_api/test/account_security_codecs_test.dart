@@ -52,6 +52,7 @@ void main() {
       final security = AccountSecurity(
         passwordSetAt: DateTime.utc(2026, 10, 7, 9, 15),
         recoveryCodesLeft: 7,
+        recoveryCodesGeneratedAt: DateTime.utc(2026, 3, 2, 18, 40),
       );
       final banner = LoginBanner(
         suspicious: [
@@ -129,6 +130,18 @@ void main() {
       );
 
       expect(sessions.single.isSuspicious, isFalse);
+    });
+
+    test('reads a missing generation time as unknown', () {
+      // Egy regebbi szerver (Z12 elott) a kulcsot nem kuldi.
+      final security = _unwrap(
+        decodeAccountSecurity({
+          'passwordSetAt': null,
+          'recoveryCodesLeft': 10,
+        }),
+      );
+
+      expect(security.recoveryCodesGeneratedAt, isNull);
     });
 
     test('rejects a negative code count', () {

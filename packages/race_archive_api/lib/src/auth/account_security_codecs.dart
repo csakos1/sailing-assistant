@@ -58,15 +58,21 @@ Map<String, Object?> encodeAccountSecurity(AccountSecurity security) =>
     <String, Object?>{
       'passwordSetAt': security.passwordSetAt?.millisecondsSinceEpoch,
       'recoveryCodesLeft': security.recoveryCodesLeft,
+      'recoveryCodesGeneratedAt':
+          security.recoveryCodesGeneratedAt?.millisecondsSinceEpoch,
     };
 
-/// JSON → [AccountSecurity].
+/// JSON → [AccountSecurity]; a hiányzó `recoveryCodesGeneratedAt` (egy
+/// régebbi szerver) `null` (Addendum 10 Z12).
 Result<AccountSecurity, DecodeError> decodeAccountSecurity(Object? json) =>
     runDecode(() {
       final reader = JsonReader.root(json);
       return AccountSecurity(
         passwordSetAt: reader.optionalUtcMillis('passwordSetAt'),
         recoveryCodesLeft: reader.integerAtLeast('recoveryCodesLeft', 0),
+        recoveryCodesGeneratedAt: reader.optionalUtcMillis(
+          'recoveryCodesGeneratedAt',
+        ),
       );
     });
 
