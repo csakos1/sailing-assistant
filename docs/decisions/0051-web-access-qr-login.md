@@ -2060,3 +2060,246 @@ A felhasználó döntése a próba alapján, és a gombok a makett szerint.
 - **V6:** a „Nincs hálózat" panel mögötti hibát az app a konzolra is
   kiírja (`web_access: …`, a `flutter run` és a logcat látja), az
   elvetett ujjlenyomat-ablakot nem; a hibák szövege titkot nem tartalmaz.
+
+## Addendum 10 — Az A5 részletei: a kezelőképernyők a telefonon (2026-10-08)
+
+Az A5 előtt. A Z1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A H1, H3, H6, H8, H9, H11 (Addendum 1), az
+M2, M6–M9 (Addendum 5), az N4, N6 (Addendum 6) és a 18a, 18a-2,
+18h–18l makett mellé teszi, ami a kód előtt kérdés volt.
+
+### Z1 — Négy döntés (felhasználói döntés)
+
+- **Két rész:** **A5a** (⋮ menü, a `/me`-frissítés, a szalagok 18h, a
+  „Webes belépések" 18i/18j, a közös hívó- és aláíró-segédek) és **A5b**
+  („Legénység" 18k–18k-4, „Fiók és biztonság" 18l–18l-3, a kódok
+  generálási dátuma a szerveren). Mindkettő után Pixel-próba.
+- **A kódok generálási dátuma** (18l „generálva …"): a szerver kiadja
+  (Z12). A `recovery_codes.created_at_ms` már tárolva van, csak az
+  `AccountSecurity` nem adja.
+- **A telefon neve** (18l „EZ A TELEFON"): csak kiírás, szerkesztés és
+  új végpont nélkül.
+- **A második telefon a próbához:** a `tools/dev/foretack_dev_phone.py`
+  fiók nélküli „telefonként" is csatlakozni tud (Z14); a Pixel hagyja
+  jóvá.
+
+### Z2 — Ami a makettben van, de nem lesz (javaslat)
+
+- **18k-2 „Ákos új telefonja":** a H3 szerint `owner`-eszköz csak a
+  CLI-vel jöhet, és a szerver egy nem `crew` `memberId`-re `NotAllowed`-ot
+  ad. A lapon csak „Új tag" és a `crew` tagjai szerepelnek.
+- **Maszkolt IP** (`185.220.x.x`): a makett mintaadata. Az app a teljes
+  IP-t mutatja, mert a tulajdonosnak egy gyanús belépésnél ez a
+  legfontosabb adat, és a `crew` csak a saját belépéseit látja.
+
+### Z3 — Közös hívó és aláíró (javaslat)
+
+- **Hitelesített hívás:** minden eszköz-tokenes hívás egy közös segéden
+  megy (`AuthorizedCall`): token → hívás; egy `401` után a token
+  eldobása és egyszer új (a V6 megnyitásának mintája, általánosítva).
+- **Ujjlenyomatos művelet** (`SignedActionRunner`): token →
+  `POST /api/auth/action-challenges` → `deviceActionMessage` (művelet,
+  cél) → aláírás az aláíró kulccsal (Z13 szövegeivel) → `SignedAction`.
+  A kihívás egyszeri, ezért egy hibás művelet (pl. `410`) után nem
+  próbál újra; az elvetett ujjlenyomat csendes (a képernyő marad).
+- **Hibák a képernyőkön** (egy közös leképezés):
+
+  | Hiba | Mit lát |
+  |---|---|
+  | hálózat, időtúllépés, olvashatatlan válasz, `5xx` | „Nincs kapcsolat a szerverrel" + „Újra" (H11) |
+  | `403 DeviceRevoked`, `keyMissing`, `keyInvalidated` | a visszavont állapot (Z4) |
+  | `410 RequestExpired` egy döntésnél | snackbar „Ez már nem érvényes", a lista újratölt |
+  | `429` | snackbar „Próbáld újra N perc múlva" |
+  | `400`, `403 NotAllowed`, más | snackbar „Nem sikerült", a hiba a konzolra (V6) |
+  | elvetett ujjlenyomat | semmi |
+
+  A lista-képernyők betöltési hibája a képernyő helyén áll („Újra"-val),
+  egy gomb hibája snackbar, a lista megmarad.
+
+### Z4 — A fiók frissítése és a visszavont telefon (javaslat)
+
+- **`/me`:** fiókkal induláskor, előtérbe jövéskor és egy webes
+  képernyőről visszatérve (Z5) a telefon lekéri a `GET /api/auth/me`-t
+  eszköz-tokennel. Ha a név vagy a szerep eltér a helyitől, a fiók-fájl
+  frissül (V3; az origó és az eszköz nem változik). Hálózati hiba csend
+  (H11).
+- **Visszavont telefon** (`403 DeviceRevoked` vagy hiányzó kulcs a
+  tokenkérésnél): a helyi fiók **megmarad** (a versenyekhez nem nyúl, és
+  egy következő QR-beolvasás úgyis a 18d-5-öt adja), de memóriában
+  „visszavont" lesz: a szalagok helyén egyetlen sor áll (piros négyzet,
+  „Ez a telefon vissza lett vonva", „Részletek" → a 18d-5 panel a
+  szerep szerinti gombjaival), és a ⋮ menü a H1 szerint rejtve van.
+  Egy app-újraindítás újra lekérdez.
+
+### Z5 — A szalagok és a jelvény frissítése (javaslat, az X3 általánosítása)
+
+- A főképernyő figyelője (`WebAccessRefresher`, a `PendingJoinWatcher`
+  helyett) induláskor és `resumed`-kor egyszer fut, ha a főképernyő van
+  felül: függő kérelemnél az X3 lekérdezése, fióknál a `/me` és a
+  `GET /api/auth/banner`.
+- Egy webes kezelőképernyőről (18i–18l) visszatérve a szalag újratölt (a
+  megnyitó a `Navigator.push` után frissít), hogy egy elintézett kérelem
+  vagy egy nyugtázott belépés azonnal eltűnjön.
+- A szalag-állapot memóriában él; hiba esetén nincs szalag (H11, nem a
+  régi látszik). A ⋮ menü „Legénység" jelvénye ugyanebből jön.
+- A futó lekérdezést a figyelő és a képernyők megosztják, így egy
+  egyidejű kérés nem fut kétszer (a §7 91. dupla snackbarja is
+  megszűnik).
+
+### Z6 — A ⋮ menü (javaslat, a H1 szerint)
+
+- Az AppBar végén, a debug-ikonok után; fiók nélkül és visszavont
+  telefonon rejtve. `PopupMenuButton` a 18a-2 szerint:
+  `surfaceContainerHigh` panel, `outline` keret, szekció-címke „WEBES
+  HOZZÁFÉRÉS", sorok „Webes belépések", „Legénység" (csak `owner`, a
+  függő kérelmek számával mono jelvényben, 0-nál jelvény nélkül), „Fiók
+  és biztonság" (`crew`-nál „Fiók").
+
+### Z7 — A szalagok (javaslat, a H8 szerint)
+
+- Sorrend: gyanús belépések, alatta a függő kérelmek sora (18h-3).
+- **Gyanús belépés** (`warning` négyzet): cím a H8 szerint („Belépés
+  jelszóval", „Belépés helyreállító kóddal", „Belépés más országból";
+  más felhasználónál a név elöl: „Dóri · Belépés más országból");
+  alatta mono sor: böngésző · OS · város, ország · idő (Z8). Gombok:
+  „Rendben" (másodlagos) és „Kiléptetés" (romboló, Z9), ez csak ha a
+  munkamenet még él (`sessionId`). Mindkettő azonnal, ujjlenyomat
+  nélkül; utána a szalag újratölt.
+- 2-nél több gyanús belépés egy sorba vonódik: „3 gyanús belépés" + nyíl
+  → „Webes belépések".
+- **Függő kérelmek** (csak `owner`): „N csatlakozási kérelem" +
+  „Legénység" nyíl, `secondaryContainer` háttérrel (18h-1).
+
+### Z8 — Formázás (javaslat)
+
+- Időpont: ma „ma 09:12", tegnap „tegnap 21:40", az idei évben
+  „okt. 3.", korábban „2025. aug. 30."; a szalagon a mai belépés csak
+  „14:32". Helyi idő a telefon időzónájában.
+- Eltelt idő: „most", „N perce", „N órája", „N napja" (lefelé kerekítve,
+  1 perc alatt „most"); lejárat: „lejár 23 ó múlva" (1 óra alatt „N p
+  múlva").
+- Hely: „Budapest, HU", csak ország „HU", semmi esetén a sor elhagyja.
+  Böngésző és OS: ami ismert, „·"-tal; ha egyik sem, „Ismeretlen
+  böngésző".
+- Rendezés: a nevek egy kis saját, magyar ábécé szerinti összehasonlítóval
+  (az ékezetes magánhangzók a párjuk után, kis- és nagybetű nélkül, a
+  kettős betűk nélkül; `intl` nincs, §7 11.); az `owner` mindig elöl.
+
+### Z9 — Gombok (javaslat, az Addendum 9 pontosításának bővítése)
+
+- A `WebActionButton` egy harmadik változatot kap: **romboló**
+  (Kiléptetés, Visszavonás, Elutasítás, Tag eltávolítása): átlátszó,
+  1 px-es `error` keret, `onSurface` felirat; a makett mért értékei
+  szerint.
+- A sorokban álló gombok (18i Kiléptetés, 18k-3 Visszavonás) a saját
+  szélességükön, 40 px magasan; az alsó sávban 48 px.
+
+### Z10 — Webes belépések, 18i/18j (javaslat, A5a)
+
+- `GET /api/auth/sessions`; `owner`: felhasználónként csoportosítva,
+  elöl a saját („ÁKOS · TE"), a többi a Z8 rendezése szerint; a
+  csoport fejlécén a darabszám; csoporton belül a legutóbb aktív elöl.
+  `crew`: a saját sorai csoportfej nélkül.
+- Sor: (gyanúsnál felül `warning` sor: „Tartalék-belépés" a tartalék
+  módnál, „Belépés más országból" a QR-nál) · böngésző · OS · mód-címke
+  (`QR` / `JELSZÓ` / `KÓD`, H9) · IP · hely · „belépett …" · „aktív …"
+  · „Kiléptetés" (azonnal, H9).
+- Alul „IP-hely: DB-IP" (D7). Üresen „Nincs aktív webes belépés".
+  Lehúzással frissít.
+
+### Z11 — Legénység és fiók, 18k–18l (javaslat, A5b)
+
+- **18k:** `GET /api/auth/join-requests` és `GET /api/auth/members`
+  (+ a munkamenetek a „web: …"-hoz). Kérelem-kártya: név, „lejár …",
+  telefon, IP · hely, beküldés óta eltelt idő, „Elutasítás" (azonnal,
+  megerősítés nélkül: a tag újra kérhet) és „Jóváhagyás" → 18k-2.
+  Tagok: név (+ `TULAJDONOS`), „N eszköz · web: …" — a „web" a tag
+  legutóbb aktív munkamenete a `GET /api/auth/sessions`-ből, munkamenet
+  nélkül „web: —". Sorra kattintva 18k-3.
+- **18k-2** (alsó lap): „<név> jóváhagyása" / telefon · hely; „Új tag"
+  (alap) és a `crew` tagjai az eszközszámukkal (Z2); „Mégse" és
+  „Jóváhagyás" → ujjlenyomat → a lap bezárul, a lista újratölt.
+- **18k-3:** „Utolsó webes aktivitás", „Webes munkamenet N" (a
+  munkamenetekből), eszközök a regisztrálás és az utolsó használat
+  idejével; „Visszavonás" ujjlenyomattal, azonnal; a kérő telefon sorában
+  gomb helyett „Ez a telefon" (H9). „Tag eltávolítása" (nem az
+  `owner`-nél) → 18k-4 dialógus → ujjlenyomat → vissza a 18k-ra.
+- **18l (`owner`):** a makettől eltérve felül „NÉV / NEVED" (az M1
+  szerint az `owner` is átnevezheti magát; a 18l-2 mintája). „WEBES
+  JELSZÓ": állapot-sor („Beállítva: <dátum>" vagy „Nincs jelszó", H9),
+  mező a `n / 12` számlálóval, „Jelszó mentése" tiltva 12 alatt és 128
+  fölött → ujjlenyomat → snackbar „Jelszó mentve", a mező kiürül.
+  „HELYREÁLLÍTÓ KÓDOK": „Felhasználatlan N / 10", „generálva …";
+  „Újragenerálás" → 18l-3 → ujjlenyomat → a 18g képernyő az új kódokkal.
+  „EZ A TELEFON": a telefon neve és típusa, csak kiírás (Z1). Alul
+  linkek: „Webes belépések" (a munkamenetek száma) és „Legénység" („N
+  kérelem").
+- **18l-2 (`crew`, „Fiók"):** „NÉV / NEVED" és a „Webes belépések" link.
+- **Átnevezés** (mindkettőn): a mező a mentett névvel indul; ha eltér és
+  a `normalizeDisplayName` elfogadja, alatta megjelenik a „Mentés" gomb
+  (a makettben nincs gomb, de egy elhagyáskor csendben mentő mező
+  meglepetés lenne); siker után a fiók-fájl neve is frissül.
+
+### Z12 — A kódok generálási dátuma a szerveren (javaslat, A5b)
+
+- `AccountSecurity` új mező: `recoveryCodesGeneratedAt` (UTC, `null`,
+  ha nincs kód); a JSON-ban opcionális, a hiányzó kulcs `null`, így egy
+  régi szerver mellett a telefon a sort elhagyja.
+- A szerver a felhasználó kódjainak legkésőbbi `created_at_ms`-éből
+  adja (a 10 kód egyszerre készül, L5). Séma nem változik.
+- Két commit (`feat(archive-api)`, `feat(web-server)`), az A5b telefonos
+  kódja előtt; a szerver és a telefon sorrendje közömbös.
+
+### Z13 — Az ujjlenyomat-ablakok szövegei (javaslat, a H6 bővítése)
+
+| Művelet | Cím | Alcím |
+|---|---|---|
+| `approveJoin` | „<név> jóváhagyása" | telefon · város, ország |
+| `revokeDevice` | „<eszköz> visszavonása" | a tag neve |
+| `removeUser` | „<név> eltávolítása" | „Minden telefonja és munkamenete" |
+| `setPassword` | „Webes jelszó beállítása" | a host |
+| `regenerateRecoveryCodes` | „Új helyreállító kódok" | a host |
+
+A gomb mindenhol „Mégse".
+
+### Z14 — A dev-szkript csatlakozása (javaslat)
+
+- `join <qr-szöveg|--image png> --name <név>`: két új P-256 kulcs,
+  `foretack-join-v1` aláírás, `POST /api/auth/join-requests`; a jegy és
+  a kulcsok egy saját állapotfájlba (`--state`, javasolt
+  `~/.config/foretack-dev-phone/crew.json`, `0600`).
+- `join-status`: egy lekérdezés; `approved`-nál a fiók és az eszköz az
+  állapotfájlba kerül, így utána ugyanez a fájl a meglévő `approve`
+  paranccsal belépteti a böngészőt `crew`-ként (18j, a web `crew`
+  nézete).
+- Eszköznév „Dev telefon", típus „Dev (Linux)", mint az `enroll`-nál.
+
+### Z15 — Rétegek és tesztek (javaslat)
+
+- `data/`: a `WebAccessApiClient` `GET` és `DELETE` hívásokkal bővül
+  (közös küldő, Bearer); minden új végpont egy metódus a
+  `race_archive_api` kodekjeivel.
+- `application/`: `AuthorizedCall`, `SignedActionRunner`, a hibák
+  leképezése, a frissítő (Z5), autoDispose providerek a listákhoz,
+  érvénytelenítés a műveletek után; a `/me` a `WebAccountNotifier`-be
+  ír.
+- `presentation/`: képernyőnként egy fájl, a dialógusok
+  `ForetackDialog`-gal, gombok a `WebActionButton`-nal; ARB-kulcsok
+  `webMenu*`, `webBanner*`, `webSessions*`, `webCrew*`, `webAccount*`.
+- Tesztek: a kliens új hívásai; `AuthorizedCall` (`401` → egy
+  újrapróba); `SignedActionRunner` (az aláírt üzenet, elvetés, kulcshiba);
+  a formázók és a rendezés; widget-teszt képernyőnként (412 px-es
+  tesztnézet, tesztbetűs szélesség, `handlePopRoute` a `pageBack`
+  helyett); a frissítő induláskor, előtérben és visszatéréskor.
+
+### Mit pontosít
+
+- **H1:** a ⋮ menü a visszavont telefonon is rejtve (Z4).
+- **H8:** a szalag frissítése és a gyanús sor „Kiléptetés"-e csak élő
+  munkamenetnél (Z5, Z7).
+- **H9:** az `owner` 18l-je is kap névmezőt; a névmező „Mentés" gombbal
+  (Z11).
+- **N4:** az `AccountSecurity` a kódok generálási idejével (Z12).
+- **X3:** a `PendingJoinWatcher` helyett egy általános frissítő (Z5).
+- **Addendum 9 pontosítása (gombok):** a romboló változat (Z9).

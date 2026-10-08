@@ -5630,6 +5630,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     friss QR beolvasása után csak ujjlenyomat kell; a függő kérelmet az
     app induláskor és előtérbe jövéskor kérdezi le, a döntést snackbar
     jelzi; a fiók-fájl vagy fiókot, vagy függő kérelmet hord (Addendum 9).
+  - a telefonos kezelőképernyők két részben (A5a: ⋮ menü, szalagok,
+    webes belépések; A5b: legénység, fiók és biztonság); a hívások egy
+    közös, eszköz-tokenes segéden, az ujjlenyomatos műveletek az
+    akció-kihíváson mennek; a szalag induláskor, előtérben és a
+    kezelőképernyőkről visszatérve frissül; a szerver a helyreállító
+    kódok generálási idejét is kiadja (Addendum 10).
 - **Üzemeltetés (D10):**
   - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
     dedikált userrel;
