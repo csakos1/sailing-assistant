@@ -30,6 +30,10 @@ Future<void> pumpWebAccessApp(
         webHttpClientProvider.overrideWithValue(server.client),
         webKeyOperationsProvider.overrideWithValue(keys.operations),
         clockProvider.overrideWithValue(() => testNow),
+        readDeviceIdentityProvider.overrideWithValue(
+          () async =>
+              (deviceName: 'Pixel 9 Pro XL', model: 'Google Pixel 9 Pro XL'),
+        ),
       ],
       child: MaterialApp(
         theme: foretackTheme,

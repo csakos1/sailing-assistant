@@ -43,6 +43,20 @@ String formatWebAgo(AppLocalizations l10n, DateTime moment, DateTime now) {
   return l10n.webAgoDays(elapsed.inDays);
 }
 
+/// A hátralévő idő az [expiresAt]-ig: „lejár 23 ó múlva", egy óra alatt
+/// „lejár 12 p múlva" (Z8), lefelé kerekítve, de legalább 1 perc: a
+/// szerver csak élő kérelmet ad, egy pár másodperces maradék ne „0 p"
+/// legyen.
+String formatExpiresIn(
+  AppLocalizations l10n,
+  DateTime expiresAt,
+  DateTime now,
+) {
+  final left = expiresAt.difference(now);
+  if (left.inHours >= 1) return l10n.webCrewExpiresHours(left.inHours);
+  return l10n.webCrewExpiresMinutes(left.inMinutes < 1 ? 1 : left.inMinutes);
+}
+
 /// A [month] (1–12) rövid neve az ARB listájából.
 String monthShortName(AppLocalizations l10n, int month) =>
     l10n.webMonthsShort.split('|')[month - 1];

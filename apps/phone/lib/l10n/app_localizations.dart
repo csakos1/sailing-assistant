@@ -1449,6 +1449,396 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'{count} napja'**
   String webAgoDays(int count);
+
+  /// A ⋮ menü sora a legénység kezeléséhez (csak tulajdonos, Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webMenuCrew;
+
+  /// A ⋮ menü sora a tulajdonos fiókjához (Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók és biztonság'**
+  String get webMenuAccountOwner;
+
+  /// A ⋮ menü sora a legénységi tag fiókjához (Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webMenuAccountCrew;
+
+  /// A függő kérelmek szalagja a mono szám után (18h-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'csatlakozási kérelem'**
+  String get webBannerJoinRequests;
+
+  /// A függő kérelmek szalagjának linkje (18h-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webBannerCrewLink;
+
+  /// A 18k képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webCrewTitle;
+
+  /// A 18k kérelmeinek csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'FÜGGŐ KÉRELEM'**
+  String get webCrewPendingSection;
+
+  /// A 18k tagjainak csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'TAGOK'**
+  String get webCrewMembersSection;
+
+  /// Egy kérelem lejárata órában (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'lejár {hours} ó múlva'**
+  String webCrewExpiresHours(int hours);
+
+  /// Egy kérelem lejárata percben, egy óra alatt (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'lejár {minutes} p múlva'**
+  String webCrewExpiresMinutes(int minutes);
+
+  /// A kérelem elutasítása (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'Elutasítás'**
+  String get webCrewReject;
+
+  /// A kérelem jóváhagyása (18k, 18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Jóváhagyás'**
+  String get webCrewApprove;
+
+  /// Egy tag sora: eszközszám és az utolsó webes aktivitás (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} eszköz · web: {web}'**
+  String webCrewMemberLine(int count, String web);
+
+  /// Nincs élő webes munkamenet (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'—'**
+  String get webCrewNoWeb;
+
+  /// A jóváhagyó lap címe (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} jóváhagyása'**
+  String webCrewApprovalTitle(String name);
+
+  /// A jóváhagyó lap alapválasztása (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új tag'**
+  String get webCrewNewMember;
+
+  /// Egy meglévő tag új telefonja a jóváhagyó lapon (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} új telefonja'**
+  String webCrewMemberPhone(String name);
+
+  /// Egy tag aktív eszközeinek száma (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} eszköz'**
+  String webCrewDeviceCount(int count);
+
+  /// A jóváhagyó lap megszakítása (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webCrewCancel;
+
+  /// A 18k-3 adatsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Utolsó webes aktivitás'**
+  String get webMemberLastActivity;
+
+  /// A 18k-3 adatsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes munkamenet'**
+  String get webMemberSessionCount;
+
+  /// A 18k-3 eszközeinek csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'ESZKÖZÖK'**
+  String get webMemberDevicesSection;
+
+  /// A 18k-3, ha a tagnak nincs aktív eszköze.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs aktív telefonja'**
+  String get webMemberNoDevices;
+
+  /// Egy eszköz regisztrálásának ideje (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'regisztrálva {when}'**
+  String webMemberRegistered(String when);
+
+  /// Egy eszköz utolsó használata (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'utoljára {when}'**
+  String webMemberLastUsed(String when);
+
+  /// Egy eszköz visszavonása (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Visszavonás'**
+  String get webMemberRevoke;
+
+  /// A kérő telefon sora a gomb helyett (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon'**
+  String get webMemberThisPhone;
+
+  /// A 18k-3 alsó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Tag eltávolítása'**
+  String get webMemberRemove;
+
+  /// A 18k-4 dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} eltávolítása?'**
+  String webMemberRemoveTitle(String name);
+
+  /// A 18k-4 dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Minden telefonja és minden webes munkamenete azonnal megszűnik.'**
+  String get webMemberRemoveMessage;
+
+  /// A 18k-4 dialógus romboló gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Eltávolítás'**
+  String get webMemberRemoveConfirm;
+
+  /// A 18l képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók és biztonság'**
+  String get webAccountTitleOwner;
+
+  /// A 18l-2 képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webAccountTitleCrew;
+
+  /// A névrész csoport-fejléce (18l-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'NÉV'**
+  String get webAccountNameSection;
+
+  /// A névmező címkéje (18l-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'NEVED'**
+  String get webAccountNameLabel;
+
+  /// A név mentése (Z11).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mentés'**
+  String get webAccountNameSave;
+
+  /// Az átnevezés snackbarja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Név mentve'**
+  String get webAccountNameSaved;
+
+  /// A jelszórész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'WEBES JELSZÓ'**
+  String get webAccountPasswordSection;
+
+  /// A jelszó állapota (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Beállítva: {when}'**
+  String webAccountPasswordSetAt(String when);
+
+  /// A jelszó állapota, ha nincs (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs jelszó'**
+  String get webAccountPasswordNone;
+
+  /// A jelszómező címkéje (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÚJ JELSZÓ'**
+  String get webAccountPasswordLabel;
+
+  /// A jelszó szabálya (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legalább 12 karakter'**
+  String get webAccountPasswordRule;
+
+  /// A túl hosszú jelszó jelzése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legfeljebb 128 karakter'**
+  String get webAccountPasswordTooLong;
+
+  /// A jelszó hossza a 12-es minimumhoz (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} / 12'**
+  String webAccountPasswordCount(int count);
+
+  /// A jelszó mentése (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Jelszó mentése'**
+  String get webAccountPasswordSave;
+
+  /// A jelszó mentésének snackbarja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Jelszó mentve'**
+  String get webAccountPasswordSaved;
+
+  /// A kódrész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'HELYREÁLLÍTÓ KÓDOK'**
+  String get webAccountCodesSection;
+
+  /// A még fel nem használt kódok sora (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Felhasználatlan'**
+  String get webAccountCodesUnused;
+
+  /// A kódkészlet ideje (Z12).
+  ///
+  /// In hu, this message translates to:
+  /// **'generálva {when}'**
+  String webAccountCodesGenerated(String when);
+
+  /// A kódok teljes száma a felhasználatlanok után (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'/ {total}'**
+  String webAccountCodesTotal(int total);
+
+  /// A kódok újragenerálása (18l, 18l-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Újragenerálás'**
+  String get webAccountCodesRegenerate;
+
+  /// A 18l-3 dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Új helyreállító kódok?'**
+  String get webAccountCodesConfirmTitle;
+
+  /// A 18l-3 dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A mostani 10 kód azonnal érvénytelen lesz.'**
+  String get webAccountCodesConfirmMessage;
+
+  /// A telefonrész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'EZ A TELEFON'**
+  String get webAccountPhoneSection;
+
+  /// A telefon neve (18l, csak kiírás, Z1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Név'**
+  String get webAccountPhoneName;
+
+  /// A telefon típusa (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Típus'**
+  String get webAccountPhoneModel;
+
+  /// Link a 18i-re (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webAccountSessionsLink;
+
+  /// Link a 18k-ra (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webAccountCrewLink;
+
+  /// A függő kérelmek száma a Legénység linkjén (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} kérelem'**
+  String webAccountCrewRequests(int count);
+
+  /// Ujjlenyomat-ablak: jóváhagyás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} jóváhagyása'**
+  String webPromptApproveTitle(String name);
+
+  /// Ujjlenyomat-ablak: visszavonás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{device} visszavonása'**
+  String webPromptRevokeTitle(String device);
+
+  /// Ujjlenyomat-ablak: eltávolítás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} eltávolítása'**
+  String webPromptRemoveTitle(String name);
+
+  /// Ujjlenyomat-ablak alcíme: eltávolítás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Minden telefonja és munkamenete'**
+  String get webPromptRemoveSubtitle;
+
+  /// Ujjlenyomat-ablak: jelszó (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes jelszó beállítása'**
+  String get webPromptPasswordTitle;
+
+  /// Ujjlenyomat-ablak: kódok (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új helyreállító kódok'**
+  String get webPromptCodesTitle;
 }
 
 class _AppLocalizationsDelegate

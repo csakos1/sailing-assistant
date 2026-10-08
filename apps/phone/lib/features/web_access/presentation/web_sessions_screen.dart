@@ -9,6 +9,7 @@ import 'package:phone/features/web_access/application/web_session_groups.dart';
 import 'package:phone/features/web_access/presentation/management_feedback.dart';
 import 'package:phone/features/web_access/presentation/web_time_format.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_action_button.dart';
+import 'package:phone/features/web_access/presentation/widgets/web_load_problem.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_mode_tag.dart';
 import 'package:phone/features/web_access/presentation/widgets/web_section_header.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -44,11 +45,15 @@ class WebSessionsScreen extends ConsumerWidget {
         AsyncValue(valueOrNull: Ok(:final value)) => _SessionList(
           sessions: value,
         ),
-        AsyncValue(valueOrNull: Err(:final error)) => _LoadProblem(
+        AsyncValue(valueOrNull: Err(:final error)) => WebLoadProblem(
           problem: managementProblemOf(error) ?? const ActionFailed(),
+          onRetry: () => ref.invalidate(webSessionsProvider),
         ),
         // A betöltés hibája adatként jön; ez csak egy váratlan kivétel.
-        AsyncError() => const _LoadProblem(problem: ServerUnreachable()),
+        AsyncError() => WebLoadProblem(
+          problem: const ServerUnreachable(),
+          onRetry: () => ref.invalidate(webSessionsProvider),
+        ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );
@@ -261,38 +266,3 @@ String _modeLabel(AppLocalizations l10n, LoginMethod method) =>
       LoginMethod.password => l10n.webModePassword,
       LoginMethod.recoveryCode => l10n.webModeRecoveryCode,
     };
-
-/// A lista betöltési hibája a képernyő helyén (Z3); a visszavont telefon
-/// a főképernyőn is jelzést kap (Z4).
-class _LoadProblem extends ConsumerWidget {
-  const _LoadProblem({required this.problem});
-
-  final ManagementProblem problem;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            managementProblemText(l10n, problem),
-            style: supportTextStyle.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          if (problem is! PhoneRevoked) ...[
-            const SizedBox(height: 16),
-            WebActionButton.secondary(
-              label: l10n.webScanRetry,
-              isCompact: true,
-              onPressed: () => ref.invalidate(webSessionsProvider),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}

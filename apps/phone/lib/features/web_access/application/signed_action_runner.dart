@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:phone/features/web_access/application/authorized_call.dart';
 import 'package:phone/features/web_access/application/web_access_error.dart';
 import 'package:phone/features/web_access/data/web_access_api_client.dart';
+import 'package:phone/features/web_access/data/web_api_failure.dart';
 import 'package:phone/features/web_access/data/web_key_operations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
@@ -27,6 +28,9 @@ class SignedActionRunner {
   final WebAccessApiClient _client;
   final AuthorizedCall _calls;
   final SignWithBiometrics _signWithBiometrics;
+
+  /// A szerver origója, amelynek a műveleteit aláírja.
+  String get origin => _calls.tokens.account.origin;
 
   /// A [kind] művelet aláírása a [target] céllal; a [prompt] az
   /// ujjlenyomat-ablak szövege (Z13).
@@ -60,5 +64,28 @@ class SignedActionRunner {
         return Err(KeyOperationFailed(error));
     }
     return Ok(SignedAction(challenge: challenge, signature: signature));
+  }
+
+  /// A [kind] művelet aláírása ([sign]), utána a [send] kérés az aláírással
+  /// és egy eszköz-tokennel.
+  ///
+  /// Egy `401` utáni újrapróba ugyanazt az aláírást küldi: a szerver a
+  /// tokent a kihívás elhasználása előtt nézi (M2), így az még érvényes.
+  Future<Result<T, WebAccessError>> signAndRun<T>(
+    DeviceAction kind, {
+    required String target,
+    required BiometricPromptText prompt,
+    required Future<Result<T, WebApiFailure>> Function(
+      SignedAction action,
+      String deviceToken,
+    )
+    send,
+  }) async {
+    switch (await sign(kind, target: target, prompt: prompt)) {
+      case Ok(value: final action):
+        return _calls.run((token) => send(action, token));
+      case Err(:final error):
+        return Err(error);
+    }
   }
 }

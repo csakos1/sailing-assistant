@@ -306,3 +306,75 @@ http.Response meResponse({
 /// A munkamenet-lista valasza.
 http.Response sessionsResponse(List<WebSession> sessions) =>
     jsonResponse(encodeWebSessions(sessions));
+
+/// Egy fuggo csatlakozasi kerelem a Legenyseg listajan.
+PendingJoinRequest testPendingRequest({
+  String id = 'join-1',
+  String name = 'Gergő',
+}) => PendingJoinRequest(
+  id: id,
+  name: name,
+  deviceName: 'Pixel 7a',
+  model: 'Google Pixel 7a',
+  ip: '91.120.5.6',
+  country: 'HU',
+  city: 'Keszthely',
+  createdAt: DateTime.utc(2026, 10, 7, 10, 48),
+  expiresAt: DateTime.utc(2026, 10, 8, 10, 48),
+);
+
+/// Egy tag aktiv eszkoze.
+MemberDevice testMemberDevice({
+  String id = 'device-2',
+  String name = 'Galaxy S23',
+  DateTime? lastUsedAt,
+}) => MemberDevice(
+  id: id,
+  name: name,
+  model: 'Samsung $name',
+  createdAt: DateTime.utc(2026, 4, 11, 8),
+  lastUsedAt: lastUsedAt,
+);
+
+/// Egy fiok az eszkozeivel; az alapertek a teszt-fiok (`owner`) a
+/// teszt-eszkozzel.
+MemberInfo testMember({
+  String userId = 'user-1',
+  String name = 'Ákos',
+  UserRole role = UserRole.owner,
+  List<MemberDevice>? devices,
+}) => MemberInfo(
+  account: AccountInfo(userId: userId, name: name, role: role),
+  createdAt: DateTime.utc(2026, 3, 2, 18),
+  devices:
+      devices ?? [testMemberDevice(id: testDeviceId, name: 'Pixel 9 Pro XL')],
+);
+
+/// A fuggo kerelmek valasza.
+http.Response joinRequestsResponse(List<PendingJoinRequest> requests) =>
+    jsonResponse(encodePendingJoinRequests(requests));
+
+/// A fiokok valasza.
+http.Response membersResponse(List<MemberInfo> members) =>
+    jsonResponse(encodeMembers(members));
+
+/// A jelszo es a kodok allapotanak valasza.
+http.Response securityResponse({
+  DateTime? passwordSetAt,
+  int recoveryCodesLeft = 7,
+  DateTime? recoveryCodesGeneratedAt,
+}) => jsonResponse(
+  encodeAccountSecurity(
+    AccountSecurity(
+      passwordSetAt: passwordSetAt,
+      recoveryCodesLeft: recoveryCodesLeft,
+      recoveryCodesGeneratedAt: recoveryCodesGeneratedAt,
+    ),
+  ),
+);
+
+/// Az akcio-kihivas utvonala (M2).
+void serveActionChallenges(FakeWebServer server) {
+  server.routes[actionChallengesPath] = (_) =>
+      jsonResponse(issuedJson(testChallenge), status: 201);
+}

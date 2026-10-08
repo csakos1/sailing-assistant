@@ -43,6 +43,11 @@ class WebAccessStatusNotifier extends Notifier<WebAccessStatus> {
     return _start(account);
   }
 
+  /// Új frissítés egy másik képernyő művelete után (Z5), akkor is, ha egy
+  /// korábbi még fut: az a művelet előtti szalagot és jelvényt hozná.
+  Future<void> refreshAfterAction() =>
+      _start(_identityOf(ref.read(webAccountProvider).valueOrNull));
+
   /// A telefon visszavont állapotba kerül (egy képernyő hívása `403`-at
   /// kapott, Z4).
   void markRevoked() => state = WebAccessStatus.revoked;

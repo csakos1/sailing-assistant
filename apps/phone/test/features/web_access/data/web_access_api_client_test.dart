@@ -380,4 +380,172 @@ void main() {
       expect(FakeWebServer.bodyOf(request), isEmpty);
     });
   });
+
+  group('crew and account calls', () {
+    final action = SignedAction(
+      challenge: testChallenge,
+      signature: FakeKeys.biometricSignature,
+    );
+
+    T valueOf<T>(Result<T, WebApiFailure> result) => switch (result) {
+      Ok(:final value) => value,
+      Err(:final error) => throw StateError('$error'),
+    };
+
+    test('the join requests and the members decode their lists', () async {
+      // Arrange
+      final request = testPendingRequest();
+      final member = testMember();
+      server.routes[joinRequestsPath] = (_) => joinRequestsResponse([request]);
+      server.routes[membersPath] = (_) => membersResponse([member]);
+
+      // Act
+      final requests = await client.listJoinRequests(
+        deviceToken: testDeviceToken,
+      );
+      final members = await client.listMembers(deviceToken: testDeviceToken);
+
+      // Assert
+      expect(valueOf(requests), [request]);
+      expect(valueOf(members), [member]);
+      expect(server.requests.map((request) => request.method), [
+        'GET',
+        'GET',
+      ]);
+    });
+
+    test('an approval carries the member and the signed action', () async {
+      // Arrange
+      final path = joinRequestApprovalPath('join-1');
+      server.routes[path] = (_) => jsonResponse(encodeMemberInfo(testMember()));
+
+      // Act
+      final result = await client.approveJoinRequest(
+        'join-1',
+        JoinApproval(memberId: 'user-2', action: action),
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(valueOf(result), testMember());
+      final body = FakeWebServer.bodyOf(server.requests.single);
+      expect(body['memberId'], 'user-2');
+      expect(body['challenge'], testChallenge);
+      expect(body['signature'], base64Encode(FakeKeys.biometricSignature));
+    });
+
+    test('a rejection is a body-less POST answered with 204', () async {
+      // Arrange
+      final path = joinRequestRejectionPath('join-1');
+      server.routes[path] = (_) => http.Response('', 204);
+
+      // Act
+      final result = await client.rejectJoinRequest(
+        'join-1',
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(result, isA<Ok<void, WebApiFailure>>());
+      final request = server.requests.single;
+      expect(request.method, 'POST');
+      expect(request.body, isEmpty);
+    });
+
+    test('revoking and removing post the signed action', () async {
+      // Arrange
+      server.routes[deviceRevocationPath('device-2')] = (_) =>
+          http.Response('', 204);
+      server.routes[memberRemovalPath('user-2')] = (_) =>
+          http.Response('', 204);
+
+      // Act
+      final revoked = await client.revokeDevice(
+        'device-2',
+        action,
+        deviceToken: testDeviceToken,
+      );
+      final removed = await client.removeMember(
+        'user-2',
+        action,
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(revoked, isA<Ok<void, WebApiFailure>>());
+      expect(removed, isA<Ok<void, WebApiFailure>>());
+      for (final request in server.requests) {
+        expect(request.headers['content-type'], startsWith('application/json'));
+        expect(FakeWebServer.bodyOf(request)['challenge'], testChallenge);
+      }
+    });
+
+    test('a 410 on a decision comes back as the server error', () async {
+      // Arrange
+      server.routes[deviceRevocationPath('device-2')] = (_) =>
+          errorResponse(const RequestExpired());
+
+      // Act
+      final result = await client.revokeDevice(
+        'device-2',
+        action,
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(switch (result) {
+        Err(error: WebServerFailure(:final error)) => error,
+        _ => null,
+      }, const RequestExpired());
+    });
+
+    test('renaming returns the account with the new name', () async {
+      // Arrange
+      server.routes[accountNamePath] = (_) => meResponse(name: 'Ákos Cs.');
+
+      // Act
+      final result = await client.renameAccount(
+        'Ákos Cs.',
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(valueOf(result).name, 'Ákos Cs.');
+      expect(FakeWebServer.bodyOf(server.requests.single), {
+        'name': 'Ákos Cs.',
+      });
+    });
+
+    test('the security state, the password and the codes', () async {
+      // Arrange
+      final generatedAt = DateTime.utc(2026, 3, 2, 18, 40);
+      server.routes[accountSecurityPath] = (_) =>
+          securityResponse(recoveryCodesGeneratedAt: generatedAt);
+      server.routes[accountPasswordPath] = (_) => http.Response('', 204);
+      server.routes[accountRecoveryCodesPath] = (_) => jsonResponse(
+        encodeIssuedRecoveryCodes(const IssuedRecoveryCodes(['ABCDE-FGHIJ'])),
+        status: 201,
+      );
+
+      // Act
+      final security = await client.fetchAccountSecurity(
+        deviceToken: testDeviceToken,
+      );
+      final password = await client.setPassword(
+        PasswordChange(password: 'hajo-lola-balaton', action: action),
+        deviceToken: testDeviceToken,
+      );
+      final codes = await client.regenerateRecoveryCodes(
+        action,
+        deviceToken: testDeviceToken,
+      );
+
+      // Assert
+      expect(valueOf(security).recoveryCodesGeneratedAt, generatedAt);
+      expect(password, isA<Ok<void, WebApiFailure>>());
+      expect(valueOf(codes).codes, ['ABCDE-FGHIJ']);
+      final passwordBody = FakeWebServer.bodyOf(server.requests[1]);
+      expect(passwordBody['password'], 'hajo-lola-balaton');
+    });
+  });
 }

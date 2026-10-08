@@ -3,11 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:race_archive_api/race_archive_api.dart';
 
 /// A ⋮ menü sorai.
 enum WebAccessMenuItem {
   /// „Webes belépések" (18i/18j).
   sessions,
+
+  /// „Legénység" (18k, csak `owner`).
+  crew,
+
+  /// „Fiók és biztonság", a `crew`-nál „Fiók" (18l/18l-2).
+  account,
 }
 
 /// A főképernyő ⋮ menüje a webes hozzáféréshez (ADR 0051 Addendum 1 H1,
@@ -30,7 +37,13 @@ class WebAccessMenu extends ConsumerWidget {
     final isRevoked = ref.watch(
       webAccessStatusProvider.select((status) => status.isRevoked),
     );
+    final pendingJoinRequests = ref.watch(
+      webAccessStatusProvider.select(
+        (status) => status.banner?.pendingJoinRequests ?? 0,
+      ),
+    );
     if (account == null || isRevoked) return const SizedBox.shrink();
+    final isOwner = account.account.role == UserRole.owner;
     // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
@@ -50,12 +63,72 @@ class WebAccessMenu extends ConsumerWidget {
       onSelected: onSelected,
       itemBuilder: (context) => [
         _MenuSectionLabel(text: l10n.webMenuSection),
-        PopupMenuItem(
-          value: WebAccessMenuItem.sessions,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(l10n.webMenuSessions, style: itemStyle),
+        _item(WebAccessMenuItem.sessions, l10n.webMenuSessions, itemStyle),
+        if (isOwner)
+          _item(
+            WebAccessMenuItem.crew,
+            l10n.webMenuCrew,
+            itemStyle,
+            badge: pendingJoinRequests,
+          ),
+        _item(
+          WebAccessMenuItem.account,
+          isOwner ? l10n.webMenuAccountOwner : l10n.webMenuAccountCrew,
+          itemStyle,
         ),
       ],
+    );
+  }
+}
+
+// Egy menüsor; a [badge] a függő kérelmek száma, 0-nál nincs jelvény
+// (Z6).
+PopupMenuItem<WebAccessMenuItem> _item(
+  WebAccessMenuItem value,
+  String label,
+  TextStyle style, {
+  int badge = 0,
+}) => PopupMenuItem(
+  value: value,
+  padding: const EdgeInsets.symmetric(horizontal: 16),
+  child: Row(
+    spacing: 10,
+    children: [
+      Expanded(child: Text(label, style: style)),
+      if (badge > 0) _CountBadge(count: badge),
+    ],
+  ),
+);
+
+/// A „Legénység" sor jelvénye: mono szám `secondaryContainer`-en (makett
+/// 18a-2).
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      child: ColoredBox(
+        color: scheme.secondaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              '$count',
+              style: numeralCaptionStyle.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

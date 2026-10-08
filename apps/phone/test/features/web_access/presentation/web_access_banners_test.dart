@@ -14,6 +14,7 @@ void main() {
   late FakeKeys keys;
   late MemoryWebAccountStore store;
   late int sessionsOpened;
+  late int crewOpened;
   late int scannerOpened;
   late List<WebAccessMenuItem> selected;
 
@@ -22,6 +23,7 @@ void main() {
     keys = FakeKeys();
     store = MemoryWebAccountStore(testAccount());
     sessionsOpened = 0;
+    crewOpened = 0;
     scannerOpened = 0;
     selected = [];
     serveDeviceTokens(server);
@@ -44,6 +46,7 @@ void main() {
           children: [
             WebAccessBanners(
               onOpenSessions: () => sessionsOpened++,
+              onOpenCrew: () => crewOpened++,
               onOpenScanner: () => scannerOpened++,
             ),
             const Expanded(child: Text('list')),
@@ -182,6 +185,51 @@ void main() {
     });
   });
 
+  group('pending join requests', () {
+    testWidgets('the owner sees the count under the suspicious logins', (
+      tester,
+    ) async {
+      // Arrange
+      server.routes[bannerPath] = (_) => bannerResponse(
+        suspicious: [testSuspiciousLogin()],
+        pendingJoinRequests: 2,
+      );
+      await pumpHome(tester);
+
+      // Act
+      await tester.tap(find.text('csatlakozási kérelem'));
+      await tester.pump();
+
+      // Assert
+      expect(find.text('2'), findsOneWidget);
+      final suspicious = tester.getTopLeft(find.text('Belépés jelszóval'));
+      final pending = tester.getTopLeft(find.text('csatlakozási kérelem'));
+      expect(suspicious.dy, lessThan(pending.dy));
+      expect(crewOpened, 1);
+    });
+
+    testWidgets('no requests, no row', (tester) async {
+      // Act
+      await pumpHome(tester);
+
+      // Assert
+      expect(find.text('csatlakozási kérelem'), findsNothing);
+    });
+
+    testWidgets('the crew never sees the row', (tester) async {
+      // Arrange
+      store.account = testAccount(role: UserRole.crew);
+      server.routes[mePath] = (_) => meResponse(role: UserRole.crew);
+      server.routes[bannerPath] = (_) => bannerResponse(pendingJoinRequests: 1);
+
+      // Act
+      await pumpHome(tester);
+
+      // Assert
+      expect(find.text('csatlakozási kérelem'), findsNothing);
+    });
+  });
+
   group('revoked phone', () {
     setUp(() {
       server.routes[deviceChallengesPath] = (_) =>
@@ -234,6 +282,47 @@ void main() {
 
       // Assert
       expect(selected, [WebAccessMenuItem.sessions]);
+    });
+
+    testWidgets('the owner gets the crew row with the request count', (
+      tester,
+    ) async {
+      // Arrange
+      server.routes[bannerPath] = (_) => bannerResponse(pendingJoinRequests: 3);
+      await pumpHome(tester);
+
+      // Act
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      // A szalag is mutatja a szamot es a Legenyseg linket; a menu a
+      // fa vegen, az overlay-ben all.
+      expect(find.text('3'), findsNWidgets(2));
+      expect(find.text('Fiók és biztonság'), findsOneWidget);
+      await tester.tap(find.text('Legénység').last);
+      await tester.pumpAndSettle();
+
+      // Assert
+      expect(selected, [WebAccessMenuItem.crew]);
+    });
+
+    testWidgets('the crew gets only the sessions and the account', (
+      tester,
+    ) async {
+      // Arrange
+      store.account = testAccount(role: UserRole.crew);
+      server.routes[mePath] = (_) => meResponse(role: UserRole.crew);
+      server.routes[bannerPath] = (_) => bannerResponse();
+      await pumpHome(tester);
+
+      // Act
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      expect(find.text('Legénység'), findsNothing);
+      await tester.tap(find.text('Fiók'));
+      await tester.pumpAndSettle();
+
+      // Assert
+      expect(selected, [WebAccessMenuItem.account]);
     });
 
     testWidgets('is hidden without an account', (tester) async {

@@ -766,4 +766,235 @@ class AppLocalizationsHu extends AppLocalizations {
   String webAgoDays(int count) {
     return '$count napja';
   }
+
+  @override
+  String get webMenuCrew => 'Legénység';
+
+  @override
+  String get webMenuAccountOwner => 'Fiók és biztonság';
+
+  @override
+  String get webMenuAccountCrew => 'Fiók';
+
+  @override
+  String get webBannerJoinRequests => 'csatlakozási kérelem';
+
+  @override
+  String get webBannerCrewLink => 'Legénység';
+
+  @override
+  String get webCrewTitle => 'Legénység';
+
+  @override
+  String get webCrewPendingSection => 'FÜGGŐ KÉRELEM';
+
+  @override
+  String get webCrewMembersSection => 'TAGOK';
+
+  @override
+  String webCrewExpiresHours(int hours) {
+    return 'lejár $hours ó múlva';
+  }
+
+  @override
+  String webCrewExpiresMinutes(int minutes) {
+    return 'lejár $minutes p múlva';
+  }
+
+  @override
+  String get webCrewReject => 'Elutasítás';
+
+  @override
+  String get webCrewApprove => 'Jóváhagyás';
+
+  @override
+  String webCrewMemberLine(int count, String web) {
+    return '$count eszköz · web: $web';
+  }
+
+  @override
+  String get webCrewNoWeb => '—';
+
+  @override
+  String webCrewApprovalTitle(String name) {
+    return '$name jóváhagyása';
+  }
+
+  @override
+  String get webCrewNewMember => 'Új tag';
+
+  @override
+  String webCrewMemberPhone(String name) {
+    return '$name új telefonja';
+  }
+
+  @override
+  String webCrewDeviceCount(int count) {
+    return '$count eszköz';
+  }
+
+  @override
+  String get webCrewCancel => 'Mégse';
+
+  @override
+  String get webMemberLastActivity => 'Utolsó webes aktivitás';
+
+  @override
+  String get webMemberSessionCount => 'Webes munkamenet';
+
+  @override
+  String get webMemberDevicesSection => 'ESZKÖZÖK';
+
+  @override
+  String get webMemberNoDevices => 'Nincs aktív telefonja';
+
+  @override
+  String webMemberRegistered(String when) {
+    return 'regisztrálva $when';
+  }
+
+  @override
+  String webMemberLastUsed(String when) {
+    return 'utoljára $when';
+  }
+
+  @override
+  String get webMemberRevoke => 'Visszavonás';
+
+  @override
+  String get webMemberThisPhone => 'Ez a telefon';
+
+  @override
+  String get webMemberRemove => 'Tag eltávolítása';
+
+  @override
+  String webMemberRemoveTitle(String name) {
+    return '$name eltávolítása?';
+  }
+
+  @override
+  String get webMemberRemoveMessage =>
+      'Minden telefonja és minden webes munkamenete azonnal megszűnik.';
+
+  @override
+  String get webMemberRemoveConfirm => 'Eltávolítás';
+
+  @override
+  String get webAccountTitleOwner => 'Fiók és biztonság';
+
+  @override
+  String get webAccountTitleCrew => 'Fiók';
+
+  @override
+  String get webAccountNameSection => 'NÉV';
+
+  @override
+  String get webAccountNameLabel => 'NEVED';
+
+  @override
+  String get webAccountNameSave => 'Mentés';
+
+  @override
+  String get webAccountNameSaved => 'Név mentve';
+
+  @override
+  String get webAccountPasswordSection => 'WEBES JELSZÓ';
+
+  @override
+  String webAccountPasswordSetAt(String when) {
+    return 'Beállítva: $when';
+  }
+
+  @override
+  String get webAccountPasswordNone => 'Nincs jelszó';
+
+  @override
+  String get webAccountPasswordLabel => 'ÚJ JELSZÓ';
+
+  @override
+  String get webAccountPasswordRule => 'Legalább 12 karakter';
+
+  @override
+  String get webAccountPasswordTooLong => 'Legfeljebb 128 karakter';
+
+  @override
+  String webAccountPasswordCount(int count) {
+    return '$count / 12';
+  }
+
+  @override
+  String get webAccountPasswordSave => 'Jelszó mentése';
+
+  @override
+  String get webAccountPasswordSaved => 'Jelszó mentve';
+
+  @override
+  String get webAccountCodesSection => 'HELYREÁLLÍTÓ KÓDOK';
+
+  @override
+  String get webAccountCodesUnused => 'Felhasználatlan';
+
+  @override
+  String webAccountCodesGenerated(String when) {
+    return 'generálva $when';
+  }
+
+  @override
+  String webAccountCodesTotal(int total) {
+    return '/ $total';
+  }
+
+  @override
+  String get webAccountCodesRegenerate => 'Újragenerálás';
+
+  @override
+  String get webAccountCodesConfirmTitle => 'Új helyreállító kódok?';
+
+  @override
+  String get webAccountCodesConfirmMessage =>
+      'A mostani 10 kód azonnal érvénytelen lesz.';
+
+  @override
+  String get webAccountPhoneSection => 'EZ A TELEFON';
+
+  @override
+  String get webAccountPhoneName => 'Név';
+
+  @override
+  String get webAccountPhoneModel => 'Típus';
+
+  @override
+  String get webAccountSessionsLink => 'Webes belépések';
+
+  @override
+  String get webAccountCrewLink => 'Legénység';
+
+  @override
+  String webAccountCrewRequests(int count) {
+    return '$count kérelem';
+  }
+
+  @override
+  String webPromptApproveTitle(String name) {
+    return '$name jóváhagyása';
+  }
+
+  @override
+  String webPromptRevokeTitle(String device) {
+    return '$device visszavonása';
+  }
+
+  @override
+  String webPromptRemoveTitle(String name) {
+    return '$name eltávolítása';
+  }
+
+  @override
+  String get webPromptRemoveSubtitle => 'Minden telefonja és munkamenete';
+
+  @override
+  String get webPromptPasswordTitle => 'Webes jelszó beállítása';
+
+  @override
+  String get webPromptCodesTitle => 'Új helyreállító kódok';
 }

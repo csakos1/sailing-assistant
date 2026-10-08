@@ -20,19 +20,24 @@ const int maximumSeparateSuspiciousBanners = 2;
 ///
 /// A visszavont telefonnak egy sor, különben a gyanús belépések: kettőig
 /// egyenként „Rendben" és „Kiléptetés" gombbal, fölötte egy összevont sor
-/// a „Webes belépések" képernyőre. Hiba vagy fiók nélkül nincs semmi
-/// (H11).
+/// a „Webes belépések" képernyőre. Alattuk az `owner`-nél a függő
+/// csatlakozási kérelmek sora (18h-1, 18h-3). Hiba vagy fiók nélkül nincs
+/// semmi (H11).
 class WebAccessBanners extends ConsumerWidget {
   /// Szalagok; az [onOpenSessions] a „Webes belépések"-et, az
-  /// [onOpenScanner] a beolvasót nyitja.
+  /// [onOpenCrew] a „Legénység"-et, az [onOpenScanner] a beolvasót nyitja.
   const WebAccessBanners({
     required this.onOpenSessions,
+    required this.onOpenCrew,
     required this.onOpenScanner,
     super.key,
   });
 
   /// A „Webes belépések" megnyitása (az összevont sorról).
   final VoidCallback onOpenSessions;
+
+  /// A „Legénység" megnyitása (a függő kérelmek soráról).
+  final VoidCallback onOpenCrew;
 
   /// A beolvasó megnyitása (a visszavont legénységi telefon újra
   /// csatlakozik, H7).
@@ -50,18 +55,25 @@ class WebAccessBanners extends ConsumerWidget {
       );
     }
     final suspicious = status.banner?.suspicious ?? const <SuspiciousLogin>[];
-    if (suspicious.length > maximumSeparateSuspiciousBanners) {
-      return _AggregateBanner(count: suspicious.length, onTap: onOpenSessions);
-    }
+    // A szerver csak az `owner`-nek számolja (N6), de a sor a legénységnél
+    // úgysem vinne sehova.
+    final pendingJoinRequests = account.account.role == UserRole.owner
+        ? status.banner?.pendingJoinRequests ?? 0
+        : 0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final login in suspicious)
-          _SuspiciousBanner(
-            key: ValueKey(login.id),
-            login: login,
-            isOwn: login.userId == account.account.userId,
-          ),
+        if (suspicious.length > maximumSeparateSuspiciousBanners)
+          _AggregateBanner(count: suspicious.length, onTap: onOpenSessions)
+        else
+          for (final login in suspicious)
+            _SuspiciousBanner(
+              key: ValueKey(login.id),
+              login: login,
+              isOwn: login.userId == account.account.userId,
+            ),
+        if (pendingJoinRequests > 0)
+          _PendingJoinsBanner(count: pendingJoinRequests, onTap: onOpenCrew),
       ],
     );
   }
@@ -251,6 +263,72 @@ class _AggregateBanner extends StatelessWidget {
               ),
               Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A függő csatlakozási kérelmek sora (makett 18h-1): `secondaryContainer`
+/// háttér, mono szám, és a „Legénység" nyíl.
+class _PendingJoinsBanner extends StatelessWidget {
+  const _PendingJoinsBanner({required this.count, required this.onTap});
+
+  /// A sor magassága a makett szerint.
+  static const double height = 53;
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final color = scheme.onSecondaryContainer;
+    return Material(
+      color: scheme.secondaryContainer,
+      child: InkWell(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+          ),
+          child: SizedBox(
+            height: height,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                spacing: 10,
+                children: [
+                  Text(
+                    '$count',
+                    style: numeralMicroStyle.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      l10n.webBannerJoinRequests,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: supportTextStyle.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.webBannerCrewLink,
+                    style: supportTextStyle.copyWith(color: color),
+                  ),
+                  Icon(Icons.chevron_right, color: color, size: 20),
+                ],
+              ),
+            ),
           ),
         ),
       ),

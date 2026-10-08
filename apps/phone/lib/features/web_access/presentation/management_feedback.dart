@@ -34,7 +34,15 @@ void showManagementError(BuildContext context, WebAccessError error) {
 
 /// Egy rövid, lebegő értesítés piros négyzettel, a 18d snackbarjának
 /// mintájára.
-SnackBar webNoticeSnackBar(BuildContext context, String text) {
+SnackBar webNoticeSnackBar(BuildContext context, String text) =>
+    _squareSnackBar(context, text, Theme.of(context).colorScheme.error);
+
+/// Egy sikeres művelet lebegő értesítése teal négyzettel (pl. „Jelszó
+/// mentve"), a 18d mintájára.
+SnackBar webDoneSnackBar(BuildContext context, String text) =>
+    _squareSnackBar(context, text, Theme.of(context).colorScheme.primary);
+
+SnackBar _squareSnackBar(BuildContext context, String text, Color square) {
   final scheme = Theme.of(context).colorScheme;
   return SnackBar(
     // Az M3 alapja (`inverseSurface`) világos: a sötét témában a világos
@@ -44,7 +52,7 @@ SnackBar webNoticeSnackBar(BuildContext context, String text) {
     content: Row(
       spacing: 10,
       children: [
-        SizedBox.square(dimension: 8, child: ColoredBox(color: scheme.error)),
+        SizedBox.square(dimension: 8, child: ColoredBox(color: square)),
         Expanded(
           child: Text(
             text,

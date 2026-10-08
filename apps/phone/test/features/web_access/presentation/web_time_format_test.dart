@@ -110,4 +110,31 @@ void main() {
       expect(monthShortName(l10n, 9), 'szept.');
     });
   });
+
+  group('formatExpiresIn', () {
+    test('counts whole hours, rounding down', () {
+      expect(
+        formatExpiresIn(
+          l10n,
+          now.add(const Duration(hours: 23, minutes: 48)),
+          now,
+        ),
+        'lejár 23 ó múlva',
+      );
+    });
+
+    test('under an hour it counts minutes', () {
+      expect(
+        formatExpiresIn(l10n, now.add(const Duration(minutes: 12)), now),
+        'lejár 12 p múlva',
+      );
+    });
+
+    test('a few seconds left is still one minute', () {
+      expect(
+        formatExpiresIn(l10n, now.add(const Duration(seconds: 20)), now),
+        'lejár 1 p múlva',
+      );
+    });
+  });
 }

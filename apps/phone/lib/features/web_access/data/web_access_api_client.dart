@@ -9,7 +9,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
 
 /// A telefon hívásai a webes archívum hitelesítési végpontjaira (ADR 0051
-/// Addendum 3 K6, Addendum 8 V6–V9, Addendum 10 Z15).
+/// Addendum 3 K6, Addendum 8 V6–V9, Addendum 10 Z11, Z15).
 ///
 /// Csak fordít: a `race_archive_api` kodekjeivel kódol és dekódol,
 /// `Result`-ot ad, kivételt nem. Minden kérés a telefon kliensfejlécét
@@ -157,6 +157,118 @@ class WebAccessApiClient {
     bearerToken: deviceToken,
   );
 
+  /// Az el nem döntött csatlakozási kérelmek (`GET
+  /// /api/auth/join-requests`, csak `owner`, M6).
+  Future<Result<List<PendingJoinRequest>, WebApiFailure>> listJoinRequests({
+    required String deviceToken,
+  }) => _get(
+    joinRequestsPath,
+    decodePendingJoinRequests,
+    bearerToken: deviceToken,
+  );
+
+  /// Egy kérelem jóváhagyása az `approveJoin` aláírásával (`POST
+  /// …/{id}/approval`, M6); a válasz a tag az aktív eszközeivel.
+  Future<Result<MemberInfo, WebApiFailure>> approveJoinRequest(
+    String joinRequestId,
+    JoinApproval approval, {
+    required String deviceToken,
+  }) => _post(
+    joinRequestApprovalPath(joinRequestId),
+    encodeJoinApproval(approval),
+    decodeMemberInfo,
+    bearerToken: deviceToken,
+  );
+
+  /// Egy kérelem elutasítása, aláírás nélkül (`POST …/{id}/rejection`,
+  /// M6); a siker `204`.
+  Future<Result<void, WebApiFailure>> rejectJoinRequest(
+    String joinRequestId, {
+    required String deviceToken,
+  }) => _noContent(
+    'POST',
+    joinRequestRejectionPath(joinRequestId),
+    bearerToken: deviceToken,
+  );
+
+  /// A fiókok az aktív eszközeikkel (`GET /api/auth/members`, csak
+  /// `owner`, M7).
+  Future<Result<List<MemberInfo>, WebApiFailure>> listMembers({
+    required String deviceToken,
+  }) => _get(membersPath, decodeMembers, bearerToken: deviceToken);
+
+  /// Egy eszköz visszavonása a `revokeDevice` aláírásával (`POST
+  /// /api/auth/devices/{id}/revocation`, M7); a siker `204`.
+  Future<Result<void, WebApiFailure>> revokeDevice(
+    String deviceId,
+    SignedAction action, {
+    required String deviceToken,
+  }) => _noContent(
+    'POST',
+    deviceRevocationPath(deviceId),
+    body: encodeSignedAction(action),
+    bearerToken: deviceToken,
+  );
+
+  /// Egy tag eltávolítása a `removeUser` aláírásával (`POST
+  /// /api/auth/members/{id}/removal`, M7); a siker `204`.
+  Future<Result<void, WebApiFailure>> removeMember(
+    String userId,
+    SignedAction action, {
+    required String deviceToken,
+  }) => _noContent(
+    'POST',
+    memberRemovalPath(userId),
+    body: encodeSignedAction(action),
+    bearerToken: deviceToken,
+  );
+
+  /// A saját név átírása (`POST /api/auth/account/name`, M9); a válasz a
+  /// fiók az új névvel.
+  Future<Result<AccountInfo, WebApiFailure>> renameAccount(
+    String name, {
+    required String deviceToken,
+  }) => _post(
+    accountNamePath,
+    encodeDisplayNameChange(name),
+    decodeAccountInfo,
+    bearerToken: deviceToken,
+  );
+
+  /// A jelszó és a kódok állapota (`GET /api/auth/account/security`, csak
+  /// `owner`, N4).
+  Future<Result<AccountSecurity, WebApiFailure>> fetchAccountSecurity({
+    required String deviceToken,
+  }) => _get(
+    accountSecurityPath,
+    decodeAccountSecurity,
+    bearerToken: deviceToken,
+  );
+
+  /// Új tartalék-jelszó a `setPassword` aláírásával (`POST
+  /// /api/auth/account/password`, N4); a siker `204`.
+  Future<Result<void, WebApiFailure>> setPassword(
+    PasswordChange change, {
+    required String deviceToken,
+  }) => _noContent(
+    'POST',
+    accountPasswordPath,
+    body: encodePasswordChange(change),
+    bearerToken: deviceToken,
+  );
+
+  /// Tíz új helyreállító kód a `regenerateRecoveryCodes` aláírásával
+  /// (`POST /api/auth/account/recovery-codes`, N4); a siker `201`.
+  Future<Result<IssuedRecoveryCodes, WebApiFailure>> regenerateRecoveryCodes(
+    SignedAction action, {
+    required String deviceToken,
+  }) => _post(
+    accountRecoveryCodesPath,
+    encodeSignedAction(action),
+    decodeIssuedRecoveryCodes,
+    bearerToken: deviceToken,
+  );
+
   Future<Result<T, WebApiFailure>> _post<T>(
     String path,
     Map<String, Object?> body,
@@ -177,8 +289,14 @@ class WebAccessApiClient {
     String method,
     String path, {
     required String bearerToken,
+    Map<String, Object?>? body,
   }) async {
-    final sent = await _send(method, path, bearerToken: bearerToken);
+    final sent = await _send(
+      method,
+      path,
+      body: body,
+      bearerToken: bearerToken,
+    );
     return switch (sent) {
       Ok(value: final response) => decodeWebNoContent(
         response.statusCode,

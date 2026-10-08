@@ -1045,5 +1045,353 @@
         "type": "int"
       }
     }
+  },
+  "webMenuCrew": "Legénység",
+  "@webMenuCrew": {
+    "description": "A ⋮ menü sora a legénység kezeléséhez (csak tulajdonos, Z6)."
+  },
+  "webMenuAccountOwner": "Fiók és biztonság",
+  "@webMenuAccountOwner": {
+    "description": "A ⋮ menü sora a tulajdonos fiókjához (Z6)."
+  },
+  "webMenuAccountCrew": "Fiók",
+  "@webMenuAccountCrew": {
+    "description": "A ⋮ menü sora a legénységi tag fiókjához (Z6)."
+  },
+  "webBannerJoinRequests": "csatlakozási kérelem",
+  "@webBannerJoinRequests": {
+    "description": "A függő kérelmek szalagja a mono szám után (18h-1)."
+  },
+  "webBannerCrewLink": "Legénység",
+  "@webBannerCrewLink": {
+    "description": "A függő kérelmek szalagjának linkje (18h-1)."
+  },
+  "webCrewTitle": "Legénység",
+  "@webCrewTitle": {
+    "description": "A 18k képernyő címe."
+  },
+  "webCrewPendingSection": "FÜGGŐ KÉRELEM",
+  "@webCrewPendingSection": {
+    "description": "A 18k kérelmeinek csoport-fejléce."
+  },
+  "webCrewMembersSection": "TAGOK",
+  "@webCrewMembersSection": {
+    "description": "A 18k tagjainak csoport-fejléce."
+  },
+  "webCrewExpiresHours": "lejár {hours} ó múlva",
+  "@webCrewExpiresHours": {
+    "description": "Egy kérelem lejárata órában (Z8).",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "webCrewExpiresMinutes": "lejár {minutes} p múlva",
+  "@webCrewExpiresMinutes": {
+    "description": "Egy kérelem lejárata percben, egy óra alatt (Z8).",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "webCrewReject": "Elutasítás",
+  "@webCrewReject": {
+    "description": "A kérelem elutasítása (18k)."
+  },
+  "webCrewApprove": "Jóváhagyás",
+  "@webCrewApprove": {
+    "description": "A kérelem jóváhagyása (18k, 18k-2)."
+  },
+  "webCrewMemberLine": "{count} eszköz · web: {web}",
+  "@webCrewMemberLine": {
+    "description": "Egy tag sora: eszközszám és az utolsó webes aktivitás (18k).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "web": {
+        "type": "String"
+      }
+    }
+  },
+  "webCrewNoWeb": "—",
+  "@webCrewNoWeb": {
+    "description": "Nincs élő webes munkamenet (18k)."
+  },
+  "webCrewApprovalTitle": "{name} jóváhagyása",
+  "@webCrewApprovalTitle": {
+    "description": "A jóváhagyó lap címe (18k-2).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webCrewNewMember": "Új tag",
+  "@webCrewNewMember": {
+    "description": "A jóváhagyó lap alapválasztása (18k-2)."
+  },
+  "webCrewMemberPhone": "{name} új telefonja",
+  "@webCrewMemberPhone": {
+    "description": "Egy meglévő tag új telefonja a jóváhagyó lapon (18k-2).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webCrewDeviceCount": "{count} eszköz",
+  "@webCrewDeviceCount": {
+    "description": "Egy tag aktív eszközeinek száma (18k-2).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webCrewCancel": "Mégse",
+  "@webCrewCancel": {
+    "description": "A jóváhagyó lap megszakítása (18k-2)."
+  },
+  "webMemberLastActivity": "Utolsó webes aktivitás",
+  "@webMemberLastActivity": {
+    "description": "A 18k-3 adatsora."
+  },
+  "webMemberSessionCount": "Webes munkamenet",
+  "@webMemberSessionCount": {
+    "description": "A 18k-3 adatsora."
+  },
+  "webMemberDevicesSection": "ESZKÖZÖK",
+  "@webMemberDevicesSection": {
+    "description": "A 18k-3 eszközeinek csoport-fejléce."
+  },
+  "webMemberNoDevices": "Nincs aktív telefonja",
+  "@webMemberNoDevices": {
+    "description": "A 18k-3, ha a tagnak nincs aktív eszköze."
+  },
+  "webMemberRegistered": "regisztrálva {when}",
+  "@webMemberRegistered": {
+    "description": "Egy eszköz regisztrálásának ideje (18k-3).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "webMemberLastUsed": "utoljára {when}",
+  "@webMemberLastUsed": {
+    "description": "Egy eszköz utolsó használata (18k-3).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "webMemberRevoke": "Visszavonás",
+  "@webMemberRevoke": {
+    "description": "Egy eszköz visszavonása (18k-3)."
+  },
+  "webMemberThisPhone": "Ez a telefon",
+  "@webMemberThisPhone": {
+    "description": "A kérő telefon sora a gomb helyett (H9)."
+  },
+  "webMemberRemove": "Tag eltávolítása",
+  "@webMemberRemove": {
+    "description": "A 18k-3 alsó gombja."
+  },
+  "webMemberRemoveTitle": "{name} eltávolítása?",
+  "@webMemberRemoveTitle": {
+    "description": "A 18k-4 dialógus címe.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webMemberRemoveMessage": "Minden telefonja és minden webes munkamenete azonnal megszűnik.",
+  "@webMemberRemoveMessage": {
+    "description": "A 18k-4 dialógus szövege."
+  },
+  "webMemberRemoveConfirm": "Eltávolítás",
+  "@webMemberRemoveConfirm": {
+    "description": "A 18k-4 dialógus romboló gombja."
+  },
+  "webAccountTitleOwner": "Fiók és biztonság",
+  "@webAccountTitleOwner": {
+    "description": "A 18l képernyő címe."
+  },
+  "webAccountTitleCrew": "Fiók",
+  "@webAccountTitleCrew": {
+    "description": "A 18l-2 képernyő címe."
+  },
+  "webAccountNameSection": "NÉV",
+  "@webAccountNameSection": {
+    "description": "A névrész csoport-fejléce (18l-2)."
+  },
+  "webAccountNameLabel": "NEVED",
+  "@webAccountNameLabel": {
+    "description": "A névmező címkéje (18l-2)."
+  },
+  "webAccountNameSave": "Mentés",
+  "@webAccountNameSave": {
+    "description": "A név mentése (Z11)."
+  },
+  "webAccountNameSaved": "Név mentve",
+  "@webAccountNameSaved": {
+    "description": "Az átnevezés snackbarja."
+  },
+  "webAccountPasswordSection": "WEBES JELSZÓ",
+  "@webAccountPasswordSection": {
+    "description": "A jelszórész csoport-fejléce (18l)."
+  },
+  "webAccountPasswordSetAt": "Beállítva: {when}",
+  "@webAccountPasswordSetAt": {
+    "description": "A jelszó állapota (H9).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "webAccountPasswordNone": "Nincs jelszó",
+  "@webAccountPasswordNone": {
+    "description": "A jelszó állapota, ha nincs (H9)."
+  },
+  "webAccountPasswordLabel": "ÚJ JELSZÓ",
+  "@webAccountPasswordLabel": {
+    "description": "A jelszómező címkéje (18l)."
+  },
+  "webAccountPasswordRule": "Legalább 12 karakter",
+  "@webAccountPasswordRule": {
+    "description": "A jelszó szabálya (18l)."
+  },
+  "webAccountPasswordTooLong": "Legfeljebb 128 karakter",
+  "@webAccountPasswordTooLong": {
+    "description": "A túl hosszú jelszó jelzése."
+  },
+  "webAccountPasswordCount": "{count} / 12",
+  "@webAccountPasswordCount": {
+    "description": "A jelszó hossza a 12-es minimumhoz (18l).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webAccountPasswordSave": "Jelszó mentése",
+  "@webAccountPasswordSave": {
+    "description": "A jelszó mentése (18l)."
+  },
+  "webAccountPasswordSaved": "Jelszó mentve",
+  "@webAccountPasswordSaved": {
+    "description": "A jelszó mentésének snackbarja."
+  },
+  "webAccountCodesSection": "HELYREÁLLÍTÓ KÓDOK",
+  "@webAccountCodesSection": {
+    "description": "A kódrész csoport-fejléce (18l)."
+  },
+  "webAccountCodesUnused": "Felhasználatlan",
+  "@webAccountCodesUnused": {
+    "description": "A még fel nem használt kódok sora (18l)."
+  },
+  "webAccountCodesGenerated": "generálva {when}",
+  "@webAccountCodesGenerated": {
+    "description": "A kódkészlet ideje (Z12).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "webAccountCodesTotal": "/ {total}",
+  "@webAccountCodesTotal": {
+    "description": "A kódok teljes száma a felhasználatlanok után (18l).",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "webAccountCodesRegenerate": "Újragenerálás",
+  "@webAccountCodesRegenerate": {
+    "description": "A kódok újragenerálása (18l, 18l-3)."
+  },
+  "webAccountCodesConfirmTitle": "Új helyreállító kódok?",
+  "@webAccountCodesConfirmTitle": {
+    "description": "A 18l-3 dialógus címe."
+  },
+  "webAccountCodesConfirmMessage": "A mostani 10 kód azonnal érvénytelen lesz.",
+  "@webAccountCodesConfirmMessage": {
+    "description": "A 18l-3 dialógus szövege."
+  },
+  "webAccountPhoneSection": "EZ A TELEFON",
+  "@webAccountPhoneSection": {
+    "description": "A telefonrész csoport-fejléce (18l)."
+  },
+  "webAccountPhoneName": "Név",
+  "@webAccountPhoneName": {
+    "description": "A telefon neve (18l, csak kiírás, Z1)."
+  },
+  "webAccountPhoneModel": "Típus",
+  "@webAccountPhoneModel": {
+    "description": "A telefon típusa (18l)."
+  },
+  "webAccountSessionsLink": "Webes belépések",
+  "@webAccountSessionsLink": {
+    "description": "Link a 18i-re (18l)."
+  },
+  "webAccountCrewLink": "Legénység",
+  "@webAccountCrewLink": {
+    "description": "Link a 18k-ra (18l)."
+  },
+  "webAccountCrewRequests": "{count} kérelem",
+  "@webAccountCrewRequests": {
+    "description": "A függő kérelmek száma a Legénység linkjén (18l).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "webPromptApproveTitle": "{name} jóváhagyása",
+  "@webPromptApproveTitle": {
+    "description": "Ujjlenyomat-ablak: jóváhagyás (Z13).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webPromptRevokeTitle": "{device} visszavonása",
+  "@webPromptRevokeTitle": {
+    "description": "Ujjlenyomat-ablak: visszavonás (Z13).",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "webPromptRemoveTitle": "{name} eltávolítása",
+  "@webPromptRemoveTitle": {
+    "description": "Ujjlenyomat-ablak: eltávolítás (Z13).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "webPromptRemoveSubtitle": "Minden telefonja és munkamenete",
+  "@webPromptRemoveSubtitle": {
+    "description": "Ujjlenyomat-ablak alcíme: eltávolítás (Z13)."
+  },
+  "webPromptPasswordTitle": "Webes jelszó beállítása",
+  "@webPromptPasswordTitle": {
+    "description": "Ujjlenyomat-ablak: jelszó (Z13)."
+  },
+  "webPromptCodesTitle": "Új helyreállító kódok",
+  "@webPromptCodesTitle": {
+    "description": "Ujjlenyomat-ablak: kódok (Z13)."
   }
 }

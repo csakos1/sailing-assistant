@@ -13,10 +13,12 @@ import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
+import 'package:phone/features/web_access/presentation/crew_screen.dart';
 import 'package:phone/features/web_access/presentation/qr_scan_screen.dart';
 import 'package:phone/features/web_access/presentation/web_access_banners.dart';
 import 'package:phone/features/web_access/presentation/web_access_menu.dart';
 import 'package:phone/features/web_access/presentation/web_access_refresher.dart';
+import 'package:phone/features/web_access/presentation/web_account_screen.dart';
 import 'package:phone/features/web_access/presentation/web_login_snack_bar.dart';
 import 'package:phone/features/web_access/presentation/web_sessions_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -87,7 +89,8 @@ class RaceListScreen extends ConsumerWidget {
   }
 
   // A webes kezelőképernyők; visszatérve a szalag frissül (Z5), hogy egy
-  // kiléptetett munkamenet gyanús jelzése azonnal eltűnjön.
+  // kiléptetett munkamenet gyanús jelzése vagy egy eldöntött kérelem
+  // azonnal eltűnjön.
   Future<void> _openWebAccess(
     BuildContext context,
     WidgetRef ref,
@@ -96,6 +99,10 @@ class RaceListScreen extends ConsumerWidget {
     switch (item) {
       case WebAccessMenuItem.sessions:
         await WebSessionsScreen.open(context);
+      case WebAccessMenuItem.crew:
+        await CrewScreen.open(context);
+      case WebAccessMenuItem.account:
+        await WebAccountScreen.open(context);
     }
     if (!context.mounted) return;
     await ref.read(webAccessStatusProvider.notifier).refresh();
@@ -152,6 +159,9 @@ class RaceListScreen extends ConsumerWidget {
             WebAccessBanners(
               onOpenSessions: () => unawaited(
                 _openWebAccess(context, ref, WebAccessMenuItem.sessions),
+              ),
+              onOpenCrew: () => unawaited(
+                _openWebAccess(context, ref, WebAccessMenuItem.crew),
               ),
               onOpenScanner: () => unawaited(_openScanner(context)),
             ),

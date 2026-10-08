@@ -6,6 +6,7 @@ import 'package:phone/features/web_access/application/device_token_source.dart';
 import 'package:phone/features/web_access/application/signed_action_runner.dart';
 import 'package:phone/features/web_access/application/web_access_error.dart';
 import 'package:phone/features/web_access/data/web_access_api_client.dart';
+import 'package:phone/features/web_access/data/web_api_failure.dart';
 import 'package:phone/features/web_access/data/web_key_operations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 import 'package:shared/shared.dart';
@@ -105,5 +106,47 @@ void main() {
     // Assert
     expect(result, isA<Err<SignedAction, WebAccessError>>());
     expect(keys.calls, isNot(contains('sign:biometric')));
+  });
+
+  test('signAndRun sends the signed action with a token', () async {
+    // Arrange
+    final sent = <(SignedAction, String)>[];
+
+    // Act
+    final result = await runner.signAndRun(
+      DeviceAction.removeUser,
+      target: 'u-dori',
+      prompt: prompt,
+      send: (action, token) async {
+        sent.add((action, token));
+        return const Ok<String, WebApiFailure>('done');
+      },
+    );
+
+    // Assert
+    expect(result, const Ok<String, WebAccessError>('done'));
+    expect(sent.single.$1.challenge, testChallenge);
+    expect(sent.single.$2, testDeviceToken);
+  });
+
+  test('signAndRun sends nothing after a cancelled fingerprint', () async {
+    // Arrange
+    keys.biometricFailure = KeyOperationFailure.canceled;
+    var sends = 0;
+
+    // Act
+    final result = await runner.signAndRun(
+      DeviceAction.removeUser,
+      target: 'u-dori',
+      prompt: prompt,
+      send: (_, _) async {
+        sends++;
+        return const Ok<String, WebApiFailure>('done');
+      },
+    );
+
+    // Assert
+    expect(result, isA<Err<String, WebAccessError>>());
+    expect(sends, 0);
   });
 }

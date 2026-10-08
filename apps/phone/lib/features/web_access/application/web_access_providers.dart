@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:phone/features/web_access/application/account_renamer.dart';
+import 'package:phone/features/web_access/application/account_security_notifier.dart';
 import 'package:phone/features/web_access/application/authorized_call.dart';
+import 'package:phone/features/web_access/application/crew_notifier.dart';
 import 'package:phone/features/web_access/application/device_token_source.dart';
 import 'package:phone/features/web_access/application/enrollment_flow.dart';
 import 'package:phone/features/web_access/application/join_flow.dart';
@@ -165,3 +168,32 @@ webSessionsProvider =
     AsyncNotifierProvider.autoDispose<WebSessionsNotifier, WebSessionsLoad>(
       WebSessionsNotifier.new,
     );
+
+/// A „Legénység" adatai, amíg egy legénység-képernyő nyitva van (Z11).
+final AutoDisposeAsyncNotifierProvider<CrewNotifier, CrewLoad> crewProvider =
+    AsyncNotifierProvider.autoDispose<CrewNotifier, CrewLoad>(
+      CrewNotifier.new,
+    );
+
+/// A jelszó és a kódok állapota, amíg a „Fiók és biztonság" nyitva van
+/// (Z11).
+final AutoDisposeAsyncNotifierProvider<
+  AccountSecurityNotifier,
+  AccountSecurityLoad
+>
+accountSecurityProvider =
+    AsyncNotifierProvider.autoDispose<
+      AccountSecurityNotifier,
+      AccountSecurityLoad
+    >(AccountSecurityNotifier.new);
+
+/// A saját név átírója (M9, Z11); fiók nélkül `null`.
+final accountRenamerProvider = Provider<AccountRenamer?>((ref) {
+  final calls = ref.watch(authorizedCallProvider);
+  if (calls == null) return null;
+  return AccountRenamer(
+    calls: calls,
+    client: ref.watch(webAccessApiClientProvider(calls.tokens.account.origin)),
+    saveAccount: ref.watch(webAccountProvider.notifier).save,
+  );
+});
