@@ -2324,3 +2324,35 @@ pusholással hagyja jóvá).
 - **Z14:** a dev-szkript `join` a nevet levágja és ellenőrzi (1–40
   karakter, vezérlőjel nélkül), mert a szerver a levágott névvel
   ellenőrzi az aláírást.
+
+### Pontosítás a kód után (A5b, 2026-10-08)
+
+Az A5b kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **Z11, 18k-2:** a jóváhagyó lap csak választ („Új tag" vagy egy tag új
+  telefonja); az ujjlenyomat és a kérés már a „Legénység" képernyőn fut,
+  hogy egy hiba snackbarja ne a lap mögé kerüljön. Jóváhagyás és
+  elutasítás után nincs snackbar: a kérelem eltűnik a listáról.
+- **Z11, 18k-4 és 18l-3:** a megerősítés a közös `ForetackDialog`, mint
+  az app többi visszafordíthatatlan műveleténél: a romboló gomb piros
+  felirat, nem piros kitöltés, ahogy a makett mutatja.
+- **Z11, 18k-3:** aktív eszköz nélküli tagnál „Nincs aktív telefonja".
+  A tag eltávolítása után a lap akkor is bezárul, ha a lista újratöltése
+  előbb ér vissza.
+- **Z11, 18l:** az „EZ A TELEFON" két adatsor („Név", „Típus") a telefon
+  saját adataiból; a makett szövegmező-doboza elmarad, mert a név nem
+  szerkeszthető (Z1). A jelszómezőn nincs „mutasd" ikon (a makettben sincs);
+  a számláló („n / 12") csak 12 alatt látszik, 128 fölött „Legfeljebb 128
+  karakter". A sikeres mentés teal négyzetes snackbart kap („Név mentve",
+  „Jelszó mentve"). A névmező egy kívülről jött névváltozást (a `/me`)
+  követ, ha a felhasználó közben nem írta át. A „Webes belépések" link
+  száma a telefon által látott élő munkamenetek száma (`owner`-nél
+  mindenkié).
+- **Z5:** egy legénység-művelet (jóváhagyás, elutasítás, visszavonás,
+  eltávolítás) után a szalag egy új, megvárt lekérdezéssel frissül, akkor
+  is, ha egy korábbi még fut, így a ⋮ menü jelvénye és a 18h-1 sor már a
+  művelet utáni számot mutatja.
+- **Z12:** a „generálva" a felhasználó összes kódjának legkésőbbi
+  `created_at_ms`-e, a felhasználtakkal együtt: a készlet ugyanaz marad,
+  amíg újra nem generálják.
