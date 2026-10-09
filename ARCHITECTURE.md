@@ -5653,6 +5653,11 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     `Referrer-Policy: strict-origin` az OSM csempe-szabályzata miatt);
   - `ufw`: csak 22, 80, 443; SSH csak kulccsal;
   - az `end_sessions` CLI a webes munkameneteket SSH-ról zárja le;
+  - a repó publikus: a VPS címe a gitignore-olt `deploy/deploy.env`-ben,
+    a titkok csak a VPS-en születnek, és minden commit és deploy előtt a
+    `deploy/check_secrets.sh` (gitleaks + tiltott fájltípusok) fut;
+  - a telepítés, az adatok összefésülése és a visszaállítás lépései a
+    `deploy/README.md`-ben;
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek

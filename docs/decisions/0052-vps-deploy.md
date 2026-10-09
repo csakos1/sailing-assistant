@@ -123,7 +123,7 @@ A felhasználó döntései (2026-10-09):
 | `/etc/foretack/stw-corrections.json` | `root`, 0644 | az STW-korrekciók |
 | `/var/lib/foretack/` | `foretack`, 0750 | a három DB, a `geoip.sqlite`, `tmp/` |
 | `/var/lib/foretack/auth-secret` | `foretack`, 0600 | a HMAC-titok |
-| `/var/backups/foretack/` | `root:foretack-pull`, 0750 | az éjszakai mentések (D7) |
+| `/var/backups/foretack/` | `foretack:foretack-pull`, 2750 | az éjszakai mentések (D7) |
 
 - **A szerver és a web egy kiadás** (ADR 0050 F4, ADR 0051): egy
   szimbolikus link cseréjével egyszerre vált, így egy régi web sosem fut
@@ -350,3 +350,100 @@ változóban van.
   §7 2., 87.) és a merge-sorrendet.
 - A WASM-buildet.
 - A szinkront és a több hajót (ADR 0051 D14).
+
+## Pontosítás a `deploy/` után (S8d, 2026-10-09)
+
+### P1 — Titokvédelem (felhasználói kérés)
+
+A repó publikus; a felhasználó kérése: „nehogy bármi secret vagy
+érzékeny adat kerüljön bele, minden nagyon biztonságos legyen".
+
+- **A repóban csak sablon van.** A VPS címe, a felhasználónév és a
+  kulcsok útvonala a gitignore-olt `deploy/deploy.env`-ben; a repóban a
+  `deploy.env.example` helyőrzőkkel. A `deploy/load_env.sh` megáll, ha a
+  `deploy.env` valaha a git alá kerülne; a `.gitignore` a
+  `deploy.env*` minden változatát (szerkesztő-mentések) is tiltja. A domain csak a telepítéskor
+  kerül a unitokba és a Caddyfile-ba (`@FORETACK_DOMAIN@`).
+- **A titkok csak a VPS-en születnek:** az `auth-secret` a
+  `bootstrap.sh`-ban, `/dev/urandom`-ból, `0600`-val; a fiók-adatbázis a
+  `create_owner_enrollment`-tel. Egyik sem utazik a repón át.
+- **`.gitignore`:** `deploy/deploy.env`, `*.sqlite*`, `auth-secret`,
+  kulcsok (`*.pem`, `*.key`, `*.p12`), exportok, DB-IP-fájlok,
+  `stw-corrections.json`.
+- **`deploy/check_secrets.sh`** minden commit és deploy előtt: gitleaks a
+  teljes git-történeten és a munkafán (követett és új, nem ignorált
+  fájlok), plusz a tiltott fájltípusok a git alatt. A `.gitleaks.toml`
+  csak a tesztek rögzített mintaértékeit engedi (bájtsorozatok
+  base64-ben, egy mintajelszó), csak `test/…_test.dart`-ban.
+- **Commit előtti horog:** a `deploy/git-hooks/pre-commit` (bekapcsolva
+  a `git config core.hooksPath deploy/git-hooks`-szal) a commitra szánt
+  változáson futtatja a gitleaks-et és a tiltott-fájl ellenőrzést.
+- **A GitHub push protection** a repó beállításaiban bekapcsolandó (a
+  `deploy/README.md` 1.2 szerint): egy ismert formájú titkot tartalmazó
+  pusht a GitHub is visszautasít.
+- **Verifikálva 2026-10-09:** a gitleaks 8.28 a teljes történetben (701
+  commit) és a munkafán csak ezt a hat tesztértéket jelezte; valódi titok,
+  adatbázis, kulcs vagy mentés a repó történetében nincs.
+
+### P2 — A D4 kiegészítése
+
+- `/opt/foretack/incoming/` (`akos:akos`, 0750): ide tölt a `deploy.sh`; a
+  `foretack-activate` innen viszi root tulajdonba. Szimbolikus linket
+  (a könyvtár helyén vagy benne) elutasít, egyszerre egy aktiválás fut
+  (`flock`), és az épp aktív kiadást nem írja felül.
+- `/srv/foretack-import/` (`akos:foretack`, 2750): az adatfájlok átmeneti
+  helye; a setgid miatt a `foretack` olvashatja. Használat után üres.
+- A `sudo` jelszót kér; jelszó nélkül csak a `foretack-activate` fut.
+  Ismert kockázat: egy ellopott admin SSH-kulccsal (a sudo-jelszó
+  nélkül is) feltölthető és aktiválható egy kiadás, ami `foretack`-ként
+  fut, és minden DB-t és a titkot olvashatja. A valódi védelem ezért a
+  kulcs jelmondata.
+- Az admin a `adm` és `systemd-journal` csoport tagja is, hogy a
+  naplókat sudo nélkül lássa.
+- A `foretack-archive.service`-t a bootstrap nem kapcsolja be (adat
+  nélkül nem indulna); az első indításkor `enable --now`. Konfigurációs
+  hibánál (kilépési kód 64, 66, 73, 78) nem próbálkozik újra.
+- A `bootstrap.sh --config-only` később csak a repóból jövő konfigurációt
+  (Caddyfile, unitok, szkriptek, sudoers) telepíti újra.
+- SSH: `AllowUsers akos foretack-pull`; az első belépéskor a VPS
+  kulcsát a Linode konzolján (LISH) látott ujjlenyomattal kell
+  összevetni.
+
+### P3 — A D12 pontosítása: friss import, CLI-vel (felhasználói döntés)
+
+Az adat a forrásokból, friss importtal kerül fel (2026-10-09), nem a
+lokális `dev-env` másolataként. A telefon DB-je a webes feltöltés helyett
+`rsync`-kel megy fel (megszakítás után folytatható), és az
+`import_race_db` tölti be. A sorrend azért ez, mert a szerver csak létező
+`auth.sqlite`-tal és `geoip.sqlite`-tal indul:
+
+1. `deploy.sh --install-only` (kiadás, indítás nélkül);
+2. a GeoIP építése;
+3. `import_race_db`, `import_legacy_races`, `import_legacy_tracks`,
+   próbafuttatással, a lokális számokkal összevetve;
+4. a regisztrációs QR (létrehozza az `auth.sqlite`-ot), rögtön utána a
+   szerver indítása, és a beolvasás 15 percen belül.
+
+### P4 — A D7 pontosítása
+
+- A mentés a `foretack` userként fut, hogy a DB-k mellé ne kerüljön root
+  tulajdonú `-wal`/`-shm`; a `sqlite3` 30 mp-ig vár egy folyó írásra, és
+  minden mentett DB-n `quick_check` fut.
+- A lehúzott mentés a gépen csak a felhasználóé (`0700` könyvtár,
+  `go-rwx` fájlok); hiba esetén asztali értesítés jön.
+- A lehúzás időbélyeg nélkül (`-rp --checksum`) megy: a `.backup` minden
+  éjjel új mtime-ot ad, és `-t` mellett a `--link-dest` sosem
+  hardlinkelne. Szimbolikus link a VPS-ről nem jön át.
+- Ismert kompromisszum: a mentéseket a `foretack` írja, így egy
+  feltört szerver-folyamat a VPS-mentéseket is elronthatja (és 30 nap
+  alatt a lehúzottakat is). A felhasználó gépének régebbi napjai és a
+  webes Export ad ez ellen tartalékot.
+
+### P5 — Verifikált tények a szkriptekhez
+
+- A Caddyfile a Caddy 2.10.2-vel `caddy validate`-en és `caddy fmt`-en
+  átment. Egy helyi próbán: a bejövő hamis `X-Forwarded-For` eldobódik (a
+  szerver a valódi kliens-IP-t kapja), az `X-Powered-By` és a `Server`
+  fejléc kikerül, a `robots.txt` mindent tilt, a fejlécek a D6 szerint
+  mennek ki.
+- Minden szkript `shellcheck`-tiszta.
