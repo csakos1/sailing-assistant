@@ -3570,6 +3570,39 @@ a `pubspec.yaml` nem változik; a verzálosítás a widgeté. A
 „Versenynapló", és a `FinishedRacesSheet` törlődik — a törlés a 4d utolsó
 kód-szelete, hogy a branch addig zöld maradjon.
 
+### 8.12 Telefonos UI v1: navigációs héj, Műszerek, tervezett verseny (ADR 0054–0056) — tervezett
+
+**Állapot:** elfogadott, még nem implementált terv (2026-10-10). A
+részletek a három ADR-ben, a képernyők a `docs/design/phone-ui-v1.html`
+makettjében és a `docs/design/phone-ui-v1.md` specifikációban; ez a
+szakasz csak a szerkezetet rögzíti, és az implementáció során bővül.
+
+**Navigációs héj (ADR 0056 D2).** Az app `home`-ja egy háromfüles héj
+(Versenyek · Műszerek · Versenynapló) `IndexedStack`-kel. A részlet, a
+setup / szerkesztés, a térképek és a webes képernyők a gyökér-`Navigator`-ra
+kerülnek, a héj fölé, navigációs sáv nélkül. Az „Élő nézet" gomb
+megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként.
+
+**Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
+`_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
+`active` = verseny. A nyers telemetria és a snapshot-log **csak `active`
+alatt** íródik. Az app előtérben egy `GatewayProbe` TCP-próbával keresi a
+gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
+után az engine szabad módban fut tovább. Új UI→task parancs:
+`{type: 'race', race: … | null}`, csak nem aktív versenyre.
+
+**Tervezett verseny (ADR 0055).** A `Race` két új, opcionális mezője a
+`scheduledStartAt` (UTC) és a `startPoint` (`StartPoint`: név +
+koordináta, nem `Mark`). A rajt előtti rávezetés célja a rajthely (ha
+nincs, az első bója) a `guidanceTargetOrNull` / `guidanceNextOrNull`
+gettereken át. A nap versenyét a `SelectInstrumentsRace` tiszta függvény
+választja (aktív verseny > a mai, legkorábbi, még nem indult, a 3 órás
+visszamenőleges ablakon belül > szabad mód). A rajtidőben az engine
+indítja a versenyt (`startedAt = scheduledStartAt`, visszamenőleg is),
+és a UI a snapshot alapján veszi át a DB-be. A séma v6 (ADR 0055 D3; a
+§9.2 a T2 szelettel frissül); a szerver v6-os kiadása megelőzi a
+telefonosat.
+
 ## 9. Perzisztencia (Drift / SQLite)
 
 ### 9.1 Drift = típus-biztos SQL Dart-hoz
