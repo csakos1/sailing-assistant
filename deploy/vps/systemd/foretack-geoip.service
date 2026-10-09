@@ -1,0 +1,20 @@
+# A GeoIP havi frissítése (ADR 0052 D8): letöltés és építés a foretack
+# userként, siker után a szerver újraindítása (a + jel rootként futtatja).
+[Unit]
+Description=Foretack GeoIP-frissítés (DB-IP Lite City)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=foretack
+Group=foretack
+UMask=0027
+ExecStart=/usr/local/sbin/foretack-geoip
+ExecStartPost=+/usr/bin/systemctl try-restart foretack-archive.service
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/foretack
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes

@@ -1,0 +1,12 @@
+# Naponta, a VPS éjszakai mentése után (ADR 0052 D7). A Persistent miatt
+# egy kikapcsolt gép a következő bekapcsoláskor pótolja.
+[Unit]
+Description=Foretack VPS-mentés lehúzásának időzítője
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

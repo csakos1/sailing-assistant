@@ -1,7 +1,7 @@
 import 'package:data/src/nmea/mapper/nmea_to_domain_mapper.dart';
 import 'package:data/src/nmea/parser/decoded_sentence.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   const awa = Angle(degrees: 30);

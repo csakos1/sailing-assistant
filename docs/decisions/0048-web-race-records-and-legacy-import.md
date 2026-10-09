@@ -1,0 +1,1888 @@
+# ADR 0048 — Webes versenyrekordok: kézi versenyek, bővített eredmény, táblázat-nézet és az Excel-napló importja
+
+## Státusz
+
+Elfogadva — 2026-10-01. Még nem implementálva. A „Szeletek" sorrendjében
+következik, docs-first. Az ADR 0047 több pontját **felülírja**, ezeket a
+„Mit ír felül" szakasz sorolja fel. Az Addendum 1 (2026-10-01) a makett
+14. körének döntéseit, az Addendum 2 a szerződés v2 dróton látható
+alakját, az Addendum 3 a szerver v2-jét, az Addendum 4 a web (S7)
+tervét, a napló, a részletező, a szerkesztők, a feltöltés és a táblázat
+döntéseit rögzíti. Az Addendum 5 (2026-10-02) a feltöltés utáni három javítást
+(görgetés, másodperc, szél-maximum), valamint a táblázat első
+böngészős próbája utáni javításokat (L4–L6) rögzíti. Az Addendum 6
+(2026-10-02) az Excel-import (S5c) pontosítása a valódi adatok alapján.
+
+## Kontextus
+
+A versenyeimet 2021 óta egy Excel-táblázatban vezetem
+(`Lola_versenynaplo_9.xlsx`). Benne van 71 verseny 2021-től 2026-ig,
+23 oszloppal: helyezések, mezőny, YS-szám, rajt és befutás, menetidő,
+táv, sebesség, szél, díjak. Mellette egy összesítő és egy évenkénti lap
+számol. A webes archívum (ADR 0047) eddig csak a telefonról lehúzott
+DB-ből tudott versenyt mutatni, vagyis csak a 2026-ban Foretackkel
+rögzített versenyeket.
+
+Az igény: a web **váltsa ki az Excelt**. Legyen fent minden verseny
+2021-től, egymás mellett összevethető táblázatban, és a szerkesztőben
+minden adat beírható legyen, ami ma az Excelben van.
+
+A felhasználó döntései (2026-10-01):
+
+1. Az Excel minden sorát importáljuk, a web 2021-től minden versenyt
+   mutat.
+2. Az Excel „Osztály" oszlopa (YS Open, YS I.) elmarad, a YS-szám
+   marad. A következő évi számot az első verseny után kézzel írom be.
+3. Mindhárom helyezés kell (osztály, abszolút, egytestű), mindegyik a
+   **saját mezőnyével** (`helyezés / mezőny` pár). A helyezés helyén DNF
+   vagy DSQ is állhat, helyezésenként; a mezőny ilyenkor is megadható.
+4. Nincs „2. nap" mező. A kétnapos verseny az appban két külön verseny,
+   mert mindkét nap külön rögzítést indítottam. Csak az Excel mosta
+   őket egybe.
+5. A díj és az összefoglaló két külön mező.
+6. A táv mindenhol km marad.
+7. A táblázat a versenynapló második nézete (Lista / Táblázat váltó),
+   nem külön képernyő.
+8. A **hivatalos rajt és befutás kézzel beírható, minden versenynél**. A
+   rögzítés indítása és leállítása nem a rajt és a cél, ezért az app
+   nem tudja magától.
+9. Ha a hivatalos idők be vannak írva, a táv, a sebesség és a szél csak
+   a rajt–befutás ablakból számolódik. Amíg nincsenek, a teljes
+   rögzítés számít, jelölve.
+10. A max. sebesség a weben is a nyers maximum, mint az appban.
+11. A 2026-os versenyeknél, ahol app-telemetria is van, a telemetria
+    számai érvényesek, az Excel számait eldobjuk.
+12. Kell „Új verseny" gomb telemetria nélküli versenyhez. A kézi verseny
+    törölhető, megerősítéssel.
+13. A „Telemetria forrása" oszlop nem kell: a web maga jelzi, honnan jön
+    egy szám.
+14. Az Excel aljának összesítő statisztikája a v1 után jön.
+
+### Verifikált tények
+
+- **A telemetria-pillanatkép tartalmazza a szelet.** A `RaceSnapshot`
+  `wind` mezője `WindData`, benne a valós szélsebesség
+  (`trueSpeedWater`) és a valós szélirány (`trueDirectionGround`). A
+  szél-statok tehát a meglévő `snapshot_logs`-ból számolhatók, új
+  rögzítés nélkül.
+- **A `TrackSample` nem hordoz időbélyeget.** Az ablakos statisztikához
+  a minta idejére is szükség van; ez a `snapshot_logs.timestamp`
+  oszlopból jön.
+- **Az Excel adatai** (data-only olvasással):
+  - 71 verseny;
+  - 12 versenynél egyetlen helyezés sincs;
+  - 29-nél nincs mezőny;
+  - 42-nél van díj.
+  - **DNF:** két versenynél a Befutás cellában áll (2025 Évadnyitó,
+    2026 Alsóörs).
+  - **Szöveg a dátum helyén:** 8 versenynél a rajt és a befutás szöveg,
+    pl. `2026.07.18. 11:00`.
+  - **Helyezés szövegként:** egyetlen kétnapos sor van
+    (`19.`/`1.`/`13.`/`1.`, 2026 Mihálkovics), plusz egy `8. / 6.`
+    érték (58. Kékszalag).
+  - **Szélirány:** 16 magyar égtájjel, É … ÉÉNy.
+
+## Döntés
+
+### D1 — A web az egyetlen forrás
+
+Az Excel az import után megszűnik. Minden új adat a weben keletkezik:
+telemetriás verseny a feltöltéssel, kézi verseny az „Új verseny"
+gombbal, eredmény a szerkesztőben.
+
+### D2 — Kétféle verseny: telemetriás és kézi
+
+| | Telemetriás | Kézi |
+|---|---|---|
+| Honnan | `archive.sqlite` (a phone DB importja) | `web.sqlite` `manual_races` táblája |
+| Azonosító | a phone UUID-je | a szerver UUID v4-e (importnál determinisztikus, D7) |
+| Név, dátum | a DB-ből, csak olvasható | szerkeszthető |
+| Térkép, bóják, track | van | nincs |
+| Táv, sebesség, szél | számolt (D4, D5) | kézzel beírt |
+| Törlés | v1-ben nincs | megerősítéssel |
+
+A kézi verseny mezői:
+- név (kötelező);
+- dátum (helyi naptári nap, kötelező);
+- táv (m-ben tárolva, km-ben megjelenítve);
+- max. sebesség;
+- átlagos és max. szél (m/s-ben tárolva, csomóban megjelenítve);
+- szélirány (16 égtáj egyike).
+
+Az átlagsebesség a kézi versenyen nem mező: táv ÷ menetidő, ha a
+hivatalos idők megvannak. Ez az Excel képlete.
+
+A verseny éve és napja a napló bontásához:
+- **telemetriás versenynél** a hivatalos rajt, ha megvan, különben a
+  rögzítés kezdete, helyi időben;
+- **kézi versenynél** a dátum mező.
+
+### D3 — Az eredmény: `RaceResult` (felülírja az ADR 0047 D7-et)
+
+Mindkét versenyfajtán ugyanaz:
+
+| Mező | Típus | Szabály |
+|---|---|---|
+| `classPlace` | `Placing?` | helyezés ≥ 1, vagy DNF, vagy DSQ |
+| `classFleetSize` | `int?` | ≥ 1; számszerű `classPlace` ≤ ez |
+| `overallPlace` | `Placing?` | helyezés ≥ 1, vagy DNF, vagy DSQ |
+| `overallFleetSize` | `int?` | ≥ 1; számszerű `overallPlace` ≤ ez |
+| `monohullPlace` | `Placing?` | helyezés ≥ 1, vagy DNF, vagy DSQ |
+| `monohullFleetSize` | `int?` | ≥ 1; számszerű `monohullPlace` ≤ ez |
+| `ysNumber` | `int?` (századokban) | > 0; két tizedesig (`75,90` → 7590) |
+| `officialStart` | UTC időbélyeg? | — |
+| `officialFinish` | UTC időbélyeg? | ha mindkettő adott: befutás > rajt |
+| `prize` | `String?` | széleken trimmelve, üres → `null` |
+| `summary` | `String?` | többsoros, széleken trimmelve, üres → `null` |
+| `updatedAt` | UTC időbélyeg | a szerver állítja |
+
+- A `Placing` sealed típus: `FinishPlace(int)`, `Dnf`, `Dsq`.
+- **Validáció:** pure függvény a `race_archive_api`-ban, és minden hibát
+  egyszerre ad vissza, ahogy eddig.
+- **A YS-szám** századokban tárolt egész, hogy a `75,42` lebegőpontos
+  hiba nélkül utazzon.
+- **Mezőny:** helyezésenként saját mezőny (osztály, abszolút, egytestű),
+  mert a három kör létszáma különbözik, és a `2 / 24` csak a saját
+  nevezőjével értelmes.
+  - A szabály **páronként** szól: egy számszerű helyezés legfeljebb a
+    saját mezőnye; mezőny nélkül a helyezés szabadon ≥ 1.
+  - DNF vagy DSQ mellett a mezőny megadható és megmarad, mert a mezőny a
+    verseny ténye, nem a mi eredményünké.
+  - Mezőny helyezés nélkül is állhat.
+  - Az Excel egyetlen „Mezőny" oszlopa az abszolút mezőny (D7).
+- **Dobogó:** származtatott, nem mező. Dobogós a verseny, ha bármelyik
+  helyezés 1, 2 vagy 3 (az Excel szabálya).
+- **Törlés:** csupa üres bemenet törli az eredményt, ahogy eddig.
+
+### D4 — Hivatalos idők és ablakos statisztika
+
+**Menetidő:**
+- ha mindkét hivatalos idő megvan: befutás − rajt;
+- különben a telemetriás versenyen a rögzítés hossza, **közelítőként
+  jelölve**; a kézi versenyen nincs menetidő.
+
+**A statisztika ablaka** (telemetriás versenyen):
+
+| Ablak | Mikor | A táv, sebesség és szél mintái |
+|---|---|---|
+| `official` | mindkét hivatalos idő megvan | a `[rajt, befutás]` közötti pillanatképek |
+| `recording` | különben | a teljes rögzítés, közelítőként jelölve |
+
+Kézi versenyen az ablak `manual`: a számok beírt értékek.
+
+**Cache:** a statisztika `race_stats` táblában él a `web.sqlite`-ban:
+- versenyenként egy sor: az ablak fajtája és határai, a három track-stat
+  és a három szél-stat;
+- újraszámolódik minden import után az érintett versenyekre, és amikor
+  egy eredmény-mentés megváltoztatja a hivatalos időket;
+- a `GET` nem ír. Egy mégis hiányzó sort memóriában számol, és naplóz
+  (az ADR 0047 C7 mintája).
+
+Ez **felváltja** a C7 `race_track_stats`-pótlását a webes listában. A
+phone sémájának `race_track_stats` táblája a phone cache-e marad, a web
+nem olvassa.
+
+**Definíciók:**
+- **Max. sebesség:** nyers maximum, mint az appban (felhasználói
+  döntés). Az Excel előzményei szűrt csúcsot tartalmaznak; ez ismert
+  eltérés a régi és az új sorok között.
+- **Átlagsebesség:** a telemetriás versenyen az ablak SOG-mintáinak
+  átlaga (`SummarizeTrack`), a kézin táv ÷ menetidő. Egyenletes
+  mintavételnél a kettő ugyanazt adja, mert az Excel tava is a SOG
+  időintegrálja volt.
+
+**A readerek:**
+- **Két új domain kontraktus:** a `WindowedTrackSampleReader` és a
+  `WindSampleReader` (`raceId`, `TimeWindow?`). A `null` ablak a teljes
+  rögzítés.
+- **A meglévő `TrackSampleReader` változatlan.** Egy új paraméter a phone
+  és a tesztek minden fake-jét eltörné (OCP), ezért nem bővül.
+- **Implementáció:** a `TrackSampleReaderImpl` egy `readWindow`
+  metódust kap, a `call` arra delegál. Az új `WindSampleReaderImpl`
+  ugyanígy SQL-ben szűr a `snapshot_logs.timestamp` oszlopra, a határokat
+  is beleértve.
+
+### D5 — Szél-statisztika
+
+Új domain use case: `SummarizeWind`. Bemenete `WindSample`-ek listája
+(`twsMps?`, `twdDeg?`), kimenete `WindStats`.
+
+- **Átlagos szél:** a nem-null TWS-ek számtani átlaga.
+- **Max. szél:** a legnagyobb TWS, a sebességgel azonos szabály szerint.
+  Az Addendum 5 L3 felülírja: tüske-szűrt maximum.
+- **Uralkodó irány:** a nem-null TWD-k körkörös átlaga (egységvektorok
+  átlaga). Az egyszerű számtani átlag a 359°→1° átmenetnél hibás lenne,
+  ugyanaz a probléma, amit a wind-shift trend `unwrap`-ja kezel.
+- **Égtáj:** a 16 irány a domain `CompassPoint` enumja. A fok → égtáj
+  leképezés (`CompassPoint.fromDegrees`) is ott él, mert a szerződés
+  (`ManualRaceInput`) és a web is ezt a típust használja. A kézi verseny
+  az indexét (0–15) tárolja.
+- **Megjelenítés:** a magyar felirat (É, ÉÉK, ÉK, KÉK, K, KDK, DK, DDK,
+  D, DDNy, DNy, NyDNy, Ny, NyÉNy, ÉNy, ÉÉNy, pontosan az Excel
+  jelölései) a `foretack_ui` dolga.
+
+**A forrás:** a `snapshot_logs` JSON-jának `wind` mezője, abból a
+`trueSpeedWater` és a `trueDirectionGround`. Az irány csak földrajzi
+(`trueNorth`) referenciával számít. Mágneses mintát deklináció nélkül
+nem lehet átváltani, ezért az ilyen minta irány nélkül kerül a számításba,
+a sebessége megmarad.
+
+### D6 — HTTP-szerződés v2 (felülírja az Addendum 1 A5–A6 érintett részeit)
+
+A szerződés még nincs élesítve, ezért a változás verziózás nélkül, törő
+módon megy.
+
+| Metódus és útvonal | Törzs | Válasz |
+|---|---|---|
+| `GET /api/races` | — | `{"races": [RaceSummary]}`, mindkét fajta, a legújabbal kezdve |
+| `GET /api/races/{id}` | — | `RaceDetail` |
+| `PUT /api/races/{id}/result` | `RaceResultInput` | `RaceResult` (csupa üres → törlés) |
+| `POST /api/manual-races` | `ManualRaceInput` + `RaceResultInput` | `RaceSummary` |
+| `PUT /api/manual-races/{id}` | `ManualRaceInput` + `RaceResultInput` | `RaceSummary` |
+| `DELETE /api/manual-races/{id}` | — | `204` |
+| `POST /api/imports` | változatlan | változatlan |
+
+**`RaceSummary`** (a napló és a táblázat egy sora):
+- `id`, `kind` (`telemetry` / `manual`), `name`, `date`;
+- telemetriás versenynél a rögzítés kezdete és vége;
+- `stats`: az ablak, a három track-stat és a három szél-stat;
+- az opcionális `result`.
+
+**`RaceDetail`:**
+- a `RaceSummary`;
+- telemetriás versenynél emellett a `Race` (bójákkal), a track-pontok
+  és a `roundings` (ADR 0047 Addendum 5 F1 szerint a web nem
+  jeleníti meg).
+
+**Mentés:**
+- A kézi verseny alapadatai és eredménye **egy tranzakcióban**
+  mentődnek, mert mindkettő a `web.sqlite`-ban él, és a szerkesztő egy
+  képernyő.
+- Telemetriás versenyen csak az eredmény menthető.
+- Egy kézi-verseny végpont telemetriás azonosítóval `RaceNotFound`-ot
+  ad, és fordítva.
+
+**Validáció:**
+- `ManualRaceInput`: nem üres név, érvényes dátum, nem negatív számok,
+  égtáj-index 0–15.
+- Új `ApiError` ág nem kell: a `ValidationFailed` szabálysértés-listája
+  mindkét bemenet mezőit lefedi.
+
+### D7 — Az Excel egyszeri importja
+
+**Két lépés, hogy a normalizálás tesztelt Dart-kódban legyen:**
+
+1. `tools/legacy_race_log/xlsx_to_json.py` (Python, `openpyxl`, csak
+   olvas): a `Versenyek` lap **nyers** cellaértékeit JSON-ba írja,
+   típus-jelöléssel. Nem normalizál.
+2. `dart run web_server:import_legacy_races --archive … --web-db …
+   --json …`:
+   - alapból **próbafuttatás**: kiírja a tervet (párosított, új kézi,
+     különleges eset, nem párosítható), és nem ír semmit;
+   - `--apply`-jal ír.
+
+**Normalizálás:**
+- a NM → m, a csomó → m/s;
+- a szöveges dátumok helyi időként (Europe/Budapest) → UTC;
+- `19.` → 19;
+- a Befutás cellában álló DNF → mindhárom helyezés DNF, befutási idő
+  nincs;
+- a `-` díj → `null`;
+- a „Mezőny" oszlop → `overallFleetSize`; az osztály- és az egytestű
+  mezőny üres marad, mert az Excel nem tartja nyilván;
+- az „Osztály" és a „Telemetria forrása" oszlop kimarad.
+
+**Párosítás telemetriás versenyhez:**
+- azonos helyi nap és normalizált név (kisbetű, ékezet és írásjel
+  nélkül, a gyakori előtagok tűrésével);
+- egyértelmű találatnál az Excel eredménye, YS-száma, díja és hivatalos
+  ideje a telemetriás versenyre kerül, a táv, a sebesség és a szél nem
+  (felhasználói döntés);
+- nem egyértelmű vagy hiányzó találat → a próbafuttatás listázza, és
+  egy explicit párosítási fájllal (`--match race-id=sor`) dönthető el.
+
+**Különleges esetek, kódban, tesztelve:**
+- **2026 Mihálkovics:** egy Excel-sor, két telemetriás verseny.
+  - 1. nap: abszolút 19, egytestű 13;
+  - 2. nap: abszolút 1, egytestű 1, és az osztály 1. hely (a két nap
+    összesített eredménye, felhasználói döntés);
+  - a hivatalos időket naponként a felhasználó írja be, mert az Excel
+    sora a két napot egybefogja.
+- **58. Kékszalag:** az egytestű `8. / 6.` → 8.
+
+**Az eredmény:**
+- **A párosítatlan sorok** kézi versenyek lesznek.
+- **Idempotencia:** a kézi versenyek azonosítója UUID v5 a
+  `legacy:<dátum>:<név>` kulcsból, így egy újrafuttatás frissít, nem
+  duplikál. Meglévő eredményt az import csak `--overwrite`-tal ír felül,
+  hogy a weben azóta beírt adat ne vesszen el.
+- **Helye:** az import lokálisan is futtatható egy másolaton; élesben az
+  S8 után a VPS-en fut, vagy a lokálisan előállított `web.sqlite` kerül
+  fel.
+
+### D8 — UI (az S7-be)
+
+**Napló:**
+- AppBar-váltó: Lista / Táblázat. A váltás az évválasztót megtartja; a
+  táblázat kap egy „Összes év" opciót is.
+- „Új verseny" gomb: üres kézi-verseny szerkesztőt nyit.
+
+**A táblázat oszlopai:**
+- Dátum, Verseny;
+- Osztály, Abszolút és Egytestű helyezés, Mezőny, YS;
+- Rajt, Befutás, Menetidő;
+- Táv (km), Átlag (kn), Max (kn);
+- Átl. szél, Max szél, Szélirány;
+- Díj.
+
+**A táblázat viselkedése:**
+- rögzített fejléc és névoszlop, oszlop szerinti rendezés;
+- dobogó-kiemelés a helyezésen;
+- a közelítő (rögzítés-ablakos) idők és számok tompítva, `~` jellel;
+- a kézi versenyek jelölve;
+- egy sorra kattintva a részletező nyílik;
+- szerkesztés a táblázatban nincs, összesítő sor nincs (az összesítő a
+  v1 után jön).
+
+**Részletező:**
+- **Eredmény-blokk:** a három helyezés a saját mezőnyével, a YS-szám és a
+  díj.
+- **Összefoglaló:** változatlanul legalul.
+- **Kézi versenynél** nincs térkép és nincs bója, a statok a beírt
+  értékek.
+
+**Szerkesztő:**
+- minden D3-mező;
+- kézi versenynél emellett a név, a dátum és a D2 statjai;
+- törlés gomb kézi versenynél, megerősítő dialógussal.
+
+**A napló sorának helyezés-slotja** az abszolút helyezés és az abszolút
+mezőny (`3/24`), vagy `DNF`/`DSQ`.
+
+**Előfeltétel:** Claude Design kör az S7 előtt a táblázat-nézetre, a
+bővített eredmény-blokkra és a szerkesztőre (új és kézi verseny,
+törlés), mert ezek új képernyő-állapotok. Lezárva: a 14. kör, a
+részleteket az Addendum 1 rögzíti.
+
+### D9 — Adatbázis: `web.sqlite` v2
+
+Az `annotations.sqlite` neve `web.sqlite` lesz: már nem csak annotáció
+él benne. A szerver `--annotations` kapcsolója `--web-db`-re változik.
+Élő adat még nincs, a fájlnév-váltás nem igényel migrálást.
+
+A `WebDatabase` `schemaVersion = 2`, migrációval v1-ről:
+
+**`race_results`** (a `race_annotations` helyett):
+- `race_id` PK;
+- helyezésenként egy `*_place INTEGER NULL` és egy
+  `*_status TEXT NULL` (`dnf`/`dsq`), CHECK-kel, hogy legfeljebb az egyik
+  legyen kitöltve;
+- `class_fleet_size`, `overall_fleet_size`, `monohull_fleet_size`
+  (`INTEGER NULL`);
+- `ys_number_hundredths`, `official_start`, `official_finish`, `prize`,
+  `summary`, `updated_at`.
+
+A v1 → v2 migráció: az `overall_place`, a `class_place`, a
+`class_fleet_size`, az `overall_fleet_size` és a `summary` azonos néven
+átmásolódik; a `monohull_*` oszlopok üresen indulnak.
+
+**`manual_races`:**
+- `id` PK, `name`, `date` (`YYYY-MM-DD` szöveg);
+- `distance_m`, `max_speed_mps`, `avg_wind_mps`, `max_wind_mps`,
+  `wind_point` (0–15);
+- `created_at`, `updated_at`.
+
+**`race_stats`:**
+- `race_id` PK, `window_kind`, `window_start`, `window_end`;
+- `distance_m`, `avg_speed_mps`, `max_speed_mps`;
+- `avg_wind_mps`, `max_wind_mps`, `wind_dir_deg`;
+- `computed_at`.
+
+Egy kézi verseny törlése a hozzá tartozó `race_results` sort is törli,
+egy tranzakcióban. FK nincs, mert a telemetriás versenyek egy másik
+fájlban élnek (ADR 0047 C3).
+
+## Mit ír felül
+
+- **ADR 0047 D7:** a `RaceAnnotation` helyett `RaceResult` (D3).
+- **ADR 0047 D8, eredmény-szerkesztő:** a név és az idők kézi versenyen
+  szerkeszthetők, a hivatalos idők mindenhol (D2, D3).
+- **Addendum 1 A5–A6:** az annotáció-végpont és -szabályok helyett a D6.
+- **Addendum 3 C3:** a `WebDatabase` v2 (D9).
+- **Addendum 3 C5:** a `--annotations` helyett `--web-db`.
+- **Addendum 3 C7:** a webes lista statjai a `race_stats`-ból jönnek (D4).
+- **Addendum 4 E7, eredmény-blokk:** három helyezés, mindegyik a saját
+  mezőnyével (D3, D8).
+
+## Szeletek
+
+| # | Commit-scope | Tartalom |
+|---|---|---|
+| S5b-0 | `docs` | ez az ADR és az ARCHITECTURE-szinkron |
+| S5b-1 | `feat(domain)` + `feat(data)` | `WindSample`, `SummarizeWind`, `WindStats`; ablakos `TrackSampleReader`, új `WindSampleReader` (TDD) |
+| S5b-2 | `feat(archive-api)` | szerződés v2: `RaceSummary`, `RaceStats`, `RaceResult(Input)`, `Placing`, `ManualRaceInput`, validáció (TDD) |
+| S5b-3 | `feat(web-server)` | `web.sqlite` v2 migrációval, `race_stats` számítás és cache, kézi versenyek, új végpontok |
+| S5c | `feat(web-server)` | az Excel-import: Python-kinyerő és Dart CLI, próbafuttatással (TDD a normalizálásra és a párosításra) |
+| — | design | Claude Design kör: táblázat, eredmény-blokk, szerkesztő (kész, Addendum 1) |
+| S7 | `feat(web)` | a web, az ADR 0047 D8, az Addendum 4–5 és e D8 szerint |
+
+## Következmények
+
+- **Pozitív:**
+  - egyetlen forrás 2021-től, az Excel megszűnik;
+  - a hivatalos ablak miatt a telemetriás és az Excel-korszak számai
+    összevethetők;
+  - a szél-statok új rögzítés nélkül jönnek;
+  - a kézi verseny lefedi az elfelejtett rögzítést is.
+- **Negatív:**
+  - nagyobb szerződés és webes séma;
+  - a lista már nem a phone `race_track_stats` cache-ére épül, hanem saját
+    cache-re, amit az importnak és a mentésnek frissítenie kell;
+  - a max. sebesség a régi és az új sorokban eltérő módszerrel készült;
+    ez a táblázatban nem látszik.
+
+## Amit ez az ADR NEM dönt el
+
+- az összesítő és évenkénti statisztikát (az Excel Összesítés és
+  Évenként lapja), ez a v1 után jön; **utólagos pontosítás
+  (2026-10-02):** az ADR 0049 dönti el, az S8 deploy előtt;
+- a régi versenyek trackjének importját a `polar.csv` fedélzeti
+  naplóból (2021–2026);
+- a telemetriás versenyek törlését;
+- a szűrt csúcssebességet.
+
+## Addendum 1 — A makett 14. köre (D8-kiegészítés)
+
+2026-10-01. A Claude Design makett (`Foretack Design.dc.html`, 14. kör,
+14a–14z képernyők, 14q döntésrekord) két javító kör után elfogadva.
+Ahol a makett és a D8 eltér, a makett a mérvadó; a felülírt pontokat a
+G9 sorolja fel. Az ADR 0047 Addendum 4 (13. kör) minden szabálya
+érvényben marad, ha ez az addendum mást nem mond. A makett ütközései
+közül a 14w és a 14y elfogadva, a 14x és a 14z elvetve.
+
+### G1 — Napló: nézet-váltó, „Új verseny", évválasztó
+
+- **Nézet-váltó:** szegmentált pár az AppBarban, a gombok előtt:
+  `[Lista | Táblázat]`, 40 px magas, 1 px-es kerettel.
+  - Rádiócsoport: egyetlen Tab-megálló, a ←/→ azonnal vált.
+  - A nézet és a rendezés az alkalmazás memóriájában él, a munkameneten
+    belül megmarad. **URL-állapot nincs** (ADR 0047 D8).
+- **„Új verseny":** az AppBarban, a Feltöltés bal oldalán, ugyanolyan
+  keretes gomb ikonnal. Sorrend: váltó · Új verseny · Feltöltés.
+  - A Feltöltés marad a jobb szélen, mert a fő adatforrás; üres naplóban
+    is ez a teal (13b, 14b).
+  - A tartalomban nincs gomb; az üres szöveg mindkét akciót megnevezi.
+- **Évválasztó (14w):** a két nézet közös állapotot használ, az „Összes
+  év" a listán is választható. Váltáskor semmi nem változik.
+  - A lista „Összes év"-nél évfejlécekkel csoportosít (év, alatta a
+    hónapok).
+  - Első belépéskor a Lista nyílik a legújabb évvel (ADR 0047 E2).
+- **A napló sora:**
+  - a 72 px-es helyezés-slot változatlan: az abszolút helyezés a saját
+    mezőnyével (`3/24`). DNF és DSQ a szám helyén, jobbra zárva,
+    mezőny nélkül. Ha nincs abszolút helyezés, a slot üres; az osztály
+    nem lép a helyére;
+  - ha a dobogó nem az abszolútból jön, a meta-sor végén „OSZT. 2."
+    talapzattal (G6);
+  - kézi versenynél a meta-sor „KÉZI ·"-vel kezd, és menetidő csak
+    hivatalos időkből van, különben kimarad.
+- **Állapotok:** betöltés (14f) és hiba (14g) a 13c/13d szerint, a váltó
+  állása megmarad. Üres napló (14h): a táblázat fejléce sem jelenik meg;
+  az első feltöltés vagy létrehozás után az a nézet nyílik, amelyen a
+  váltó állt.
+
+### G2 — Táblázat
+
+**Szélesség:** az egyetlen elem, amely kilép a 880 px-es oszlopból.
+- Ablak − 2×20 px, legfeljebb 1600 px, afölött középre zárva.
+- A 16 oszlop természetes szélessége 1400 px: 1440 px-en görgetés nélkül
+  elfér. Keskenyebb ablakban vízszintesen görget; a Dátum és a Verseny
+  (320 px) balra rögzítve, alatta 8 px-es görgetősáv.
+- Az AppBar és az évsáv a 880 px-es oszlopban marad, hogy a váltó ne
+  ugorjon.
+- **Miért:** az Excel-összevetés lényege, hogy egy sor egyben látszik.
+  Csak görgetéssel 880 px-en mindig 11 oszlop rejtve maradna, csak
+  szélesítéssel 1024 px-en nem férne el.
+
+**Oszlopok** (a D8 listáját felülírja):
+
+| Csoportfejléc | Oszlop | Szélesség |
+|---|---|---|
+| VERSENY | Dátum | 104 |
+| VERSENY | Verseny | 216 |
+| EREDMÉNY · HELYEZÉS/MEZŐNY | Oszt., Absz., Egyt. | 80 egyenként |
+| EREDMÉNY · HELYEZÉS/MEZŐNY | YS | 64 |
+| IDŐ ÉS TÁV · KM | Rajt | 72 |
+| IDŐ ÉS TÁV · KM | Befutás, Menetidő | 88 egyenként |
+| IDŐ ÉS TÁV · KM | Táv | 72 |
+| SEBESSÉG ÉS SZÉL · KN | Átlag, Max | 56 egyenként |
+| SEBESSÉG ÉS SZÉL · KN | Átl. szél, Max szél, Irány | 64 egyenként |
+| DÍJ | Díj | 152+, a maradékot kitölti |
+
+- **Külön Mezőny oszlop nincs.** A helyezés-cella a napló slotjának
+  kicsinyített párja: jobbra zárt helyezés (26 px), perjel, tompított
+  mezőny (34 px); a perjelek egy oszlopba esnek. A számok Martian Mono
+  tabuláris számjegyekkel. Üres mezőnynél csak a
+  helyezés áll, DNF/DSQ mellett nincs mezőny. Talapzat a szám alatt.
+- Csoportok között 1 px-es függőleges vonal, oszlopok között nincs.
+
+**Rögzítés:** a két fejlécsor (csoportsor 30 px + oszlopsor 40 px) a
+viewport tetején ragad, a bal blokk balra; a bal blokk éle 1 px-es vonal,
+árnyék nincs.
+
+**Rendezés:**
+- kattintás vagy Enter a fejlécen. Első kattintásra a dátum és a
+  mennyiség csökkenő, a helyezés és a szöveg növekvő (az 1. elöl); a
+  második megfordítja;
+- a helyezés-oszlop a helyezés szerint rendez;
+- DNF, DSQ és üres érték mindig a végén, iránytól függetlenül;
+- a rendezett oszlopot csak a fejléc jelöli: világos felirat, nyíl,
+  2 px-es alsó vonal és kiemelt fejléc-cella. **A cellák sávja elmarad**
+  (a makett ajánlása, a felhasználó jóváhagyásával): a csíkozott sorokon
+  a sáv színe vagy eltűnne, vagy kockás mintát adna, a fejléc pedig
+  egyedül is egyértelmű, és ott van, ahová rendezéskor nézel;
+- a rendezés iránya a szemantikai fában is megjelenik (az `aria-sort`
+  megfelelője).
+
+**Évhatár:** csak dátum szerinti rendezésnél egy 36 px-es évsor (év +
+darabszám), alatta 1 px-es vonal. Más rendezésnél nincs; az évet a Dátum
+oszlop hordozza.
+
+**Cellák és sorok:**
+- 40 px-es sor, 0 10 px betét, számok jobbra zárva, egységek a
+  csoportfejlécben;
+- a rajt és a befutás csak idő; másnapi befutásnál kis „+1";
+- üres cellában semmi nem áll;
+- **váltakozó sorszín** mindkét blokkon azonos indexből, így egy sor
+  görgetés közben is egyszínű. Az évsor nem számít bele, minden év
+  páratlan sorral indul; más rendezésnél a csíkozás folyamatos. A
+  betöltés vázlat-sorai is csíkozottak. A Lista nézet nem csíkozott;
+- **hover** mindkét blokkon egyszerre; **fókusz** 2 px befelé a teljes
+  sor körül; ↑/↓ sorról sorra, kattintás vagy Enter a részletezőre;
+- **Díj:** egy sorra vágva (…), hoverre 400 ms után 300 px-es tooltip; a
+  teljes szöveg a részletezőn olvasható;
+- összesítő sor nincs, szerkesztés a táblázatban nincs.
+
+### G3 — Részletező
+
+**Sorrend:** státusz → sebesség/táv csík → szél-csík → [közelítő-sor] →
+eredmény-blokk → térkép → bóják → összefoglaló. Post-race szekció a
+weben nincs (ADR 0047 Addendum 5 F1).
+
+- **Szél-csík:** mindkét fajtánál, ugyanazzal a csík-komponenssel:
+  ÁTL. SZÉL · MAX SZÉL · SZÉLIRÁNY (égtáj).
+- **Közelítő-sor:** hivatalos idő nélkül a csíkok alatt egy halk,
+  kattintható sor (`~`, „IDŐK MEGADÁSA"), amely a szerkesztő
+  idő-szakaszára visz. Ha az eredmény is üres, a 13l sorával egy sorrá olvad
+  (14l).
+- **A 13l sora** felül marad, az eredmény-blokk helyén, hogy a térkép ne
+  tolódjon.
+- **Eredmény-blokk:** „EREDMÉNY" szakaszfejléc, alatta három sor:
+  - helyezések: mindhárom cella `helyezés / mezőny` (`1 / 9 · 3 / 24 ·
+    2 / 18`); üres mezőnynél sorszám (`1.`), nem `1/—`;
+  - adatok: YS, hivatalos rajt, befutás, menetidő;
+  - díj, 640 px-es mértékkel.
+
+  A cellák fix 1/3 és 1/4 szélesek; ami üres, nem jelenik meg (a 13k2
+  üres osztály-cellája helyett), a többi balra zár.
+- **DNF/DSQ a részletezőn:** a helyezés helyén DNF vagy DSQ, a mezőny
+  tompítva mellette marad (`DNF / 56`), mert ismert adat. A listán és a
+  táblázatban DNF mellett nincs mezőny, mert ott szűk a hely.
+- **Kézi verseny (14m):** nincs térkép és bója. A státusz-csíkban „KÉZI
+  RÖGZÍTÉS" üres keretes négyzettel. A csíkok a beírt értékek; az
+  átlagsebesség „SZÁMOLT" címkét kap (táv ÷ menetidő).
+
+### G4 — Szerkesztő
+
+- **Címek:** „Új verseny", „Verseny szerkesztése" (kézi), „Eredmény
+  szerkesztése" (telemetriás, 13m).
+- **Rács:** a címke balra, 132 px-es oszlopban; a Díj és az Összefoglaló
+  felül-címkés, a 640 px-es mérték miatt. Szakaszfejlécek a havi fejléc
+  nyelvén.
+- **Telemetriás versenynél** felül csak olvasható kontextus a rögzítés
+  idejével.
+- **Helyezés-pár** helyezésenként egy sor: `[helyezés 104×54] /
+  [mezőny 104×54]` + `[SZÁM | DNF | DSQ]` szegmens (54×54-es cellák).
+  Mindegyik pár, és a páron belül mindkét mező külön opcionális.
+- **DNF/DSQ bevitel:**
+  - egérrel egy kattintás a szegmensen;
+  - billentyűzettel a helyezés-mezőbe „d"-t gépelve kiegészít (`dn` →
+    DNF, `ds` → DSQ; Enter vagy Tab elfogad), számjegyre visszavált;
+    vagy Tab a szegmensre és ←/→;
+  - a beírt szám mentésig megmarad („KORÁBBI: 4"), mentéskor DNF/DSQ
+    mellett eldobódik;
+  - a mezőny-mező DNF/DSQ mellett is aktív.
+- **Dátum:** egy 144 px-es mező, `ÉÉÉÉ.HH.NN` maszk, csak számjegy
+  (`20260613` → `2026.06.13`), ↑/↓ napot léptet, előtöltve a verseny
+  napjával. A befutás dátuma tompítva a rajtét követi, amíg át nem írod;
+  mellette „+1 NAP" cella. Naptár nincs.
+- **Idő:** 120 px-es mező, `ÓÓ:PP`, opcionálisan `:MM`; kilépéskor
+  `1000` → `10:00`, `9` → `09:00`. Helyi idő. Telemetriásnál mellette a
+  rögzítés kezdete és vége műszer-betűvel; kézinél nincs.
+- **YS:** tizedesvessző; pontot is elfogad és vesszőre cseréli, pontosan
+  két tizedes.
+- **Égtáj-választó (kézi, 14r–14s):** 5×5-ös rács 44 px-es cellákkal
+  (220 px). A külső gyűrű 16 cellája a 16 égtáj a valódi helyén (É felül
+  középen), középen a választás és „HONNAN FÚJ".
+  - Egérrel egy kattintás.
+  - Billentyűzettel egy Tab-megálló: a nyilak térben mozognak, a gépelt
+    betűk ugranak (D D N Y → DDNy), a Del töröl.
+  - **Miért:** a 16 elemes lista lassú, az iránytű-tárcsa nehezen
+    célozható; a rács iránytű-képet ad lista-pontossággal.
+- **Számolt sorok:** a menetidő és (kézinél) az átlagsebesség csak
+  olvasható, „SZÁMOLT" címkével, keret nélkül; hiányzó adatnál „—" és
+  hogy miből lesz.
+- **Validáció mentés után** (13n nyelve, 14p): piros keret és címke, a
+  hibás pár vagy mező alatt egy sor, a fókusz az első hibára ugrik.
+  - helyezés > mezőny **páronként**, a hibás pár alatt (D3);
+  - a befutás nem későbbi a rajtnál, a befutás alatt, „+1 NAP"
+    javaslattal;
+  - rossz YS-formátum.
+- **Mentetlen változtatás:** a 13o dialógusa (ADR 0047 E8).
+
+### G5 — A kézi verseny életciklusa
+
+- **Létrehozás (14r, 14v):** üres szerkesztő, a név fókuszban. A Mentés
+  létrehozza a versenyt, az új részletező nyílik, „Verseny létrehozva"
+  snackbar.
+- **Törlés (14s–14u):**
+  - kuka ikon-gomb (48 px) a szerkesztő AppBarjának jobb szélén, a
+    részletező ceruzájának helyén. Nem a tartalomban (második gomb
+    lenne), nem a részletezőn (ott olvasunk). Telemetriásnál nincs;
+  - megerősítő dialógus az ADR 0047 E6 `ForetackDialog`-jával, 480 px:
+    Mégse balra, kezdő fókusszal, Esc = Mégse; Törlés jobbra, pirosan.
+    A doboz megnevezi, mi vész el;
+  - **a törlés végleges, visszavonás nincs** (felhasználói döntés);
+  - utána a napló a törölt verseny évén nyílik, „Verseny törölve"
+    snackbar.
+- **Snackbar a weben:** 480 px, a 880 px-es oszlop bal betétéhez igazítva,
+  24 px-re az aljától, **akció nélkül**. Az ADR 0047 E6 „Eredmény mentve"
+  snackbarja ugyanígy jelenik meg.
+
+### G6 — Jelölések
+
+- **Közelítő (14y):** `~` előjel és tompított szín, a pontos érték
+  világos. Közelítő **minden** ablakfüggő érték: táv, átlag, max, átl.
+  szél, max szél, irány (14y). Ugyanígy jelölt a hivatalos idő helyett a
+  rögzítésből vett rajt, befutás és menetidő (14j, D4). Ugyanígy a lista meta-sorában, a táblázat cellájában és a
+  részletező csíkjaiban.
+  - **Miért mind:** a max. sebesség és a max. szél gyakran a rajt előtt
+    vagy a cél után jön (bemelegítés, motorozás haza), épp ezek
+    torzulnak a legjobban.
+  - A jelentést a `~` hordozza, nem a szín (színtévesztés, nyomtatás).
+- **KÉZI:** szöveges címke, nem szín és nem ikon, mert más forrás, nem
+  hiba: a listán a meta elején, a táblázatban a név után, a részletezőn
+  a státusz-csíkban (üres keretes négyzettel; telemetriásnál tele).
+- **Dobogó:** talapzat, egy vonal minden 1–3. helyezés-szám alatt: 2 px,
+  a részletezőn 3 px. Nincs cella-háttér, nincs szín.
+
+### G7 — Színek: a makett hexái tokenre képezve
+
+Új token nincs (ADR 0047 E5, ADR 0044 D48). Az E5 táblázata érvényes,
+ez kiegészíti:
+
+| Makett | Szerep | Token |
+|---|---|---|
+| `#0B0F14` | páratlan táblázat-sor | `surface` (pontos) |
+| `#10161E` | páros táblázat-sor; lista-sor hover | `surfaceContainer` (E5) |
+| `#16202B` | táblázat-sor hover; Díj-tooltip háttere | `surfaceContainerHigh` (E5) |
+| `#0E141B` | rendezett fejléc-cella | `surfaceContainer` (E5) |
+| `#1E2A38` | kijelölt váltó-cella; hairline; csoport-elválasztó | `outlineVariant` (pontos) |
+| `#2A3B4E` | váltó és tooltip kerete; rögzített blokk éle; évsor vonala | `outline` (pontos) |
+| `#F2F7FA` | kijelölt váltó-felirat; rendezett fejléc; pontos érték | `onSurface` (pontos) |
+| `#9FB2C2` | közelítő, KÉZI, talapzat, DNF/DSQ, fókusz | `onSurfaceVariant` (pontos) |
+| `#66788A` | tompított mezőny | `TextTones.low` (pontos) |
+| `#E0574F` | törlés-akció, hibaszöveg | `colorScheme.error` (E5) |
+
+- **A táblázat-sor hovere** azért `surfaceContainerHigh` és nem a lista
+  `surfaceContainer`-e, mert az a páros sor színe.
+- **Kontraszt:** a tompított mezőny (`TextTones.low`) 11,5 px-en a 4,5:1
+  alatt marad (a makett mérése szerint 4,2 és 4,0:1 a két sorszínen,
+  hoverben 3,6:1). Ugyanez igaz a napló slotjára is; másodlagos
+  adat a helyezés mellett, ezért marad. Ha zavar, `onSurfaceVariant`-ra
+  emelhető, de akkor a `~` jelölés kevésbé válik el.
+
+### G8 — Méretek és tipográfia
+
+A makett nem-token méretei a `WebLayout` konstansai lesznek (ADR 0047
+E3): 1600 táblázat-maximum, 20 táblázat-margó, 320 rögzített blokk,
+80 helyezés-oszlop (26 + 34), 40 sor, 30 + 40 fejléc, 36 évsor,
+300 tooltip, 8 görgetősáv, 54 szegmens-cella, 44 égtáj-cella, 144 és
+120 dátum- és idő-mező, 132 címke-oszlop, 2 és 3 talapzat, 400 ms
+tooltip-késleltetés. Ha egy érték közös widgetbe kerül, az a widget
+saját konstansa lesz.
+
+A betűméretek az ADR 0044 D39 elve szerint a legközelebbi meglévő
+fokozatra képződnek, új tipográfiai konstans nincs. A konkrét leképezés
+az S7 dolga; az eredmény-blokk számai az E7 szerint `numeralMediumStyle`
+és `numeralSmallStyle`.
+
+### G9 — Mit ír felül
+
+- **D8, napló:** az „Összes év" a listán is van (G1), nem csak a
+  táblázatban.
+- **D8, a táblázat:** külön Mezőny oszlop nincs, a helyezés-cella
+  hordozza a mezőnyt; a rögzített névoszlop helyett a Dátum + Verseny
+  blokk rögzített (G2).
+- **D8, a részletező:** a szél-csík és a közelítő-sor új; az
+  eredmény-blokk három sorú (G3).
+- **ADR 0047 E1:** a post-race szekció a weben nincs (már az F1 is így
+  döntött), a szél-csík és a közelítő-sor bekerül a sorrendbe.
+- **ADR 0047 E3, oszlop:** a táblázat kilép a 880 px-es oszlopból (G2);
+  minden más az oszlopban marad.
+- **ADR 0047 E6, snackbar:** a webes snackbar 480 px-es és akció nélküli
+  (G5).
+- **ADR 0047 E7, napló AppBar:** a Feltöltés mellett az „Új verseny" is
+  ott van; üres naplóban a Feltöltés azért teal, mert a fő adatforrás
+  (G1), nem mert az egyetlen akció.
+- **ADR 0047 E7, eredmény-blokk:** üres cella nem jelenik meg (a 13k2
+  helyett); a szerkesztő helyezés-mezője pár lett mezőnnyel (G4).
+
+## Addendum 2 — A szerződés v2 a dróton (S5b-2)
+
+2026-10-01. Az S5b-2 előtti egyeztetés és a kódolás közben hozott
+szerződés-döntések. A D6 alakját pontosítja; ahol eltér, ez a mérvadó.
+
+### H1 — A szélirány a dróton égtáj
+
+A `RaceStats` és a `ManualRaceInput` is `CompassPoint`-ként viszi az
+irányt, az enum nevével (`"southWest"`).
+- A szerver a telemetriás versenyek számolt fokát a
+  `CompassPoint.fromDegrees`-szel képezi. A `race_stats` cache a fokot
+  tárolja (D9), a leképezés a válasz építésekor történik.
+- **Miért:** a web csak 16 égtájat mutat, a kézi verseny is égtájat
+  tárol. Egy típus mindkét fajtára egyszerűbb kliens; a fokban küldött
+  kézi érték csak álpontosság lenne.
+
+### H2 — A verseny eredete és a napló napja
+
+A `RaceSummary` a D6 `kind` és `date` mezője helyett egy sealed eredetet
+hordoz:
+- `TelemetryOrigin`: a rögzítés kezdete és vége (UTC);
+- `ManualOrigin`: a naptári nap (`CalendarDate`, dróton `"YYYY-MM-DD"`).
+
+Dróton: `"origin": {"kind": "telemetry", "start": …, "end": …}` vagy
+`{"kind": "manual", "date": "2026-06-13"}`.
+
+A telemetriás verseny **napját a kliens számolja** helyi időben (a
+hivatalos rajtból, ha van, különben a rögzítés kezdetéből, D2), nem a
+szerver.
+- **Miért:** a pure Dart szerver a folyamat időzónáját látja, és a VPS
+  UTC-ben fut. A böngésző Budapesten van, ott a helyi nap helyes. Egy
+  szerver oldali „date" a késő esti befutásokat a következő napra tenné.
+
+### H3 — A statisztika ablaka
+
+`RaceStats.window` sealed: `OfficialWindow(TimeWindow)`,
+`RecordingWindow(TimeWindow)`, `ManualEntry()`. Dróton
+`{"kind": "official" | "recording" | "manual", "start", "end"}`, kézinél
+határok nélkül. A közelítő jelölés (G6) a `RecordingWindow`-ból jön.
+
+- A track-statok (`distanceMeters`, `avgSpeedMps`, `maxSpeedMps`) és a
+  szél (`avgWindMps`, `maxWindMps`, `windPoint`) laposan a `stats`-ban.
+- Kézi versenyen az `avgSpeedMps`-t a szerver számolja (táv ÷ menetidő,
+  D2), így a web itt is csak renderel (ADR 0047 D4).
+- A dekóder ellenőrzi az összhangot: telemetriás eredethez hivatalos vagy
+  rögzítés-ablak, kézihez `manual` tartozik.
+
+### H4 — Helyezés és eredmény
+
+- **`Placing`:** dróton szám vagy `"dnf"` / `"dsq"`, hiányzó helyezésnél
+  `null`. A dekóder bármely egész számot `FinishPlace`-ként elfogad; a
+  ≥ 1 szabály a validáció dolga, hogy a hiba a mező alatt jelenjen meg.
+- **`RaceResult`:** `{raceId, updatedAt, …}` és a `RaceResultInput`
+  mezői laposan, ahogy a v1 annotáció.
+- **A kézi verseny törzse** (`POST` és `PUT`):
+  `{"race": ManualRaceInput, "result": RaceResultInput}`, a
+  `ManualRaceRequest` típus.
+- **`RaceDetail` v2:** `{"summary": RaceSummary, "telemetry": …|null}`; a
+  `telemetry` a `Race`-t, a track-pontokat és a `roundings`-ot hordozza,
+  és pontosan telemetriás eredetnél van jelen.
+
+### H5 — Validáció: közös mező- és szabálysértés-típus
+
+A `ValidationFailed` egy közös sealed `InputViolation` listát hordoz,
+`InputField` mezőkkel. Ez a v1 annotáció és mindkét v2 bemenet mezőit
+lefedi, így új `ApiError` ág nem kell (D6).
+
+| Kód | Mikor | Mező |
+|---|---|---|
+| `valueNotPositive` | helyezés, mezőny, YS < 1 | a hibás mező |
+| `placeExceedsFleetSize` | számszerű helyezés > a saját mezőnye | a helyezés |
+| `finishNotAfterStart` | mindkét idő adott, befutás ≤ rajt | `officialFinish` |
+| `valueNegative` | táv, sebesség, szél < 0 | a hibás mező |
+| `valueEmpty` | a név trimmelve üres | `name` |
+
+- A dátum és az égtáj érvényessége **dekódolási** kérdés: a rossz
+  `"YYYY-MM-DD"` vagy ismeretlen égtáj-név `MalformedRequest`. Ez a D6
+  „égtáj-index 0–15" validációját váltja fel; a 0–15 index csak a
+  tárolás formája (D9).
+- A YS-szám szövegének beolvasása (`75,90` → 7590) az űrlap dolga (S7);
+  a dróton egész szám utazik.
+- A v1 nevek (`AnnotationField`, `AnnotationViolation`) az S5b-3-ig
+  típus-aliasként élnek, hogy a `web_server` változatlanul forduljon. A
+  v1 kódok és mezőnevek változatlanok.
+
+### H6 — Additív átállás
+
+Az S5b-2 a v1 típusokat nem törli, a `web_server` az S5b-3-ig a v1-et
+használja. Egyetlen névütközés van: a v1 `RaceDetail` egy előkészítő
+`refactor` commitban `LegacyRaceDetail` lesz (kodekjeivel együtt). Az
+S5b-3 a `Legacy*` típusokat és az aliasokat törli.
+
+### H7 — Végpont-útvonalak
+
+`raceResultPath(id)` → `/api/races/{id}/result`, `manualRacesPath` →
+`/api/manual-races`, `manualRacePath(id)` → `/api/manual-races/{id}`. A
+`raceAnnotationPath` az S5b-3-ig marad.
+
+## Addendum 3 — A szerver v2-je (S5b-3)
+
+2026-10-01. Az S5b-3 szerver-oldali döntései. A D4, a D6 és a D9
+végrehajtását pontosítja; az ADR 0047 Addendum 3 C3, C5, C7 és C8
+érintett részeit felváltja.
+
+### I1 — Rétegek és fájlok
+
+A C8 rétegezése marad (`http` → szolgáltatás → repository), új
+mappákkal:
+- `web_db/`: a `WebDatabase` v2, a három tábla és a repository-k
+  (`RaceResultRepository`, `ManualRaceRepository`, `RaceStatsRepository`);
+- `stats/`: az ablak feloldása, a számítás, a cache olvasása és frissítése;
+- `race/`: a napló, a részletező, az eredmény és a kézi verseny
+  szolgáltatásai;
+- `http/`: egy handler végpont-csoportonként, a JSON-törzs olvasása
+  közös segédben.
+
+Kivezetve: a v1 annotáció (tábla, repository, handler, végpont) és a
+`MissingTrackStatsBackfill`. A web a phone `race_track_stats`
+cache-ét már nem olvassa (D4), így a pótlásra sincs szükség.
+
+### I2 — A `web.sqlite` v2 oszlopai
+
+A D9 táblái, ezekkel a pontosításokkal:
+- **Időpontok:** a hivatalos rajt és befutás (`official_start`,
+  `official_finish`), valamint a statisztika ablakának határai
+  (`window_start`, `window_end`) **epoch-milliszekundum INTEGER**-ek, nem
+  Drift `dateTime`-ok. A Drift az időt unix másodpercben tárolja, és helyi
+  zónájúként adja vissza (ADR 0047 Addendum 3 C3). A cache érvényessége
+  (I4) a határok pontos egyezésén múlik, ezért ezek nem csonkulhatnak.
+- **Adminisztratív idők** (`created_at`, `updated_at`, `computed_at`):
+  Drift `dateTime`, ahogy a v1-ben. Így a v1 `updated_at` változatlanul
+  átmásolható.
+- **Helyezés:** `*_place INTEGER` és `*_status TEXT`. A státusz csak
+  `'dnf'` vagy `'dsq'` lehet, és a kettő közül legfeljebb az egyik
+  kitöltött; mindkettőt CHECK védi.
+- **Kézi verseny:** `date TEXT` (`YYYY-MM-DD`), `wind_point INTEGER`
+  0–15 közt (CHECK), a táv `distance_m`, a sebesség és a szél m/s-ben.
+- **`race_stats`:** csak telemetriás versenynek van sora. A kézi verseny
+  statjai a beírt értékek, nincs mit cache-elni. Az ablak fajtája
+  `'official'` vagy `'recording'`, az irány fokban (`wind_dir_deg`). Az
+  égtájra képzés a válasz építésekor történik (Addendum 2 H1).
+
+**Migráció v1 → v2:** egy lépésben, a Drift migrációs tranzakciójában:
+1. létrejön a `race_results`;
+2. `INSERT … SELECT` a `race_annotations`-ből, azonos oszlopnevekkel;
+3. a `race_annotations` törlődik;
+4. létrejön a `manual_races` és a `race_stats`.
+
+### I3 — A rögzítés ablaka
+
+A telemetriás verseny rögzítési ablaka a `Race.startedAt` és
+`finishedAt` közé esik; ez a `TelemetryOrigin` és a `RecordingWindow`
+alapja. Egy befejezett, de valamelyik időt nélkülöző sor a
+szerződéssel nem írható le: a napló kihagyja, és a szerver naplóz.
+
+### I4 — A statisztika cache-e
+
+**A várt ablak:** a `OfficialWindow`, ha az eredményben mindkét
+hivatalos idő megvan, és a befutás későbbi a rajtnál; különben a
+`RecordingWindow`. Ezt egy pure függvény dönti el a versenyből és az
+eredményből.
+
+**Érvényesség:** egy `race_stats` sor akkor érvényes, ha az ablak
+fajtája és mindkét határa egyezik a várt ablakkal.
+- **Olvasás (`GET`):** érvényes sorból válaszol. Hiányzó vagy elavult
+  sornál memóriában számol, nem ír vissza, és naplóz (D4).
+- **Írás:**
+  - import után az új és frissített versenyekre, valamint minden olyan
+    befejezett versenyre, amelynek nincs érvényes sora;
+  - eredmény-mentés után, ha a várt ablak megváltozott.
+
+  Egy verseny számítási hibája nem állítja meg a többit: naplózódik, és a
+  következő import újrapróbálja.
+
+### I5 — Egy közös írási zár
+
+Az import (a minták cseréje és a `race_stats` frissítése) és az
+eredmény-mentés utáni újraszámolás **ugyanazt** a `SerialLock`-ot
+használja. Enélkül egy import közben mentett eredmény a régi mintákból
+számolt statot írhatna az új fölé. A kézi verseny írása nem érinti sem
+az archívumot, sem a cache-t, ezért nem zárol; az SQLite úgyis
+sorosítja az írásokat.
+
+### I6 — A kézi verseny statjai és sorrendje
+
+- **Statok:** `ManualEntry` ablak, a beírt táv, max. sebesség és szél.
+  Az átlagsebesség táv ÷ hivatalos menetidő, ha mindkettő megvan és a
+  menetidő pozitív (D2).
+- **A napló sorrendje** a szerveren: a legújabb elöl, a hivatalos rajt
+  szerint, ha van, különben a rögzítés kezdete, illetve a kézi verseny
+  napjának dele (UTC). Ez kényelmi sorrend; a web maga rendez (G2).
+
+### I7 — Végpontok és válaszok
+
+| Végpont | Siker | Hiba |
+|---|---|---|
+| `PUT /api/races/{id}/result` | `200`, `RaceResult` | ismeretlen vagy kézi azonosító → `RaceNotFound` |
+| `POST /api/manual-races` | `201`, `RaceSummary` | — |
+| `PUT /api/manual-races/{id}` | `200`, `RaceSummary` | ismeretlen vagy telemetriás azonosító → `RaceNotFound` |
+| `DELETE /api/manual-races/{id}` | `204`, üres törzs | ugyanígy |
+
+- Minden JSON-törzs korlátja 64 KiB, mint a v1 annotációé (C4).
+- **Csupa üres eredmény** törli a sort. A válasz ekkor is `RaceResult`,
+  üres tartalommal és a törlés idejével, ahogy a v1-ben.
+- **A kézi verseny azonosítója:** UUID v4 a `uuid` csomaggal; a phone
+  már használja, így új külső függőség nem kerül a workspace-be. A
+  generátor injektálható, a tesztek determinisztikusak.
+- A kézi verseny és az eredménye **egy tranzakcióban** íródik (D6).
+  Csupa üres eredménynél a meglévő eredmény-sor törlődik. A kézi verseny
+  törlése az eredményét is törli.
+
+### I8 — Parancssor
+
+- **`server`:** a `--annotations` helyett `--web-db`.
+- **`import_race_db`:** is megkapja a `--web-db`-t, mert az import után a
+  statisztikát frissíti.
+- A kötelező kapcsolókat mindkét belépési pont ugyanúgy ellenőrzi
+  (`_requiredOption`). Ez az `args` `mandatory` jelzőjét váltja fel, amely
+  a hiányt csak olvasáskor, `ArgumentError`-ral jelezte.
+
+### I9 — A v1 szerződés törlése
+
+A szerver átállása után egy külön `refactor(archive-api)` commit törli a
+v1 típusokat:
+- `RaceAnnotation*` és `ValidateRaceAnnotationInput`;
+- `RaceListItem` és `LegacyRaceDetail`;
+- a típus-aliasokat és a `raceAnnotationPath`-t.
+
+A kettő külön commit: így mindkettő után zöld a CI.
+
+## Addendum 4 — A web (S7) terve és a napló (S7a)
+
+2026-10-01. Az S7 előtti egyeztetés. A K3 a G1 és az ADR 0047 E7
+sor-tételét **felülírja**.
+
+### K1 — Az `apps/web` package
+
+- **Útvonal és név:** az útvonal `apps/web`, a package neve
+  `foretack_web`. A `web` név ütközne a Dart csapat `package:web`
+  csomagjával, amelyre a Flutter web is épül.
+- **Függőségek** (ADR 0047 D2): `foretack_ui`, `race_archive_api`,
+  `domain`, `shared`. A `data`-tól nem függ.
+- **Külső csomagok:**
+  - `flutter_riverpod`, ugyanazzal a verzióval, mint a phone;
+  - `http` a JSON-hívásokhoz. Ez a Dart csapat csomagja; a tesztek a
+    beépített `MockClient`-jét használják.
+- **Rétegek:**
+  - `lib/app/`: az app gyökere, a `WebLayout` (ADR 0047 E3) és a
+    lokalizáció;
+  - `lib/api/`: az `ArchiveApiClient`;
+  - `lib/race_log/`: a napló providerei, a pure csoportosító és a
+    képernyő.
+
+  Képernyőnként egy mappa, mint a phone `features/`-e.
+- **Az API címe relatív** (`/api/…`): élesben és lokálisan is ugyanarról
+  az originről jön, mint a web (K5).
+
+### K2 — Az API-kliens és az állapot
+
+- **`ArchiveApiClient`:**
+  - az injektált `http.Client` fölött dolgozik;
+  - a szerződés dekódereit használja;
+  - `Result<T, ApiFailure>`-t ad, kivételt nem;
+  - az `ApiFailure` sealed: hálózati hiba, a szerver `ApiError`-ja, vagy
+    dekódolhatatlan válasz.
+- **Providerek (Riverpod):**
+  - **`raceSummariesProvider`** a napló sorait tölti. Az ÚJRA gomb
+    (13d) érvényteleníti.
+  - **`logPeriodProvider`** a választott időszakot tartja: a legújabb
+    év (alapállapot, ADR 0047 E2), egy konkrét év, vagy az összes év
+    (14w). Egy már nem létező választott év a legújabbra esik vissza, a
+    phone mintájára (ADR 0044 D34). Közös a Lista és a Táblázat nézettel.
+    Nem `autoDispose`: a munkameneten belül megmarad (G1).
+- **A napló csoportosítása** pure függvény (`groupRaceLog`), a phone
+  `BuildRaceLog`-jának mintájára, de `RaceSummary`-ből. A napot a D2
+  szerint helyi időben számolja: telemetriásnál a hivatalos rajtból,
+  különben a rögzítés kezdetéből, kézinél a dátum mezőből. Az évek, a
+  hónapok és a versenyek is csökkenő sorrendben jönnek.
+
+### K3 — A napló sora: nap és név, mint a phone-on (felhasználói döntés)
+
+A webes sor a phone sorát kapja, változatlanul: a nap és a név, meg a
+chevron.
+- A 13a/14a meta-sora (táv, menetidő, max., `KÉZI`, `~`) **elmarad**.
+- Elmarad a 72 px-es helyezés-slot és az „OSZT. 2." jelölés is.
+
+**Miért:** kevesebb munka, és a lista így egy pillantásra ugyanaz, mint a
+telefonon. A részletek a részletezőben és a Táblázat nézetben látszanak.
+
+**Megvalósítás:** a `foretack_ui` `RaceLogRow`-ja egy második
+konstruktort kap: `RaceLogRow.entry(day:, name:)`. A phone `Race`-alapú
+konstruktora erre irányít át, ezért a phone kódja és rajza változatlan.
+
+### K4 — A napló többi eleme
+
+- **Közös elemek, ahol vannak:** a stat-csík, a hónap-fejléc és a sor a
+  phone `foretack_ui`-widgetje. A makett 14a fejléc-blokkja (az évsorba
+  ágyazott statok) helyett a phone stat-csíkja áll. Ez a K3 elvét viszi
+  tovább: ami a phone-on megvan, azt a web is úgy kapja.
+- **Évsáv:** a makett 7c-je (ADR 0047 Addendum 5 F2), új `foretack_ui`
+  widgetként (`RaceLogYearSelector`):
+  - a kiválasztott év nagy számmal, mellette a többi év tompított
+    választóként;
+  - egy elválasztó után az „ÖSSZES" (14w);
+  - alatta a versenyek száma, verzál címkével.
+
+  A szövegeket a hívó adja, a stat-csík mintájára. A phone ezt az S7
+  után kapja meg (F2).
+- **A stat-csík** a kiválasztott évre vagy az összes évre szól:
+  - **vízen töltött idő:** a hivatalos menetidő, ha van és pozitív, különben
+    telemetriás versenynél a rögzítés hossza; a kézi verseny hivatalos
+    idők nélkül nem számít bele;
+  - **össztáv:** a táv-statok összege;
+  - **rekord:** a max. sebességek maximuma.
+- **Állapotok:**
+  - **betöltés:** a phone mintájára egyetlen folyamatjelző; a 13c
+    vázlat-sorai elmaradnak;
+  - **hiba:** üzenet és ÚJRA gomb (13d);
+  - **üres napló:** egy mondat (13b), a Feltöltés és az Új verseny
+    gombja a saját szeletében jön.
+- **A sorra kattintás** az S7b-ig nem nyit semmit: a részletező ott
+  készül el.
+
+### K5 — Lokális fejlesztés Caddyvel (felhasználói döntés)
+
+A Flutter web dev-szervere és az API két külön origin, ezért a böngésző
+CORS miatt blokkolná a hívásokat. Egy lokális Caddy egy originre teszi
+őket, ugyanúgy, mint élesben:
+- a `/api/*` a `127.0.0.1:8087`-es szerver felé megy;
+- minden más a `flutter run -d web-server` portja felé.
+
+A konfiguráció a `tools/dev/Caddyfile`. A szerverbe így nem kerül
+dev-only CORS-kód. A basic auth lokálisan elmarad.
+
+### K6 — Az S7 szeletei
+
+| Szelet | Tartalom |
+|---|---|
+| S7a | az `apps/web` váza, az API-kliens, a napló Lista nézete, a 7c évsáv, a lokális Caddy |
+| S7b | a részletező: státusz, csíkok, eredmény-blokk, interaktív térkép, bóják, összefoglaló |
+| S7c | a szerkesztők: eredmény, kézi verseny (új, mentés, törlés), `ForetackDialog`, snackbar |
+| S7d | a feltöltés-dialógus XHR-folyamatjelzővel (E8) |
+| S7e | a Táblázat nézet és a Lista / Táblázat váltó |
+
+**A sorrend oka:** a web minél előbb használható legyen. Előbb a
+nézegetés, aztán a szerkesztés, majd a feltöltés jön, és a táblázat a
+végén.
+
+### K7 — A részletező (S7b), a K4 elvével
+
+A részletező is a phone közös elemeiből épül, ahol azok megvannak.
+Fentről lefelé:
+1. **státusz-csík:**
+   - telemetriás versenynél a phone `DetailStatusStrip`-je;
+   - kézinél ugyanilyen geometriájú csík „KÉZI RÖGZÍTÉS" felirattal és
+     a nappal (14m);
+2. **sebesség- és táv-csík:** a `TrackStatsRow`;
+3. **szél-csík** (új, Addendum 1 G3):
+   - a `RaceLogStatsStrip` három cellával: átlagos szél, max. szél,
+     szélirány;
+   - az égtáj magyar rövidítését (É … ÉÉNy) a `foretack_ui`
+     `compassPointLabel`-je adja (D5);
+4. **közelítő-sor** (K9);
+5. **eredmény-blokk** (K10);
+6. **térkép-kártya** (K8), csak telemetriás versenynél;
+7. **bóják:** a `DetailMarkRow` sorai, „BÓJÁK" szakaszcímmel;
+8. **összefoglaló:** max. 640 px-es mérték; csak akkor jelenik meg, ha
+   van szövege.
+
+A sorra kattintva a napló `MaterialPageRoute`-tal nyitja. Az AppBar a
+közös `WebAppBar`, vissza-gombbal az oszlopban.
+
+### K8 — Térkép: kártya és teljes képernyő (felhasználói döntés)
+
+Az ADR 0047 Addendum 4 E4 beágyazott, interaktív térképe helyett a phone
+mintája:
+- **a részletezőben:** 560 px magas, gesztus nélküli `TrackMap`-kártya;
+- **rákattintva:** egy teljes képernyős, húzható és nagyítható térkép
+  nyílik, a bóják nevével és a sebesség-legendával. Egérrel a görgő
+  nagyít (`InteractiveFlag.scrollWheelZoom` a közös `TrackMap`-ben; a
+  phone-on hatástalan, mert ott nincs görgő).
+
+**Miért:** kevesebb munka, és a beágyazott térkép soha nem nyeli el az
+oldal görgetését. A +/−, a „teljes track" gomb és a billentyűs vezérlés
+elmarad. A teljes képernyős nézetből nincs PNG-export: az a phone
+megosztásáé.
+
+### K9 — Közelítő értékek: egy halk sor (felhasználói döntés)
+
+Ha a statisztika ablaka a rögzítés (`RecordingWindow`), a csíkok alatt
+egy halk mondat jelzi, hogy a számok közelítők, és a hivatalos idők
+pontosítják őket.
+
+Az Addendum 1 G6 számonkénti `~` jele a részletezőn **elmarad**. Így a
+közös csík-widgetek változatlanok maradnak. A Táblázat nézet (S7e) `~`
+jelét ez nem érinti.
+
+### K10 — Az eredmény-blokk közös csíkokból
+
+„EREDMÉNY" szakaszcím, alatta két csík és a díj. A csíkok ugyanazok a
+`RaceLogStatsStrip`-ek, mint fölöttük, így a blokk ugyanazt a nyelvet
+beszéli, mint a többi szám:
+- **helyezések:** csak a kitöltöttek, mindegyik a saját mezőnyével:
+  - számszerű helyezés mezőnnyel: `3 / 24`;
+  - mezőny nélkül: `1.`;
+  - DNF vagy DSQ: a mezőny mellette marad (G3).
+- **adatok:** YS-szám (`75,90`), hivatalos rajt, hivatalos befutás és
+  menetidő, mind csak akkor, ha megvan. A rajt és a befutás helyi
+  `ÓÓ:PP`; a másnapi befutás `+1 NAP` jelet kap.
+- **díj:** verzál címkével, sima szövegként.
+
+Üres eredménynél a 13l halk sora áll a helyén; az S7c óta ez a sor a
+szerkesztőt nyitja (K14).
+
+### S7c — A szerkesztők (2026-10-01)
+
+A K11–K17 a szerkesztő-szelet egyeztetésének eredménye. A K11 és a K12
+a G4-et **szűkíti** (felhasználói döntés); ami onnan kimarad, az később,
+külön szeletben jöhet.
+
+### K11 — A szerkesztő mezői egyszerűsítve (felhasználói döntés)
+
+Az első körben a G4-ből ez készül el:
+- **helyezés-pár:** `[helyezés] / [mezőny]` + `[SZÁM | DNF | DSQ]`
+  szegmens, helyezésenként egy sor. DNF/DSQ mellett a helyezés-mező
+  tiltott, a mezőny-mező aktív. A „d"-gépelés kiegészítése és a
+  „KORÁBBI: 4" elmarad: a szegmensre váltáskor a beírt szám a mezőben
+  marad, mentéskor DNF/DSQ mellett eldobódik;
+- **dátum:** validált szövegmező, maszk és ↑/↓ léptetés nélkül. Elfogad
+  `2026.06.13`, `2026.6.13.`, `2026-06-13` és `20260613` alakot,
+  kilépéskor `2026.06.13`-ra formáz;
+- **idő:** validált szövegmező, helyi idő. Elfogad `10:00`, `10:00:30`,
+  `1000` és `9` alakot, kilépéskor `ÓÓ:PP`-re (másodperccel
+  `ÓÓ:PP:MM`-re) formáz;
+- **a befutás napja:** saját dátummező helyett egy `[AZNAP | +1 NAP |
+  +2 NAP]` szegmens a befutás-idő mellett. A befutás napja a rajt napja
+  plusz a választott eltolás. A „követi a rajtét" állapot így nem kell,
+  és a Kékszalag másnapi befutása is egy kattintás;
+- **a rajt napja:** telemetriás versenynél saját dátummező, előtöltve a
+  meglévő hivatalos rajt, különben a rögzítés kezdetének helyi napjával.
+  Kézi versenynél a verseny dátuma a rajt napja, külön mező nélkül;
+- **YS:** szövegmező, vesszőt és pontot is elfogad, pontosan két tizedes;
+- **számolt sorok:** a menetidő és (kézinél) az átlagsebesség élőben
+  számolódik a mezőkből, „SZÁMOLT" címkével. Hiányzó adatnál „—" és
+  hogy miből lesz.
+
+**A validáció két lépcsős, mindkettő pure:**
+1. az űrlap szövegeinek olvasása (`TextNotReadable`: rossz szám, YS,
+   dátum vagy idő);
+2. a szerződés közös validátora (`ValidateRaceResultInput`,
+   `ValidateManualRaceRequest`), amelynek szabálysértései
+   `RuleBroken`-ként jönnek.
+
+A kettő közös típusa a web `FieldProblem`-je (sealed), mezőhöz
+(`InputField`) kötve. A mentés gomb után minden hibás mező egyszerre
+jelez, a fókusz az űrlap-sorrend első hibás mezőjére ugrik. A szerver
+`ValidationFailed` válasza ugyanígy jelenik meg.
+
+### K12 — Égtáj: 16 elemű lenyíló (felhasználói döntés)
+
+Kézi versenynél a szélirány egy lenyíló lista a 16 égtájjal
+(`compassPointLabel`) és egy „nincs megadva" elemmel. A G4 5×5-ös rácsa
+elmarad. **Miért:** a lista kevés kód, és egy évi néhány kézi
+versenynél a rács gyorsasága nem számít.
+
+### K13 — `ForetackDialog` a `foretack_ui`-ban (felhasználói döntés)
+
+Az ADR 0047 E6 és a makett 11a dobozának közös widgetje most kerül a
+`foretack_ui`-ba, nem csak a webbe, hogy a phone később átvehesse:
+- `ForetackDialog(title, message, details, actions, maxWidth)` és egy
+  `showForetackDialog<T>` segéd;
+- szögletes doboz `surfaceContainer` háttérrel és `outline` kerettel;
+  alatta a 11a sötét scrimje;
+- a `details` sorai a makett adatcellái: címke balra, mono érték
+  jobbra;
+- az akciósor egyenlő cellákból áll, hairline-nal elválasztva. A
+  destruktív cella piros (`colorScheme.error`). A biztonságos cella
+  kapja a kezdő fókuszt;
+- az Esc a dialógust `null`-lal zárja; a hívó ezt a biztonságos
+  válasznak veszi. A Tab a dobozban marad (a dialógus-útvonal
+  fókusz-hatóköre);
+- szélesség: a web 480 px-et ad át (`WebLayout.dialogWidth`), a phone
+  alapértéke 364 px.
+
+### K14 — A közelítő-sor nem link (felhasználói döntés)
+
+A K9 halk sora sima szöveg marad. A G3 „IDŐK MEGADÁSA" linkje elmarad,
+mert a ceruza ugyanoda visz. Az üres eredmény 13l sora viszont
+kattintható, és a szerkesztőt nyitja (az ADR 0047 UX-folyamata, 11.
+döntés).
+
+### K15 — Belépési pontok és életciklus
+
+- **Ceruza:** a részletező AppBarjának jobb szélén. Telemetriás
+  versenynél az „Eredmény szerkesztése", kézinél a „Verseny
+  szerkesztése" képernyőt nyitja. A `WebAppBar` ehhez opcionális
+  `actions` listát kap (additív bővítés).
+- **„Új verseny":** keretes gomb a napló AppBarjában (G1; a Lista /
+  Táblázat váltó az S7e-ben, a Feltöltés az S7d-ben kerül mellé).
+- **Mentés után:**
+  - eredmény és kézi verseny mentése: vissza a részletezőre,
+    „Eredmény mentve" vagy „Verseny mentve" snackbar;
+  - létrehozás: az új verseny részletezője nyílik a szerkesztő helyén,
+    „Verseny létrehozva" snackbar, és a napló a verseny évére vált;
+  - törlés: kuka a szerkesztő AppBarjában (csak kézinél), a
+    `ForetackDialog` megerősítése után a napló nyílik a törölt verseny
+    évén, „Verseny törölve" snackbar. Ha a szerver szerint a verseny már
+    nincs meg (`RaceNotFound`), az is sikeres törlésnek számít.
+- **A részletező címe** a betöltött adatból jön, ha már megvan, így egy
+  átnevezés azonnal látszik.
+- **Mentetlen változtatás:** a vissza-nyíl és az Esc a 13o dialógusát
+  nyitja (Folytatom / Elvetés). A változás a mezők szövegének
+  összevetése az előtöltött állapottal. A böngészőfül bezárásakor
+  figyelmeztető natív `beforeunload` az S7d-be kerül, mert ahhoz a
+  `package:web` kell, amit az XHR-folyamatjelző úgyis behoz.
+
+### K16 — Írás a szerverre
+
+- Az `ArchiveApiClient` új hívásai:
+  - `saveRaceResult` (`PUT`, 200);
+  - `createManualRace` (`POST`, 201);
+  - `updateManualRace` (`PUT`, 200);
+  - `deleteManualRace` (`DELETE`, 204, üres törzzsel).
+- Minden módosító kérés `X-Foretack-Client: web` fejlécet kap (ADR 0047
+  D9) és JSON-törzset.
+- A `RaceRecordEditor` (alkalmazás-réteg, Riverpod `Provider`) hívja a
+  klienst, és siker után érvényteleníti a napló és a részletező
+  providerét. A képernyő csak a navigációt és a snackbart intézi, HTTP-t
+  nem lát.
+- **Az űrlap-állapot widget-lokális** (`TextEditingController`-ek egy
+  mező-tartó osztályban); a Riverpod a szerver-állapotot tartja. **Miért:**
+  a szöveg-vezérlők életciklusa a widgeté, és egy globális űrlap-provider
+  csak tükrözné őket. A mezők értékéből egy pure, összevethető
+  érték-objektum (`ResultFormValues`, `ManualRaceFormValues`) készül;
+  ezt olvassa a validáció és a mentetlenség-vizsgálat.
+- **Mentési hiba:** a Mentés gomb fölött egy piros sor. A beírt adat
+  megmarad. A `RaceNotFound` saját mondatot kap.
+
+### K17 — Snackbar a weben
+
+A G5 és a 11b alapján: 480 px széles, 52 px magas, a 880 px-es oszlop
+bal betétéhez igazítva, 24 px-re az aljától. `surfaceContainerHigh`
+háttér, `outline` keret, árnyék és lekerekítés nélkül, balra egy 8 px-es
+státusznégyzet. Akció nincs, 4 s után eltűnik. A 11b visszaszámláló
+sávja elmarad, mert visszavonás nincs. A kis ablakban a szélesség az
+oszlophoz zsugorodik.
+
+### S7d — A feltöltés (2026-10-02)
+
+A K18–K24 a feltöltés-szelet egyeztetésének eredménye. Az ADR 0047 E8
+állapotait valósítja meg; ahol a makett (13f–13j) nem döntött, ott a
+felhasználó döntött.
+
+### K18 — `package:web` a weben (felhasználói döntés)
+
+- Az `apps/web` új függősége a `web` (`^1.1.0`), a Dart csapat csomagja.
+  A `http` böngészős kliense is erre épül, ezért a feloldásban eddig is
+  benne volt; most közvetlen függőség lesz.
+- **Miért nem a `http` és a `file_picker`:** a `http` `MultipartRequest`-je
+  a teljes törzset Dart-memóriában rakja össze, és feltöltési
+  folyamatjelzést nem ad. A `file_picker` a weben a fájlt bájtokba olvassa.
+  Az 1,7 GB-os szezon-DB-nél mindkettő a böngészőfül összeomlását
+  kockáztatja.
+- **Helyette:** a böngésző `File` objektuma (Blob) közvetlenül a
+  `FormData`-ba kerül. Az `XMLHttpRequest` a lemezről streameli, és az
+  `upload` `progress` eseménye adja a valódi küldési arányt. A Dart-heap
+  nem nő a fájlmérettel.
+- **Feltételes export** (`dart.library.js_interop`): a böngészős
+  implementáció csak a webes buildbe kerül. A VM-en futó tesztek egy
+  csonkot látnak, és a providereket fake-kel írják felül.
+
+### K19 — Fájlválasztás és feltöltés két függvénytípus mögött
+
+Mindkettő egyetlen művelet, ezért függvénytípus, nem egytagú absztrakt
+osztály (`one_member_abstracts`, a domain `*Reader` typedefjeinek mintája).
+
+
+- `ImportFilePicker` = `Future<PickedFile?> Function()`; a `PickedFile`
+  nevet és méretet ad. A böngészőben
+  egy rejtett `<input type="file">` nyílik; a `change` és a `cancel`
+  esemény zárja. Szűrő (`accept`) nincs, mert a `-wal` fájlnak nincs
+  kiterjesztése.
+- `ImportUploader` = `ImportUpload Function({database, wal,
+  onProgress})`, az `ImportUpload`:
+  - `result`: `Result<ImportReport, ApiFailure>`;
+  - `cancel()`: megszakítja az XHR-t. Utána a `result` hálózati hibával
+    zárul, de a hívó ekkor már nem figyel rá.
+- A böngészős feltöltő `POST /api/imports`-ot küld az
+  `importDatabaseField` és az opcionális `importWalField` mezővel, az
+  `X-Foretack-Client: web` fejléccel. A választ ugyanaz a
+  `decodeApiResponse` olvassa, mint az `ArchiveApiClient`-et.
+- A böngészős feltöltő csak a böngészős választó fájljait fogadja. Más
+  `PickedFile` programozói hiba (`ArgumentError`).
+- Providerek: `importFilePickerProvider`, `importUploaderProvider`.
+- **Drag & drop később** (felhasználói döntés). Addig a 13g „vagy húzd
+  ide" fordulata elmarad, a mező „Nincs kiválasztva" szöveget mutat.
+
+### K20 — A dialógus állapotgépe (pure)
+
+- `ImportDialogState` sealed:
+  - `ChoosingFiles(database?, wal?, failure?)`: a Feltöltés csak fő
+    fájllal aktív (13g);
+  - `Uploading(database, wal, sentBytes, totalBytes)` (13h);
+  - `ImportFinished(report)` (13i);
+  - `SchemaRejected(fileName, fileVersion, serverVersion)` (13j).
+- Az átmenetek pure függvények, a widget csak a mellékhatásokat (választó,
+  feltöltő, navigáció) végzi.
+- **Mégse, Esc, háttérkattintás:** minden állapotban zár. Feltöltés
+  közben a bezárás megszakítja az XHR-t (felhasználói döntés). A szerver
+  a félkész fájlokat törli (ADR 0047 C2), a napló nem változik.
+- **100 % után** a szerver még dolgozik (másolat, migráció, merge). Ekkor
+  a százalék helyén FELDOLGOZÁS áll, a sáv teli, a forgó marad, a Mégse
+  ekkor is megszakít (felhasználói döntés).
+- **Hibák:**
+  - újabb séma (`SchemaTooNew`): a 13j állapota, a két verzió
+    adatcellában;
+  - minden más vissza a kiválasztáshoz: a fájlok megmaradnak, és egy
+    piros mondat áll az akciók fölött (felhasználói döntés). Az
+    újrapróba így egy kattintás.
+  - A mondatok: hálózati hiba, nem SQLite-fájl, nem Foretack-adatbázis,
+    hiányzó fő fájl, túl nagy fájl (a korláttal), egyéb szerverhiba.
+- **`walIgnored`:** az eredmény leírása alatt egy halk mondat: a WAL-fájl
+  érvénytelen volt, csak a fő fájl adatai kerültek be (felhasználói
+  döntés).
+
+### K21 — Az eredmény (13i)
+
+- Három csoport: ÚJ, FRISSÜLT, KIMARADT · NEM BEFEJEZETT. A fejléc a
+  napló `RaceLogMonthHeader`-je (a 13i „havi fejléc nyelve"), jobbra a
+  darabszámmal. Az üres csoport elmarad. Ha mindhárom üres, egy mondat
+  mondja, hogy a fájlban nem volt verseny.
+- Egy sor: a nap két jeggyel, a név, jobbra a rövid dátum verzálul
+  (`SZEPT. 26.`). Mindkettő a `finishedAt` helyi napja. A csoporton belül
+  a legújabb áll elöl, mint a naplóban.
+- A kimaradt verseny tompított, a napja „––", a dátuma elmarad. A
+  szerződés `SkippedRace`-e dátumot nem hordoz, és az ADR 0047 E8 is
+  dátum nélkül írja.
+- A törzs legfeljebb 320 px magas és görgethető. Egyetlen, teljes
+  szélességű Bezárás akció van, kezdő fókusszal.
+- A napló a bezáráskor frissül (a `raceSummariesProvider`
+  érvénytelenítése), ha az import sikerült. Snackbar nincs (E6).
+
+### K22 — A dialógus elemei: keret a `foretack_ui`-ban, minták a weben (felhasználói döntés)
+
+- A `ForetackDialog` két meglévő része nyilvános lesz, hogy a feltöltés
+  ugyanazt a dobozt és akciósort használja:
+  - `showForetackDialogFrame` (11a scrim, szögletes doboz, `outline`
+    keret);
+  - `ForetackDialogActionBar` + `ForetackDialogActionCell` (52 px,
+    hairline-ok, tiltott cella 35 %-on, dolgozó cella forgóval,
+    opcionális `focusNode`);
+  - `ForetackDialogDetailCell`, a 11a adatcellája (a 13j két verziója
+    is ebben áll).
+
+  A `ForetackDialog` ezekből áll, a viselkedése változatlan.
+- A feltöltés saját mintái (fájl-cella, 2 px-es sáv, eredmény-lista) és
+  maga a dialógus az `apps/web`-ben élnek (`lib/race_import/`), mert csak
+  a web tölt fel. Ha a phone-nak is kell, akkor emeljük ki.
+- A fájl-cella a szerkesztő mezőinek nyelvét beszéli: keret a tetején
+  verzál felirattal, jobbra TALLÓZÁS, kiválasztott fájlnál CSERE. Az egész
+  cella kattintható.
+
+### K23 — A Feltöltés gomb
+
+- A napló AppBarján az „Új verseny" jobb oldalán áll: 40 px-es keretes
+  gomb ikonnal és felirattal (G1, E7).
+- Üres naplóban kitöltött (teal) gomb, mert ott ez a fő akció (13b).
+
+### K24 — Figyelmeztetés a fül bezárásakor (felhasználói döntés)
+
+- `LeaveWarningRegistry` (pure): a képernyők feltételt jegyeznek be
+  (`hold(shouldWarn)`), és egy elengedő függvényt kapnak vissza.
+- A böngészőben egyetlen `beforeunload` figyelő fut. Ha bármelyik
+  feltétel igaz, `preventDefault`-ot hív, és a böngésző a saját kérdését
+  mutatja. A szövege nem állítható. A VM-en a kötés üres.
+- Feltételt jegyez be:
+  - a szerkesztők kerete, ha van mentetlen változtatás (K15);
+  - a feltöltés-dialógus, amíg a feltöltés fut.
+- Az appon belüli kilépést továbbra is a 13o dialógus kezeli.
+
+### S7e — A táblázat (2026-10-02)
+
+A K25–K32 a táblázat-szelet egyeztetésének eredménye. A G1, G2 és G6
+szerint épül; ahol eltér, azt a K31 sorolja fel.
+
+### K25 — `TableView` a `two_dimensional_scrollables`-ből (felhasználói döntés)
+
+- Az `apps/web` új függősége a `two_dimensional_scrollables` (`^0.5.5`),
+  a Flutter csapat csomagja (flutter.dev). A 0.5.5 a Flutter 3.41-et
+  követeli meg, ezt használjuk.
+- **Amit ad:** egy görgetési pozíció tengelyenként, rögzített sorok és
+  oszlopok (`pinnedRowCount`, `pinnedColumnCount`), összevont cellák,
+  soronkénti hover (`onEnter`/`onExit`), kattintás (`recognizerFactories`)
+  és háttér, oszloponkénti előtér-vonal, a látható cellák lusta
+  építése.
+- **Az elvetett út:** bal `ListView` és egy vízszintesen görgethető jobb
+  `ListView`, összekötött `ScrollController`-ekkel. Új függőség nélkül
+  menne, de a két blokk gyors görgetésnél elcsúszhat, a hover és a
+  csíkozás kézi szinkront kér, a ragadó fejléchez pedig egy harmadik
+  vezérlő kell.
+- **Kockázat:** a csomag 1.0 előtti, a görgetősávot kézzel kell
+  bekötni (a csomag példája szerint), és összevont cella nem lóghat át a
+  rögzített és a görgetett blokk határán.
+
+### K26 — A nézet és a rendezés a Riverpodban (felhasználói döntés)
+
+- `logViewModeProvider` (`LogViewMode.list` | `LogViewMode.table`) és
+  `raceTableSortProvider` (`RaceTableSort`: oszlop + `SortDirection`). Egyik sem
+  `autoDispose`, így a munkameneten belül megmaradnak (G1): törlés vagy
+  ÚJRA után a napló ugyanott nyílik.
+- Alapállapot: Lista, dátum szerint csökkenő.
+- Az időszak a közös `logPeriodProvider` (14w): a táblázat a Lista
+  nézetének megjelenített éveit mutatja.
+
+### K27 — A táblázat modellje (pure)
+
+- `RaceTableRow`: a napló-bejegyzésből (`LogEntry`) épül, cellánként
+  kész értékkel. Szabályok:
+  - **Rajt, befutás, menetidő:** a hivatalos érték. Ha hiányzik,
+    telemetriás versenynél a rögzítésé, közelítőként (G6, 14j); kézinél
+    üres. A menetidő a hivatalos menetidő, ha pozitív, különben a
+    rögzítés hossza (közelítő).
+  - **Másnapi befutás:** „+1", ha a befutás helyi napja későbbi a
+    rajtnál.
+  - **Táv, sebesség, szél, irány:** a `RaceStats` értékei; közelítő, ha
+    az ablak `RecordingWindow` (H3).
+  - **Helyezések:** a `Placing` és a saját mezőny; DNF/DSQ mellett a
+    mezőny nem látszik (G2).
+- `sortRaceTableRows` és `buildRaceTableItems`: a rendezés és a sorlista
+  (sealed `TableYearItem` | `TableRaceItem`). Évsor csak dátum szerinti
+  rendezésnél, a csíkozás indexe évenként nulláról indul; más
+  rendezésnél folyamatos (G2).
+
+### K28 — A rendezés részletei
+
+Amit a G2 nem döntött el, és Claude választott (visszavonható):
+- **Rajt és befutás** a helyi napszak szerint rendez (melyik verseny
+  indult korábban a napon), nem a pillanat szerint. Az utóbbi a dátum
+  oszlop megismétlése lenne.
+- **YS** mennyiség: első kattintásra csökkenő.
+- **Irány** az égtáj sorrendje szerint (É, ÉÉK, …), első kattintásra
+  növekvő.
+- **Név és díj** kis- és nagybetűtől függetlenül, a Dart
+  karakterkód-sorrendjével. A magyar ábécérend (pl. az „Á" az „A" után)
+  később pótolható.
+- **A végén:** a helyezés-oszlopban a DNF, utána a DSQ, utána az üres;
+  máshol az üres. A sorrendjük iránytól független.
+- **Döntetlen:** dátum szerint csökkenő, azon belül a napló sorrendje.
+
+### K29 — Felépítés
+
+- A táblázat szélessége `min(ablak − 2×20, 1600)`, középre zárva (G2).
+  Az oszlopszélességek a G2 táblázata szerint. A Díj
+  `max(152, táblázat − 1248)`, így kitölti a helyet. A csomag
+  `RemainingSpanExtent`-je itt nem jó: a nem rögzített oszlopoknál a
+  megelőző szélességből kimarad a rögzített blokk, így 320 px-lel túl
+  széles lenne.
+- Két rögzített sor (csoportsor 30, oszlopsor 40) és két rögzített
+  oszlop (Dátum + Verseny). A csoportsor és az évsor összevont cellái a
+  rögzített határnál kettéválnak (K25).
+- A csoportok és a rögzített blokk vonalai oszlop-előtér dekorációk,
+  hogy a csíkozott sor-hátterek ne takarják el őket.
+- Sor: háttér a csíkozás színe, hoverben `surfaceContainerHigh` mindkét
+  blokkon (soronkénti `onEnter`/`onExit`). Kattintásra a részletező
+  nyílik, a kurzor kéz.
+- A fejléc-cella `InkWell`: kattintás vagy Enter rendez. A rendezés
+  iránya a cella szemantikai címkéjében szerepel („csökkenő"), mert a
+  Flutter szemantikájában nincs `aria-sort` megfelelő; a koppintás-akció
+  a szemantikában is ott van, felolvasóval is rendez.
+- A rögzített blokk függőleges éle az oszlopsoron és a versenysorokon
+  látszik; a csoportsor és az évsor összevont cellái a bal oszlop
+  dekorációját kapják, ott a vonal elmarad.
+- **Görgetés (Addendum 5 L1 a táblázatra):** a táblázaton kívüli
+  sávokban is görget a görgő. A külső terület `pointerSignalResolver`-rel
+  a táblázat függőleges pozíciójára irányítja az eseményt; a táblázaton
+  belül a táblázat saját görgetője kapja meg előbb.
+- A vízszintes görgetősáv 8 px, mindig látszik, ha van mit görgetni; a
+  függőleges a táblázat jobb szélén áll.
+
+### K30 — Később (felhasználói döntés)
+
+- A sorok billentyűzetes kezelése (↑/↓, Enter, 2 px-es fókuszkeret) és
+  a Díj 400 ms-os tooltipje. Addig a Díj egy sorra vágva látszik, a
+  teljes szöveg a részletezőn olvasható.
+
+### K31 — Eltérések a makettől
+
+- **Betöltés:** a Lista folyamatjelzője, a 14f vázlat-sorai elmaradnak.
+  A hiba és az üres napló közös a Listával (14g, 14h).
+- **Tipográfia:** a cellák számai a `numeralCaptionStyle` 11,5 px-re
+  emelve, a feliratok a `statusLabelStyle` kisebb fokozatai (a szerkesztő
+  mezőcímkéinek mintája). Új stílus-konstans nincs (G8).
+- **A tompított mezőny** marad `TextTones.low` (felhasználói döntés, G7).
+- **Idő a táblázatban:** a rajt és a befutás `ÓÓ:PP`, másodperc nélkül.
+  A 72 px-es oszlopba a `~` jellel együtt nem férne el; a részletező
+  másodperccel mutatja (Addendum 5 L2).
+- **A váltó fókusza** a keret színét világosítja, a 14q 2 px-es külső
+  gyűrűje helyett, hogy a gombok ne mozduljanak.
+
+### K32 — A nézet-váltó
+
+- `LogViewToggle` a napló AppBarján, a gombok előtt (G1): 40 px, 1 px-es
+  `outline` keret, a kijelölt cella `outlineVariant` háttér és
+  `onSurface` felirat, a másik `onSurfaceVariant`.
+- Egy Tab-megálló: a ←/→ azonnal vált. A szemantikában a két cella egy
+  kizárólagos csoport, a kijelölt `checked`.
+
+## Addendum 5 — Javítások a feltöltés után (2026-10-02)
+
+A feltöltés böngészős próbája után a felhasználó három hibát jelzett. Az
+L1–L3 a javításukat rögzíti.
+
+### L1 — Görgetés az oldal teljes szélességében (felhasználói döntés)
+
+- **A hiba:** a napló, a részletező és a szerkesztők a `ListView`-t az
+  880 px-es oszlopba tették. A görgő eseménye a kurzor alatti görgethető
+  widgethez jut, ezért az oszlopon kívül az oldal nem görgetett.
+- **A javítás:** közös `WebScrollColumn` (`apps/web/lib/app/`). A
+  `ListView` az ablak teljes szélességét kapja, a gyerekei egyenként a
+  `WebColumn`-ban állnak. A görgetősáv így az ablak jobb szélére kerül,
+  ahogy egy weboldalon megszokott.
+- A napló évsávja és stat-csíkja **fix marad** a lista fölött
+  (felhasználói döntés). Fölöttük a görgő nem görget, ahogy az AppBar
+  fölött sem.
+- A feltöltés-dialógus eredmény-listája (K21) nem érintett: az a doboz
+  saját görgetője.
+
+### L2 — Másodperc a hivatalos időkben
+
+- A beolvasás a K11 óta elfogadja a másodpercet (`10:00:30`, `100030`),
+  és a szerver is másodpercre pontosan tárol. A másodperc nem kötelező,
+  és a rajt mezőjében is megadható (ugyanaz a parser).
+- **A hiba:** a részletező a hivatalos rajtot és befutást `ÓÓ:PP`
+  alakban írta ki, a mező súgója `ÓÓ:PP` volt, a hibaüzenet példája
+  `10:00`. A megadott másodperc így nem látszott sehol, csak a
+  menetidőben.
+- **A javítás:** a részletező másodperccel mutatja az időt, ha az nem
+  nulla (`14:32:07`), különben `ÓÓ:PP` (`14:32`), az űrlap
+  `formatClockTime`-jának szabálya szerint. A súgó `ÓÓ:PP(:MM)`, a
+  hibaüzenet példája `10:00 vagy 10:00:30`.
+
+### L3 — Max. szél tüske-szűréssel (felülírja a D5 „Max. szél" pontját)
+
+- **A hiba:** a nyers maximum egyetlen mintából is lehet. Az 58. Kékszalag
+  max. szele 66 kn volt: 3:00:00-kor, szélcsendben, az AWS két mintán át
+  0,0-ról 68,4 kn-ra ugrott, majd vissza 0,0-ra (a műszer TWS-e ebből
+  számol). Még két versenyen volt 50 kn fölötti érték.
+- **A szabály:** a max. szél az időrendi TWS-sor **5 mintás csúszó
+  mediánjainak maximuma**. A mintavétel 1 Hz, így ez kb. 5 mp. Ha
+  5-nél kevesebb TWS-minta van, az összes minta egyetlen mediánja számít;
+  páros darabnál az alsó középső. A `null` TWS-ű minta kimarad a sorból.
+- **Amit ez jelent:** a legfeljebb 2 egymást követő mintáig tartó tüske
+  kiesik. A legalább 3 mp-ig tartó szint megmarad. Egy csúcsos lökésből
+  az ablak 3. legnagyobb értéke marad, vagyis a lökés tartós része.
+- **A sorrend most számít:** a `SummarizeWind` az időrendet használja. A
+  `WindSampleReader` szerződése már eddig is időrendet írt elő.
+- Az átlagos szél és az uralkodó irány nyers marad: egy-két tüske egy
+  több ezer mintás versenyen nem mozdítja el őket. A max. **sebesség**
+  is nyers marad (a Kontextus 10. pontja, felhasználói döntés).
+- A számítás egy pure segédfüggvény a domain `_internal`-jában
+  (`rollingMedianMaximum`), így később a sebességre is ráköthető.
+- **Cache:** a `race_stats` sorai képlet-verziót nem hordoznak. A
+  meglévő sorok a DB újrafeltöltésével frissülnek, mert az import minden
+  benne lévő versenyt újraszámol. A VPS-en az első import már az új
+  szabállyal számol. Képlet-verzió a cache-be akkor kerül, ha a képlet
+  élesítés után változik.
+- A kézi verseny max. szele beírt érték, a szabály nem érinti.
+
+### L4 — Az oszlopok a tartalomhoz méretezve (felhasználói kérés)
+
+- **A hiba:** a G2 szélességei a makett betűképére szóltak. A valódi
+  Martian Mono szélesebb, ezért a dátum, a menetidő, több fejléc
+  (`ÁTLAG`, `MAX SZÉL`) és a `~08:43 +1` levágva jelent meg.
+- **A szabály:** minden oszlop szélessége
+  `max(G2 szélesség, fejléc vagy leghosszabb cella + 2×10 px)`. A fejléc
+  a felirat és a mértékegység közül a szélesebb, plusz a rendezési nyíl
+  helye. A G2 szélességei így minimumok.
+- A név legfeljebb 400 px, a hosszabb név `…`-tal vágódik, hogy a
+  rögzített bal blokk ne nyelje el a képernyőt. A Díj nem mért: a
+  maradékot kapja, és `…`-tal vágódik (a teljes szöveg a részletezőn).
+- A helyezés-cella két helye (szám, perjeles mezőny) is az oszlop
+  leghosszabb értékéhez mért, így a perjelek háromjegyű mezőnynél is egy
+  oszlopba esnek. A pár jobbra zár, mint a számok.
+- A táblázat legfeljebb 1600 px (G2); ha a mért tartalom ennél
+  szélesebb, a táblázat is szélesebb lehet, amíg az ablakba fér.
+- **Egy forrás:** a cellák szövegét egy pure függvény adja
+  (`tableCellValueOf`), ezt rajzolja a cella és ezt méri a mérés, így a
+  kettő nem csúszhat el.
+- **Mérés:** `TextPainter`-rel, a sorok, a szövegnagyítás vagy a
+  betűtípus változásakor. A weben a betűtípus a betöltés után érkezhet,
+  ezért a táblázat a `systemFonts` változására újramér.
+- Az égtáj balra zár, mint a fejléce (G2 szöveg-oszlop).
+
+### L5 — Mértékegység az oszlopfejlécben (felhasználói kérés)
+
+- A mértékegység az oszlopfejléc második sorában, kisbetűvel, tompítva
+  áll: Táv `km`, Átlag, Max, Átl. szél, Max szél `kn`, Rajt és Befutás
+  `ó:p`, Menetidő `ó:p:mp`.
+- A csoportfejlécből a „· KM" és a „· KN" kikerül (G2-t felülírja): a
+  mértékegység egy helyen áll, az oszlop fölött.
+- A felolvasott fejléc-címke a mértékegységet is tartalmazza.
+
+### L6 — Az AppBar vezérlői (felhasználói kérés)
+
+- **A hiba:** a weben a Material gombok kompakt sűrűséget kapnak
+  (32 px), a váltó 40 px volt; a két gomb egyforma keretes volt.
+- **Közös magasság:** a váltó és mindkét gomb 36 px
+  (`WebLayout.appBarControlHeight`), rögzített sűrűséggel, szögletesen,
+  azonos betűvel.
+- **Eltérő szerep, eltérő forma** (Claude választása, visszavonható):
+  - a váltó: `surfaceContainer` sáv `outline` kerettel, a kijelölt
+    cella tónusos teal (`secondaryContainer` / `onSecondaryContainer`);
+  - az „Új verseny": keret nélküli gomb `onSurface` felirattal;
+  - a „Feltöltés": teal keret és felirat (`primary`), üres naplóban
+    kitöltött (K23 marad).
+- A G1 „ugyanolyan keretes gomb" előírását felülírja.
+
+## Addendum 6 — Az Excel-import pontosítása (S5c, 2026-10-02)
+
+Az S5c előtt a valódi Excelt (`Lola_versenynaplo_9.xlsx`) és a telefon
+DB-jének versenyneveit is megnéztük. Két megfigyelés módosítja a D7-et:
+- a DB és az Excel nevei erősen eltérnek („BAHART Regatta Szemes 2-es
+  pálya" és „BAHART Regatta – Balatonszemes", „Timu Emlékverseny" és
+  „Timu Kupa"), ezért a név alapú párosítás sorra elbukna;
+- az Excel cellái a vártnál vegyesebbek (szöveges idők, negatív és
+  pontos helyezések, összesítő sorok a lap alján).
+
+Az átfedés (felhasználói megállapítás): a telefon DB-je 2026-ból
+majdnem minden versenyt tartalmaz, kivéve az első kettőt (akkor még
+nem volt app); az Excel 2021-től mindent, kivéve az utolsó néhányat.
+
+### M1 — Párosítás a helyi nap szerint (felülírja a D7 névszabályát)
+
+- **Kulcs:** a telemetriás verseny rögzítésének kezdete Europe/Budapest
+  időben, napra kerekítve, és az Excel „Dátum" oszlopa.
+- **Egyértelmű:** ha azon a napon pontosan egy befejezett telemetriás
+  verseny van, az Excel-sor hozzá párosul. A neveket a próbafuttatás
+  csak kiírja, egymás mellett, ellenőrzésre.
+- **Kétnapos sor:** ha a sor „2. nap" oszlopai ki vannak töltve, és a
+  `D` és a `D+1` napon is pontosan egy verseny van, a sor kettéválik
+  (M5).
+- **Nem egyértelmű:** egy napon több telemetriás verseny. A sor
+  semmilyen formában nem íródik, amíg a `--match <race-id>=<sor>`
+  kapcsoló nem dönt. A próbafuttatás és az `--apply` is listázza.
+- **Párosítatlan:** az adott napon nincs telemetriás verseny → kézi
+  verseny.
+- **Csak telemetria:** az a telemetriás verseny, amelyhez egy Excel-sor
+  sem került, csak tájékoztatásul jelenik meg (pl. a 2026. augusztus
+  végi versenyek); az eredményük a weben írandó.
+- A `--match` kapcsoló ismételhető, és felülír minden automatikus
+  döntést az adott sorra.
+
+### M2 — A cellák normalizálása (kiegészíti a D7-et)
+
+- **Sorok:** csak az a sor verseny, amelyben a „Dátum" és a „Verseny"
+  is ki van töltve. A lap alján álló összesítő blokk (MAXIMUMOK,
+  ÁTLAGOK) és az üres elválasztó sor így kimarad.
+- **Helyezés:**
+  - egész szám → helyezés; **a negatív szám abszolútértéke** a helyezés
+    (felhasználói döntés: a 2025-ös Mihálkovics `-3`-a és a Tihany-kör
+    `-2`-je jelölés volt);
+  - `19.` → 19;
+  - `8. / 6.` → az első szám, 8 (a D7 Kékszalag-esete általánosítva),
+    és a próbafuttatás jelzi;
+  - `DNF`, `DNC` → DNF; `DSQ` → DSQ.
+- **A Befutás cellában álló `DNF`** → mindhárom helyezés DNF, a befutás
+  ideje üres (D7). A „2. nap" oszlopa csak akkor lesz DNF, ha ki van
+  töltve, így az üres oszlop nem teszi kétnapossá a sort.
+- **Idő:** a rajt és a befutás `datetime` vagy szöveg. Szövegként ezek a
+  formák fordulnak elő: `2025.05.25 12:00`, `2026.07.18. 11:00`,
+  `2026.07.30. 9:00`. A másodperc opcionális, az időket helyi
+  (Europe/Budapest) időként értjük, és a legközelebbi egész
+  másodpercre kerekítjük.
+- **Szélirány:** az Excel 16 jelölése (D5) → `CompassPoint`. Ismeretlen
+  jelölés a sor hibája.
+- **Kimarad:** Év, Osztály, Dobogó, Menetidő, Átlag (kn), Telemetria
+  forrása. A menetidőt a hivatalos időkből számoljuk (D4), az átlagot a
+  kézi versenynél a táv és a menetidő adja (I6).
+- A normalizált sor a meglévő validátorokon is átmegy
+  (`ValidateRaceResultInput`, `ValidateManualRaceInput`). A hibás sor
+  egyik formában sem íródik, és a terv hibaként listázza.
+
+### M3 — Időzóna szabályból, függőség nélkül
+
+A szerver UTC-ben fut, a fejlesztői gép helyi időben, ezért a
+konverzió nem függhet a gép zónájától. Az Europe/Budapest szabálya
+1996 óta az EU-szabály: nyári idő (UTC+2) március utolsó vasárnapján
+01:00 UTC-től október utolsó vasárnapján 01:00 UTC-ig, különben UTC+1.
+Ez egy pure függvény a `web_server`-ben, tesztelve a két átállásra. A
+`timezone` csomag egyetlen zónáért túl nagy függőség lenne.
+
+- A nem létező helyi idő (tavaszi ugrás) és a kétértelmű (őszi
+  ismétlés) a korábbi, téli eltolással értelmeződik. Versenyidőpontra
+  (vasárnap 02:00–03:00) ez a gyakorlatban nem fordul elő.
+
+### M4 — Felülírás csak `--overwrite`-tal (pontosítja a D7 idempotenciáját)
+
+- **A kézi verseny azonosítója:** UUID v5 a `Namespace.url` névtérben a
+  `legacy:<YYYY-MM-DD>:<a sor neve>` kulcsból. Egy újrafuttatás nem
+  duplikál.
+- **Ha a kézi verseny már létezik**, az import sem az alapadatait, sem
+  az eredményét nem írja, csak `--overwrite`-tal. Így a weben azóta
+  javított név vagy szám nem vész el.
+- **Ha a telemetriás versenynek már van eredménye**, ugyanígy.
+- **Figyelmeztetés:** ha egy kézi verseny napján már él egy másik,
+  kézzel felvett kézi verseny, a terv jelzi (lehetséges duplikátum).
+
+### M5 — A kétnapos sor felbontása (a D7 Mihálkovics-esete általánosan)
+
+- **1. nap:** abszolút és egytestű helyezés az 1. nap oszlopaiból;
+  osztály-helyezés nincs.
+- **2. nap:** abszolút és egytestű helyezés a „2. nap" oszlopokból, és
+  az osztály-helyezés (a két nap összesített eredménye).
+- **Mindkét nap:** YS-szám és mezőny.
+- **Csak a 2. nap:** a díj (Claude választása, visszavonható: a díjat a
+  verseny végén adják).
+- **Hivatalos idők nincsenek:** az Excel sora a két napot egybefogja; a
+  napi időket a felhasználó írja be (D7).
+- **Ha a sor nem bomlik fel** (egy `--match`, vagy nincs telemetria, és
+  kézi verseny lesz belőle), az egész sor eredménye íródik, szintén
+  hivatalos idők nélkül: a két napot átfogó ablak egy napi rögzítésre
+  vagy egy kézi verseny menetidejére hamis statisztikát adna.
+
+### M6 — Mi kerül át
+
+| Párosítás | Eredmény, YS, hivatalos idők, díj | Táv, sebesség, szél |
+|---|---|---|
+| telemetriás verseny | az Excelből | a telemetriából (döntés 27) |
+| kézi verseny | az Excelből | az Excelből |
+
+Párosítás után a telemetriás versenyek statisztikája újraszámolódik,
+mert a hivatalos idők megváltoztatják az ablakot (`refreshIfStale`, I4).
+
+### M7 — Futtatás: előbb lokálisan, utána élesben
+
+- A CLI-t a szerver leállítása mellett kell futtatni, mint az
+  `import_race_db`-t: két folyamat ne írjon egyszerre ugyanabba a
+  fájlba.
+- **Lokálisan:** a próba-DB-páron próbafuttatás, a terv átnézése, a
+  szükséges `--match` kapcsolók, majd `--apply`.
+- **Élesben:** az S8 után a VPS-en ugyanazzal a JSON-nal és ugyanazokkal
+  a `--match` kapcsolókkal. Az eredmény az M4 miatt azonos.
+- **Külön Excel-feltöltő a weben nincs** (felhasználói döntés): az
+  import egyszeri, utána minden adat a telefonról és a webes
+  szerkesztőből jön.
+
+### M8 — A JSON-kinyerő
+
+- `tools/legacy_race_log/xlsx_to_json.py`, `openpyxl`-lel, csak olvas.
+- Kimenet: a `Versenyek` lap fejlécei (`columns`) és sorai, soronként a
+  sorszám és a cellák a fejléc neve szerint, típusjelöléssel (`text`,
+  `number`, `datetime`, `duration`). A képlet-cellák a gyorsítótárazott
+  értéküket adják. Ismétlődő fejléc esetén leáll.
+- Nem normalizál. Az egyetlen szűrés az M2 sorszabálya (dátum és név).
+- **Fejléc-ellenőrzés:** a CLI a fejléceket a kódban rögzített listával
+  veti össze (importált és szándékosan kihagyott oszlopok). Egy átnevezett
+  fejléc különben egy egész oszlop adatát hagyná ki hang nélkül. Az
+  ismeretlen és a hiányzó fejlécet a próbafuttatás kiírja, és ilyenkor
+  az `--apply` nem fut.
+- **A terv a meglévő adatot jelzi:** ha egy párosított versenynek már van
+  eredménye, vagy a kézi verseny már létezik, a sora mellett ott áll,
+  hogy `--overwrite` nélkül kimarad (M4).
+
+## Addendum 7 — Fix sorrendű évsáv (2026-10-05)
+
+### N1 — Az évek helye nem változik (felhasználói döntés)
+
+- **A probléma:** a 7c évsávja a kiválasztott évet a sor elejére tette, a
+  többit utána. Egy régebbi év választásakor a sorrend összekeveredett
+  (`2025 2026 2024 2023 …`).
+- **Döntés:** az évek mindig csökkenő sorrendben, a helyükön állnak. A
+  kiválasztott év a helyén nő meg (`numeralMediumStyle`, `onSurface`), a
+  többi kicsi és tompított marad (`numeralMicroStyle`, `TextTones.low`).
+  A tőle jobbra lévők a szélesebb szám miatt odébb csúsznak, a sorrend nem
+  változik.
+- **A verseny-szám címkéje** („13 VERSENY") a sáv bal szélén marad, nem
+  követi a kiválasztott évet (felhasználói döntés).
+- **Átmenet:** a méret- és színváltás rövid, kb. 150 ms-os animáció, hogy a
+  jobbra lévő évek csúszása ne ugrás legyen (felhasználói döntés).
+- **„Összes":** változatlan. Kiválasztva a tartomány (`2021–2026`) áll
+  nagyban a sor elején, utána az évek kicsiben, sorban; az „Összes"
+  opció ilyenkor nem látszik.
+- **A kiválasztott év** nem kattintható (javaslat): nincs mit választani.
+
+## Addendum 8 — A napló AppBarja a 19d makett szerint (2026-10-07)
+
+A napló AppBarjára a vezérlők egyenként kerültek fel (L6, ADR 0049
+Addendum 1 P1, ADR 0050 Addendum 3 G1, ADR 0051 Addendum 1 H4), és hat
+különböző gombstílus, egyenetlen közök és egy elválasztó vonal maradt
+belőlük. A felhasználó a Claude Design 19-es csoportjából a **19d**
+változatot választotta.
+
+### Q1 — A választott változat (felhasználói döntés)
+
+- **19d:** a nézetváltó lekerül az évsávba, az AppBarban minden vezérlő
+  felirattal áll.
+- **A váltó függőlegesen középre kerül** (felhasználói kérés): a makettben
+  az évsáv aljához igazodik, és elcsúszottnak hat.
+
+### Q2 — A nézetváltó helye (javaslat)
+
+- Az évsáv jobb szélén áll, az évsor és a versenyszám együttes
+  magasságának közepén. A jobb széle az AppBar jobb szélső vezérlőjével
+  egy vonalban van (az oszlop jobb szélétől 12 px).
+- Az évsáv csak nem üres naplóban látszik, így a váltó is. Üres naplóban,
+  betöltés és hiba alatt nincs mit váltani. Ez felülírja a G1 „minden
+  állapotban látszik" pontját; az állása (K26) változatlanul megmarad.
+- A Statisztika-képernyő ugyanazt az évsávot mutatja, váltó nélkül.
+- A cellák betéte 12 px (a 14 helyett), a kinézete egyébként változatlan
+  (K32).
+- Billentyűzettel a váltó az AppBar gombjai és az évek után következik.
+  A ←/→ váltás fókuszban változatlan.
+
+### Q3 — Egy gombcsalád (a 19d szerint)
+
+- **Ghost gomb:** 36 px magas, ikon és felirat. Az ikon 18 px,
+  `onSurfaceVariant`; a felirat 13/600, `onSurface`. Betét 12 px, köz
+  8 px, hoverre `surfaceContainerHigh`, szögletes. Tooltip nincs, mert a
+  felirat kiírja.
+  - Ilyen a Statisztika, az Export és az Új verseny.
+- **Feltöltés:** 1 px `primary` keret, teal ikon és felirat, 14 px betét.
+  Üres naplóban kitöltött: `primary` háttér, `onPrimary` ikon és
+  felirat.
+- **Fiók:** ghost „Ákos ˅” (a név-menü, ADR 0051 Addendum 7 P7).
+
+### Q4 — Sorrend és közök
+
+- **Tulajdonos:** Statisztika · Export · Új verseny | Feltöltés | fiók.
+- **Legénység:** Statisztika | fiók.
+- A csoporton belüli köz 8 px, a csoportok közötti 16 px. Elválasztó
+  vonal nincs.
+
+### Q5 — Keskeny ablak (javaslat)
+
+- 960 px alatt a név-gomb ikon marad (ADR 0051 Addendum 7, pontosítás).
+- A makett szerint 800 px-en a felirattal is elférne, IBM Plex betűvel. A
+  tesztkörnyezet betűje azonban minden jelet 1 em szélesre rajzol, és a
+  800 px-es tulajdonosi sort egy widget-teszt ellenőrzi (H4). Ezzel a
+  betűvel a teljes név-gomb kb. 30 px-szel túlcsordulna.
+
+### Mit ír felül
+
+- **Addendum 1 G1 és Addendum 4 K32:** a váltó helye, és az, hogy minden
+  állapotban látszik.
+- **Addendum 5 L6:** a vezérlők stílusa.
+- **ADR 0049 Addendum 1 P1 és ADR 0050 Addendum 3 G1:** a Statisztika és
+  az Export ikon-gombjai most feliratos ghost gombok.
+- **ADR 0051 Addendum 1 H4:** a név előtti elválasztó vonal elmarad.

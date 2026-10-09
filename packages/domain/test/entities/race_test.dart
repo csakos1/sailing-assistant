@@ -61,11 +61,12 @@ void main() {
       );
     });
 
-    test('üres marks lista → AssertionError', () {
-      expect(
-        () => Race.create(id: 'r1', name: 'Verseny', marks: const []),
-        throwsA(isA<AssertionError>()),
-      );
+    test('üres marks lista → érvényes, nem dob (ADR 0046 D1)', () {
+      // A bója nélküli verseny szándékos állapot, ezért itt NINCS assert.
+      final race = Race.create(id: 'r1', name: 'Verseny', marks: const []);
+      expect(race.marks, isEmpty);
+      expect(race.activeMarkIndex, 0);
+      expect(race.status, RaceStatus.notStarted);
     });
 
     test('notStarted + startedAt érték → AssertionError', () {
@@ -471,6 +472,80 @@ void main() {
       ).start(at: startTime).finish(at: finishTime);
       // ASSERT — finished állapotban nincs köv. szár.
       expect(finished.nextMarkOrNull, isNull);
+    });
+  });
+
+  group('bója nélküli verseny (ADR 0046)', () {
+    test('a teljes életciklus végigmegy, az index végig 0 marad', () {
+      // ARRANGE
+      final race = Race.create(id: 'r1', name: 'Túra', marks: const []);
+
+      // ACT — nincs mit körözni, ezért a finish az egyetlen kijárat.
+      final started = race.start(at: startTime);
+      final done = started.finish(at: finishTime);
+
+      // ASSERT — mindhárom állapot érvényes, az index nem mozdul.
+      expect(race.activeMarkIndex, 0);
+      expect(started.status, RaceStatus.active);
+      expect(started.activeMarkIndex, 0);
+      expect(done.status, RaceStatus.finished);
+      expect(done.activeMarkIndex, 0);
+      expect(done.finishedAt, finishTime);
+    });
+
+    test('mindkét bóya-getter null, már rajt előtt', () {
+      // ARRANGE & ACT
+      final race = Race.create(id: 'r1', name: 'Túra', marks: const []);
+
+      // ASSERT — a bounds-vizsgálat változtatás nélkül helyes.
+      expect(race.activeMarkOrNull, isNull);
+      expect(race.nextMarkOrNull, isNull);
+      expect(race.start(at: startTime).activeMarkOrNull, isNull);
+    });
+
+    test('active + activeMarkIndex != 0 → AssertionError', () {
+      // Az invariáns üres pályán is szigorú: a 0 az egyetlen érvényes.
+      expect(
+        () => Race(
+          id: 'r1',
+          name: 'Túra',
+          marks: const [],
+          status: RaceStatus.active,
+          activeMarkIndex: 1,
+          startedAt: startTime,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('finished + activeMarkIndex != 0 → AssertionError', () {
+      expect(
+        () => Race(
+          id: 'r1',
+          name: 'Túra',
+          marks: const [],
+          status: RaceStatus.finished,
+          activeMarkIndex: 1,
+          startedAt: startTime,
+          finishedAt: finishTime,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('roundCurrentMark → AssertionError (nincs mit körözni)', () {
+      // ARRANGE
+      final started = Race.create(
+        id: 'r1',
+        name: 'Túra',
+        marks: const [],
+      ).start(at: startTime);
+
+      // ACT & ASSERT — a dokumentáló assert (D2) dev mode-ban fog.
+      expect(
+        () => started.roundCurrentMark(at: roundTime),
+        throwsA(isA<AssertionError>()),
+      );
     });
   });
 }

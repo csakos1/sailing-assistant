@@ -1,0 +1,11 @@
+# Minden éjjel fél négykor, budapesti idő szerint (ADR 0052 D7).
+[Unit]
+Description=Foretack éjszakai mentés időzítője
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Europe/Budapest
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,380 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:phone/features/web_access/data/pending_join.dart';
+import 'package:phone/features/web_access/data/pending_join_store.dart';
+import 'package:phone/features/web_access/data/web_account.dart';
+import 'package:phone/features/web_access/data/web_account_store.dart';
+import 'package:phone/features/web_access/data/web_key_operations.dart';
+import 'package:race_archive_api/race_archive_api.dart';
+import 'package:shared/shared.dart';
+
+// Kozos tesztsegedek a webes hozzaferes tesztjeihez (ADR 0051 Addendum 8
+// V13). A szerver egy utvonal szerint valaszolo MockClient, a Keystore egy
+// rogzitett bajtokat ado hamis alairo.
+
+const String testOrigin = 'http://localhost:8080';
+const String otherOrigin = 'https://archivum.example.hu';
+const String testDeviceId = 'device-1';
+
+/// A 32 bajtos titkok base64url alakja (43 jel), a QR-dekoder ezt varja.
+final String testChallenge = encodeBase64UrlUnpadded(
+  List<int>.filled(secretTokenLength, 7),
+);
+final String testRequestId = encodeBase64UrlUnpadded(
+  List<int>.filled(loginRequestIdLength, 3),
+);
+final String testToken = encodeBase64UrlUnpadded(
+  List<int>.filled(secretTokenLength, 9),
+);
+final String testDeviceToken = encodeBase64UrlUnpadded(
+  List<int>.filled(secretTokenLength, 5),
+);
+
+WebAccount testAccount({
+  String origin = testOrigin,
+  UserRole role = UserRole.owner,
+}) => WebAccount(
+  origin: origin,
+  account: AccountInfo(userId: 'user-1', name: 'Ákos', role: role),
+  deviceId: testDeviceId,
+);
+
+final String testJoinRequestId = encodeBase64UrlUnpadded(
+  List<int>.filled(joinRequestIdLength, 4),
+);
+final String testStatusToken = encodeBase64UrlUnpadded(
+  List<int>.filled(secretTokenLength, 6),
+);
+
+/// A tesztek ora-pillanata; a kerelem ehhez kepest jar le.
+final DateTime testNow = DateTime.utc(2026, 10, 7, 11);
+
+PendingJoin testPendingJoin({
+  String origin = testOrigin,
+  DateTime? expiresAt,
+}) => PendingJoin(
+  origin: origin,
+  joinRequestId: testJoinRequestId,
+  statusToken: testStatusToken,
+  expiresAt: expiresAt ?? DateTime.utc(2026, 10, 8, 10, 30),
+  name: 'Gergő',
+);
+
+/// A szerver valasza egy bekuldott csatlakozasi kerelemre.
+http.Response joinTicketResponse({DateTime? expiresAt}) => jsonResponse(
+  encodeJoinTicket(
+    JoinTicket(
+      joinRequestId: testJoinRequestId,
+      statusToken: testStatusToken,
+      expiresAt: expiresAt ?? DateTime.utc(2026, 10, 8, 10, 30),
+    ),
+  ),
+  status: 201,
+);
+
+/// A szerver valasza a kerelem lekerdezesere.
+http.Response joinStatusResponse(
+  JoinRequestState state, {
+  String deviceId = 'device-7',
+}) {
+  final isApproved = state == JoinRequestState.approved;
+  return jsonResponse(
+    encodeJoinRequestStatus(
+      JoinRequestStatus(
+        state: state,
+        account: isApproved
+            ? const AccountInfo(
+                userId: 'crew-1',
+                name: 'Gergő',
+                role: UserRole.crew,
+              )
+            : null,
+        deviceId: isApproved ? deviceId : null,
+      ),
+    ),
+  );
+}
+
+LoginQrPayload loginPayload({String origin = testOrigin}) => LoginQrPayload(
+  origin: origin,
+  requestId: testRequestId,
+  challenge: testChallenge,
+);
+
+EnrollQrPayload enrollPayload({String origin = testOrigin}) =>
+    EnrollQrPayload(origin: origin, token: testToken);
+
+const BrowserLoginDetails sampleDetails = BrowserLoginDetails(
+  browser: 'Chrome',
+  os: 'Linux',
+  ip: '203.0.113.7',
+  country: 'HU',
+  city: 'Budapest',
+);
+
+/// Egy JSON-valasz a [status] statusszal.
+http.Response jsonResponse(Object? body, {int status = 200}) =>
+    http.Response.bytes(
+      utf8.encode(jsonEncode(body)),
+      status,
+      headers: const {'content-type': 'application/json; charset=utf-8'},
+    );
+
+/// A szerzodes hiba-boritekja.
+http.Response errorResponse(ApiError error) =>
+    jsonResponse(encodeApiError(error), status: error.httpStatus);
+
+/// Egy kiadott titok (kihivas vagy token) JSON-ja.
+Map<String, Object?> issuedJson(String value) => encodeIssuedSecret(
+  IssuedSecret(value: value, expiresAt: DateTime.utc(2026, 10, 7, 12)),
+);
+
+/// Utvonal szerint valaszolo szerver; a kereseket a [requests] gyujti.
+class FakeWebServer {
+  final List<http.Request> requests = [];
+  final Map<String, http.Response Function(http.Request request)> routes = {};
+
+  MockClient get client => MockClient((request) async {
+    requests.add(request);
+    final route = routes[request.url.path];
+    if (route == null) return http.Response('not found', 404);
+    return route(request);
+  });
+
+  /// Egy kereses torzse JSON-kent.
+  static Map<String, Object?> bodyOf(http.Request request) =>
+      jsonDecode(request.body) as Map<String, Object?>;
+
+  /// A [path] utvonalra jott keresek.
+  List<http.Request> requestsTo(String path) =>
+      requests.where((request) => request.url.path == path).toList();
+}
+
+/// Memoriabeli fiok-tar: mint a fajl, vagy fiokot, vagy kerelmet hord.
+class MemoryWebAccountStore implements WebAccountStore, PendingJoinStore {
+  MemoryWebAccountStore([this.account]);
+
+  WebAccount? account;
+  PendingJoin? pendingJoin;
+  int deletes = 0;
+
+  @override
+  Future<WebAccount?> read() async => account;
+
+  @override
+  Future<void> write(WebAccount account) async {
+    this.account = account;
+    pendingJoin = null;
+  }
+
+  @override
+  Future<PendingJoin?> readPendingJoin() async => pendingJoin;
+
+  @override
+  Future<void> writePendingJoin(PendingJoin pending) async {
+    pendingJoin = pending;
+    account = null;
+  }
+
+  @override
+  Future<void> delete() async {
+    deletes++;
+    account = null;
+    pendingJoin = null;
+  }
+}
+
+/// Hamis kulcsmuveletek: rogzitett kulcsok es alairasok, a hivasok
+/// naplozva.
+class FakeKeys {
+  final List<String> calls = [];
+  final List<BiometricPromptText> prompts = [];
+  final List<Uint8List> signedMessages = [];
+  KeyOperationFailure? biometricFailure;
+  KeyOperationFailure? silentFailure;
+  KeyOperationFailure? createFailure;
+
+  static final Uint8List signingKey = Uint8List.fromList([1, 1, 1]);
+  static final Uint8List deviceKey = Uint8List.fromList([2, 2, 2]);
+  static final Uint8List biometricSignature = Uint8List.fromList([3, 3]);
+  static final Uint8List silentSignature = Uint8List.fromList([4, 4]);
+
+  WebKeyOperations get operations => WebKeyOperations(
+    createKey: (role) async {
+      calls.add('create:${role.name}');
+      final failure = createFailure;
+      if (failure != null) return Err(failure);
+      return Ok(role == WebKeyRole.signing ? signingKey : deviceKey);
+    },
+    signWithBiometrics: (message, prompt) async {
+      calls.add('sign:biometric');
+      prompts.add(prompt);
+      signedMessages.add(message);
+      final failure = biometricFailure;
+      if (failure != null) return Err(failure);
+      return Ok(biometricSignature);
+    },
+    signSilently: (message) async {
+      calls.add('sign:silent');
+      signedMessages.add(message);
+      final failure = silentFailure;
+      if (failure != null) return Err(failure);
+      return Ok(silentSignature);
+    },
+    deleteKeys: () async => calls.add('delete'),
+  );
+}
+
+/// Az eszkoz-token utvonalai: a kihivas es a token (V7).
+void serveDeviceTokens(FakeWebServer server) {
+  server.routes[deviceChallengesPath] = (_) =>
+      jsonResponse(issuedJson(testChallenge));
+  server.routes[deviceTokensPath] = (_) =>
+      jsonResponse(issuedJson(testDeviceToken), status: 201);
+}
+
+/// Egy webes munkamenet; a fiok a teszt-fiok, ha mas nincs megadva.
+WebSession testSession({
+  String id = 'session-1',
+  String userId = 'user-1',
+  String userName = 'Ákos',
+  LoginMethod method = LoginMethod.qr,
+  bool isSuspicious = false,
+  DateTime? createdAt,
+  DateTime? lastSeenAt,
+}) => WebSession(
+  id: id,
+  userId: userId,
+  userName: userName,
+  method: method,
+  ip: '84.236.10.20',
+  browser: 'Firefox',
+  os: 'Linux',
+  country: 'HU',
+  city: 'Budapest',
+  createdAt: createdAt ?? DateTime.utc(2026, 10, 7, 7, 12),
+  lastSeenAt: lastSeenAt ?? DateTime.utc(2026, 10, 7, 10, 58),
+  isSuspicious: isSuspicious,
+);
+
+/// Egy gyanus belepes a szalagon.
+SuspiciousLogin testSuspiciousLogin({
+  String id = 'event-1',
+  String userId = 'user-1',
+  String userName = 'Ákos',
+  LoginMethod method = LoginMethod.password,
+  String? sessionId = 'session-9',
+}) => SuspiciousLogin(
+  id: id,
+  userId: userId,
+  userName: userName,
+  method: method,
+  ip: '185.220.1.2',
+  browser: 'Chrome',
+  os: 'Windows',
+  country: 'AT',
+  city: 'Wien',
+  createdAt: DateTime.utc(2026, 10, 7, 9, 32),
+  sessionId: sessionId,
+);
+
+/// A szalag valasza.
+http.Response bannerResponse({
+  List<SuspiciousLogin> suspicious = const [],
+  int pendingJoinRequests = 0,
+}) => jsonResponse(
+  encodeLoginBanner(
+    LoginBanner(
+      suspicious: suspicious,
+      pendingJoinRequests: pendingJoinRequests,
+    ),
+  ),
+);
+
+/// A `/me` valasza a teszt-fiokkal (vagy a megadottal).
+http.Response meResponse({
+  String userId = 'user-1',
+  String name = 'Ákos',
+  UserRole role = UserRole.owner,
+}) => jsonResponse(
+  encodeAccountInfo(AccountInfo(userId: userId, name: name, role: role)),
+);
+
+/// A munkamenet-lista valasza.
+http.Response sessionsResponse(List<WebSession> sessions) =>
+    jsonResponse(encodeWebSessions(sessions));
+
+/// Egy fuggo csatlakozasi kerelem a Legenyseg listajan.
+PendingJoinRequest testPendingRequest({
+  String id = 'join-1',
+  String name = 'Gergő',
+}) => PendingJoinRequest(
+  id: id,
+  name: name,
+  deviceName: 'Pixel 7a',
+  model: 'Google Pixel 7a',
+  ip: '91.120.5.6',
+  country: 'HU',
+  city: 'Keszthely',
+  createdAt: DateTime.utc(2026, 10, 7, 10, 48),
+  expiresAt: DateTime.utc(2026, 10, 8, 10, 48),
+);
+
+/// Egy tag aktiv eszkoze.
+MemberDevice testMemberDevice({
+  String id = 'device-2',
+  String name = 'Galaxy S23',
+  DateTime? lastUsedAt,
+}) => MemberDevice(
+  id: id,
+  name: name,
+  model: 'Samsung $name',
+  createdAt: DateTime.utc(2026, 4, 11, 8),
+  lastUsedAt: lastUsedAt,
+);
+
+/// Egy fiok az eszkozeivel; az alapertek a teszt-fiok (`owner`) a
+/// teszt-eszkozzel.
+MemberInfo testMember({
+  String userId = 'user-1',
+  String name = 'Ákos',
+  UserRole role = UserRole.owner,
+  List<MemberDevice>? devices,
+}) => MemberInfo(
+  account: AccountInfo(userId: userId, name: name, role: role),
+  createdAt: DateTime.utc(2026, 3, 2, 18),
+  devices:
+      devices ?? [testMemberDevice(id: testDeviceId, name: 'Pixel 9 Pro XL')],
+);
+
+/// A fuggo kerelmek valasza.
+http.Response joinRequestsResponse(List<PendingJoinRequest> requests) =>
+    jsonResponse(encodePendingJoinRequests(requests));
+
+/// A fiokok valasza.
+http.Response membersResponse(List<MemberInfo> members) =>
+    jsonResponse(encodeMembers(members));
+
+/// A jelszo es a kodok allapotanak valasza.
+http.Response securityResponse({
+  DateTime? passwordSetAt,
+  int recoveryCodesLeft = 7,
+  DateTime? recoveryCodesGeneratedAt,
+}) => jsonResponse(
+  encodeAccountSecurity(
+    AccountSecurity(
+      passwordSetAt: passwordSetAt,
+      recoveryCodesLeft: recoveryCodesLeft,
+      recoveryCodesGeneratedAt: recoveryCodesGeneratedAt,
+    ),
+  ),
+);
+
+/// Az akcio-kihivas utvonala (M2).
+void serveActionChallenges(FakeWebServer server) {
+  server.routes[actionChallengesPath] = (_) =>
+      jsonResponse(issuedJson(testChallenge), status: 201);
+}

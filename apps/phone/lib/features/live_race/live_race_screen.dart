@@ -4,15 +4,20 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// A `foretack_ui` track-stat `formatDistance`-e méterben számol, az élő
+// képernyőé a `live_formatters` `Distance`-alapú változata.
+import 'package:foretack_ui/foretack_ui.dart' hide formatDistance;
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/features/live_race/target_speed.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
+import 'package:phone/features/live_race/widgets/data_rail.dart';
 import 'package:phone/features/live_race/widgets/live_status_bar.dart';
-import 'package:phone/features/live_race/widgets/metric_cell.dart';
-import 'package:phone/features/live_race/widgets/metric_value_text.dart';
-import 'package:phone/features/live_race/widgets/next_twa_value.dart';
+import 'package:phone/features/live_race/widgets/main_column_cell.dart';
+import 'package:phone/features/live_race/widgets/predicted_twa_cell.dart';
+import 'package:phone/features/live_race/widgets/rail_cell.dart';
+import 'package:phone/features/live_race/widgets/side_arrow.dart';
 import 'package:phone/features/live_race/widgets/twa_value.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
@@ -32,8 +37,9 @@ import 'package:phone/providers/tick_provider.dart';
 import 'package:phone/providers/twd_quality_provider.dart';
 import 'package:phone/providers/wind_data_provider.dart';
 
-/// Az élő verseny-képernyő (§8.7): a compute-rétegből fogyaszt, és a 7 v1
-/// értéket jeleníti meg fix 2×3 rácsban + státuszsorban, ~1 Hz-en.
+/// Az élő verseny-képernyő (§8.7): a compute-rétegből fogyaszt, és a nyolc
+/// v1 értéket jeleníti meg az 1c műszer-oszlop elrendezésben (ADR 0042),
+/// ~1 Hz-en.
 ///
 /// A providereket a gyökéren `watch`-olja, ami transitive életben tartja a
 /// teljes §8.6 láncot, és felépíti a lusta connectiont (ADR 0010 D5). Az
@@ -59,7 +65,8 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     super.initState();
     _wakeLock = ref.read(screenWakeLockProvider);
     unawaited(_wakeLock.enable());
-    // Verseny közben fix portrait: a 2×3 rács landscape-ben rosszul reflow-ol.
+    // Verseny közben fix portrait: a műszer-oszlop és a sín landscape-ben
+    // rosszul reflow-ol.
     unawaited(
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
     );
@@ -162,7 +169,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     final hasCriticalWarning = warnings.any(
       (warning) => warning.severity == WarningSeverity.critical,
     );
-    // Critical warningnál a grid 40%-ra tompul (nem rejtve) — a fókusz a
+    // Critical warningnál a rács 40%-ra tompul (nem rejtve) — a fókusz a
     // banneren maradjon (ADR 0014 D6).
     final gridOpacity = hasCriticalWarning ? 0.4 : 1.0;
 
@@ -175,7 +182,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(race.name),
+        title: Text(race.name, style: screenTitleStyle),
         actions: [
           // A biztonsági térkép a versenyhez tartozik, ezért innen nyílik
           // (ADR 0037 D16). A leállítás marad a szélén: azt keresi a kéz
@@ -196,124 +203,225 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
           ),
         ],
       ),
+      // Az 1c elrendezés él-től élig ér: az elválasztást hairline-ok végzik,
+      // nem margó és nem cella-rés (ADR 0042 D1).
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              LiveStatusBar(
-                connectionStatus: status,
-                markName: prediction?.mark.name ?? race.activeMarkOrNull?.name,
-                trueTime: gpsTime,
-                isStale: _isStale(status: status, boat: boat, tick: tick),
+        child: Column(
+          children: [
+            LiveStatusBar(
+              connectionStatus: status,
+              markName: prediction?.mark.name ?? race.activeMarkOrNull?.name,
+              trueTime: gpsTime,
+              isStale: _isStale(status: status, boat: boat, tick: tick),
+            ),
+            // Az infrastruktúra-hibasor a warningok FÖLÖTT áll: az
+            // engine-indítás hibája megelőzi a verseny-warningokat, mert
+            // nélküle nincs is miből warningot számolni (ADR 0042 D12).
+            if (serviceError != null)
+              WarningStrip(
+                message: l10n.liveServiceError(serviceError),
+                severity: WarningSeverity.critical,
+                background: Theme.of(context).colorScheme.errorContainer,
+                icon: Icons.error_outline,
               ),
-              const SizedBox(height: 12),
-              if (serviceError != null) ...[
-                _EngineServiceErrorStrip(
-                  message: l10n.liveServiceError(serviceError),
-                ),
-                const SizedBox(height: 12),
-              ],
-              WarningBanner(warnings: warnings),
-              Expanded(
-                child: Opacity(
-                  opacity: gridOpacity,
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.4,
-                    children: [
-                      MetricCell(
-                        label: l10n.liveTwaNow,
-                        child: TwaValue(wind?.trueAngleWater),
+            WarningBanner(warnings: warnings),
+            Expanded(
+              child: Opacity(
+                opacity: gridOpacity,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _mainColumn(
+                        context,
+                        l10n,
+                        prediction: prediction,
+                        twdQuality: twdQuality,
+                        wind: wind,
                       ),
-                      MetricCell(
-                        label: l10n.liveTwaNext,
-                        child: NextTwaValue(
-                          twa: prediction?.predictedTwaAtMark,
-                          twdQuality: twdQuality,
-                          confidence: prediction?.shiftConfidence,
-                          bandDegrees: prediction?.forecastBandDegrees,
-                        ),
-                      ),
-                      MetricCell(
-                        label: l10n.liveBearing,
-                        child: MetricValueText(
-                          formatBearing(prediction?.bearingToMark),
-                        ),
-                      ),
-                      MetricCell(
-                        label: l10n.liveCorrection,
-                        child: CorrectionValue(prediction?.courseCorrection),
-                      ),
-                      MetricCell(
-                        label: l10n.liveDistance,
-                        child: MetricValueText(
-                          formatDistance(prediction?.distanceToMark),
-                        ),
-                      ),
-                      MetricCell(
-                        label: l10n.liveEta,
-                        child: MetricValueText(
-                          formatEta(
-                            prediction?.eta,
-                            minutesUnit: l10n.etaMinutesUnit,
-                          ),
-                        ),
-                      ),
-                      MetricCell(
-                        label: l10n.liveTargetSpeed,
-                        child: MetricValueText(
-                          formatTargetSpeedPercent(targetPercent),
-                        ),
-                      ),
-                      MetricCell(
-                        label: l10n.liveVmg,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              MetricValueText(
-                                formatVmgWithTarget(
-                                  snapshot?.vmgKnots,
-                                  snapshot?.targetVmgKnots,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              CorrectionValue(snapshot?.vmgSteerCorrection),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Manuális bója-megkerülés: csak active alatt, és az Opacity-n
-              // KÍVÜL, hogy kritikus warning mellett (tompított grid) is
-              // léptethess.
-              if (race.status == RaceStatus.active) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => unawaited(
-                      _confirmRoundMark(context, l10n, prediction?.mark.name),
                     ),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: Text(l10n.liveRoundMark),
-                  ),
+                    DataRail(
+                      cells: _railCells(
+                        l10n,
+                        prediction: prediction,
+                        targetPercent: targetPercent,
+                        vmgKnots: snapshot?.vmgKnots,
+                        targetVmgKnots: snapshot?.targetVmgKnots,
+                        vmgSteerCorrection: snapshot?.vmgSteerCorrection,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+            // Manuális bója-megkerülés: csak active alatt, és az Opacity-n
+            // KÍVÜL, hogy kritikus warning mellett (tompított rács) is
+            // léptethess.
+            if (race.status == RaceStatus.active)
+              _roundMarkButton(context, l10n, prediction?.mark.name),
+          ],
         ),
       ),
     );
   }
+
+  // A bal oldali műszer-oszlop. A flex-arányok az 1c makettből valók
+  // (1.6 / 1.15 / 1.0, ADR 0042 D1); egész számként írjuk, mert a Flex csak
+  // azt fogad el.
+  Widget _mainColumn(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required MarkPrediction? prediction,
+    required TwdQuality twdQuality,
+    required WindData? wind,
+  }) {
+    final correction = prediction?.courseCorrection;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 160,
+          child: PredictedTwaCell(
+            twa: prediction?.predictedTwaAtMark,
+            twdQuality: twdQuality,
+            confidence: prediction?.shiftConfidence,
+            bandDegrees: prediction?.forecastBandDegrees,
+          ),
+        ),
+        _hairline(context),
+        Expanded(
+          flex: 115,
+          child: MainColumnCell(
+            label: l10n.liveCorrection,
+            support: _correctionHint(context, l10n, correction),
+            child: CorrectionValue(correction, style: numeralLargeStyle),
+          ),
+        ),
+        _hairline(context),
+        Expanded(
+          flex: 100,
+          child: MainColumnCell(
+            label: l10n.liveTwaNow,
+            child: TwaValue(wind?.trueAngleWater, style: numeralMediumStyle),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // A jobb oldali adatsín öt cellája; az utolsó alatt nincs hairline, mert
+  // ott a sín véget ér.
+  List<Widget> _railCells(
+    AppLocalizations l10n, {
+    required MarkPrediction? prediction,
+    required double? targetPercent,
+    required double? vmgKnots,
+    required double? targetVmgKnots,
+    required Angle? vmgSteerCorrection,
+  }) {
+    final steerSide = arrowSideFromSign(vmgSteerCorrection?.degrees);
+    final vmgTarget = formatVmgTarget(targetVmgKnots);
+    return [
+      RailCell(
+        label: l10n.liveBearing,
+        value: formatBearing(prediction?.bearingToMark),
+      ),
+      RailCell(
+        label: l10n.liveDistance,
+        value: formatDistance(prediction?.distanceToMark),
+      ),
+      RailCell(
+        label: l10n.liveEta,
+        value: formatEta(prediction?.eta, minutesUnit: l10n.etaMinutesUnit),
+      ),
+      RailCell(
+        label: l10n.liveTargetSpeed,
+        value: formatTargetSpeedPercent(targetPercent),
+      ),
+      RailCell(
+        label: l10n.liveVmg,
+        value: formatVmgLive(vmgKnots),
+        support: vmgTarget == null ? null : l10n.liveVmgTarget(vmgTarget),
+        // A VMG-steer korrekció itt, a cél-érték mellett kap helyet — az 1c
+        // elrendezésben nincs saját cellája (ADR 0042 D3).
+        supportArrow: steerSide == ArrowSide.none
+            ? null
+            : SideArrow(side: steerSide, glyph: ArrowGlyph.line, size: 11),
+        hasDivider: false,
+      ),
+    ];
+  }
+
+  // A cellák közötti 1 dp-s elválasztó; a rácsnak nincs se rése, se
+  // radiusa (ADR 0042 D1).
+  Widget _hairline(BuildContext context) => SizedBox(
+    height: 1,
+    child: ColoredBox(color: Theme.of(context).colorScheme.outlineVariant),
+  );
+
+  // A korrekció kísérőszövege; 0°/null esetén nincs oldal, tehát nincs
+  // felirat sem.
+  Widget? _correctionHint(
+    BuildContext context,
+    AppLocalizations l10n,
+    Angle? correction,
+  ) {
+    final side = arrowSideFromSign(correction?.degrees);
+    if (side == ArrowSide.none) {
+      return null;
+    }
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
+    return Text(
+      side == ArrowSide.right
+          ? l10n.liveCorrectionRight
+          : l10n.liveCorrectionLeft,
+      style: supportTextStyle.copyWith(color: tones.low),
+    );
+  }
+
+  // Az alsó akció-sáv magassága; a lajstrom sávjával egyezik
+  // (ADR 0044 D14), hogy a két képernyő alja azonos alakú legyen.
+  static const double _actionBarHeight = 60;
+
+  // A felirat mérete a sáv magasságából származik, hogy a geometria
+  // változásakor az arány magától kövesse (ADR 0042 Addendum 2).
+  static const double _actionLabelSize = _actionBarHeight * 0.3;
+
+  Widget _roundMarkButton(
+    BuildContext context,
+    AppLocalizations l10n,
+    String? markName,
+  ) => DecoratedBox(
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+    ),
+    child: SafeArea(
+      top: false,
+      child: SizedBox(
+        width: double.infinity,
+        height: _actionBarHeight,
+        child: FilledButton(
+          // Ikon nélkül és nagyobb felirattal: ez az egyetlen akció a
+          // képernyőn, és kesztyűs kézzel, hullámzásban is el kell találni.
+          // A gomb kitölti a sávot: éltől élig ér, radius nélkül
+          // (ADR 0042 Addendum 2).
+          style: FilledButton.styleFrom(
+            textStyle: supportTextStyle.copyWith(
+              fontSize: _actionLabelSize,
+              fontWeight: FontWeight.w600,
+            ),
+            shape: const RoundedRectangleBorder(),
+          ),
+          onPressed: () =>
+              unawaited(_confirmRoundMark(context, l10n, markName)),
+          child: Text(l10n.liveRoundMark),
+        ),
+      ),
+    ),
+  );
 
   bool _isStale({
     required ConnectionStatus status,
@@ -324,48 +432,5 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       return false;
     }
     return tick.difference(boat.lastUpdate) > const Duration(seconds: 5);
-  }
-}
-
-/// Egy teljes szélességű hibasor az élő képernyőn: a háttér-engine
-/// foreground-service indításának hibáját jeleníti meg (ADR 0017 A13). A
-/// `WarningBanner` strip-geometriáját követi, de szemantikailag külön —
-/// ez infrastruktúra-hiba (service-indítás), nem verseny-warning.
-class _EngineServiceErrorStrip extends StatelessWidget {
-  const _EngineServiceErrorStrip({required this.message});
-
-  /// A megjelenítendő, már lokalizált hibaüzenet.
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 18,
-            color: theme.colorScheme.onErrorContainer,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

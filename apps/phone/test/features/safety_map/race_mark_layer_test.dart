@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:phone/features/safety_map/widgets/race_mark_layer.dart';
 import 'package:phone/providers/active_race_provider.dart';
-import 'package:phone/widgets/mark_pin.dart';
 
 void main() {
   const first = Mark(

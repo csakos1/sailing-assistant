@@ -56,6 +56,8 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+# Az APK aláíró kulcsa soha nem kerülhet a repóba (ADR 0053 D2).
+*.keystore
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -131,3 +133,20 @@ pubspec_overrides.yaml
 
 # Coverage
 coverage/
+
+# Deploy és adatok (ADR 0052): a repó publikus, ezek soha nem kerülhetnek
+# bele. A deploy/check_secrets.sh is ellenőrzi.
+/deploy/deploy.env*
+!/deploy/deploy.env.example
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+auth-secret
+*.pem
+*.key
+*.p12
+foretack-history-*.tar.gz
+dbip-*.csv
+dbip-*.csv.gz
+stw-corrections.json

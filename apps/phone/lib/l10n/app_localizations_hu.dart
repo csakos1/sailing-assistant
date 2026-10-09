@@ -15,25 +15,25 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveNoActiveRace => 'Nincs aktív verseny';
 
   @override
-  String get liveStale => 'Elavult';
+  String get liveStale => 'ELAVULT';
 
   @override
-  String get liveTwaNow => 'TWA most';
+  String get liveTwaNow => 'TWA MOST';
 
   @override
-  String get liveTwaNext => 'TWA köv.';
+  String get liveTwaNext => 'TWA KÖV.';
 
   @override
-  String get liveTwdHeld => 'tartott';
+  String get liveTwdHeld => 'TARTOTT';
 
   @override
-  String get liveBearing => 'Bearing';
+  String get liveBearing => 'BEARING';
 
   @override
-  String get liveCorrection => 'Korrekció';
+  String get liveCorrection => 'KORREKCIÓ';
 
   @override
-  String get liveDistance => 'Táv';
+  String get liveDistance => 'TÁV';
 
   @override
   String get liveEta => 'ETA';
@@ -131,6 +131,16 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupRaceNameRequired => 'Adj meg egy nevet.';
 
   @override
+  String get setupMarksSection => 'BÓJÁK';
+
+  @override
+  String get setupNoMarksToggle => 'Bója nélküli verseny';
+
+  @override
+  String get setupNoMarksHint =>
+      'A track és a target speed rögzül; bearing, ETA és predikció nem lesz.';
+
+  @override
   String setupMarkHeader(int number) {
     return '$number. bója';
   }
@@ -218,10 +228,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailDeleteConfirm => 'Törlés';
 
   @override
-  String get listTitle => 'Versenyek';
+  String get listTitle => 'VERSENYEK';
 
   @override
-  String get listEmpty => 'Még nincs verseny. Adj hozzá egyet a + gombbal.';
+  String get listEmpty =>
+      'Még nincs verseny. Indíts egyet az Új verseny gombbal.';
 
   @override
   String get listError => 'Nem sikerült betölteni a versenyeket.';
@@ -230,7 +241,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get listAddRace => 'Új verseny';
 
   @override
-  String get listFinishedRacesTitle => 'Befejezett versenyek';
+  String get logTitle => 'Versenynapló';
 
   @override
   String listMarkCount(int count) {
@@ -238,10 +249,46 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
+  String logMonth(DateTime month) {
+    final intl.DateFormat monthDateFormat = intl.DateFormat.MMMM(localeName);
+    final String monthString = monthDateFormat.format(month);
+
+    return '$monthString';
+  }
+
+  @override
+  String logRaceCountCaps(int count) {
+    return '$count VERSENY';
+  }
+
+  @override
+  String get logYearSheetTitle => 'Év';
+
+  @override
+  String get logStatTimeCaps => 'VÍZEN TÖLTÖTT';
+
+  @override
+  String get logStatDistanceCaps => 'ÖSSZ. TÁV';
+
+  @override
+  String get logStatRecordCaps => 'REKORD';
+
+  @override
+  String get liveCorrectionRight => 'jobbra';
+
+  @override
+  String get liveCorrectionLeft => 'balra';
+
+  @override
+  String liveVmgTarget(String value) {
+    return 'cél $value';
+  }
+
+  @override
   String get liveVmg => 'VMG';
 
   @override
-  String get liveTargetSpeed => 'Cél-seb.';
+  String get liveTargetSpeed => 'CÉL-SEB.';
 
   @override
   String get warningPolarMissing => 'Nincs polár-adat';
@@ -255,10 +302,19 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibrary => 'Korábbi bóják';
 
   @override
-  String get setupPickFromLibraryTitle => 'Korábbi bóják';
+  String get setupPickFromLibraryTitle => 'KORÁBBI BÓJÁK';
 
   @override
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
+
+  @override
+  String get setupPickFromLibrarySearch => 'Keresés név szerint...';
+
+  @override
+  String get setupPickFromLibraryNoMatch => 'Nincs találat erre a névre.';
+
+  @override
+  String get detailCourseLabel => 'PÁLYA';
 
   @override
   String get detailAnalysisTitle => 'Post-race elemzés';
@@ -356,4 +412,589 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get safetyMapRecentre => 'Hajó középre';
+
+  @override
+  String get webScanTooltip => 'QR-kód beolvasása';
+
+  @override
+  String get webScanHint => 'Olvasd be a weboldal QR-kódját';
+
+  @override
+  String get webScanCameraDenied => 'A beolvasáshoz kamera-engedély kell';
+
+  @override
+  String get webScanCameraFailed => 'A kamera nem indult el';
+
+  @override
+  String get webScanRetry => 'Újra';
+
+  @override
+  String get webScanClose => 'Bezárás';
+
+  @override
+  String get webScanNotForetackTitle => 'Ez nem Foretack-kód';
+
+  @override
+  String get webScanNotForetackMessage =>
+      'Olvasd be a weboldalon vagy a szerveren mutatott kódot.';
+
+  @override
+  String get webScanUnsupportedTitle => 'Frissítsd a Foretack appot';
+
+  @override
+  String get webScanUnsupportedMessage =>
+      'Ezt a kódot az app egy újabb verziója érti.';
+
+  @override
+  String get webScanExpiredTitle => 'Lejárt QR-kód';
+
+  @override
+  String get webScanExpiredMessage =>
+      'Olvasd be a weboldalon látható új kódot.';
+
+  @override
+  String get webScanExpiredEnrollMessage =>
+      'Kérj új regisztrációs kódot a szerveren (CLI).';
+
+  @override
+  String get webScanForeignTitle => 'Ez nem a te Foretack-szervered';
+
+  @override
+  String get webScanForeignMessage => 'A kód ehhez tartozik:';
+
+  @override
+  String get webScanNoConnectionTitle => 'Nincs hálózat';
+
+  @override
+  String get webScanNoConnectionMessage =>
+      'A belépéshez a telefonnak el kell érnie a szervert.';
+
+  @override
+  String get webScanTooManyTitle => 'Túl sok próbálkozás';
+
+  @override
+  String get webScanRevokedTitle => 'Ez a telefon vissza lett vonva';
+
+  @override
+  String get webScanRevokedCrewMessage =>
+      'Kérj új csatlakozást; a tulajdonos hagyja jóvá.';
+
+  @override
+  String get webScanRevokedOwnerMessage =>
+      'Regisztráld újra a telefont a szerveren (CLI).';
+
+  @override
+  String get webScanRequestJoin => 'Csatlakozás kérése';
+
+  @override
+  String get webScanBiometricsUnavailableTitle =>
+      'Nincs beállított ujjlenyomat';
+
+  @override
+  String get webScanBiometricsUnavailableMessage =>
+      'Az aláíráshoz ujjlenyomat kell. Állíts be egyet a telefon beállításaiban.';
+
+  @override
+  String get webScanLockedOutTitle => 'Az ujjlenyomat zárolva';
+
+  @override
+  String get webScanLockedOutMessage =>
+      'Túl sok sikertelen próba. Oldd fel a telefont, és próbáld újra.';
+
+  @override
+  String get webScanSigningFailedTitle => 'Nem sikerült aláírni';
+
+  @override
+  String get webScanSigningFailedMessage => 'Próbáld újra.';
+
+  @override
+  String get webPromptLoginTitle => 'Belépés a Foretack webre';
+
+  @override
+  String get webPromptEnrollTitle => 'Telefon regisztrálása';
+
+  @override
+  String get webPromptCancel => 'Mégse';
+
+  @override
+  String get webLoginDone => 'Belépve a webre';
+
+  @override
+  String get webReplaceTitle => 'Fiók cseréje';
+
+  @override
+  String get webReplaceSameMessage =>
+      'Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod.';
+
+  @override
+  String get webReplaceCancel => 'Mégse';
+
+  @override
+  String get webReplaceConfirm => 'Folytatás';
+
+  @override
+  String get webEnrollTitle => 'Regisztráció';
+
+  @override
+  String get webRoleOwner => 'TULAJDONOS';
+
+  @override
+  String get webRoleCrew => 'LEGÉNYSÉG';
+
+  @override
+  String get webEnrollDone => 'Telefon regisztrálva';
+
+  @override
+  String get webEnrollServer => 'Szerver';
+
+  @override
+  String get webEnrollAccount => 'Fiók';
+
+  @override
+  String get webEnrollPhone => 'Telefon';
+
+  @override
+  String get webEnrollToCodes => 'Tovább a helyreállító kódokhoz';
+
+  @override
+  String get webCodesTitle => 'Helyreállító kódok';
+
+  @override
+  String get webCodesNote =>
+      'Csak most látszanak. Mentsd el őket biztos helyre — mindegyik egyszer használható.';
+
+  @override
+  String get webCodesCopy => 'Másolás';
+
+  @override
+  String get webCodesCopied => 'Kódok a vágólapon';
+
+  @override
+  String get webCodesSaved => 'Elmentettem';
+
+  @override
+  String get webScanExpiredJoinMessage =>
+      'Olvasd be újra a QR-kódot; a neved megmaradt.';
+
+  @override
+  String get webPromptJoinTitle => 'Csatlakozás a Lola archívumához';
+
+  @override
+  String get webJoinTitle => 'Csatlakozás';
+
+  @override
+  String get webJoinHeading => 'Csatlakozás a Lola archívumához';
+
+  @override
+  String get webJoinNameLabel => 'NEVED';
+
+  @override
+  String get webJoinNameInvalid => '1–40 karakter, sortörés nélkül';
+
+  @override
+  String get webJoinSubmit => 'Kérelem küldése';
+
+  @override
+  String get webJoinSentLabel => 'KÉRELEM ELKÜLDVE';
+
+  @override
+  String get webJoinWaiting => 'Várj a tulajdonos jóváhagyására';
+
+  @override
+  String get webJoinName => 'Név';
+
+  @override
+  String get webJoinPhone => 'Telefon';
+
+  @override
+  String get webJoinSentAt => 'Elküldve';
+
+  @override
+  String get webJoinExpiresIn => 'Lejár';
+
+  @override
+  String get webJoinNotApproved => 'A kérelmet nem hagyták jóvá, vagy lejárt.';
+
+  @override
+  String get webJoinApprovedNotice => 'Csatlakoztál a Lola archívumához';
+
+  @override
+  String get webJoinNotApprovedNotice =>
+      'A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt.';
+
+  @override
+  String webJoinRemaining(int hours, int minutes) {
+    return '$hours ó $minutes p';
+  }
+
+  @override
+  String webScanTooManyMessage(int minutes) {
+    return 'Próbáld újra $minutes perc múlva.';
+  }
+
+  @override
+  String webReplaceForeignMessage(String current, String next) {
+    return 'Ez a telefon a(z) $current szerveren van regisztrálva. Lecseréled erre: $next?';
+  }
+
+  @override
+  String get webMenuTooltip => 'Webes hozzáférés';
+
+  @override
+  String get webMenuSection => 'WEBES HOZZÁFÉRÉS';
+
+  @override
+  String get webMenuSessions => 'Webes belépések';
+
+  @override
+  String get webBannerPassword => 'Belépés jelszóval';
+
+  @override
+  String get webBannerRecoveryCode => 'Belépés helyreállító kóddal';
+
+  @override
+  String get webBannerForeignCountry => 'Belépés más országból';
+
+  @override
+  String webBannerOtherUser(String name, String title) {
+    return '$name · $title';
+  }
+
+  @override
+  String webBannerAggregate(int count) {
+    return '$count gyanús belépés';
+  }
+
+  @override
+  String get webBannerAcknowledge => 'Rendben';
+
+  @override
+  String get webBannerSignOut => 'Kiléptetés';
+
+  @override
+  String get webSessionsTitle => 'Webes belépések';
+
+  @override
+  String webSessionsSelf(String name) {
+    return '$name · TE';
+  }
+
+  @override
+  String get webSessionsFallback => 'Tartalék-belépés';
+
+  @override
+  String get webSessionsForeignCountry => 'Belépés más országból';
+
+  @override
+  String webSessionsSignedIn(String when) {
+    return 'belépett $when';
+  }
+
+  @override
+  String webSessionsActive(String ago) {
+    return 'aktív $ago';
+  }
+
+  @override
+  String get webSessionsSignOut => 'Kiléptetés';
+
+  @override
+  String get webSessionsEmpty => 'Nincs aktív webes belépés';
+
+  @override
+  String get webSessionsGeoIp => 'IP-hely: DB-IP';
+
+  @override
+  String get webModeQr => 'QR';
+
+  @override
+  String get webModePassword => 'JELSZÓ';
+
+  @override
+  String get webModeRecoveryCode => 'KÓD';
+
+  @override
+  String get webUnknownBrowser => 'Ismeretlen böngésző';
+
+  @override
+  String get webNoConnection => 'Nincs kapcsolat a szerverrel';
+
+  @override
+  String get webNoLongerValid => 'Ez már nem érvényes';
+
+  @override
+  String get webActionFailed => 'Nem sikerült';
+
+  @override
+  String webTimeToday(String time) {
+    return 'ma $time';
+  }
+
+  @override
+  String webTimeYesterday(String time) {
+    return 'tegnap $time';
+  }
+
+  @override
+  String webTimeThisYear(String month, int day) {
+    return '$month $day.';
+  }
+
+  @override
+  String webTimeOlder(int year, String month, int day) {
+    return '$year. $month $day.';
+  }
+
+  @override
+  String get webMonthsShort =>
+      'jan.|febr.|márc.|ápr.|máj.|jún.|júl.|aug.|szept.|okt.|nov.|dec.';
+
+  @override
+  String get webAgoNow => 'most';
+
+  @override
+  String webAgoMinutes(int count) {
+    return '$count perce';
+  }
+
+  @override
+  String webAgoHours(int count) {
+    return '$count órája';
+  }
+
+  @override
+  String webAgoDays(int count) {
+    return '$count napja';
+  }
+
+  @override
+  String get webMenuCrew => 'Legénység';
+
+  @override
+  String get webMenuAccountOwner => 'Fiók és biztonság';
+
+  @override
+  String get webMenuAccountCrew => 'Fiók';
+
+  @override
+  String get webBannerJoinRequests => 'csatlakozási kérelem';
+
+  @override
+  String get webBannerCrewLink => 'Legénység';
+
+  @override
+  String get webCrewTitle => 'Legénység';
+
+  @override
+  String get webCrewPendingSection => 'FÜGGŐ KÉRELEM';
+
+  @override
+  String get webCrewMembersSection => 'TAGOK';
+
+  @override
+  String webCrewExpiresHours(int hours) {
+    return 'lejár $hours ó múlva';
+  }
+
+  @override
+  String webCrewExpiresMinutes(int minutes) {
+    return 'lejár $minutes p múlva';
+  }
+
+  @override
+  String get webCrewReject => 'Elutasítás';
+
+  @override
+  String get webCrewApprove => 'Jóváhagyás';
+
+  @override
+  String webCrewMemberLine(int count, String web) {
+    return '$count eszköz · web: $web';
+  }
+
+  @override
+  String get webCrewNoWeb => '—';
+
+  @override
+  String webCrewApprovalTitle(String name) {
+    return '$name jóváhagyása';
+  }
+
+  @override
+  String get webCrewNewMember => 'Új tag';
+
+  @override
+  String webCrewMemberPhone(String name) {
+    return '$name új telefonja';
+  }
+
+  @override
+  String webCrewDeviceCount(int count) {
+    return '$count eszköz';
+  }
+
+  @override
+  String get webCrewCancel => 'Mégse';
+
+  @override
+  String get webMemberLastActivity => 'Utolsó webes aktivitás';
+
+  @override
+  String get webMemberSessionCount => 'Webes munkamenet';
+
+  @override
+  String get webMemberDevicesSection => 'ESZKÖZÖK';
+
+  @override
+  String get webMemberNoDevices => 'Nincs aktív telefonja';
+
+  @override
+  String webMemberRegistered(String when) {
+    return 'regisztrálva $when';
+  }
+
+  @override
+  String webMemberLastUsed(String when) {
+    return 'utoljára $when';
+  }
+
+  @override
+  String get webMemberRevoke => 'Visszavonás';
+
+  @override
+  String get webMemberThisPhone => 'Ez a telefon';
+
+  @override
+  String get webMemberRemove => 'Tag eltávolítása';
+
+  @override
+  String webMemberRemoveTitle(String name) {
+    return '$name eltávolítása?';
+  }
+
+  @override
+  String get webMemberRemoveMessage =>
+      'Minden telefonja és minden webes munkamenete azonnal megszűnik.';
+
+  @override
+  String get webMemberRemoveConfirm => 'Eltávolítás';
+
+  @override
+  String get webAccountTitleOwner => 'Fiók és biztonság';
+
+  @override
+  String get webAccountTitleCrew => 'Fiók';
+
+  @override
+  String get webAccountNameSection => 'NÉV';
+
+  @override
+  String get webAccountNameLabel => 'NEVED';
+
+  @override
+  String get webAccountNameSave => 'Mentés';
+
+  @override
+  String get webAccountNameSaved => 'Név mentve';
+
+  @override
+  String get webAccountPasswordSection => 'WEBES JELSZÓ';
+
+  @override
+  String webAccountPasswordSetAt(String when) {
+    return 'Beállítva: $when';
+  }
+
+  @override
+  String get webAccountPasswordNone => 'Nincs jelszó';
+
+  @override
+  String get webAccountPasswordLabel => 'ÚJ JELSZÓ';
+
+  @override
+  String get webAccountPasswordRule => 'Legalább 12 karakter';
+
+  @override
+  String get webAccountPasswordTooLong => 'Legfeljebb 128 karakter';
+
+  @override
+  String webAccountPasswordCount(int count) {
+    return '$count / 12';
+  }
+
+  @override
+  String get webAccountPasswordSave => 'Jelszó mentése';
+
+  @override
+  String get webAccountPasswordSaved => 'Jelszó mentve';
+
+  @override
+  String get webAccountCodesSection => 'HELYREÁLLÍTÓ KÓDOK';
+
+  @override
+  String get webAccountCodesUnused => 'Felhasználatlan';
+
+  @override
+  String webAccountCodesGenerated(String when) {
+    return 'generálva $when';
+  }
+
+  @override
+  String webAccountCodesTotal(int total) {
+    return '/ $total';
+  }
+
+  @override
+  String get webAccountCodesRegenerate => 'Újragenerálás';
+
+  @override
+  String get webAccountCodesConfirmTitle => 'Új helyreállító kódok?';
+
+  @override
+  String get webAccountCodesConfirmMessage =>
+      'A mostani 10 kód azonnal érvénytelen lesz.';
+
+  @override
+  String get webAccountPhoneSection => 'EZ A TELEFON';
+
+  @override
+  String get webAccountPhoneName => 'Név';
+
+  @override
+  String get webAccountPhoneModel => 'Típus';
+
+  @override
+  String get webAccountSessionsLink => 'Webes belépések';
+
+  @override
+  String get webAccountCrewLink => 'Legénység';
+
+  @override
+  String webAccountCrewRequests(int count) {
+    return '$count kérelem';
+  }
+
+  @override
+  String webPromptApproveTitle(String name) {
+    return '$name jóváhagyása';
+  }
+
+  @override
+  String webPromptRevokeTitle(String device) {
+    return '$device visszavonása';
+  }
+
+  @override
+  String webPromptRemoveTitle(String name) {
+    return '$name eltávolítása';
+  }
+
+  @override
+  String get webPromptRemoveSubtitle => 'Minden telefonja és munkamenete';
+
+  @override
+  String get webPromptPasswordTitle => 'Webes jelszó beállítása';
+
+  @override
+  String get webPromptCodesTitle => 'Új helyreállító kódok';
 }

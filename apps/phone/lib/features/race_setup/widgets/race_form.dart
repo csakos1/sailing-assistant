@@ -2,8 +2,14 @@ import 'dart:async';
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
+import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
+import 'package:phone/features/race_setup/widgets/mark_row.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/foretack_switch.dart';
+import 'package:phone/widgets/section_label.dart';
 import 'package:shared/shared.dart';
 
 /// Verseny-űrlap: név + dinamikus, átrendezhető bója-sorok.
@@ -21,6 +27,18 @@ import 'package:shared/shared.dart';
 /// long-press ütközne velük). A `Mark.sequence` nincs külön tárolva: a
 /// submit a vizuális sorrend `index + 1`-éből gyártja, ezért a reorder a
 /// domain/data réteget egyáltalán nem érinti.
+///
+/// **Elrendezés (ADR 0044 D1).** Görgetett törzs + rögzített akció-sáv: a
+/// „Mentés" hat bójánál is elérhető marad görgetés nélkül. A sáv a formon
+/// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
+/// A sor-megjelenítés a [MarkRow]-ban van, itt csak az állapot marad.
+///
+/// **Bója nélküli verseny (ADR 0046 D4, Addendum 1 D7).** A verseny-név
+/// alatti fix kapcsoló-sor kiveszi a bója-blokkot a fából, és a submit
+/// üres listát ad ki. A koordináta-validáció ilyenkor magától kimarad,
+/// mert a `Form.validate()` csak a fában lévő mezőket futtatja — nincs
+/// feltételes validációs ág. A sor-állapot NEM törlődik, hogy a
+/// vissza-kapcsolás a beírt adatokat visszaadja.
 class RaceForm extends StatefulWidget {
   /// [initialRace] null = create (üres űrlap); nem-null = edit.
   const RaceForm({required this.onSubmit, this.initialRace, super.key});
@@ -40,6 +58,10 @@ class _RaceFormState extends State<RaceForm> {
   late final TextEditingController _nameController;
   late final List<_MarkRowControllers> _markRows;
 
+  /// Bója nélküli mód (ADR 0046 D4). Csak a megjelenítést és a submit
+  /// kimenetét kapcsolja — a `_markRows` érintetlen marad alatta.
+  late bool _isMarkless;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +74,9 @@ class _RaceFormState extends State<RaceForm> {
         : [
             for (final mark in race.marks) _MarkRowControllers.fromMark(mark),
           ];
+    // Edit-módban a tényleges állapot dönt; create-nél mindig kikapcsolva
+    // indulunk, hogy a megszokott űrlap változatlan legyen.
+    _isMarkless = race != null && race.marks.isEmpty;
   }
 
   @override
@@ -70,7 +95,20 @@ class _RaceFormState extends State<RaceForm> {
   Future<void> _pickFromLibrary() async {
     final picked = await showModalBottomSheet<SavedMark>(
       context: context,
-      builder: (_) => const SavedMarkPicker(),
+      // A 4e lap a képernyő felénél magasabb, ezért scroll-vezérelt
+      // módban nyitjuk; a magasság-korlátot maga a picker adja (D51).
+      isScrollControlled: true,
+      showDragHandle: true,
+      // A design-rendszer minden felülete r0 (ADR 0044 D47).
+      shape: const RoundedRectangleBorder(),
+      // A modal sheet magától NEM tér ki a billentyűzet elől, a
+      // kereső-mező (D52) pedig különben alá csúszna.
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        child: const SavedMarkPicker(),
+      ),
     );
     if (!mounted || picked == null) return;
     _addPickedMarkRow(picked);
@@ -105,6 +143,13 @@ class _RaceFormState extends State<RaceForm> {
     // A Form a fában van, így a currentState garantáltan nem null.
     if (!_formKey.currentState!.validate()) return;
 
+    // Bója nélkül a sorok kikerültek a fából, tehát a validátoraik sem
+    // futottak; a bennük maradt szöveget szándékosan eldobjuk (ADR 0046 D4).
+    if (_isMarkless) {
+      widget.onSubmit(_nameController.text.trim(), const []);
+      return;
+    }
+
     final marks = <Mark>[
       for (var i = 0; i < _markRows.length; i++)
         Mark(
@@ -127,56 +172,271 @@ class _RaceFormState extends State<RaceForm> {
     widget.onSubmit(_nameController.text.trim(), marks);
   }
 
+  String? _validateName(AppLocalizations l10n, String? value) =>
+      (value == null || value.trim().isEmpty)
+      ? l10n.setupMarkNameRequired
+      : null;
+
+  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
+  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
+  String? _coordinateError(AppLocalizations l10n, String? value, GeoAxis axis) {
+    final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
+    return switch (result) {
+      Ok() => null,
+      Err(error: EmptyInput()) => l10n.setupInvalidNumber,
+      Err(error: Unrecognized()) => l10n.setupCoordinateUnrecognized,
+      Err(error: ComponentOutOfRange()) => l10n.setupCoordinateComponentRange,
+      Err(error: CardinalMismatch()) => l10n.setupCoordinateCardinalMismatch,
+      Err(error: OutOfRange()) =>
+        axis == GeoAxis.latitude
+            ? l10n.setupLatitudeOutOfRange
+            : l10n.setupLongitudeOutOfRange,
+    };
+  }
+
+  /// A kártyán belüli mezők dekorációja (ADR 0044 D3).
+  ///
+  /// A téma alapját a kitöltés szűkíti: a mező `surfaceContainer`,
+  /// mert a bója-sor háttere `surface`, és azonos színnel a mező
+  /// eltűnne. Ez a korábbi elrendezés inverze (ADR 0044 D45). A
+  /// radius a token-rétegben nullázódott (ADR 0044 D47).
+  InputDecoration _rowFieldDecoration(String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      fillColor: scheme.surfaceContainer,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      border: foretackFieldBorder(scheme.outline),
+      enabledBorder: foretackFieldBorder(scheme.outline),
+      focusedBorder: foretackFieldBorder(scheme.primary, width: 1.5),
+      errorBorder: foretackFieldBorder(scheme.error, width: 1.5),
+      focusedErrorBorder: foretackFieldBorder(scheme.error, width: 1.5),
+    );
+  }
+
+  Widget _coordinateField(
+    AppLocalizations l10n,
+    TextEditingController controller,
+    GeoAxis axis,
+  ) {
+    return TextFormField(
+      controller: controller,
+      decoration: _rowFieldDecoration(
+        axis == GeoAxis.latitude
+            ? l10n.setupLatitudeLabel
+            : l10n.setupLongitudeLabel,
+      ),
+      style: coordinateValueStyle,
+      keyboardType: const TextInputType.numberWithOptions(
+        signed: true,
+        decimal: true,
+      ),
+      validator: (value) => _coordinateError(l10n, value, axis),
+    );
+  }
+
+  Widget _markRow(AppLocalizations l10n, int index) {
+    final row = _markRows[index];
+    return MarkRow(
+      // A reorder a KÖZVETLEN gyerekeket mozgatja, ezért a
+      // sor-kulcs ide került, a korábbi Paddingről.
+      key: ObjectKey(row),
+      number: index + 1,
+      // Explicit drag-handle: a sor-szintű long-press ütközne a
+      // szövegmezőkkel, ezért csak innen indul a húzás.
+      dragHandle: ReorderableDragStartListener(
+        index: index,
+        child: Tooltip(
+          message: l10n.setupReorderHandle,
+          child: const Icon(Icons.drag_indicator, size: 20),
+        ),
+      ),
+      nameField: TextFormField(
+        controller: row.nameController,
+        decoration: _rowFieldDecoration(l10n.setupMarkNameLabel),
+        textInputAction: TextInputAction.next,
+        validator: (value) => _validateName(l10n, value),
+      ),
+      latitudeField: _coordinateField(
+        l10n,
+        row.latitudeController,
+        GeoAxis.latitude,
+      ),
+      longitudeField: _coordinateField(
+        l10n,
+        row.longitudeController,
+        GeoAxis.longitude,
+      ),
+      removeTooltip: l10n.setupRemoveMark,
+      onRemove: _onRemoveFor(index),
+    );
+  }
+
+  /// A bója-blokk tetejét lezáró hairline (ADR 0044 D45).
+  ///
+  /// A sorok **csak alul** rajzolnak határt, hogy két
+  /// szomszédos sor között ne fusson dupla vonal; így viszont a blokk
+  /// teteje nyitva maradna, és a lista felül bevégzetlennek látszana.
+  Widget _blockTopLine() {
+    return SizedBox(
+      height: 1,
+      child: ColoredBox(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
+    );
+  }
+
+  /// A „BÓJÁK” fejléc a darabszámmal (ADR 0044 D45).
+  ///
+  /// A szám ugyanazt a mono fokozatot viseli, amit a bója-sor
+  /// sorszám-sínje, mert ugyanarról a listáról beszél. Összekötő csík
+  /// **nincs**: sem a lista-, sem a detail-képernyő szakasz-címkéi nem
+  /// viselnek ilyet, és egy harmadik elválasztó-nyelv itt nem indokolt.
+  Widget _marksHeader(AppLocalizations l10n) {
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
+
+    return Padding(
+      // A fejléc függőlegesen KÖZÉPEN ül a két hairline között: a
+      // sávot a saját, szimmetrikus paddingje adja, nem a szomszédos
+      // SizedBoxok, amelyek külön-külön 14 és 6 dp-t adtak.
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: SectionLabel(text: l10n.setupMarksSection)),
+          Text(
+            '${_markRows.length}',
+            style: railNumberStyle.copyWith(color: tones.low),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A bója nélküli mód kapcsoló-sora (ADR 0046 Addendum 1 D7).
+  ///
+  /// Fix helyen ül, a verseny-név alatt és a bója-blokk fölött: a bója
+  /// nélküliség a VERSENYRE vonatkozó tulajdonság, nem a bója-listára,
+  /// ezért a névvel egy szinten áll. Bekapcsolva a blokk eltűnik alatta,
+  /// a sor maga nem mozdul.
+  ///
+  /// A magyarázó sor **kikapcsolva is látszik**: a következmény (nincs
+  /// bearing, ETA és predikció) különben a vízen derülne ki.
+  Widget _marklessRow(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = theme.extension<TextTones>()!;
+    final line = BorderSide(color: theme.colorScheme.outlineVariant);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: line, bottom: line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.setupNoMarksToggle,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.setupNoMarksHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: tones.low,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            ForetackSwitch(
+              value: _isMarkless,
+              onChanged: (value) => setState(() => _isMarkless = value),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Form(
       key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: InputDecoration(labelText: l10n.setupRaceNameLabel),
-            textInputAction: TextInputAction.next,
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? l10n.setupRaceNameRequired
-                : null,
-          ),
-          // A bója-sorok átrendezhetők; a ReorderableListView a külső
-          // ListView-on belül zsugorodik és nem görget külön.
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: _reorderMarkRow,
-            children: [
-              for (var i = 0; i < _markRows.length; i++)
-                _MarkRowFields(
-                  key: ObjectKey(_markRows[i]),
-                  index: i,
-                  l10n: l10n,
-                  controllers: _markRows[i],
-                  number: i + 1,
-                  onRemove: _onRemoveFor(i),
+          Expanded(
+            child: ListView(
+              // Teljes szélességű törzs: a bója-sorok és a kapcsoló-sor
+              // hairline-jai a képernyő széléig futnak (ADR 0044 D45).
+              padding: const EdgeInsets.only(top: 8),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                  child: TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.setupRaceNameLabel,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? l10n.setupRaceNameRequired
+                        : null,
+                  ),
                 ),
-            ],
+                _marklessRow(l10n),
+                if (!_isMarkless) ...[
+                  _marksHeader(l10n),
+                  _blockTopLine(),
+                  // A bója-sorok átrendezhetők; a ReorderableListView a
+                  // külső ListView-on belül zsugorodik és nem görget külön.
+                  // A sorokat hairline választja el (ADR 0044 D45), ezért
+                  // köztük nincs rés, és a sor-kulcs a MarkRow-n ül.
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    onReorder: _reorderMarkRow,
+                    children: [
+                      for (var i = 0; i < _markRows.length; i++)
+                        _markRow(l10n, i),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _addMarkRow,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.setupAddMark),
+          // Bója nélküli módban nincs mit hozzáadni: a lista üres,
+          // és a sáv egyetlen, teljes szélességű Mentés gombra esik
+          // (ADR 0046 D4).
+          FormActionBar(
+            primaryLabel: l10n.setupSave,
+            onPrimary: _submit,
+            secondaryActions: _isMarkless
+                ? const []
+                : [
+                    FormBarAction(
+                      label: l10n.setupAddMark,
+                      icon: Icons.add,
+                      onTap: _addMarkRow,
+                    ),
+                    FormBarAction(
+                      label: l10n.setupPickFromLibrary,
+                      icon: Icons.history,
+                      onTap: () => unawaited(_pickFromLibrary()),
+                    ),
+                  ],
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => unawaited(_pickFromLibrary()),
-            icon: const Icon(Icons.history),
-            label: Text(l10n.setupPickFromLibrary),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(onPressed: _submit, child: Text(l10n.setupSave)),
         ],
       ),
     );
@@ -217,130 +477,6 @@ class _MarkRowControllers {
     nameController.dispose();
     latitudeController.dispose();
     longitudeController.dispose();
-  }
-}
-
-/// Egy bója-sor megjelenítése: drag-handle + sorszám-fejléc, név/lat/lon
-/// mezők, és (egynél több sornál) törlés gomb.
-class _MarkRowFields extends StatelessWidget {
-  const _MarkRowFields({
-    required this.index,
-    required this.l10n,
-    required this.controllers,
-    required this.number,
-    required this.onRemove,
-    super.key,
-  });
-
-  final int index;
-  final AppLocalizations l10n;
-  final _MarkRowControllers controllers;
-  final int number;
-  final VoidCallback? onRemove;
-
-  String? _validateName(String? value) =>
-      (value == null || value.trim().isEmpty)
-      ? l10n.setupMarkNameRequired
-      : null;
-
-  String? _validateLatitude(String? value) =>
-      _coordinateError(value, GeoAxis.latitude);
-
-  String? _validateLongitude(String? value) =>
-      _coordinateError(value, GeoAxis.longitude);
-
-  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
-  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
-  String? _coordinateError(String? value, GeoAxis axis) {
-    final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
-    return switch (result) {
-      Ok() => null,
-      Err(error: EmptyInput()) => l10n.setupInvalidNumber,
-      Err(error: Unrecognized()) => l10n.setupCoordinateUnrecognized,
-      Err(error: ComponentOutOfRange()) => l10n.setupCoordinateComponentRange,
-      Err(error: CardinalMismatch()) => l10n.setupCoordinateCardinalMismatch,
-      Err(error: OutOfRange()) =>
-        axis == GeoAxis.latitude
-            ? l10n.setupLatitudeOutOfRange
-            : l10n.setupLongitudeOutOfRange,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Explicit drag-handle: a sor-szintű long-press ütközne a
-              // szövegmezőkkel, ezért csak innen indul a húzás.
-              ReorderableDragStartListener(
-                index: index,
-                child: Tooltip(
-                  message: l10n.setupReorderHandle,
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Icon(Icons.drag_handle),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  l10n.setupMarkHeader(number),
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-              if (onRemove != null)
-                IconButton(
-                  onPressed: onRemove,
-                  icon: const Icon(Icons.remove_circle_outline),
-                  tooltip: l10n.setupRemoveMark,
-                ),
-            ],
-          ),
-          TextFormField(
-            controller: controllers.nameController,
-            decoration: InputDecoration(labelText: l10n.setupMarkNameLabel),
-            textInputAction: TextInputAction.next,
-            validator: _validateName,
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: controllers.latitudeController,
-                  decoration: InputDecoration(
-                    labelText: l10n.setupLatitudeLabel,
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    signed: true,
-                    decimal: true,
-                  ),
-                  validator: _validateLatitude,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: controllers.longitudeController,
-                  decoration: InputDecoration(
-                    labelText: l10n.setupLongitudeLabel,
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    signed: true,
-                    decimal: true,
-                  ),
-                  validator: _validateLongitude,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 

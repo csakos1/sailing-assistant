@@ -4,11 +4,9 @@ import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/app/marine_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/post_race_analysis.dart';
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
 import 'package:phone/features/race_detail/widgets/full_screen_track_map_screen.dart';
-import 'package:phone/features/race_detail/widgets/track_map.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/post_race_analysis_provider.dart';
 
@@ -146,8 +144,7 @@ class _AnalysisBody extends StatelessWidget {
               child: IgnorePointer(child: trackMap),
             ),
           ),
-        const SizedBox(height: 10),
-        _TrackStatsRow(stats: data.trackStats, l10n: l10n),
+        TrackStatsRow(stats: data.trackStats),
         // A next-TWA elemzes csak debug-buildben, a track ALATT (A3-D4).
         if (kDebugMode) ...[
           const SizedBox(height: 16),
@@ -162,42 +159,6 @@ class _AnalysisBody extends StatelessWidget {
             ],
           ],
         ],
-      ],
-    );
-  }
-}
-
-/// Harom track-stat cella egy sorban: max sebesseg, atlag sebesseg, megtett ut.
-class _TrackStatsRow extends StatelessWidget {
-  const _TrackStatsRow({required this.stats, required this.l10n});
-
-  final TrackStats stats;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCell(
-            label: l10n.detailTrackMaxSpeed,
-            value: formatKnots(stats.maxSpeedMps),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCell(
-            label: l10n.detailTrackAvgSpeed,
-            value: formatKnots(stats.avgSpeedMps),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCell(
-            label: l10n.detailTrackDistance,
-            value: formatDistance(stats.distanceMeters),
-          ),
-        ),
       ],
     );
   }

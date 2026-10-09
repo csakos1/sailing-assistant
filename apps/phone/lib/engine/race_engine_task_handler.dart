@@ -5,6 +5,7 @@ import 'dart:ui' show Locale;
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:phone/app/geolocator_gnss_clock.dart';
@@ -86,7 +87,8 @@ class RaceEngineTaskHandler extends TaskHandler {
     final client = Nmea0183TcpClient(host: engineGatewayHost());
     // Másodlagos, WAL-módú telemetria-kapcsolat (ADR 0017 D6): kész sémát
     // feltételez (a UI-izolátum már migrált), csak a telemetria-táblát írja.
-    final db = AppDatabase.secondary();
+    // Ugyanaz a named DB, mint az appDatabaseProvider-é.
+    final db = AppDatabase.secondary(driftDatabase(name: 'foretack'));
     final engine = RaceEngine(
       nmeaStream: client,
       telemetryLogger: TelemetryLoggerImpl(db),

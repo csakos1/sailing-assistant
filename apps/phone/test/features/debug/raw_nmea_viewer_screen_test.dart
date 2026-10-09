@@ -5,6 +5,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/debug/raw_nmea_viewer_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/nmea_stream_provider.dart';
@@ -110,7 +111,7 @@ Future<void> _pumpViewer(
     ProviderScope(
       overrides: [nmeaStreamProvider.overrideWithValue(fake)],
       child: const MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: RawNmeaViewerScreen(),
       ),

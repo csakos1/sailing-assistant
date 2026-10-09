@@ -11,9 +11,13 @@ workspace:
   - packages/domain
   - packages/data
   - packages/shared
+  - packages/race_archive_api
+  - packages/foretack_ui
   - packages/wearable_bridge
   - apps/phone
   - apps/watch
+  - apps/web
+  - apps/web_server
   - tools/nmea_replay
   - tools/prediction_probe
   - tools/race_analyzer

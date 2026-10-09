@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phone/app/theme.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_persistence_provider.dart';
@@ -36,7 +37,7 @@ class ForetackApp extends ConsumerWidget {
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       theme: foretackTheme,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: phoneLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: const RaceListScreen(),
     );

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:data/src/nmea/pipeline/nmea_event_pipeline.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 // Egy realisztikus, vegyes-talkeres (GP/WI/II/SD) clean 0183 folyam — ahogy a
 // Vulcan a socketre küldi (prefix nélkül). Golden sorok, checksum verifikálva.

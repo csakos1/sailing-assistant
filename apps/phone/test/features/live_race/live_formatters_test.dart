@@ -34,9 +34,9 @@ void main() {
       expect(formatDistance(const Distance(meters: 450)), '450 m');
     });
 
-    test('1000 m and above -> two-decimal km', () {
-      expect(formatDistance(const Distance(meters: 1000)), '1.00 km');
-      expect(formatDistance(const Distance(meters: 1850)), '1.85 km');
+    test('1000 m and above -> two-decimal km with a decimal comma', () {
+      expect(formatDistance(const Distance(meters: 1000)), '1,00 km');
+      expect(formatDistance(const Distance(meters: 1850)), '1,85 km');
     });
 
     test('null -> placeholder', () {
@@ -90,6 +90,33 @@ void main() {
 
     test('null -> placeholder', () {
       expect(formatInstrumentTime(null), missingTime);
+    });
+  });
+
+  group('formatVmgLive', () {
+    test('one decimal, with a decimal comma', () {
+      expect(formatVmgLive(5.84), '5,8');
+      expect(formatVmgLive(6), '6,0');
+    });
+
+    test('keeps the sign of a losing VMG', () {
+      expect(formatVmgLive(-1.4), '-1,4');
+    });
+
+    test('null -> placeholder', () {
+      expect(formatVmgLive(null), missingValue);
+    });
+  });
+
+  group('formatVmgTarget', () {
+    test('one decimal, with a decimal comma', () {
+      expect(formatVmgTarget(6.24), '6,2');
+    });
+
+    // A null itt nem hianyzo adat: a kisero sor ilyenkor elmarad a
+    // cellabol, ezert a formazo sem gondolatjelet ad.
+    test('null -> null, so the caller can drop the support row', () {
+      expect(formatVmgTarget(null), isNull);
     });
   });
 }

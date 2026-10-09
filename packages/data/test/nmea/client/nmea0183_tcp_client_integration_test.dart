@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:data/src/nmea/client/nmea0183_tcp_client.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 // A parse-pipeline tesztekkel azonos, kézzel checksum-verifikált golden sor
 // (apparent szél). A Vulcan CRLF-fel, időbélyeg-prefix nélkül küld.

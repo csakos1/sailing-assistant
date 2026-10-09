@@ -1,0 +1,55 @@
+# A webes archívum szervere (ADR 0047 D10, ADR 0052 D5).
+#
+# A bootstrap.sh telepíti az /etc/systemd/system alá, és a
+# @FORETACK_DOMAIN@ helyére a domaint írja.
+[Unit]
+Description=Foretack versenyarchívum (web_server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=foretack
+Group=foretack
+ExecStart=/opt/foretack/current/bin/server \
+  --origin https://@FORETACK_DOMAIN@ \
+  --archive /var/lib/foretack/archive.sqlite \
+  --web-db /var/lib/foretack/web.sqlite \
+  --auth-db /var/lib/foretack/auth.sqlite \
+  --auth-secret /var/lib/foretack/auth-secret \
+  --geoip /var/lib/foretack/geoip.sqlite \
+  --temp-root /var/lib/foretack/tmp \
+  --polar /opt/foretack/current/share/foretack.pol \
+  --stw-corrections /etc/foretack/stw-corrections.json
+# A ritka natív összeomlás után magától újraindul (handover §5 29.).
+Restart=on-failure
+RestartSec=5
+# Konfigurációs hiba (rossz kapcsoló, hiányzó fájl, laza jog) után nincs
+# értelme újrapróbálni: a napló mutatja az okot.
+RestartPreventExitStatus=64 66 73 78
+UMask=0077
+
+# Szigetelés: csak a saját adatkönyvtárát írhatja, a hálózaton csak
+# IP-t és unix socketet használhat, jogosultságot nem szerezhet.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/foretack
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

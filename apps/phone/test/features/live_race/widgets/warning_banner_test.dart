@@ -1,8 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:phone/app/theme.dart';
-import 'package:phone/app/warning_colors.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
@@ -11,7 +11,7 @@ void main() {
       tester.pumpWidget(
         MaterialApp(
           theme: foretackTheme,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: WarningBanner(warnings: warnings)),
         ),

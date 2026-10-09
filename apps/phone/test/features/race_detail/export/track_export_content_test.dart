@@ -2,8 +2,8 @@ import 'package:domain/domain.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/export/track_export_content.dart';
-import 'package:phone/features/race_detail/track_stats_formatters.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 void main() {

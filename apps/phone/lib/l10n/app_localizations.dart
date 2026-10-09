@@ -109,43 +109,43 @@ abstract class AppLocalizations {
   /// Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül).
   ///
   /// In hu, this message translates to:
-  /// **'Elavult'**
+  /// **'ELAVULT'**
   String get liveStale;
 
   /// Cella-címke: aktuális TWA.
   ///
   /// In hu, this message translates to:
-  /// **'TWA most'**
+  /// **'TWA MOST'**
   String get liveTwaNow;
 
   /// Cella-címke: a következő bójánál várható TWA.
   ///
   /// In hu, this message translates to:
-  /// **'TWA köv.'**
+  /// **'TWA KÖV.'**
   String get liveTwaNext;
 
   /// Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7).
   ///
   /// In hu, this message translates to:
-  /// **'tartott'**
+  /// **'TARTOTT'**
   String get liveTwdHeld;
 
   /// Cella-címke: irány a bójához (abszolút bearing).
   ///
   /// In hu, this message translates to:
-  /// **'Bearing'**
+  /// **'BEARING'**
   String get liveBearing;
 
   /// Cella-címke: kormányzási korrekció a bójához.
   ///
   /// In hu, this message translates to:
-  /// **'Korrekció'**
+  /// **'KORREKCIÓ'**
   String get liveCorrection;
 
   /// Cella-címke: távolság a bójához.
   ///
   /// In hu, this message translates to:
-  /// **'Táv'**
+  /// **'TÁV'**
   String get liveDistance;
 
   /// Cella-címke: becsült érkezés a bójához (ETA).
@@ -322,6 +322,24 @@ abstract class AppLocalizations {
   /// **'Adj meg egy nevet.'**
   String get setupRaceNameRequired;
 
+  /// A bója-lista szakasz-címkéje az űrlapon (verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'BÓJÁK'**
+  String get setupMarksSection;
+
+  /// Kapcsoló: a verseny bóják nélkül indul (ADR 0046).
+  ///
+  /// In hu, this message translates to:
+  /// **'Bója nélküli verseny'**
+  String get setupNoMarksToggle;
+
+  /// Magyarázat a bója nélküli mód alatt.
+  ///
+  /// In hu, this message translates to:
+  /// **'A track és a target speed rögzül; bearing, ETA és predikció nem lesz.'**
+  String get setupNoMarksHint;
+
   /// Egy bója-sor fejléce a sorszámmal.
   ///
   /// In hu, this message translates to:
@@ -487,13 +505,13 @@ abstract class AppLocalizations {
   /// A versenylista (home) képernyő címsora.
   ///
   /// In hu, this message translates to:
-  /// **'Versenyek'**
+  /// **'VERSENYEK'**
   String get listTitle;
 
   /// A lista üres állapotának üzenete.
   ///
   /// In hu, this message translates to:
-  /// **'Még nincs verseny. Adj hozzá egyet a + gombbal.'**
+  /// **'Még nincs verseny. Indíts egyet az Új verseny gombbal.'**
   String get listEmpty;
 
   /// A lista hiba-állapotának üzenete.
@@ -502,23 +520,77 @@ abstract class AppLocalizations {
   /// **'Nem sikerült betölteni a versenyeket.'**
   String get listError;
 
-  /// Tooltip: a FAB, ami a setup képernyőt nyitja.
+  /// Az alsó akció-sáv gombja, ami a setup képernyőt nyitja.
   ///
   /// In hu, this message translates to:
   /// **'Új verseny'**
   String get listAddRace;
 
-  /// A befejezett versenyek modal címsora.
+  /// A Versenynapló képernyő címe és a lista akció-sávjának bal gombja.
   ///
   /// In hu, this message translates to:
-  /// **'Befejezett versenyek'**
-  String get listFinishedRacesTitle;
+  /// **'Versenynapló'**
+  String get logTitle;
 
   /// Egy versenysor alcíme: a bóyák száma.
   ///
   /// In hu, this message translates to:
   /// **'{count} bója'**
   String listMarkCount(int count);
+
+  /// A hónap neve a Versenynapló hónap-fejlécén.
+  ///
+  /// In hu, this message translates to:
+  /// **'{month}'**
+  String logMonth(DateTime month);
+
+  /// Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} VERSENY'**
+  String logRaceCountCaps(int count);
+
+  /// Az év-választó lap fejléc-felirata; a widget verzálosítja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Év'**
+  String get logYearSheetTitle;
+
+  /// A napló stat-csík első cellája: vízen töltött idő.
+  ///
+  /// In hu, this message translates to:
+  /// **'VÍZEN TÖLTÖTT'**
+  String get logStatTimeCaps;
+
+  /// A napló stat-csík második cellája: az év össztávja.
+  ///
+  /// In hu, this message translates to:
+  /// **'ÖSSZ. TÁV'**
+  String get logStatDistanceCaps;
+
+  /// A napló stat-csík harmadik cellája: sebesség-rekord.
+  ///
+  /// In hu, this message translates to:
+  /// **'REKORD'**
+  String get logStatRecordCaps;
+
+  /// Kísérőszöveg a korrekció-cellában: jobbra kell fordulni
+  ///
+  /// In hu, this message translates to:
+  /// **'jobbra'**
+  String get liveCorrectionRight;
+
+  /// Kísérőszöveg a korrekció-cellában: balra kell fordulni
+  ///
+  /// In hu, this message translates to:
+  /// **'balra'**
+  String get liveCorrectionLeft;
+
+  /// A polár cél-VMG kísérő sora a VMG sín-cellában
+  ///
+  /// In hu, this message translates to:
+  /// **'cél {value}'**
+  String liveVmgTarget(String value);
 
   /// Élő VMG csomóban, előjelesen (negatív = lemenő)
   ///
@@ -529,7 +601,7 @@ abstract class AppLocalizations {
   /// No description provided for @liveTargetSpeed.
   ///
   /// In hu, this message translates to:
-  /// **'Cél-seb.'**
+  /// **'CÉL-SEB.'**
   String get liveTargetSpeed;
 
   /// Warning (info): a polár betöltése sikertelen (hiányzó vagy hibás asset); a cél-sebesség % nem számítható.
@@ -553,7 +625,7 @@ abstract class AppLocalizations {
   /// A bója-választó (modal sheet) címe.
   ///
   /// In hu, this message translates to:
-  /// **'Korábbi bóják'**
+  /// **'KORÁBBI BÓJÁK'**
   String get setupPickFromLibraryTitle;
 
   /// A bója-választó üres állapota: a könyvtár üres.
@@ -561,6 +633,24 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Még nincs mentett bója.'**
   String get setupPickFromLibraryEmpty;
+
+  /// A bója-választó kereső-mezőjének helyőrzője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Keresés név szerint...'**
+  String get setupPickFromLibrarySearch;
+
+  /// A bója-választó üres állapota név szerinti szűrés után.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs találat erre a névre.'**
+  String get setupPickFromLibraryNoMatch;
+
+  /// A bója-lista verzál szakasz-címkéje a detail-képernyőn.
+  ///
+  /// In hu, this message translates to:
+  /// **'PÁLYA'**
+  String get detailCourseLabel;
 
   /// A debug-only post-race elemzés szekció címe a detailen.
   ///
@@ -741,6 +831,1014 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Hajó középre'**
   String get safetyMapRecentre;
+
+  /// A főképernyő AppBar-gombja: a webes belépés QR-beolvasója (ADR 0051 H1).
+  ///
+  /// In hu, this message translates to:
+  /// **'QR-kód beolvasása'**
+  String get webScanTooltip;
+
+  /// A beolvasó felirata a kereső alatt (18b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldal QR-kódját'**
+  String get webScanHint;
+
+  /// A beolvasó, ha a kamera-engedélyt megtagadták (Addendum 8 V2).
+  ///
+  /// In hu, this message translates to:
+  /// **'A beolvasáshoz kamera-engedély kell'**
+  String get webScanCameraDenied;
+
+  /// A beolvasó, ha a kamera más okból nem indult.
+  ///
+  /// In hu, this message translates to:
+  /// **'A kamera nem indult el'**
+  String get webScanCameraFailed;
+
+  /// Hibapanel gomb: újra beolvas.
+  ///
+  /// In hu, this message translates to:
+  /// **'Újra'**
+  String get webScanRetry;
+
+  /// Hibapanel gomb: bezárja a beolvasót.
+  ///
+  /// In hu, this message translates to:
+  /// **'Bezárás'**
+  String get webScanClose;
+
+  /// Hibapanel cím: a beolvasott kód nem Foretack-kód (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez nem Foretack-kód'**
+  String get webScanNotForetackTitle;
+
+  /// Hibapanel szöveg a nem Foretack-kódhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldalon vagy a szerveren mutatott kódot.'**
+  String get webScanNotForetackMessage;
+
+  /// Hibapanel cím: ezt a kódot egy újabb app érti (J2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Frissítsd a Foretack appot'**
+  String get webScanUnsupportedTitle;
+
+  /// Hibapanel szöveg az ismeretlen kódverzióhoz.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ezt a kódot az app egy újabb verziója érti.'**
+  String get webScanUnsupportedMessage;
+
+  /// Hibapanel cím: lejárt vagy felhasznált kérés (18d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Lejárt QR-kód'**
+  String get webScanExpiredTitle;
+
+  /// Hibapanel szöveg a lejárt kódhoz (18d-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be a weboldalon látható új kódot.'**
+  String get webScanExpiredMessage;
+
+  /// Hibapanel szöveg a lejárt regisztrációs kódhoz: azt a VPS-es CLI adja, nem a weboldal.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérj új regisztrációs kódot a szerveren (CLI).'**
+  String get webScanExpiredEnrollMessage;
+
+  /// Hibapanel cím: más szerver belépési QR-ja (18d-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez nem a te Foretack-szervered'**
+  String get webScanForeignTitle;
+
+  /// Hibapanel szöveg (18d-3); utána a szerver hostja monóval.
+  ///
+  /// In hu, this message translates to:
+  /// **'A kód ehhez tartozik:'**
+  String get webScanForeignMessage;
+
+  /// Hibapanel cím: a szerver nem érhető el (18d-4).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs hálózat'**
+  String get webScanNoConnectionTitle;
+
+  /// Hibapanel szöveg a hálózati hibához (18d-4).
+  ///
+  /// In hu, this message translates to:
+  /// **'A belépéshez a telefonnak el kell érnie a szervert.'**
+  String get webScanNoConnectionMessage;
+
+  /// Hibapanel cím: a szerver 429-cel válaszolt (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Túl sok próbálkozás'**
+  String get webScanTooManyTitle;
+
+  /// Hibapanel cím: visszavont eszköz vagy elveszett kulcs (18d-5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon vissza lett vonva'**
+  String get webScanRevokedTitle;
+
+  /// Hibapanel szöveg a legénység visszavont telefonján (18d-5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérj új csatlakozást; a tulajdonos hagyja jóvá.'**
+  String get webScanRevokedCrewMessage;
+
+  /// Hibapanel szöveg a tulajdonos visszavont telefonján (H7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Regisztráld újra a telefont a szerveren (CLI).'**
+  String get webScanRevokedOwnerMessage;
+
+  /// Hibapanel gomb (18d-5): törli a helyi fiókot, és újra beolvas.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás kérése'**
+  String get webScanRequestJoin;
+
+  /// Hibapanel cím: a telefonon nincs ujjlenyomat.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs beállított ujjlenyomat'**
+  String get webScanBiometricsUnavailableTitle;
+
+  /// Hibapanel szöveg: nincs ujjlenyomat.
+  ///
+  /// In hu, this message translates to:
+  /// **'Az aláíráshoz ujjlenyomat kell. Állíts be egyet a telefon beállításaiban.'**
+  String get webScanBiometricsUnavailableMessage;
+
+  /// Hibapanel cím: túl sok sikertelen ujjlenyomat-próba.
+  ///
+  /// In hu, this message translates to:
+  /// **'Az ujjlenyomat zárolva'**
+  String get webScanLockedOutTitle;
+
+  /// Hibapanel szöveg a zárolt biometriához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Túl sok sikertelen próba. Oldd fel a telefont, és próbáld újra.'**
+  String get webScanLockedOutMessage;
+
+  /// Hibapanel cím: váratlan aláírási hiba.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült aláírni'**
+  String get webScanSigningFailedTitle;
+
+  /// Hibapanel szöveg a váratlan aláírási hibához.
+  ///
+  /// In hu, this message translates to:
+  /// **'Próbáld újra.'**
+  String get webScanSigningFailedMessage;
+
+  /// Az ujjlenyomat-ablak címe a QR-belépéskor (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés a Foretack webre'**
+  String get webPromptLoginTitle;
+
+  /// Az ujjlenyomat-ablak címe az első regisztrációkor (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon regisztrálása'**
+  String get webPromptEnrollTitle;
+
+  /// Az ujjlenyomat-ablak megszakító gombja (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webPromptCancel;
+
+  /// Snackbar a főképernyőn a sikeres QR-belépés után (18d).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépve a webre'**
+  String get webLoginDone;
+
+  /// Megerősítő dialógus címe: a telefon már regisztrálva van (Addendum 8 V1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók cseréje'**
+  String get webReplaceTitle;
+
+  /// Megerősítés, ha ugyanarra a szerverre regisztrálunk újra (V5).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod.'**
+  String get webReplaceSameMessage;
+
+  /// Megerősítő dialógus: nem cserél.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webReplaceCancel;
+
+  /// Megerősítő dialógus: törli a helyi fiókot és a kulcsokat, és regisztrál.
+  ///
+  /// In hu, this message translates to:
+  /// **'Folytatás'**
+  String get webReplaceConfirm;
+
+  /// A regisztráció utáni képernyő AppBar-címe (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Regisztráció'**
+  String get webEnrollTitle;
+
+  /// Szerep-címke verzálul (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'TULAJDONOS'**
+  String get webRoleOwner;
+
+  /// Szerep-címke verzálul (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'LEGÉNYSÉG'**
+  String get webRoleCrew;
+
+  /// A regisztráció utáni képernyő főcíme (18f).
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon regisztrálva'**
+  String get webEnrollDone;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Szerver'**
+  String get webEnrollServer;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webEnrollAccount;
+
+  /// Sor-címke a 18f-en.
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon'**
+  String get webEnrollPhone;
+
+  /// A 18f egyetlen gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Tovább a helyreállító kódokhoz'**
+  String get webEnrollToCodes;
+
+  /// A kódok képernyőjének címe (18g).
+  ///
+  /// In hu, this message translates to:
+  /// **'Helyreállító kódok'**
+  String get webCodesTitle;
+
+  /// Figyelmeztetés a kódok fölött (18g).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csak most látszanak. Mentsd el őket biztos helyre — mindegyik egyszer használható.'**
+  String get webCodesNote;
+
+  /// A 18g gombja: a kódok a vágólapra.
+  ///
+  /// In hu, this message translates to:
+  /// **'Másolás'**
+  String get webCodesCopy;
+
+  /// Snackbar a kódok másolása után.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kódok a vágólapon'**
+  String get webCodesCopied;
+
+  /// A 18g záró gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Elmentettem'**
+  String get webCodesSaved;
+
+  /// Hibapanel a lejárt QR-hoz csatlakozás közben: a beírt név megmarad (Addendum 9 X2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Olvasd be újra a QR-kódot; a neved megmaradt.'**
+  String get webScanExpiredJoinMessage;
+
+  /// Az ujjlenyomat-ablak címe a csatlakozási kérelemhez; alcíme a szerver hostja (H6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás a Lola archívumához'**
+  String get webPromptJoinTitle;
+
+  /// A 18e és 18e-2 képernyő AppBar-címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás'**
+  String get webJoinTitle;
+
+  /// A 18e főcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakozás a Lola archívumához'**
+  String get webJoinHeading;
+
+  /// A 18e névmezőjének szekció-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'NEVED'**
+  String get webJoinNameLabel;
+
+  /// Halk hibasor a 18e névmezője alatt, ha a név nem elfogadható (X6).
+  ///
+  /// In hu, this message translates to:
+  /// **'1–40 karakter, sortörés nélkül'**
+  String get webJoinNameInvalid;
+
+  /// A 18e küldés-gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kérelem küldése'**
+  String get webJoinSubmit;
+
+  /// A 18e-2 állapot-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'KÉRELEM ELKÜLDVE'**
+  String get webJoinSentLabel;
+
+  /// A 18e-2 főcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'Várj a tulajdonos jóváhagyására'**
+  String get webJoinWaiting;
+
+  /// A 18e-2 adatsora: a beküldött név.
+  ///
+  /// In hu, this message translates to:
+  /// **'Név'**
+  String get webJoinName;
+
+  /// A 18e-2 adatsora: a telefon neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'Telefon'**
+  String get webJoinPhone;
+
+  /// A 18e-2 adatsora: a beküldés ideje (ÓÓ:PP).
+  ///
+  /// In hu, this message translates to:
+  /// **'Elküldve'**
+  String get webJoinSentAt;
+
+  /// A 18e-2 adatsora: a kérelem lejáratáig hátralévő idő.
+  ///
+  /// In hu, this message translates to:
+  /// **'Lejár'**
+  String get webJoinExpiresIn;
+
+  /// A 18e-2 állapota elutasítás vagy lejárat után (V9).
+  ///
+  /// In hu, this message translates to:
+  /// **'A kérelmet nem hagyták jóvá, vagy lejárt.'**
+  String get webJoinNotApproved;
+
+  /// Snackbar a jóváhagyott csatlakozásról (X3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Csatlakoztál a Lola archívumához'**
+  String get webJoinApprovedNotice;
+
+  /// Snackbar az elutasított vagy lejárt csatlakozásról (X3).
+  ///
+  /// In hu, this message translates to:
+  /// **'A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt.'**
+  String get webJoinNotApprovedNotice;
+
+  /// A 18e-2 lejárati ideje órában és percben (mono).
+  ///
+  /// In hu, this message translates to:
+  /// **'{hours} ó {minutes} p'**
+  String webJoinRemaining(int hours, int minutes);
+
+  /// Hibapanel szöveg a 429-hez; a perc felfelé kerekítve, legalább 1 (H7, H10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Próbáld újra {minutes} perc múlva.'**
+  String webScanTooManyMessage(int minutes);
+
+  /// Megerősítés, ha más origójú regisztrációs QR-t olvasott be a regisztrált telefon (Addendum 8 V1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?'**
+  String webReplaceForeignMessage(String current, String next);
+
+  /// A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes hozzáférés'**
+  String get webMenuTooltip;
+
+  /// A ⋮ menü szekció-címkéje, verzál (makett 18a-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'WEBES HOZZÁFÉRÉS'**
+  String get webMenuSection;
+
+  /// A ⋮ menü sora: a webes munkamenetek (18i/18j).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webMenuSessions;
+
+  /// Gyanús belépés szalagja: tartalék-jelszó (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés jelszóval'**
+  String get webBannerPassword;
+
+  /// Gyanús belépés szalagja: helyreállító kód (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés helyreállító kóddal'**
+  String get webBannerRecoveryCode;
+
+  /// Gyanús belépés szalagja: QR más országból (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés más országból'**
+  String get webBannerForeignCountry;
+
+  /// Más felhasználó gyanús belépése: a név elöl (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} · {title}'**
+  String webBannerOtherUser(String name, String title);
+
+  /// Kettőnél több gyanús belépés egy sorban (H8, Z7).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} gyanús belépés'**
+  String webBannerAggregate(int count);
+
+  /// A gyanús belépés nyugtázása (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rendben'**
+  String get webBannerAcknowledge;
+
+  /// A gyanús belépés munkamenetének lezárása (H8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kiléptetés'**
+  String get webBannerSignOut;
+
+  /// A 18i/18j képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webSessionsTitle;
+
+  /// A saját csoport fejléce a 18i-ben, verzál névvel.
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} · TE'**
+  String webSessionsSelf(String name);
+
+  /// Gyanús munkamenet: tartalék mód (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Tartalék-belépés'**
+  String get webSessionsFallback;
+
+  /// Gyanús munkamenet: QR más országból (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Belépés más országból'**
+  String get webSessionsForeignCountry;
+
+  /// A munkamenet kezdete (18i).
+  ///
+  /// In hu, this message translates to:
+  /// **'belépett {when}'**
+  String webSessionsSignedIn(String when);
+
+  /// A munkamenet utolsó aktivitása (18i).
+  ///
+  /// In hu, this message translates to:
+  /// **'aktív {ago}'**
+  String webSessionsActive(String ago);
+
+  /// A munkamenet lezárása (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Kiléptetés'**
+  String get webSessionsSignOut;
+
+  /// Üres lista a 18i/18j-ben (Z10).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs aktív webes belépés'**
+  String get webSessionsEmpty;
+
+  /// A GeoIP-forrás feltüntetése (D7, CC BY 4.0).
+  ///
+  /// In hu, this message translates to:
+  /// **'IP-hely: DB-IP'**
+  String get webSessionsGeoIp;
+
+  /// Mód-címke: QR-belépés (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'QR'**
+  String get webModeQr;
+
+  /// Mód-címke: jelszó (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'JELSZÓ'**
+  String get webModePassword;
+
+  /// Mód-címke: helyreállító kód (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'KÓD'**
+  String get webModeRecoveryCode;
+
+  /// Ha a böngésző és az OS sem ismert (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ismeretlen böngésző'**
+  String get webUnknownBrowser;
+
+  /// Betöltési vagy műveleti hiba: a szerver nem érhető el (H11, Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs kapcsolat a szerverrel'**
+  String get webNoConnection;
+
+  /// Egy döntés már nem érvényes (410, Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez már nem érvényes'**
+  String get webNoLongerValid;
+
+  /// Egyéb hiba egy műveletnél (Z3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nem sikerült'**
+  String get webActionFailed;
+
+  /// Mai időpont (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'ma {time}'**
+  String webTimeToday(String time);
+
+  /// Tegnapi időpont (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'tegnap {time}'**
+  String webTimeYesterday(String time);
+
+  /// Idei dátum, pl. okt. 3. (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{month} {day}.'**
+  String webTimeThisYear(String month, int day);
+
+  /// Korábbi évi dátum, pl. 2025. aug. 30. (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month} {day}.'**
+  String webTimeOlder(int year, String month, int day);
+
+  /// A tizenkét hónap rövid neve januártól, |-vel elválasztva (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'jan.|febr.|márc.|ápr.|máj.|jún.|júl.|aug.|szept.|okt.|nov.|dec.'**
+  String get webMonthsShort;
+
+  /// Eltelt idő 1 perc alatt (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'most'**
+  String get webAgoNow;
+
+  /// Eltelt idő percben (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} perce'**
+  String webAgoMinutes(int count);
+
+  /// Eltelt idő órában (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} órája'**
+  String webAgoHours(int count);
+
+  /// Eltelt idő napban (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} napja'**
+  String webAgoDays(int count);
+
+  /// A ⋮ menü sora a legénység kezeléséhez (csak tulajdonos, Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webMenuCrew;
+
+  /// A ⋮ menü sora a tulajdonos fiókjához (Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók és biztonság'**
+  String get webMenuAccountOwner;
+
+  /// A ⋮ menü sora a legénységi tag fiókjához (Z6).
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webMenuAccountCrew;
+
+  /// A függő kérelmek szalagja a mono szám után (18h-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'csatlakozási kérelem'**
+  String get webBannerJoinRequests;
+
+  /// A függő kérelmek szalagjának linkje (18h-1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webBannerCrewLink;
+
+  /// A 18k képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webCrewTitle;
+
+  /// A 18k kérelmeinek csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'FÜGGŐ KÉRELEM'**
+  String get webCrewPendingSection;
+
+  /// A 18k tagjainak csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'TAGOK'**
+  String get webCrewMembersSection;
+
+  /// Egy kérelem lejárata órában (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'lejár {hours} ó múlva'**
+  String webCrewExpiresHours(int hours);
+
+  /// Egy kérelem lejárata percben, egy óra alatt (Z8).
+  ///
+  /// In hu, this message translates to:
+  /// **'lejár {minutes} p múlva'**
+  String webCrewExpiresMinutes(int minutes);
+
+  /// A kérelem elutasítása (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'Elutasítás'**
+  String get webCrewReject;
+
+  /// A kérelem jóváhagyása (18k, 18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Jóváhagyás'**
+  String get webCrewApprove;
+
+  /// Egy tag sora: eszközszám és az utolsó webes aktivitás (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} eszköz · web: {web}'**
+  String webCrewMemberLine(int count, String web);
+
+  /// Nincs élő webes munkamenet (18k).
+  ///
+  /// In hu, this message translates to:
+  /// **'—'**
+  String get webCrewNoWeb;
+
+  /// A jóváhagyó lap címe (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} jóváhagyása'**
+  String webCrewApprovalTitle(String name);
+
+  /// A jóváhagyó lap alapválasztása (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új tag'**
+  String get webCrewNewMember;
+
+  /// Egy meglévő tag új telefonja a jóváhagyó lapon (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} új telefonja'**
+  String webCrewMemberPhone(String name);
+
+  /// Egy tag aktív eszközeinek száma (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} eszköz'**
+  String webCrewDeviceCount(int count);
+
+  /// A jóváhagyó lap megszakítása (18k-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get webCrewCancel;
+
+  /// A 18k-3 adatsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Utolsó webes aktivitás'**
+  String get webMemberLastActivity;
+
+  /// A 18k-3 adatsora.
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes munkamenet'**
+  String get webMemberSessionCount;
+
+  /// A 18k-3 eszközeinek csoport-fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'ESZKÖZÖK'**
+  String get webMemberDevicesSection;
+
+  /// A 18k-3, ha a tagnak nincs aktív eszköze.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs aktív telefonja'**
+  String get webMemberNoDevices;
+
+  /// Egy eszköz regisztrálásának ideje (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'regisztrálva {when}'**
+  String webMemberRegistered(String when);
+
+  /// Egy eszköz utolsó használata (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'utoljára {when}'**
+  String webMemberLastUsed(String when);
+
+  /// Egy eszköz visszavonása (18k-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Visszavonás'**
+  String get webMemberRevoke;
+
+  /// A kérő telefon sora a gomb helyett (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez a telefon'**
+  String get webMemberThisPhone;
+
+  /// A 18k-3 alsó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Tag eltávolítása'**
+  String get webMemberRemove;
+
+  /// A 18k-4 dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} eltávolítása?'**
+  String webMemberRemoveTitle(String name);
+
+  /// A 18k-4 dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Minden telefonja és minden webes munkamenete azonnal megszűnik.'**
+  String get webMemberRemoveMessage;
+
+  /// A 18k-4 dialógus romboló gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Eltávolítás'**
+  String get webMemberRemoveConfirm;
+
+  /// A 18l képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók és biztonság'**
+  String get webAccountTitleOwner;
+
+  /// A 18l-2 képernyő címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Fiók'**
+  String get webAccountTitleCrew;
+
+  /// A névrész csoport-fejléce (18l-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'NÉV'**
+  String get webAccountNameSection;
+
+  /// A névmező címkéje (18l-2).
+  ///
+  /// In hu, this message translates to:
+  /// **'NEVED'**
+  String get webAccountNameLabel;
+
+  /// A név mentése (Z11).
+  ///
+  /// In hu, this message translates to:
+  /// **'Mentés'**
+  String get webAccountNameSave;
+
+  /// Az átnevezés snackbarja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Név mentve'**
+  String get webAccountNameSaved;
+
+  /// A jelszórész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'WEBES JELSZÓ'**
+  String get webAccountPasswordSection;
+
+  /// A jelszó állapota (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Beállítva: {when}'**
+  String webAccountPasswordSetAt(String when);
+
+  /// A jelszó állapota, ha nincs (H9).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs jelszó'**
+  String get webAccountPasswordNone;
+
+  /// A jelszómező címkéje (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÚJ JELSZÓ'**
+  String get webAccountPasswordLabel;
+
+  /// A jelszó szabálya (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legalább 12 karakter'**
+  String get webAccountPasswordRule;
+
+  /// A túl hosszú jelszó jelzése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Legfeljebb 128 karakter'**
+  String get webAccountPasswordTooLong;
+
+  /// A jelszó hossza a 12-es minimumhoz (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} / 12'**
+  String webAccountPasswordCount(int count);
+
+  /// A jelszó mentése (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Jelszó mentése'**
+  String get webAccountPasswordSave;
+
+  /// A jelszó mentésének snackbarja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Jelszó mentve'**
+  String get webAccountPasswordSaved;
+
+  /// A kódrész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'HELYREÁLLÍTÓ KÓDOK'**
+  String get webAccountCodesSection;
+
+  /// A még fel nem használt kódok sora (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Felhasználatlan'**
+  String get webAccountCodesUnused;
+
+  /// A kódkészlet ideje (Z12).
+  ///
+  /// In hu, this message translates to:
+  /// **'generálva {when}'**
+  String webAccountCodesGenerated(String when);
+
+  /// A kódok teljes száma a felhasználatlanok után (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'/ {total}'**
+  String webAccountCodesTotal(int total);
+
+  /// A kódok újragenerálása (18l, 18l-3).
+  ///
+  /// In hu, this message translates to:
+  /// **'Újragenerálás'**
+  String get webAccountCodesRegenerate;
+
+  /// A 18l-3 dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Új helyreállító kódok?'**
+  String get webAccountCodesConfirmTitle;
+
+  /// A 18l-3 dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A mostani 10 kód azonnal érvénytelen lesz.'**
+  String get webAccountCodesConfirmMessage;
+
+  /// A telefonrész csoport-fejléce (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'EZ A TELEFON'**
+  String get webAccountPhoneSection;
+
+  /// A telefon neve (18l, csak kiírás, Z1).
+  ///
+  /// In hu, this message translates to:
+  /// **'Név'**
+  String get webAccountPhoneName;
+
+  /// A telefon típusa (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Típus'**
+  String get webAccountPhoneModel;
+
+  /// Link a 18i-re (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes belépések'**
+  String get webAccountSessionsLink;
+
+  /// Link a 18k-ra (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'Legénység'**
+  String get webAccountCrewLink;
+
+  /// A függő kérelmek száma a Legénység linkjén (18l).
+  ///
+  /// In hu, this message translates to:
+  /// **'{count} kérelem'**
+  String webAccountCrewRequests(int count);
+
+  /// Ujjlenyomat-ablak: jóváhagyás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} jóváhagyása'**
+  String webPromptApproveTitle(String name);
+
+  /// Ujjlenyomat-ablak: visszavonás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{device} visszavonása'**
+  String webPromptRevokeTitle(String device);
+
+  /// Ujjlenyomat-ablak: eltávolítás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'{name} eltávolítása'**
+  String webPromptRemoveTitle(String name);
+
+  /// Ujjlenyomat-ablak alcíme: eltávolítás (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Minden telefonja és munkamenete'**
+  String get webPromptRemoveSubtitle;
+
+  /// Ujjlenyomat-ablak: jelszó (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Webes jelszó beállítása'**
+  String get webPromptPasswordTitle;
+
+  /// Ujjlenyomat-ablak: kódok (Z13).
+  ///
+  /// In hu, this message translates to:
+  /// **'Új helyreállító kódok'**
+  String get webPromptCodesTitle;
 }
 
 class _AppLocalizationsDelegate

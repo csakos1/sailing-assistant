@@ -1,0 +1,67 @@
+# A Caddy konfigurációja a VPS-en (ADR 0052 D6). A bootstrap.sh az
+# /etc/caddy/Caddyfile helyére telepíti, és a @FORETACK_DOMAIN@ helyére a
+# domaint írja. A HTTPS-tanúsítványt a Caddy magától kéri és újítja.
+
+@FORETACK_DOMAIN@ {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		# A no-referrer helyett: az OSM csempe-szabályzata Referert kér,
+		# az origónál többet viszont nem adunk ki (ADR 0052 D6).
+		Referrer-Policy "strict-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://tile.openstreetmap.org https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# A REST szerver csak a loopbacken figyel (ADR 0047 D9). A Caddy a
+	# bejövő X-Forwarded-For-t eldobja és a kliens IP-jét írja be; a szerver
+	# ezt csak loopbackről fogadja el (ADR 0051 L11).
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8087 {
+			header_down -X-Powered-By
+			header_down -Server
+		}
+	}
+
+	# A telefonos app a legénységnek (ADR 0053 D4): belépés nélkül
+	# letölthető, mert a belépéshez épp ez az app kell. Csak a három
+	# fájl szolgálható ki, a szerver-kiadástól független könyvtárból.
+	handle /app/foretack.apk {
+		root * /srv/foretack-app
+		rewrite * /foretack.apk
+		header >Content-Type "application/vnd.android.package-archive"
+		header Cache-Control "no-cache"
+		file_server
+	}
+	@appText path /app/foretack.apk.sha256 /app/VERSION
+	handle @appText {
+		root * /srv/foretack-app
+		uri strip_prefix /app
+		header >Content-Type "text/plain; charset=utf-8"
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle /app/* {
+		respond 404
+	}
+
+	handle /robots.txt {
+		respond <<ROBOTS
+			User-agent: *
+			Disallow: /
+			ROBOTS 200
+	}
+
+	# A Flutter-build fájlnevei nem hash-eltek: deploy után a böngésző
+	# mindig újraellenőriz (ETag), így régi és új fájl nem keveredik.
+	handle {
+		root * /opt/foretack/current/web
+		header Cache-Control "no-cache"
+		file_server
+	}
+}

@@ -2,10 +2,12 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/app/screen_wake_lock.dart';
-import 'package:phone/app/theme.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/live_race/widgets/data_rail.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
@@ -79,6 +81,10 @@ Mark _mark() => const Mark(
 
 Race _race() => Race.create(id: 'r1', name: 'Teszt verseny', marks: [_mark()]);
 
+// Az also akcio-sav csak RaceStatus.active alatt latszik, a _race() viszont
+// notStarted -- ezert a sav-teszt inditott versennyel dolgozik.
+Race _activeRace() => _race().start(at: DateTime(2026, 5, 29, 14));
+
 MarkPrediction _prediction() => MarkPrediction(
   mark: _mark(),
   bearingToMark: const Bearing.true_(95),
@@ -107,7 +113,7 @@ BoatState _boat(DateTime lastUpdate) => BoatState(
 
 double _liveGridOpacity(WidgetTester tester) {
   final finder = find
-      .ancestor(of: find.byType(GridView), matching: find.byType(Opacity))
+      .ancestor(of: find.byType(DataRail), matching: find.byType(Opacity))
       .first;
   return tester.widget<Opacity>(finder).opacity;
 }
@@ -158,7 +164,7 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         theme: foretackTheme,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const LiveRaceScreen(),
       ),
@@ -169,7 +175,9 @@ Future<void> _pump(
 
 void main() {
   group('LiveRaceScreen', () {
-    testWidgets('renders all seven values with live data', (tester) async {
+    testWidgets('renders the main column and the rail with live data', (
+      tester,
+    ) async {
       final now = DateTime(2026, 5, 29, 14, 32, 10);
       await _pump(
         tester,
@@ -191,7 +199,40 @@ void main() {
       expect(find.text('8°'), findsOneWidget);
       expect(find.text('450 m'), findsOneWidget);
       expect(find.text('07:32'), findsOneWidget);
-      expect(find.text('Elavult'), findsNothing);
+      expect(find.text('jobbra'), findsOneWidget);
+      expect(find.text('ELAVULT'), findsNothing);
+    });
+
+    testWidgets('renders the round mark action as a full width bar', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 29, 14, 32, 10);
+      await _pump(
+        tester,
+        race: _activeRace(),
+        prediction: _prediction(),
+        wind: _wind(),
+        boat: _boat(now),
+        status: const Connected(),
+        tick: now,
+      );
+
+      // ACT - a sav az egyetlen FilledButton a kepernyon; a megerosito
+      // dialogus nincs kinyitva.
+      final bar = find.byType(FilledButton);
+      expect(bar, findsOneWidget);
+
+      // ASSERT - a sav a _pump viewportjanak teljes szelesseget kitolti,
+      // es pontosan 60 dp magas.
+      final size = tester.getSize(bar);
+      expect(size.height, 60);
+      expect(size.width, 1000);
+
+      // ASSERT - nincs radius, es a felirat a sav magassagabol szarmazik
+      // (60 * 0,3), nem a regi fix 17-bol.
+      final style = tester.widget<FilledButton>(bar).style;
+      expect(style?.shape?.resolve(const {}), const RoundedRectangleBorder());
+      expect(style?.textStyle?.resolve(const {})?.fontSize, 18);
     });
 
     testWidgets('a státuszsor a stepped prediction-bóját mutatja, nem a '
@@ -264,9 +305,9 @@ void main() {
         status: const Connected(),
       );
 
-      // TWA most a windData-ból megvan; a tobbi hat cella „—".
+      // TWA most a windData-ból megvan; a tobbi het cella „—".
       expect(find.text('32°'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(8));
+      expect(find.text('—'), findsNWidgets(7));
     });
 
     testWidgets('shows the stale chip when connected data is old', (
@@ -283,7 +324,7 @@ void main() {
         tick: now,
       );
 
-      expect(find.text('Elavult'), findsOneWidget);
+      expect(find.text('ELAVULT'), findsOneWidget);
     });
 
     testWidgets('shows the error label on a connection error', (tester) async {

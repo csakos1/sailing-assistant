@@ -1,0 +1,19 @@
+# Titokkeresés a repón (ADR 0052, deploy/check_secrets.sh). A gitleaks
+# alapszabályai érvényesek; csak a tesztek rögzített, nem titkos
+# mintaértékei kivételek. Ide új kivétel csak átnézett tesztértékkel
+# kerülhet, valódi titokkal soha.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Tesztek rögzített mintaértékei (bájtsorozatok base64-ben, mintajelszó)"
+paths = [
+  '''(^|/)test/.*_test\.dart$''',
+]
+regexTarget = "match"
+regexes = [
+  '''ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8''',
+  '''QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8''',
+  '''titkos-jelszo-123''',
+]
+condition = "AND"

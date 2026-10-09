@@ -32,8 +32,10 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Szándékosan a gép debug-kulcsával (ADR 0053 D2): a legénység
+            // telefonján ezzel aláírt app fut versenyadatokkal, és egy más
+            // kulccsal aláírt APK csak eltávolítás (adatvesztés) után
+            // települne. A kulcsot a deploy/build_phone_apk.sh ellenőrzi.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

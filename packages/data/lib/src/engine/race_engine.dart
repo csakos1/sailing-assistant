@@ -170,9 +170,23 @@ class RaceEngine {
   /// a domain auto-finish-el. A detektort resetelj�k, hogy a k�zi l�ptet�s
   /// ut�n az �j b�j�hoz tiszta minimum-profilb�l induljon (mint a
   /// `_maybeRoundMark`).
+  ///
+  /// Bója nélküli versenyben (ADR 0046 D2) szintén no-op: üres pályán
+  /// nincs mit körözni. Ez az őr nem kényelmi — a domain assertje
+  /// release buildben nem fut, tehát a védelem itt, a motorban van.
   void applyRoundMarkCommand() {
     final race = _race;
     if (race == null || race.status != RaceStatus.active) {
+      return;
+    }
+    // Bója nélküli versenyben (ADR 0046 D2) nincs mit körözni, és a
+    // `Race.roundCurrentMark` itt NEM véd: a `wasLast` feltétele
+    // (`activeMarkIndex == marks.length - 1`) nulla bójánál `0 == -1`,
+    // tehát hamis, így a parancs 1-re léptetné az indexet egy olyan
+    // versenyben, ahol a `finished` invariáns (`== marks.length`) soha
+    // többé nem teljesülhetne. A ctor assertje ezt debugban elkapná, de
+    // release buildben nem fut — ezért áll az őr itt.
+    if (race.marks.isEmpty) {
       return;
     }
     _markRoundingDetector.reset();

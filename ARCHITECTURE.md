@@ -28,6 +28,7 @@
 17. [Kódolási konvenciók](#17-kódolási-konvenciók)
 18. [Függőségek a felhasználótól](#18-függőségek-a-felhasználótól)
 19. [Glosszárium](#19-glosszárium)
+20. [Webes versenyarchívum (ADR 0047)](#20-webes-versenyarchívum-adr-0047)
 
 ---
 
@@ -254,6 +255,8 @@ sailing-assistant/                        # GitHub repo root
 │       ├── 0003-polar-deferred-to-v2.md
 │       └── ...
 │
+├── deploy/                               # VPS: Caddyfile, systemd unitok, backup timer, deploy.sh (ADR 0047 D10)
+│
 ├── packages/                             # Shared, reusable Dart packages
 │   ├── domain/                           # PURE DART — no Flutter
 │   │   ├── lib/
@@ -350,6 +353,10 @@ sailing-assistant/                        # GitHub repo root
 │   │   │       └── constants/
 │   │   └── test/
 │   │
+│   ├── foretack_ui/                      # Flutter: design-rendszer + phone/web közös widgetek, saját ARB (ADR 0047 D2–D3)
+│   │
+│   ├── race_archive_api/                 # PURE DART, dart:io nélkül: webes HTTP-szerződés, RaceSummary/RaceResult (ADR 0047 D2, ADR 0048 D6)
+│   │
 │   └── wearable_bridge/                  # Android-only Flutter plugin (ADR 0018): Wearable Data Layer transport
 │       ├── lib/
 │       │   └── wearable_bridge.dart      # Dart plugin API: push + EventChannel vetel
@@ -382,7 +389,7 @@ sailing-assistant/                        # GitHub repo root
 │   │   │   │   ├── connection/                         # Gateway kapcsolat státusz/setup
 │   │   │   │   ├── settings/                           # Wind shift ablak, küszöb, stb.
 │   │   │   │   ├── race_detail/                        # Verseny-detail: track-térkép, statok, PNG-export (export/)
-│   │   │   │   │       # (track-térkép: track_map.dart, ADR 0035;
+│   │   │   │   │       # (track-térkép: foretack_ui TrackMap, ADR 0035, 0047 Add. 5;
 │   │   │   │   │       #  domain SummarizeTrack + TrackStats, Add. 3)
 │   │   │   │   ├── safety_map/                         # Élő biztonsági térkép (ADR 0037)
 │   │   │   │   └── debug/                              # Replay log, raw NMEA viewer
@@ -402,6 +409,10 @@ sailing-assistant/                        # GitHub repo root
 │   │   ├── pubspec.yaml
 │   │   └── test/
 │   │       └── features/
+│   │
+│   ├── web/                              # Flutter web: versenyarchívum UI (ADR 0047 D8)
+│   │
+│   ├── web_server/                       # Pure Dart AOT: import, archívum és web.sqlite, REST API (ADR 0047 D4–D6, ADR 0048)
 │   │
 │   └── watch/                            # Wear OS Flutter app
 │       ├── lib/
@@ -452,7 +463,7 @@ sailing-assistant/                        # GitHub repo root
 >
 > **Az 1. szelet (ADR 0028 Addendum 1) MOST landol a domainben**, a fenti v2 import/perzisztenciától függetlenül: `packages/domain/lib/src/entities/polar.dart` (`Polar` VO, immutable TWA×TWS rács, `noGoThresholdDegrees = 25`) + `packages/domain/lib/src/use_cases/lookup_target_speed.dart` (bilineáris interpoláció, no-go alatt `null`). A target speed % a STW / polár-cél hányados (SOG-fallback).
 >
-> **A 2. szelet (ADR 0028 Addendum 2) a data-réteget hozza**, bundled asset módban: `packages/domain/lib/src/repositories/polar_repository.dart` (`PolarRepository` + `PolarLoadError` sealed) + `packages/data/lib/src/polar/` (a `.pol`-parser pure függvénye + `AssetPolarRepository`) + `apps/phone/assets/polars/foretack.pol` fordításidős asset. Tárolás **bundled asset** (NEM Drift-tábla); a file-import út (fent) drop-in csere a `PolarRepository` mögött.
+> **A 2. szelet (ADR 0028 Addendum 2) a data-réteget hozza**, bundled asset módban: `packages/domain/lib/src/repositories/polar_repository.dart` (`PolarRepository` + `PolarLoadError` sealed) + `packages/data/lib/src/polar/` (a `.pol`-parser pure függvénye; az `AssetPolarRepository` ADR 0047 D1 óta az `apps/phone/lib/app/` alatt) + `apps/phone/assets/polars/foretack.pol` fordításidős asset. Tárolás **bundled asset** (NEM Drift-tábla); a file-import út (fent) drop-in csere a `PolarRepository` mögött.
 >
 > **A 3. szelet (ADR 0028 Addendum 3) az élő target speed %-ot hozza**, engine-belül számolva (ADR 0017-konform): a `LookupTargetSpeed` a háttér-engine `_onTick`-jében fut, a `RaceSnapshot` egy `targetSpeedKnots` mezőt kap (post-race elemezhető, ADR 0025), a `WatchPayload` egy `targetSpeedPercent`-et. A `Polar` a fő-izolátumból (host, `polarProvider`) JSON-ként az `init` üzenetben jut a háttérbe (`polar_codec.dart`), mert a `rootBundle` a háttér-izolátumban nem elérhető; hiányzó/hibás polár → `polar: null`, a target `null`.
 
@@ -640,17 +651,28 @@ class Race extends Equatable {
 A `status × activeMarkIndex × (startedAt, finishedAt)` négyes egy
 állandó invariánsnak engedelmeskedik:
 
-| status     | activeMarkIndex      | startedAt | finishedAt |
-|------------|----------------------|-----------|------------|
-| notStarted | == 0                 | null      | null       |
-| active     | 0 ≤ i < marks.length | nem null  | null       |
-| finished   | == marks.length      | nem null  | nem null   |
+| status     | activeMarkIndex (`marks` nem üres) | `marks` üres | startedAt | finishedAt |
+|------------|------------------------------------|--------------|-----------|------------|
+| notStarted | == 0                               | == 0         | null      | null       |
+| active     | 0 ≤ i < marks.length               | == 0         | nem null  | null       |
+| finished   | == marks.length                    | == 0         | nem null  | nem null   |
 
 Az invariánst egy static `_invariantHolds` segédfüggvény őrzi Dart 3
 exhaustive switch-csel — új `RaceStatus` érték hozzáadásakor a fordító
 itt jelez először. A `copyWith` simple-form, de **nem** szolgál
 state-átmenetre — azokra a `start` / `roundCurrentMark` / `finish` named
 factory-k vannak.
+
+**Üres `marks` lista (ADR 0046 D1).** A `marks` lehet üres — ez
+érvényes és szándékos állapot (bója nélküli verseny: nincs kihirdetett
+pálya, de a track-rögzítés, a polár-alapú target speed és a VMG-réteg
+így is működik), nem hiányzó adat. Ilyenkor az `activeMarkIndex` a
+teljes életcikluson át 0 marad, ami a mező jelentéséből
+(„hányadik bójánál tartunk”) egyenesen következik. Az invariánsnak
+egyetlen ága szorult nyitásra, az `active`: a `0 ≤ i < marks.length`
+feltétel üres listán sosem teljesülne, ezért nulla bójánál
+`activeMarkIndex == 0` a követelmény. A `notStarted` és a `finished` ág
+változatlan — üres listával mindkettő eleve teljesül.
 
 A célzott bóyát az `activeMarkOrNull` getter adja: `marks[activeMarkIndex]`,
 ha az index tartományon belül van (notStarted → első bóya, active →
@@ -660,6 +682,14 @@ marks.length`). Tisztán bounds-alapú, így a `markPredictionProvider` (§8.6)
 aktív bóyát.
 
 A **következő** bóyát a `nextMarkOrNull` getter adja: `marks[activeMarkIndex + 1]`, ha az a tartományon belül van, egyébként `null` (utolsó láb). A 7.8 `ComputeMarkPrediction` a köv. szár fix irányát (§7.8) ebből számolja — `bearing(activeMark → nextMark)` —, amihez a predikciót méri; `nextMark == null` (utolsó láb) esetén a predikció is `null` (ADR 0021).
+
+Üres `marks` listánál mindkét getter `null`-t ad, már a verseny
+kezdetétől — a bounds-vizsgálat változtatás nélkül helyes (`0 < 0`,
+illetve `1 < 0`). Ez nem új állapot: minden verseny utolsó szárán a
+`nextMarkOrNull`, `finished`-ben pedig az `activeMarkOrNull` is `null`. A
+bója nélküli verseny e két, már megtervezett és tesztelt állapot
+egyidejű fennállása, ezért a predikció-lánc és a
+`MarkRoundingDetector` változtatás nélkül elnémul (ADR 0046).
 
 #### Mark — `markedAsRounded` monotonicitás
 
@@ -1099,8 +1129,9 @@ A többi repository a saját fázisával együtt készül:
 (`safety_mark_repository.dart`) az állandó navigációs jelölők
 katalógusát adja. A v1 implementáció `const` lista a data-rétegben
 (`safety/safety_mark_catalogue.dart`), tehát **nincs Drift-tábla és nincs
-migráció** — a `schemaVersion` marad 4. Az `async` szignatúra azért marad,
-hogy a későbbi letölthető csomag vagy DB-tábla ne törje az LSP-t (DIP).
+migráció** — a `schemaVersion`-t nem mozdítja. Az `async` szignatúra azért
+marad, hogy a későbbi letölthető csomag vagy DB-tábla ne törje az LSP-t
+(DIP).
 
 ### 5.4 Sealed classes hibakezeléshez
 
@@ -2377,7 +2408,28 @@ egy validált `(name, marks)` párt ad `onSubmit`-en. A `RaceDetailScreen`
 `ReorderableListView`-ben ülnek, külön drag-handle-lel; a `sequence`
 pozíció-alapú, ezért a reorder a domaint és a data-t nem érinti. A mentés
 create-nél és edit-nél is a `Race.create(id: ...)` + `repo.save` út (a
-`save` delete-and-rewrite-ja felülír).
+`save` delete-and-rewrite-ja felülír). Az űrlap 5d-elrendezését és a
+mező-geometriáját a §8.11 rögzíti (ADR 0044 + Addendum 5).
+
+**Bója nélküli verseny az űrlapon (ADR 0046 D4 + Addendum 1 D7).** A
+`RaceForm` a **verseny-név mező alatt**, fix sorban hordoz egy
+`ForetackSwitch` kapcsolót: bekapcsolva együtt tűnik el a „BÓJÁK"
+fejléc, a bója-sorok listája és a teljes másodlagos akció-sor („Bója
+hozzáadása" + „Korábbi bóják"), a submit pedig üres listát ad. A hely
+azért ez, mert a bója nélküliség a **versenyre** vonatkozó tulajdonság,
+nem a bója-listára; a fejléc jobb szélét ráadásul a darabszám foglalja.
+A koordináta-validáció magától kimarad, mert a `Form.validate()` csak a
+fában lévő `FormField`-eket futtatja — nem kell feltételes validációs ág.
+A `_markRows` állapot nem törlődik, csak kikerül a fából, tehát
+visszakapcsolva a beírt sorok megmaradnak; edit-módban a kapcsoló induló
+értéke `initialRace.marks.isEmpty`. A kapcsoló alatt egy alacsony tónusú
+sor közli a következményt (a track és a target speed rögzül, a
+bearing/ETA/predikció nem jelenik meg). Bekapcsolva a sín `primary`, a
+bütyök `onPrimary` — a Mentés gomb inverze. A `FormActionBar`
+`secondaryActions` listája emiatt üres, és a sáv ilyenkor egyetlen,
+teljes szélességű primary gombra esik. A lajstrom- és a detail-soron a
+bójaszám helyett „BÓJA NÉLKÜL” felirat áll (ADR 0046 D5), mert a nulla
+itt nem darabszám, hanem üzemmód.
 
 **Koordináta-bevitel (ADR 0029 Addendum 1).** A bója lat/lon mezői a
 tizedes-fok mellett DDM (`46° 56.793' N`) és DMS (`46° 56' 47.6" N`)
@@ -2397,26 +2449,29 @@ setup és az edit submit-ágán is, ADR 0029 D4); a hiba nem blokkolja a verseny
 mentését — a verseny a forrás-igazság (L5). A domain oldalon a `SavedMark`
 entity + a `MarkLibraryRepository` interfész áll (ISP-külön a
 `RaceRepository`-tól, L6); a `saved_marks` az órára/payloadba NEM kerül. A
-picker v1-ben read-only, additív `RaceForm`-elem (név + forrás-verseny-név,
-koordináta nélkül), tap → előtöltött bója-sor (L8).
+picker additív `RaceForm`-elem, tap → előtöltött bója-sor (L8). A sor
+három adatot mutat — bója-név, **koordináta** és forrás-verseny —, a lap
+tetején pedig kliens-oldali kereső-mező áll (ADR 0044 Addendum 5
+D51–D52, az L8 két kikötésének feloldása). A koordináta azért kell, mert
+a könyvtár előfordulás-napló: ugyanaz a név más versenyben más
+koordinátával is szerepelhet. Írás felőli **read-only** marad: a
+könyvtár-sor törlése és szerkesztése nincs benne.
 
-**Verseny-lista státusz-particionálás (ADR 0033).** A főképernyő
-(`RaceListScreen`) listája státusz szerint particionál: a fő `ListView`
-csak a `notStarted` és `active` versenyeket mutatja, **active elöl** (a futó
-verseny a legrelevánsabb), a `finished` versenyek pedig egy alsó, listába
-illő sor mögé kerülnek (`history` ikon + „Befejezett versenyek (N)” +
-chevron, csak ha N>0). A sor `showModalBottomSheet`-et nyit (a
-`SavedMarkPicker`-minta, ADR 0032), benne a befejezett versenyek csempéi;
-tap → a meglévő `RaceDetailScreen` (a befejezett detail már
-read-only-szerűen degradál — nincs start/finish/élő/szerkesztés akció).
+**Verseny-lista státusz-particionálás (ADR 0033 + Addendum 1).** A
+főképernyő (`RaceListScreen`) listája státusz szerint particionál: a fő
+`ListView` csak a `notStarted` és `active` versenyeket mutatja, **active
+elöl** (a futó verseny a legrelevánsabb), a `finished` versenyek pedig a
+**Versenynaplóba** kerülnek — önálló képernyőre (`RaceLogScreen`, ADR 0044
+4d), amelyet az alsó akció-sáv bal fele nyit (ADR 0044 D14). A gomb N = 0
+esetén nem tűnik el, hanem **letiltva** marad, hogy a sáv felezése ne
+ugráljon. A napló-sorról tap → a meglévő `RaceDetailScreen` (a befejezett
+detail read-only-szerűen degradál — nincs start/finish/élő/szerkesztés
+akció).
 A particionálás kliens-oldali, a `raceListProvider` (`watchRaces()`)
 ugyanazon projekciójából — nincs új repository-metódus vagy séma-változás.
-A státuszt a közös `RaceStatusChip` színnel is jelzi: `active` teal (új
-`inProgressColor` token a `marine_colors.dart`-ban, a téma-seed
-teal-családból — nem a `ConfidenceColors.high`, hogy a predikció-
-konfidencia szemantikájával ne keveredjen), `finished` tompított,
-`notStarted` változatlan. A befejezett-listában a **keresés/törlés
-v2-deferred** (ADR 0033).
+A státuszt a lajstrom-soron a `StatusBadge` jelzi (ADR 0044 D12); az ADR
+0033 D3 teal chipje és a D4 `inProgressColor` tokenje a kódban már nem él.
+A naplóban a keresés/törlés **v2-deferred** (ADR 0033).
 
 ### 8.6 Fázis 5 élő providerek: event→state projekció (ADR 0010)
 
@@ -2634,38 +2689,82 @@ launcher-home-mal való ütközés elkerülésére `LiveRaceScreen`. Fájlok:
 státuszsor `features/live_race/widgets/` alatt; a pure formázók
 `features/live_race/live_formatters.dart`-ban.
 
-**Layout: státuszsor + 2×3 érték-rács.** A §1.2 hét értéke = **hat
-érték-cella + státuszsor**. A 7. érték (GPS műszer-idő) a státuszsorban él,
-nem külön cella — ez a §1.2 „7 érték" és a §14 Fázis 5 „6 widget" frazírozás
-reconcile-ja. A cellák funkció szerint csoportosítva (szél → kormányzás →
-haladás); a predicted-TWA kiemelve (hero: nagyobb szám + confidence-szín).
+**Layout: státuszsor + műszer-oszlop + adatsín (ADR 0042).** A §1.2 hét
+értéke a cél-sebesség %-kal és a VMG-vel (ADR 0028 Addendum) együtt
+**nyolc érték-cella + státuszsor**: a GPS műszer-idő a státuszsorban él,
+nem külön cella. A cellák **nem egyenrangúak** — a kormányzáshoz kellő
+három érték (predikált TWA, korrekció, pillanatnyi TWA) a bal oldali fő
+oszlopba kerül erős méret-lépcsővel (76 / 48 / 38 pt), a kontextus-adatok
+(bearing, táv, ETA, cél-sebesség, VMG) a jobb oldali, fix szélességű
+adatsínbe (20 pt). A hierarchia maga az információ: egy pillantásra a
+predikció olvasható, a többi kereséssel.
 
 ```
-┌─────────────────────────────────────┐
-│ ● Csatlakozva    1. bója    14:32:07 │   státuszsor (+„elavult" chip stale-nél)
-├──────────────────┬──────────────────┤
-│  TWA most        │  TWA köv.   ●●○   │   #1 | #6 (hero: confidence-szín + pontok)
-│   32° ◀          │   ▶ 47°          │
-├──────────────────┼──────────────────┤
-│  Bearing         │  Korrekció       │   #2 | #3
-│   095°           │   8° →           │
-├──────────────────┼──────────────────┤
-│  Táv             │  ETA             │   #4 | #5
-│   450 m          │   07:32          │
-└──────────────────┴──────────────────┘
+┌──────────────────────────────────────────────┐
+│ ● Csatlakozva          Szemes  18:24:53      │   státuszsor (34)
+├───────────────────────────────┬──────────────┤
+│ TWA KÖV.              ●●○     │ BEARING      │   fő oszlop: flex(1)
+│  51°                    (76)  │ 095°         │   sín: 132 dp fix
+│  ±4°                          ├──────────────┤
+├───────────────────────────────┤ TÁV          │   belső flex:
+│ KORREKCIÓ                     │ 450 m        │     TWA KÖV.  1.6
+│  12° →                 (48)   ├──────────────┤     KORREKCIÓ 1.15
+│  jobbra                       │ ETA          │     TWA MOST  1.0
+├───────────────────────────────┤ 07:32        │
+│ TWA MOST                      ├──────────────┤   sín: 5 cella,
+│  42° ◀                 (38)   │ CÉL-SEB.     │   mind flex 1
+│                               │ 94%          │
+│                               ├──────────────┤
+│                               │ VMG          │
+│                               │ 5,8  cél 6,2 │
+├───────────────────────────────┴──────────────┤
+│              Bója megvan                     │   60 dp, radius 0
+└──────────────────────────────────────────────┘
 ```
+
+**Geometria (ADR 0042 D1, D4).** A törzs egyetlen `Row`: bal oldalon a fő
+oszlop `Expanded`-ként, jobb oldalon a sín **fix 132 dp**-vel (nem arány —
+a sín tartalma karakter-korlátos, nem képernyő-arányos). A fő oszlop három
+cellája `flex` 1.6 / 1.15 / 1.0, cella-padding `16/14/14/20` (TWA köv.) és
+`14/14/12/20` (a másik kettő); a sín öt cellája `flex: 1`, padding `10/14`,
+háttere `surfaceContainer`. Az elválasztás mindenütt 1 dp `outlineVariant`
+hairline — cella-rés és radius nincs. A sín-értékek **cellánkénti**
+`FittedBox(scaleDown)` alatt élnek: a Martian Mono advance 0,75 em, tehát
+20 pt-on 15,00 dp/karakter, és a `1,85 km` / `83 perc` hét karaktere 105
+dp-t kér a 103-ból — a sín 132 dp-jéből 1 dp-t a bal szél hairline-ja visz
+el (a `Border` a dobozon belül rajzolódik), 28-at a padding. A ritka hosszú
+alak így ~2%-ot zsugorodik, a gyakori rövidek érintetlenek. A `FittedBox` soha nem a sínre vagy az oszlopra megy,
+csak egyetlen cella egyetlen értékére.
+
+**Az alsó akció-sáv (ADR 0042 D11 + Addendum 2).** Az alsó akció-sáv
+**60 dp**, éltől élig ér, radius és padding nélkül; a „Bója megvan" gomb
+kitölti a sávot, fölötte 1 dp `outlineVariant` hairline-nal, és
+`SafeArea(top: false)`-ban ül. A felirat mérete a sáv magasságából
+származtatott (`60 × 0,3 = 18`), nem önálló konstans. A D11 eredeti
+56 dp-s, 14 radiusú, `16/14/16/8` paddinges geometriáját az Addendum 2
+fordította meg, hogy a sáv alakja egyezzen a lajstroméval (ADR 0044 D14,
+§8.11). A gomb viselkedése változatlan: csak `RaceStatus.active` alatt
+látszik, és a critical-tompító `Opacity`-n kívül marad.
 
 **Érték → forrás → formátum.**
 
-| # | Cella | Forrás (provider → mező) | Formátum | null |
-|---|-------|--------------------------|----------|------|
-| 1 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
-| 6 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl + confidence | `—` |
-| 2 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
-| 3 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl | `—` |
-| 4 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `<1000 m → 450 m`; `≥1000 m → 1.85 km` | `—` |
-| 5 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
-| 7 | GPS-idő (státuszsor) | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+| Hely | Cella | Forrás (provider → mező) | Formátum | null |
+|------|-------|--------------------------|----------|------|
+| Fő 1 | TWA köv. | `markPredictionProvider` → `predictedTwaAtMark` (`Angle?`) | magnitúdó + oldal-nyíl; alatta `±4°` | `—` |
+| Fő 2 | Korrekció | `markPrediction` → `courseCorrection` (`Angle?`) | magnitúdó + kormány-nyíl; alatta `jobbra` / `balra` | `—` |
+| Fő 3 | TWA most | `windDataProvider` → `trueAngleWater` (`Angle?`) | magnitúdó + oldal-nyíl | `—` |
+| Sín 1 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
+| Sín 2 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `450 m`; `≥1000 m → 1,85 km` | `—` |
+| Sín 3 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
+| Sín 4 | Cél-seb. | `raceSnapshotProvider` → élő sebesség + `targetSpeedKnots` | egész `%` | `—` |
+| Sín 5 | VMG | `raceSnapshot` → `vmgKnots` / `targetVmgKnots` / `vmgSteerCorrection` | `5,8`, alatta `cél 6,2` + steer-nyíl | `—` |
+| Státuszsor | GPS-idő | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
+
+A fokjel a szám mellett **marad** (`32°`, `095°`, `±4°`) — a v1 viselkedés
+megtartása (ADR 0042 Addendum 1). A tizedes-elválasztó viszont vessző
+(`1,85 km`, `5,8`), és a VMG két sorban áll: ez a két szabály
+**phone-lokális** (ADR 0042 D5), tehát a `packages/shared` primitív
+formázói és így az óra kijelzése változatlan.
 
 A státuszsor ezen felül: kapcsolat-badge (`connectionStatusProvider`) és a célbója neve: a stepped snapshot `prediction.mark.name`-jéből (így rounding után M1→M2 vált, egyezve a cellákkal), `prediction` hiányában (pre-fix / `finished`) az `activeRaceProvider` → `activeMarkOrNull?.name` fallbackre, különben `—`.
 
@@ -2705,8 +2804,9 @@ nullable; a `0°` „perfekt kurzus", nem „nincs adat").
 **TWA-cellák: előjel-konvenció és oldal-nyíl.** A `trueAngleWater` /
 `predictedTwaAtMark` `Angle` signed `[-180, +180)`, **+ = starboard
 (jobbról fúj), − = port (balról fúj)** (lásd `angle.dart`, 7.5). A
-képernyőn **előjelet nem írunk** — a számot magnitúdóként mutatjuk, a **nyíl
-pozíciója kódolja az oldalt**, és a glyph a szám felé (befelé) mutat:
+képernyőn **előjelet nem írunk** — a számot magnitúdóként
+mutatjuk, a **nyíl pozíciója kódolja az oldalt**, és a glyph a szám felé
+(befelé) mutat:
 
 - `+` (starboard): nyíl a szám jobbján, balra mutat — `32° ◀`
 - `−` (port): nyíl a szám balján, jobbra mutat — `▶ 47°`
@@ -2719,10 +2819,10 @@ oldalt. Tömör háromszög-glyph, hogy a kormány-nyíltól elkülönüljön.
 **Korrekció: kormány-nyíl.** A `courseCorrection` `Angle?`, **+ = jobbra
 fordulj (starboard), − = balra (port)** (lásd 7.3). Magnitúdó + a nyíl azon
 az oldalon, amerre kormányozni kell, **kifelé** (a fordulás irányába)
-mutatva:
+mutatva, alatta a `jobbra` / `balra` kísérőszöveg (`TextTones.low`):
 
-- `+` (jobbra): `8° →`
-- `−` (balra): `← 8°`
+- `+` (jobbra): `12° →`
+- `−` (balra): `← 12°`
 - `0°`: nincs nyíl.
 
 A kormány-nyíl színe ugyanazt a side-konvenciót követi (jobbra → **zöld**,
@@ -2732,29 +2832,59 @@ Az oldal-döntés mindkét cellánál ugyanaz a pure függvény (`>0 → jobb`,
 `<0 → bal`, `0`/`null` → nincs); a glyph-stílus, -irány és a szín (jobb →
 zöld, bal → piros) a widget side→prezentáció leképezése.
 
+**A nyilak `CustomPainter`-ek (ADR 0042 D7).** A v1 Material ikonjai
+(`Icons.arrow_left`, `Icons.east` / `Icons.west`) helyére két festő kerül: a
+TWA tömör háromszöge és a korrekció vonal-nyila (`strokeWidth` ~2,4). Indok:
+a Material készletből a tömör vs. vonal megkülönböztetés nem hozható ki
+konzisztensen, és az ikon optikai súlya a 76 pt-os hero mellett aránytalan.
+A nyíl mérete a kísérő szám stílusából származik, nem konstans, hogy a
+76 / 48 / 38 / 20 pt-os helyeken arányos maradjon.
+
 **ETA-formátum.** `<60 perc → mm:ss` (`07:32`); **`≥60 perc → egész perc`**
 (`83 perc`), nem `60+` cap. `null` (SOG-vesztés / drift) → `—`.
 
 **shiftConfidence-jelzés.** A pred-TWA cellán: szín (a `ConfidenceColors`
-`ThemeExtension`-ből) + 3-szegmenses pont-indikátor (`●○○`/`●●○`/`●●●`) —
+`ThemeExtension`-ből) + 3-szegmenses pont-indikátor
+(`●○○`/`●●○`/`●●●`) —
 shape is, nem csak szín (színvak-safe). low = tompított (megbízhatatlan, nem
 riasztás), medium = borostyán, high = **accent (cyan/teal, nem zöld)**. A
 zöld/piros szándékosan a starboard/port oldal-nyilaké marad, hogy a
 confidence-szín ne ütközzön vele; ezért a pred-TWA cellán a confidence a
 pontokon + az accenten él, a magnitúdó-szám high-contrast semleges, a nyíl
 pedig zöld/piros az oldal szerint. A low **nem** szűr ki értéket (7.5:
-low-confidence-szűrés nem a domainben).
+low-confidence-szűrés nem a domainben). Az 1c elrendezésben a
+pont-indikátor a `TWA KÖV.` felirat sorának jobb szélén ül, nem a szám
+alatt; a `±` hibasáv közvetlenül a hero alá kerül (ADR 0042 D8).
 
-**Téma (marine dark).** A meglévő `foretackTheme` (`app/theme.dart`,
-`ThemeData.dark(useMaterial3: true)`) bővül marine-dark irányba: sötét
-felület-tokenek, high-contrast szám-tipográfia tabular figures-szel
-(`FontFeature.tabularFigures()`, hogy a számok ne ugráljanak 1 Hz-en),
-napfény-olvashatóság. A side-nyilak zöld/piros és a confidence-színek külön
-`ConfidenceColors extends ThemeExtension<ConfidenceColors>`
-(`app/confidence_colors.dart`, one public class per file), a
-`foretackTheme.extensions`-be regisztrálva; a cellák
-`Theme.of(context).extension<ConfidenceColors>()`-szal olvassák. App-wide
-dark marad (a meglévő CRUD-screenek öröklik).
+**Téma (marine dark).** A téma, a színtokenek, a tipográfia és a fontok a
+`packages/foretack_ui`-ban élnek (ADR 0047 Addendum 4 E9), a phone és a
+web közösen használja őket a `package:foretack_ui/foretack_ui.dart`
+barrelen át. Az alábbi fájlnevek a `foretack_ui/lib/src/theme/` alá
+mutatnak. A `foretackTheme` (`theme.dart`) Material 3
+`ColorScheme`-je hordozza a felület-, szöveg- és accent-tokeneket: a
+`fromSeed` alapot explicit `copyWith` rögzíti (`surface`,
+`surfaceContainer`, `surfaceContainerHigh`, `outline`, `outlineVariant`,
+`onSurface`, `onSurfaceVariant`, `primary`, `onPrimary`,
+`secondaryContainer`, `onSecondaryContainer`, `error`), így a paletta
+minden képernyőre és minden Material-widgetre érvényes — a `primary`-t
+azért kell explicit megadni, mert a `fromSeed` a magot tonálisan átképzi.
+Amire az M3-nak nincs slotja, az `ThemeExtension`: `ConfidenceColors`
+(`confidence_colors.dart`), `WarningColors` (§11) és `TextTones`
+(`text_tones.dart`, a label-szint tercier szövegszíne). A
+starboard/port oldal-színek, az IALA-sárga, a hajó-kék és a track
+sebesség-rámpa top-level konstansok maradnak (`marine_colors.dart`):
+térkép- és rajz-rétegek fogyasztják, nem téma-váltó felületek. Betűk:
+bundle-ölt asset-fontok — `IBM Plex Sans` az UI-nak, `IBM Plex Mono` a
+GPS-időnek, `Martian Mono` a mérőszámoknak —, a szám-stílusok az
+`foretack_typography.dart` konstansaiban; a mono családok eleve fix
+számjegy-szélességűek, így a számok nem ugrálnak az 1 Hz-es frissülésnél.
+A fontokat a `foretack_ui` deklarálja, ezért a fogyasztó appban a
+családnév `packages/foretack_ui/<család>`; a három család-konstans ezt a
+teljes nevet hordozza (E10), és egy phone-teszt a `FontManifest.json`
+ellen ellenőrzi.
+A token→slot táblázat és a típusskála a `docs/design-system.md`
+„Telefon" szakaszában, az indoklás az ADR 0041-ben. App-wide dark marad
+(a meglévő CRUD-screenek öröklik); az elrendezésük migrációja a §8.11-ben.
 
 **Képernyő ébren tartása.** Új dep: `wakelock_plus` az `apps/phone`-ban — a
 `LiveRaceScreen` mountolásakor enable, dispose-kor release (verseny közben
@@ -2787,14 +2917,22 @@ kapcsolat-badge-e a `connectionStatusProvider`-ből; emellett egy „elavult"
 chip, ha csatlakozott állapotban `tick − boatState.lastUpdate > 5 s`. Ezt a
 státuszsor-widget inline számolja (`tickProvider` + `boatStateProvider`
 watch) — nincs új provider, nincs `Warning` sealed-class; a teljes
-warning-rendszer a Fázis 6.
+warning-rendszer a Fázis 6. A badge színe a palettából jön, és **soha nem
+zöld** (a zöld a terméken kizárólag starboard, ADR 0042 D10):
+`Connected` → `primary` (teál), `Connecting` → `WarningColors.warning`,
+`Disconnected` → `TextTones.low`, `ConnectionError` →
+`WarningColors.critical`.
 
 **Pure formázók (testelhetőség).** A formázás és a nyíl-oldal döntés pure
 függvény (`live_formatters.dart`), widget nélkül unit-tesztelhető:
 bearing 3-jegy, távolság m/km, ETA mm:ss/perc, idő HH:mm:ss, és a signed
 `Angle` → nyíl-oldal leképezés. A screen és a cellák widget-teszttel, a
 §8.6-ban bevált `ProviderScope`/`ProviderContainer` override-mintákkal
-(fake notifier `build()` override + kontrollált `tick`).
+(fake notifier `build()` override + kontrollált `tick`). Az 1c
+formátum-eltéréseit (tizedesvessző, két soros VMG) ez a réteg viseli,
+**phone-lokálisan** (ADR 0042 D5) — a `packages/shared` a
+primitív szabályt tartja (kerekítés, küszöbök, `missingValue`), így az óra
+kijelzése változatlan marad.
 
 Vázlat — a nyíl-oldal pure helper és a `ConfidenceColors` extension (a törzs
 a feat-ben):
@@ -2916,7 +3054,10 @@ szerializálva megy az engine-be a plugin-csatornán (`sendDataToTask` →
 `onReceiveData`), és az engine ezzel indul a szintetikus `_interimRace`
 helyett. A `fromJson` a teljes state-trojkát (`status`, `activeMarkIndex`,
 `startedAt`, `finishedAt`) a direkt `Race(...)` ctor-ral építi vissza (nem
-`Race.create`, ami mindig `notStarted`).
+`Race.create`, ami mindig `notStarted`). Üres `marks` lista is átkel: a
+`'marks': []` oda-vissza rendben megy, és a direkt ctor a nyitott
+invariánssal (ADR 0046 D1) fogadja — enélkül a bója nélküli verseny
+pont az izolátum-határon, futásidőben hasalt volna el.
 
 **Két Race-tulajdonos, parancs-protokoll.** A session alatt két fél tart
 Race-állapotot, ortogonális felelősséggel: a UI a `status`-t (a `race_detail`
@@ -2950,6 +3091,20 @@ telefonon a `LiveRaceScreen` „Bója megvan" gombja küldi (csak `active`,
 megerősítő dialog) a `sendDataToTask`-on; az óráról a fordított csatorna
 (§10.9) ugyanezt a parancsot a service-izolátumba juttatja. A
 `start`/`finish`/`roundMark` mind `type`-kulcsú.
+
+**Bója nélküli verseny: a megkerülés-parancs őre (ADR 0046 D2).** Az
+`applyRoundMarkCommand()` már ma is no-op nem-`active` státusznál; a
+feltétel kiegészül az üres `marks`-listával. Ez nem kényelmi
+ellenőrzés: a `Race.roundCurrentMark` `wasLast` feltétele
+(`activeMarkIndex == marks.length - 1`) nulla bójánál `0 == -1`, tehát
+hamis, és a parancs az `activeMarkIndex`-et 1-re léptetné egy olyan
+versenyben, ahol a `finished` invariáns (`== marks.length`) soha többé
+nem teljesülhetne. A konstruktor assertje ezt debugban elkapná, de
+**release buildben az assert nem fut** — a védelem ezért a motorban van,
+a `Race.roundCurrentMark` assertje pedig dokumentál, nem véd. Az óra
+C-lapján a gomb letiltása sem helyettesíti az őrt: a payload-szerződés
+additív és visszafelé kompatibilis (ADR 0015), tehát egy régi óra-build
+küldhet parancsot új telefonnak.
 
 **Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
 belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
@@ -3008,7 +3163,7 @@ referenciájú `Bearing`-et követel meg (A1-D3), és a visszaadott
 hosszúságot ±180 fokra normálja (A1-D4).
 
 A verseny bójái a `MarkPin` megosztott widgettel rajzolódnak, amit a
-`TrackMap`-ből emeltünk ki (`apps/phone/lib/widgets/mark_pin.dart`), így a
+`TrackMap`-ből emeltünk ki (ma: `packages/foretack_ui/lib/src/map/mark_pin.dart`), így a
 post-race és az élő térkép ugyanazt a vizuális nyelvet beszéli. A
 `TrackMap` **nem** bővül: az post-race, egyszer illeszt bounding-boxra,
 statikus tartalmú — egy widget nem szolgálhat ki két életciklust (SRP).
@@ -3018,6 +3173,402 @@ térkép-háttér nem tölt be — a jelölők, a hajó és a vektor ettől
 függetlenül rajzolódnak. Az offline csempe-csomag **saját ADR-t kap**;
 méretezésénél számít, hogy a jelölők Keszthelytől Siófokig szórtak,
 tehát a csomagnak a **teljes tavat** kell fednie.
+
+### 8.11 CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
+
+Az ADR 0041 token-rétege app-wide hat, de az ADR 0042 csak az élő képernyő
+**elrendezését** építette át. A CRUD-felület (lista, setup, edit, detail, a
+két térkép-nézet) migrációja egy közös döntés-rekordban él (**ADR 0044**),
+képernyőnkénti szakaszokkal és folytatólagos `D`-számozással: a token-réteg
+és a kijelző-komponensek nyelve zárt, itt már csak alkalmazás történik.
+
+**Az input-komponensek nyelve itt születik.** Az ADR 0042 öt widgetje
+(`MainColumnCell`, `RailCell`, `DataRail`, `SideArrow`, `WarningStrip`)
+kizárólag kijelző-elem; a CRUD-képernyők viszont beviteliek, ezért a hiányzó
+fél — mező-alapértelmezés, hibaút, akció-sáv, szakasz-címke — ebben a
+szakaszban áll össze.
+
+**Egységes szín-szerződés az egész appon.** Egyetlen képernyő sem vezet be
+saját színt: minden érték a `ColorScheme` slotjaiból vagy a `TextTones`
+`ThemeExtension`-ből jön. Ha egy makett a token-lapon kívüli színt rajzol,
+azt meglévő slotra képezzük le, és az eltérést a döntés-rekord kimondja — az
+ADR 0044 eddig hat ilyen színt vezetett vissza a token-lapra. Ha egy
+szemantikai szerep tényleg hiányzik, **app-szintű** token születik (új
+`ColorScheme` slot vagy `ThemeExtension` mező), nem képernyő-lokális
+konstans: a lokális konstans pontosan az a drift, amitől két képernyő fél év
+múlva máshogy néz ki. Ugyanez áll a tipográfiára — a fokozatok a
+`foretack_typography.dart`-ban élnek, a hívóhely csak színt tesz hozzájuk.
+
+**A setup és az edit egyszerre migrál.** A két képernyő űrlapja a közös
+`RaceForm` (§8.5, ADR 0029 D2), tehát az 1h makett átvezetése mindkettőt
+viszi. A `RaceSetupScreen` és a `RaceEditScreen` fájlja viszont **nem
+változik**: az akció-sáv is a formon belül ül, így nem kell új paramétert
+nyitni, és nem duplázódik a két hívóban.
+
+**Layout: görgetett törzs + rögzített akció-sáv (ADR 0044 D1).**
+
+```
++------------------------------------------------+
+| <  Verseny szerkesztese                        |  AppBar, screenTitleStyle
++------------------------------------------------+
+| [ Verseny neve ............................. ] |  52 dp, r0
++------------------------------------------------+
+| Boja nelkuli verseny                     [ o ] |  fix sor, ForetackSwitch
+| Csak track-rogzites, navigacio nelkul          |  tones.low
++------------------------------------------------+
+| BOJAK                                        2 |  sectionLabelStyle + low
++----+-------------------------------------------+
+| 01 | [ Boja neve ...............] [x]          |  mezok 48 dp, r0
+| :: | [ Szelesseg .... ] [ Hosszusag .... ]     |  sin 44 dp
++----+-------------------------------------------+
+| 02 | [ Boja neve ...............] [x]          |
+| :: | [ Szelesseg .... ] [ Hosszusag .... ]     |
++----+-------------------------------------------+
+|          (a torzs innentol gorgetheto)         |
++------------------------------------------------+
+| [ + Boja hozzaadasa ] | [ Korabbi bojak ]      |  hairline felul, 56 dp
++------------------------------------------------+
+| [                Mentes                      ] |  teljes szelesseg, 60 dp
++------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| Törzs-padding | `8/0/0` — a bója-sorok teljes szélességűek | — |
+| Név-blokk | pad `16/20/18`, mező 52 dp, r0 | `surfaceContainer` + `outline` |
+| Szakasz-címke | 11 w600, `+.08em`, verzál | `sectionLabelStyle` + `TextTones.low` |
+| Bója-darabszám | 11 w600 mono, jobbra zárva | `railNumberStyle` + `TextTones.low` |
+| Kapcsoló-sor | pad `14/20`, hairline felül és alul | `outlineVariant` |
+| `ForetackSwitch` | 52×30 dp sín, 21 dp bütyök, r0 | `outline` → `primary` |
+| Bója-sor | teljes szélesség, hairline alul (a blokk tetején is) | `surface` + `outlineVariant` |
+| Sorszám-sín | 44 dp, mono sorszám + hat pötty | `surfaceContainer` + `TextTones.low` |
+| Soron belüli mező | 48 dp, r0, pad 14 / 10 | `surfaceContainer` + `outline` |
+| Koordináta-szöveg | 13,5 IBM Plex Mono | `onSurface` |
+| Törlés-gomb | 44 dp rajz, 48 dp tapintás | `TextTones.low` |
+| Másodlagos sáv | 2× `Expanded`, 56 dp, osztó hairline | `surfaceContainerHigh` |
+| Mentés-sáv | teljes szélesség, 60 dp, r0 | `primary` |
+
+**A bója-sor teljes szélességű, sorszám-sínnel (D2 → Addendum 5 D45).**
+A kártya helyett hairline-nal határolt, teljes szélességű sor, a bal
+szélén 44 dp-s sínnel: fölül a mono sorszám (a meglévő `setupMarkHeader`
+ARB-kulcsból), alatta a drag-handle. A kártya-keret és a mező-keret két
+egymásba ágyazott doboz-szintet rajzolt, és a figyelem a külsőre esett,
+miközben a belső a szerkeszthető; a rács egyetlen szintet ad, a
+sor-határt pedig maga a rács jelöli. A sorszám azért marad, mert
+tour-race-en a **sorrend maga az adat**: a bóják számozása a
+versenykiírásból jön, és a sín az egyetlen visszajelzés arról, hogy a
+húzás azt tette, amit akartunk. A „BÓJÁK" fejléc jobb szélén a bóják
+darabszáma áll mono fokozattal; összekötő csík **nincs**, mert a lista- és
+a detail-képernyő szakasz-címkéi sem viselnek ilyet.
+
+A bója-sorok **csak alul** rajzolnak határt, hogy két szomszédos sor
+között ne fusson dupla vonal; a blokk **tetejét** ezért a fejléc alatt
+futó külön hairline zárja le. A másodlagos akció-sáv `surfaceContainerHigh`-t
+kap, nem `surfaceContainer`-t: az utóbbi **bitre azonos** a bója-sorok
+mezőinek kitöltésével, és eszközön a két felület egybeolvadt. Új token nem
+születik — a meglévő létra egy fokkal följebb lép (§8.11).
+
+**Mező-alapértelmezés a témában (D3, radius az Addendum 5 D47 szerint).**
+A `theme.dart` `inputDecorationTheme`-je adja az alapot (`filled`,
+`surfaceContainer`, `OutlineInputBorder`, `outline` keret, fókuszban
+`primary`, hibában `error`). A `foretackFieldBorder` alapértelmezett
+radiusa **0**: a szögletesség nem képernyő-lokális stílus, hanem a 2a, a
+3a és az 5d közös nyelve, ezért a token-rétegben dől el — egy
+képernyő-lokális nulla pontosan az a drift, amitől két űrlap fél év múlva
+máshogy néz ki. A bója-soron belüli mezők emiatt már csak `isDense`-ben
+térnek el; a korábbi lokális r10 megszűnt. A **szín-blokk érintetlen**:
+a makett minden színe meglévő slotra képződik.
+
+**Két kimondott eltérés a maketttől — és a közös okuk.** Az 5d mezői
+címke nélküliek, mi viszont **megtartjuk a lebegő `labelText`-et**, ezért
+a mezők **48 dp**-esek maradnak, nem 44 (D4), és a verseny-név mező fölül
+**elmarad** a verzál szakasz-címke (D5), mert ugyanazt mondaná el
+kétszer. Az ok a bevitel oldaláról jön: a koordináta-mezőpár két azonos
+alakú, egymás melletti számmező, és kitöltve csak a lebegő címke mondja
+meg, melyik a szélesség. A makett ezt a DM-formátum záró É/K betűjével
+oldja meg, a mi formátumunk viszont decimális marad (D25) — az a jel
+nálunk nincs meg, placeholderrel pedig a különbség az első leütés után
+eltűnne. A „BÓJÁK" viszont marad, az csoportot címkéz, nem mezőt. A
+**törlés-gomb** rajza 44 dp, a tapintási területe 48 (Addendum 5 D49).
+
+**A hiba a Material `errorText` slotján megy (D6).** A koordináta-parse hét
+hibaága a `validator`-on át a beépített slotra képződik, `errorMaxLines: 2`
+mellett, `colorScheme.error` színnel; a sorban a másik mező felül igazodik,
+hogy a kétsoros üzenet ne nyújtsa meg a szomszédját. A makett világosabb
+piros hibaszövege **nem** kap tokent — egy árnyalatért nem duplázunk
+szemantikai szerepet (ADR 0042 precedens).
+
+**Fájlok (D7, az Addendum 5 szerint bővítve).** A `race_form.dart` marad
+az űrlap-állapot gazdája (kontrollerek, reorder, submit), a megjelenítés
+kiköltözik: `features/race_setup/widgets/mark_row.dart`,
+`.../form_action_bar.dart` és a mellette álló `.../form_bar_action.dart`,
+plusz a képernyő-független `widgets/section_label.dart` és
+`widgets/foretack_switch.dart`. A `mark_row_card.dart` átnevezéssel lett
+`mark_row.dart`: a „Card" utótag épp azt a kártya-héjat ígérte, amit a
+D45 kivesz. A `SavedMarkPicker` sheet a D8 alól **feloldva** a 4e lapra
+megy (Addendum 5 D51–D52) — a D8 feltétele („nincs hozzá makett")
+megszűnt.
+
+**Lista-képernyő: hairline-lajstrom fix akció-sávval (D10–D18).** A
+design-dokumentum új „2" fejezete a lista-képernyőt az élő képernyő
+műszer-nyelvére fogalmazza újra: kártyák és pill-chipek helyett teljes
+szélességű hairline-sorok, szögletes státusz-jelzők, FAB helyett rögzített
+alsó akciósáv. A megvalósult irány a **2a Lajstrom**; a korábban jelölt 1g
+makett elavult.
+
+```
++--------------------------------------------------+
+| VERSENYEK                            [>_]  [bug]  |  AppBar 64 dp
++--------------------------------------------------+
+||  Kekszalag 2026                      4 BOJA      |  4 dp el-sav,
+||  # FOLYAMATBAN  · Szemes fele                    |  surfaceContainer
++--------------------------------------------------+
+|   Szerdai edzoverseny                 3 BOJA      |
+|   o NEM INDULT                                    |
++--------------------------------------------------+
+|                                                   |
+|            (a lista innentol gorgetheto)          |
++--------------------------------------------------+
+|   (o) Befejezettek       |      + Uj verseny      |  60 dp, radius 0
++--------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| AppBar | 64 dp, pad `0/10/0/20`, alul 1 px, verzál cím | `homeTitleStyle` (26) + `outlineVariant` |
+| Sor (aktív) | él-sáv 4 dp végig, pad `18/20/18/16` | `primary` + `surfaceContainer` |
+| Sor (nem indult) | pad `18/20/18/20`, nincs sáv | `surface` |
+| Verseny-név | 18 w600, `height: 1.1` | `listItemTitleStyle` + `onSurface` |
+| Státusz-jelölő | 7×7 dp, tömör vagy 1,5 px keret | `primary` / `TextTones.low` |
+| Státusz-felirat | 11 w600 mono, `+.08em`, verzál | `statusLabelStyle` |
+| Bója-szám és utótag | 10,5 w500 mono | `numeralCaptionStyle` + `TextTones.low` |
+| Akció-sáv | felül 1 px, 60 dp, radius nélkül | `outlineVariant` |
+| Akció-gombok | 2× `Expanded`, közte 1 px | `surfaceContainer` / `primary` |
+
+A sor-magasság ebből 18 + 19,8 + 5 + 14,3 + 18 = **75,1 dp**, tehát a „minden
+touch-target ≥ 48 dp" szabály itt magától teljesül. A verseny-név bal éle
+mindkét állapotban 20 dp-nél van (aktívan 4 + 16), így a lista bal széle nem
+ugrál az aktív verseny alatt.
+
+**Az akció-sáv a FAB-stack helyén (D14).** A `Scaffold.floatingActionButton`
+ága megszűnik; a `body` `Column`-ná válik (`Expanded(ListView)` + sáv). Ha
+nincs befejezett verseny, a bal fél **letiltva** marad, nem tűnik el — így az
+50–50%-os felezés geometriája sosem ugrál. A `ListView.separated`
+elválasztója is megszűnik: a hairline a sor része, különben az utolsó sor
+alól hiányozna a vonal.
+
+**Fájlok és határok (D12, D17).** Két új fájl:
+`features/race_list/widgets/race_list_row.dart` és `.../list_action_bar.dart`;
+egyik sem kerül a közös `widgets/`-be, mert mindkettő a lista szerkezetéhez
+kötött. A `RaceStatusChip` **nem törlődik**:
+a `race_detail_screen` és a `finished_races_sheet` továbbra is használja,
+tehát a listáról csak az importja tűnik el. A státusz-feliratok új, verzál
+ARB-kulcsokból jönnek (`listStatusActive`, `listStatusNotStarted`,
+`listMarkCountCaps`); a meglévő `raceStatus*` hármas a chip miatt érintetlen.
+
+**Detail-képernyő: a lajstrom nyelvének folytatása (D19–D30).** A
+design-dokumentum új „3" fejezete a detail-képernyőt is a műszer-nyelvre
+fogalmazza: mono sorszámos hairline bója-sorok, szögletes státusz-jelölő,
+rögzített alsó akció-sáv. A megvalósult irány a **3a Lajstrom-folytatás**;
+a korábban jelölt 1i makett elavult. A lap a folyamatban lévő állapotot nem
+rajzolja meg — azt a 3a nyelvén az ADR 0044 D21/D27/D30 tervezi meg.
+
+```
++---------------------------------------------------+
+|< Kekszalag 2026                    [kuka]         |  AppBar 64 dp
++---------------------------------------------------+
+|# FOLYAMATBAN                       4 BOJA         |  statusz-csik 44 dp
++---------------------------------------------------+
+|PALYA                                              |  sectionLabelStyle
+| 01   Rajt - Balatonfured                          |  boja-sor 68,3 dp
+|      46.9500, 17.8900                             |
++---------------------------------------------------+
+|| 02   Szemes                                      |  4 dp el-sav az aktivon
+||      46.9000, 18.0500                            |
++---------------------------------------------------+
+|            (a lista gorgetheto)                   |
++---------------------------------------------------+
+|                Elo nezet                          |  60 dp, teal
++---------------------------------------------------+
+|                Befejezes                          |  60 dp, semleges
++---------------------------------------------------+
+```
+
+A befejezett képernyő ugyanezt a fejlécet kapja, alatta a track-kártyával
+és a stat-sorral:
+
+```
++---------------------------------------------------+
+|< Oszi regatta                      [kuka]         |  AppBar 64 dp
++---------------------------------------------------+
+|# BEFEJEZETT                        JUL 20         |  statusz-csik 44 dp
++---------------------------------------------------+
+|           [ track-kartya ]                        |  196 dp
++---------------------------------------------------+
+| MAX SEB.     ATLAG SEB.        TAV                |  stat-sor 65,4 dp
+|  7,4 kn        5,1 kn       24,6 km               |
++---------------------------------------------------+
+|PALYA                                              |  sectionLabelStyle
+| 01   Szemes                                       |  boja-sor 68,3 dp
+|      46.9000, 18.0500                             |
++---------------------------------------------------+
+```
+
+**Geometria** (412 dp-s kereten mérve, Pixel 9 Pro XL):
+
+| Elem | Geometria | Token |
+|---|---|---|
+| AppBar | 64 dp, alul 1 px, cím 19 | `screenTitleStyle` + `outlineVariant` |
+| Státusz-csík | 44 dp, pad `0/20`, jelölő 7×7, gap 8 | `statusLabelStyle` |
+| Csík-meta | 10,5 w500 mono, jobbra zárva | `numeralCaptionStyle` + `TextTones.low` |
+| Bója-sor | pad `16/20`, köz 20, él-sáv 4 dp | `primary` / `surface` |
+| Bója-név | 16 w600, `height: 1.1` | `markNameStyle` + `onSurface` |
+| Bója-sorszám | 14 w600 mono, két jegyre töltve | `numeralMicroStyle` + `TextTones.low` |
+| Koordináta | 10,5 w500 mono | `numeralCaptionStyle` + `TextTones.low` |
+| Track-kártya | 196 dp, alul 1 px | `surface` + `outlineVariant` |
+| Stat-cella | pad `12/0/14`, gap 6, közte 1 px | `railLabelStyle` + `numeralSmallStyle` |
+| Akció-sáv | 2 × 60 dp, radius nélkül, közte 1 px | `primary` / `surfaceContainer` |
+
+A bója-sor magassága 16 + 17,6 + 4 + 13,7 + 16 = 67,3 dp, plusz az alsó
+1 px hairline: **68,3 dp**. A nem indult képernyő fejléce 64 + 44 + 38,3
+(a `PÁLYA` felirat) = 146,3 dp, az alsó sáv 121 dp, tehát nyolc bója-sor
+fér ki görgetés nélkül; a befejezetten a fejléc 407,7 dp a track-kártyával
+és a stat-sorral együtt, alsó sáv pedig nincs, tehát hat sor.
+
+**Egy képernyő, négy kapu (D19).** A `RaceDetailScreen` egyetlen widget
+marad; a `RaceStatus` az AppBar-akcióknál, a csík-metánál, az aktív bója
+él-sávjánál és az alsó sávnál kapuz. A `RaceStatusChip` lekerül a
+detailről — a státuszt a csík mondja. A widget egyetlen fogyasztója a
+befejezett-lista sheet volt, amely az ADR 0033 Addendum 1-gyel megszűnik;
+a chip sorsáról a 4d törlés-szelete dönt.
+
+**A dátum verzálja futásidőben áll elő (D21).** A csík jobb oldala nem
+indult és folyamatban állapotban a bója-számot mutatja, befejezetten a
+befejezés dátumát. A D5/D16 szerint a nagybetűsítés az ARB-értéken
+történik; egy futásidőben formázott dátumot viszont az ARB nem tud előre
+verzálra írni, ezért itt a hívó `toUpperCase()`-el a lokalizált dátumon. A
+kivétel **csak futásidő-formázású értékre** áll, statikus feliratra nem.
+
+**Új tipográfia-fokozat: `markNameStyle` (D24).** A létra 15 fokozatra nő:
+a bója neve 16 w600, mert 14 és 18 között nem volt semmi, a 18-as
+`listItemTitleStyle` pedig a **verseny** nevét ígéri a nevével. A
+koordináta-formátum viszont változatlan (tizedes fok, négy jegy) — a lap
+DDM-alakja önálló döntés lenne, saját tesztekkel (D25).
+
+**Kétsoros akció-sáv, képernyőnként egy teal sorral (D30).** A felső sor az
+`Élő nézet`, az alsó a státusz-akció; nem indultkor az `Indítás`,
+folyamatban az `Élő nézet` a kitöltött — a hangsúly mindig azon, amit abban
+az állapotban ténylegesen nyomunk. A befejezett képernyőn nincs alsó sáv: a
+megosztás a teljes képernyős térkép-nézeté, a törlés az AppBaré. A sáv-vázat
+**nem** emeljük közösbe: a `FormActionBar` űrlap-akciókat sorol fel
+változó darabszámban, a `ListActionBar` egysoros, ez pedig rögzítetten
+kétsoros és van kitöltött sora.
+
+**A megkerülési idő a bója-sor jobb szélén (Addendum 3).** A már megkerült
+bója sorának jobb szélén ott áll a megkerülés ideje `HH:mm:ss` alakban,
+felirat nélkül — **nem csak befejezett, hanem folyamatban lévő versenyen
+is**, ahol menet közben olvasható haladás-kijelzővé teszi a pálya-listát. A
+sor nem kap kapcsolót a hívótól: a `mark.roundedAt != null` önmagában
+kapuz, és nem indult versenyen egyetlen bójának sincs ideje. A jobb szél
+azért nyert a ballal szemben, mert ott a név-oszlop `Expanded`, tehát idő
+nélkül csak szélesebb lesz és a nevek bal éle nem mozdul; a bal sávban
+hely-fenntartás kellett volna, ami a D23 igazítását rontaná. Fokozat
+`numeralMicroStyle` (14, mono) `onSurfaceVariant` tónussal, 16 dp-re a
+névtől; a sor magassága **változatlan 68,3 dp**. A formázást a `shared`
+`formatLocalClock`-ja adja (`toLocal()`, DST-aware), ugyanaz, amelyik a
+GPS-műszeridőt: a DB-ből lokális, élőben UTC-jelölt példány jön, és zászló
+nélkül a futó verseny nyáron két órát tévedne. Új ARB-kulcs nincs. Ha a
+`roundedAt` null, a hely üresen marad, gondolatjel nélkül.
+**Fájlok (D19–D30).** Három új fájl a `features/race_detail/widgets/` alatt:
+`detail_status_strip.dart`, `detail_mark_row.dart` és
+`detail_action_bar.dart`; a `track_stats_formatters.dart` publikus felülete
+érték/egység párra bomlik, a `_TrackStatsRow` pedig a
+`post_race_analysis_section.dart`-ban marad és ott alakul át.
+
+**4d — Versenynapló: a befejezettek saját képernyőn (D31–D44).** A
+befejezett versenyek modalja önálló képernyővé válik (`RaceLogScreen`), mert
+a `showModalBottomSheet` a viewport felénél megáll: egy szezon már görgetést
+kíván benne, kettő nem férne el, és az év-szűrő meg az összesítő fejléc két
+állandó sávot kíván, amit egy sheet nem tud kontextus-vesztés nélkül tartani.
+A belépési pont nem változik — az alsó akció-sáv bal fele (D14), letiltva, ha
+nincs befejezett verseny.
+
+**A csoportosítás kulcsa a `finishedAt`, helyi időzónában (D32–D34).** A
+`Race`-nek nincs „verseny napja" mezője, és a naplóban minden verseny
+befejezett, tehát a `finishedAt` az egyetlen mindig kitöltött dátum — és
+tartalmilag is az a helyes, hogy a napló a lezárás napját mutatja. A
+konverzió végig `toLocal()`: UTC-ben egy helyi augusztus 1-jei hajnali
+befejezés júliusra, év fordulóján az előző **évre** esne. Hónapok
+csökkenően, hónapon belül a versenyek is; az év első versenye legalul. A
+választható évek készlete a befejezett versenyekből jön (nincs üres év), az
+alapértelmezés az aktuális év, vagy ha abban még nincs verseny, a legutolsó
+olyan év, amelyben van.
+
+**Év-sáv és felcsúszó választó (D35–D36).** A fejléc alatti 44 dp-es sáv
+akkor is látszik, ha egyetlen év van: a geometria nem ugrál az első
+év-fordulókor, és a sáv kimondja, melyik évet nézzük. A választó alulról
+felcsúszó lap (a `SavedMarkPicker` formanyelve), nem inline lenyíló panel —
+az három-négy évnél a fél képernyőt vinné, és a találati pontok fent
+maradnának. Hogy egy modalt megszüntetünk és közben egy másikat bevezetünk,
+tudatos: a napló tartalma korlátlanul nő, az év-listáé nem.
+
+**A sor geometriája és tipográfiája (D37–D39).** 16 dp padding, fix 28 dp-es
+slot a nullával feltöltött nap-számmal, 16 dp rés, majd a verseny neve — a
+slot közepe 30 dp-nél, a név 60 dp-nél, tehát a szám mértanilag felezi az él
+és a név közét. A sor 56 dp: az egysoros név `listItemTitleStyle`-ja 20 dp,
+plusz a 2a-ból örökölt 18 dp-es köz fent és lent. Új fokozat nem születik: a
+név ugyanaz a `listItemTitleStyle`, mint a lajstrom-soron (a két lista címe
+egymásra fed), a nap-szám `numeralMicroStyle`, a feliratok
+`sectionLabelStyle`, a darabszámok `numeralCaptionStyle` `tones.low`
+tónussal. Az AppBar 64 dp-je és az év-sáv 44 dp-je a 3a-ból jön (D20/D21),
+nem a design-lapból: a két mély képernyő fejléc-sávjának egymásra kell
+fednie.
+
+**A csoportosítás domain use case (D40–D41).** A `List<Race>` → évek/hónapok
+átalakítás tiszta függvény, ezért `BuildRaceLog` néven a `domain`-ben ül,
+`RaceLogYear`/`RaceLogMonth` value objectekkel — a határeset-tesztek
+(időzóna-forduló, azonos napon két verseny, üres bemenet) Flutter nélkül
+futnak. Új lekérdezés nincs: a napló az `raceListProvider` ugyanazon
+projekciójából szűr, mint a lajstrom.
+
+**Az összesítő csík a track-statisztikát gyorsítótárazza (D42, ADR 0044
+Addendum 4).** A három érték közül a vízen töltött idő olcsó
+(`finishedAt − startedAt` a `races`-ből), az össztáv és a sebesség-rekord
+viszont a track-mintákból számolódik (`SummarizeTrack`). A csík ezért saját
+`AsyncValue`-provider mögött ül: a képernyő azonnal nyílik, a számok
+beúsznak. Az ide tervezett mérés megtörtént, és a tárolás mellett döntött —
+a számok és az indoklás az ADR 0044 Addendum 4-ben állnak.
+
+**A minta-olvasás projekcióval megy.** A `snapshot_logs` soronként a teljes
+`RaceSnapshot`-ot tárolja JSON-ban, a napló viszont ebből három számot
+használ. A `TrackSample` domain-interfész (`sogMps` / `latDeg` / `lonDeg`)
+ezt a hármat rögzíti, a `SummarizeTrack` bemenete erre szűkült, és a
+`TrackSampleReaderImpl` az SQLite `json1` `json_extract`-jával vetíti ki
+őket — a `RaceSnapshot` objektum-gráf visszaépítése nélkül. A
+`RoundingSampleReader` megmarad a detail-képernyőnek: annak az elemzésnek
+mind a tizenhárom mező kell. Két szűk kontraktus, nem egy kibővített (ISP).
+
+**A gyorsítótár a `race_track_stats` tábla, versenyenkénti szemcsével.** Egy
+befejezett verseny track-statisztikája megváltoztathatatlan tény, a
+felolvasása viszont I/O-korlátos: a soronként ~8,3 KB-os JSON-blobokat az
+SQLite hidegen másodpercekig húzza fel. A sorokat **lusta feltöltés** írja
+olvasáskor, nem a motor — így a meglévő versenyek is visszatöltődnek, és a
+megoldás független marad az ADR 0045-től. Nem a `races` új oszlopai: azt a
+sort a `save()` egy memóriabeli példányból felülírja, tehát egy elavult
+példány mentése kinullázná a számokat (ugyanaz a hibaosztály, mint az ADR
+0045 negyedik szakadási pontja).
+
+**Fájlok és kulcsok (D43–D44).** Új könyvtár a `features/race_log/` alatt: a
+képernyő és öt widget (sor, hónap-fejléc, év-sáv, év-választó lap,
+stat-csík). A hónapnevek ARB `DateTime`-placeholderből (`MMMM`) jönnek, tehát
+a `pubspec.yaml` nem változik; a verzálosítás a widgeté. A
+`listFinishedRacesTitle` kulcs `logTitle`-re változik, felirata
+„Versenynapló", és a `FinishedRacesSheet` törlődik — a törlés a 4d utolsó
+kód-szelete, hogy a branch addig zöld maradjon.
 
 ## 9. Perzisztencia (Drift / SQLite)
 
@@ -3100,6 +3651,22 @@ class SavedMarks extends Table {
   TextColumn get sourceRaceName => text()();        // denormalizált címke
   DateTimeColumn get savedAt => dateTime()();
 }
+
+// Versenyenkenti track-osszesito gyorsitotar (ADR 0044 Addendum 4). A sorokat
+// lusta feltoltes irja olvasaskor, NEM a motor - igy a mar meglevo versenyek is
+// visszatoltodnek. Row-class: RaceTrackStatsRow.
+@DataClassName('RaceTrackStatsRow')
+class RaceTrackStats extends Table {
+  TextColumn get raceId => text().references(Races, #id, onDelete: KeyAction.cascade)();
+  RealColumn get distanceMeters => real().nullable()();
+  RealColumn get maxSpeedMps => real().nullable()();
+  RealColumn get avgSpeedMps => real().nullable()();  // tarolva, ma nem jelenik meg
+  IntColumn get sampleCount => integer()();           // diagnosztika
+  DateTimeColumn get computedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {raceId};
+}
 ```
 
 > **v1 → v2 migráció (Fázis 5f, ADR 0011)**: a `Settings` KV-tábla hozzáadása.
@@ -3119,6 +3686,14 @@ class SavedMarks extends Table {
 > `(name, latitudeE7, longitudeE7, sourceRaceName)` unique index. FK NÉLKÜL —
 > a könyvtár túléli a verseny törlését/átnevezését (L1); a pontosan azonos
 > négyes újra-mentése `DoNothing` (L3).
+
+> **v4 → v5 migráció (ADR 0044 Addendum 4)**: a `RaceTrackStats`
+> gyorsítótár-tábla a napló összesítőihez. `schemaVersion` 4 → 5,
+> `onUpgrade`-ben `if (from < 5) m.createTable(raceTrackStats)` (CSAK az új
+> tábla). FK-cascade a `Races`-re, `raceId` elsődleges kulccsal. Az írás
+> `insertOnConflictUpdate`: a feltöltés a képernyő elhagyásakor bármikor
+> megszakadhat, és a következő megnyitás újraindítja — félkész vagy
+> duplikált sort nem hagyhat.
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
@@ -3571,7 +4146,7 @@ low-konfidencia-ív halványodása) az **ADR 0039** rögzíti.
 
 ## 11. Hibakezelés és warning rendszer
 
-A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz a
+A warning-rendszer architektúráját az **ADR 0014** rögzíti; ez a szakasz az
 döntött alakot tükrözi. A korábbi vázlat a sealed `ConnectionStatus`, a
 tick/clock-seam és a jelenlegi `BoatState`-mezők előttről való, ezért átírva.
 
@@ -3924,20 +4499,18 @@ name: domain
 
 ```yaml
 name: data
+  # ADR 0047 D1: tiszta Dart — nincs flutter / drift_flutter / path_provider.
+  # Az AppDatabase executorát a hívó adja (phone: driftDatabase, szerver:
+  # NativeDatabase); az AssetPolarRepository az apps/phone alatt él.
   environment:
     sdk: ^3.11.0
-    flutter: ">=3.41.0"
   
   dependencies:
-    flutter:
-      sdk: flutter
     domain:
       path: ../domain
     shared:
       path: ../shared
     drift: ^2.33.0
-    drift_flutter: ^0.3.0
-    path_provider: ^2.1.5
     shared_preferences: ^2.3.0
     geomag: ^0.0.1     # vagy saját WMM impl ha nincs jó csomag
     meta: ^1.16.0
@@ -3945,8 +4518,6 @@ name: data
   dev_dependencies:
     build_runner: ^2.4.0
     drift_dev: ^2.33.0
-    flutter_test:
-      sdk: flutter
     test: ^1.25.0
     very_good_analysis: ^9.0.0
 ```
@@ -3964,6 +4535,7 @@ dependencies:
     path: ../../packages/data
   domain:
     path: ../../packages/domain
+  drift_flutter: ^0.3.0             # AppDatabase executor (ADR 0047 D1: a data tiszta Dart)
   flutter:
     sdk: flutter
   flutter_foreground_task: ^9.2.2   # háttér-RaceEngine FGS (ADR 0016)
@@ -4023,6 +4595,29 @@ name: nmea_replay
   dev_dependencies:
     test: ^1.25.0
 ```
+
+### 13.6 Webes csomagok (ADR 0047)
+
+A függőségi irányok:
+- `apps/web` → `foretack_ui`, `race_archive_api`, `domain`, `shared`.
+  **Nem** függ a `data`-tól, mert a `dart:io` miatt az nem fordul webre.
+  Külső csomagjai: `flutter_riverpod`, `http`, `web` (ADR 0048 K18),
+  `two_dimensional_scrollables` (K25, a táblázat) és `qr` (a belépési
+  QR kódolása; a rajzolás saját painter, ADR 0051 Addendum 7 P1).
+- `apps/web_server` → `data`, `race_archive_api`, `domain`, `shared`.
+  A hitelesítéshez (ADR 0051 Addendum 2 J10) külső csomagjai:
+  `pointycastle` (ECDSA P-256), `cryptography` (argon2id) és `crypto`
+  (SHA-256, HMAC).
+- `apps/phone` → `foretack_ui`, és a webes hozzáféréshez (ADR 0051
+  Addendum 8 V2) `race_archive_api`; külső csomagjai ehhez:
+  `biometric_signature` (Keystore-kulcsok, ujjlenyomat), `mobile_scanner`
+  (QR, beépített ML Kit), `http` és `device_info_plus`.
+- `foretack_ui` → `domain`, `shared` (a tokenek a domain enumjait, a
+  widgetek a domain entitásait jelenítik meg; Addendum 4 E9, Addendum 5
+  F3). A `data`-tól nem függ, ezért webre is fordul.
+
+A `race_archive_api`-ban tilos a `dart:io` és a Flutter. A részleteket
+lásd a [§20](#20-webes-versenyarchívum-adr-0047)-ban.
 
 ---
 
@@ -4141,7 +4736,8 @@ megbízhatóság-előny).
   a track FELÜL, a next-TWA elemzés ALUL.
 - **Fullscreen track-nézet és megosztható PNG-export (ADR 0036).** A
   track-kártya koppintásra teljes képernyős, nagyítható nézetet nyit
-  (`FullScreenTrackMapScreen`): pan + pinch-zoom + dupla-koppintás,
+  (`FullScreenTrackMapScreen`): pan + pinch-zoom + dupla-koppintás
+  (+ a weben egérgörgős zoom, ADR 0048 K8),
   **rotáció tiltva** (észak-fent rögzítve, hogy a tájolás a kártyával és
   az exporttal azonos maradjon), a térkép alatt sebesség-legenda a
   `colorForTrackSpeed` sávhatáraiból származtatva, a bójákon `Mark.name`
@@ -4416,7 +5012,8 @@ jobs:
 
 ### 16.2 `.github/workflows/build.yml`
 
-Main push-on APK build. **Még nincs implementálva** — Phase 5+ után jön,
+Main push-on APK build. **Még nincs implementálva** (a legénységi APK
+ma a fejlesztői gépen készül, ADR 0053) — Phase 5+ után jön,
 amikor van mit build-elni release-ként. A tervezett tartalom:
 
 ```yaml
@@ -4663,6 +5260,420 @@ A BYE (Balaton Yacht Egyesület) vagy a versenykiírás általában megadja a b�
 | **YDVR** | Yacht Devices Voyage Recorder | NMEA 2000 logoló SD kártyára (`.DAT`) |
 | **YDWG** | Yacht Devices Wifi Gateway | NMEA 2000 → WiFi gateway (TCP/UDP) — v1.5+ második adapter |
 | **i18n** | Internationalization | UI szövegek külső fájlokban, fordíthatóság |
+
+---
+
+## 20. Webes versenyarchívum (ADR 0047)
+
+Privát webes felület a szezon versenyeinek rendszerezésére. A telefon
+rögzített adatait mutatja, kiegészítve a hivatalos eredménnyel és egy
+összefoglalóval. A teljes döntés-készlet a
+`docs/decisions/0047-web-race-archive.md`-ben van; ez a szakasz az
+architektúra-szintű összefoglaló.
+
+### 20.1 Felépítés
+
+```
+Telefon (debug build)          VPS (Ubuntu, Caddy + systemd)
+  foretack.sqlite + -wal  ──►  Caddy :443 ── fejlécek ───┬── /        → /srv/foretack/web (Flutter web)
+  (tools/pull_race_db.sh)                                 └── /api/*   → 127.0.0.1 web_server (AOT)
+                                                                          ├── archive.sqlite     (AppDatabase séma)
+                                                                          ├── web.sqlite         (WebDatabase)
+                                                                          └── auth.sqlite        (fiókok, ADR 0051)
+```
+
+- A **szerver számol, a web renderel** (D4). A szerver a `data`
+  readereivel és ugyanazokkal a domain use case-ekkel
+  (`AnalyzeRoundings`, `SummarizeRoundings`, `SummarizeTrack`) állítja
+  elő a részletezőt, mint a phone. A két felület számai ezért
+  definíció szerint egyeznek.
+- **Két DB-fájl** (D5):
+  - az archívum pontosan az `AppDatabase` sémája és migrációi, így
+    automatikusan követi az appot;
+  - a webes adatok (eredmények, kézi versenyek, statisztika-cache) saját
+    `WebDatabase`-ben (`web.sqlite`), független migrációs lánccal élnek.
+    A kapcsolat a race UUID.
+
+### 20.2 Import
+
+Az import (D6) lépései:
+
+1. A fő fájl és az opcionális `-wal` egy multipart kérésben érkezik, és
+   ideiglenes könyvtárba kerül.
+2. **Séma-őr:** ha a `user_version` újabb, mint a szerveré, az import
+   elutasítva. Ha régebbi, a migráció a másolaton fut.
+3. Csak a `finished` versenyek jönnek át.
+4. Merge egy tranzakcióban: `ATTACH`, `DELETE` (CASCADE),
+   majd `INSERT … SELECT` **explicit oszloplistával**, az autoincrement
+   oszlop nélkül (Addendum 2 B1). A vizsgálat (checkpoint, `quick_check`,
+   `user_version`) a migráció előtt, nyers `sqlite3`-mal fut (B2).
+5. Kimarad: `settings`, `saved_marks`.
+
+Az import idempotens, az eredményekhez és a kézi versenyekhez soha nem
+nyúl; a merge után frissíti a statisztika-cache-t (ADR 0048 Addendum 3 I4).
+
+A lehúzás előtt kötelező a force-stop, különben a WAL és a fő fájl
+inkonzisztens párt adhat.
+
+### 20.2b HTTP-szerződés (ADR 0047 Addendum 1)
+
+A web és a szerver közötti szerződés a `race_archive_api` csomagban él
+(pure Dart, `domain`-függéssel). Fő elemei:
+
+- **Kodek:** top-level `encodeX` / `decodeX` függvénypárok. A dekódolás
+  `Result<X, DecodeError>` értéket ad, a hibás mező JSON-útvonalával.
+- **Archivált verseny:** a dróton mindig befejezett, `status` és
+  `activeMarkIndex` mező nélkül.
+- **Formátum:** az időbélyegek UTC epoch ms-ben utaznak, a track-pontok
+  kompakt tömbként (`[lat, lon, sog|null]`).
+- **Végpontok:** `GET /api/races`, `GET /api/races/{id}`,
+  `PUT /api/races/{id}/result` (csupa üres mezővel törli az eredményt),
+  `POST /api/manual-races`, `PUT` és `DELETE /api/manual-races/{id}`,
+  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7).
+- **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
+  `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
+  adja.
+- **Rekordok (ADR 0048 D6 + Addendum 2):** `RaceSummary` sealed eredettel
+  (telemetriás: a rögzítés ablaka; kézi: naptári nap), `RaceStats`
+  ablakkal (`official` / `recording` / `manual`) és égtáj-iránnyal,
+  `RaceResult` `Placing` helyezésekkel (szám, `"dnf"`, `"dsq"`), és a
+  kézi verseny végpontjai. A telemetriás verseny napját a kliens
+  számolja helyi időben. A szabálysértések közös `InputViolation`
+  típusban jönnek. A v1 annotáció-szerződést az S5b-3 törölte.
+
+### 20.2c REST szerver (ADR 0047 Addendum 3)
+
+- **Keret:** `shelf` + `shelf_router`; a multipart importot a
+  `package:mime` streameli, egyenesen az ideiglenes könyvtárba. A teljes
+  fájl soha nincs memóriában.
+- **Korlátok:** JSON-törzs 64 KiB, import 4 GiB (`--max-import-bytes`).
+  A szerver a beolvasott bájtokat számolja, nem a `Content-Length`-et.
+- **Hálózat:** `127.0.0.1:8087`, a gzip/zstd a Caddyben.
+- **Archívum:** `NativeDatabase.createInBackground`, így a több perces
+  import nem blokkolja az event loopot.
+- **Statisztika (ADR 0048 Addendum 3 I4–I5):** a `race_stats` cache-t
+  az import és az ablakot változtató eredmény-mentés frissíti, egy közös
+  írási zár alatt. Egy sor akkor érvényes, ha az ablaka egyezik a várt
+  ablakkal. A `GET` nem ír; egy hiányzó vagy elavult sort memóriában
+  számol, és naplóz.
+- **Webes DB:** Drift `WebDatabase` v2 (`race_results`, `manual_races`,
+  `race_stats`), a v1 `race_annotations`-ből migrálva, commitolt
+  `.g.dart`-tal. Kapcsoló: `--web-db`.
+
+### 20.3 Webes adatmodell (ADR 0048)
+
+A web az egyetlen forrás 2021-től: az Excel-napló egyszeri importtal
+kerül fel, és megszűnik. Az import a telemetriás versenyekhez a helyi
+nap szerint párosít; a párosítatlan sorokból kézi versenyek lesznek, a
+nem egyértelmű napot a `--match` dönti el. Meglévő adatot csak
+`--overwrite`-tal ír felül (ADR 0048 Addendum 6).
+
+- **Kétféle verseny.** A **telemetriás** a phone DB-jéből jön (név, idő
+  és track csak olvasható). A **kézi** a `web.sqlite` `manual_races`
+  táblájában él: név, dátum, táv, max. sebesség, átlagos és max. szél,
+  szélirány; szerkeszthető és törölhető.
+- **`RaceResult`** mindkét fajtán:
+  - három helyezés (osztály, abszolút, egytestű), mindegyik szám, DNF vagy
+    DSQ, és mindegyik a saját mezőnyével (a számszerű helyezés ≤ a saját
+    mezőnye);
+  - YS-szám (századokban);
+  - hivatalos rajt és befutás;
+  - díj és összefoglaló.
+
+  A dobogó származtatott.
+- **Ablakos statisztika:** ha a hivatalos idők megvannak, a táv, a
+  sebesség és a szél (`SummarizeWind`, körkörös TWD-átlag, 16 égtáj) a
+  rajt–befutás ablakból számolódik, különben a teljes rögzítésből,
+  közelítőként jelölve. A max. szél az 5 mintás csúszó mediánok
+  maximuma, így a műszer 1–2 mp-es tüskéi kiesnek (ADR 0048 Addendum 5
+  L3). A cache a `race_stats` tábla, az import és az időket változtató
+  mentés frissíti.
+- A validáció pure `Result`-függvény a `race_archive_api`-ban, a szerver
+  és az űrlap közösen használja.
+
+### 20.4 UI (v1)
+
+Három képernyő, a phone mintáját követve (D8):
+
+- **Versenynapló** (kezdőképernyő): évválasztó, statisztika-sáv, sorok,
+  a helyezéssel a sor jobb szélén. Az alapértelmezett év a legújabb,
+  amelyben van verseny. A feltöltés az AppBarból nyíló dialógusban
+  történik.
+- **Részletező**, fentről lefelé: státusz-sáv, track-statok,
+  eredmény-blokk (üresen egy halk sor a szerkesztőre), 560 px-es
+  interaktív `TrackMap` (`isInteractive: true`), bóják, és **legalul**
+  az összefoglaló (Addendum 4 E1). A megkerülés-elemzés a weben sem
+  látszik, ahogy a release appban sem (Addendum 5 F1).
+- **Eredmény-szerkesztő:** a részletező AppBarjának ceruza-ikonjából
+  nyílik, külön képernyő mentéssel, ahogy a phone `RaceEditScreen`-je
+  (ADR 0044).
+
+A navigáció `MaterialPageRoute`; deep-link és master-detail nincs.
+
+**ADR 0048 bővítések** (a makett 14. köre, Addendum 1):
+- **Napló:** Lista / Táblázat váltó és „Új verseny" gomb az AppBarban. A
+  két nézet közös évállapotot használ, az „Összes év" mindkettőben van.
+  A nézet és a rendezés memóriában él, URL-állapot nincs.
+- **Táblázat:** az egyetlen elem, amely kilép a 880 px-es oszlopból
+  (max. 1600 px). 16 oszlop, rögzített fejléc és Dátum + Verseny blokk,
+  rendezés (a rendezett oszlopot csak a fejléc jelöli), váltakozó
+  sorszín; a helyezés-cella `helyezés / mezőny` pár, külön Mezőny oszlop
+  nincs.
+- **Részletező:** szél-csík mindkét fajtánál; hivatalos idő nélkül
+  közelítő-sor; az eredmény-blokk három helyezése a saját mezőnyével.
+  Kézi versenynél nincs térkép és bója.
+- **Szerkesztő:** címke-oszlopos rács, helyezésenként `[helyezés] /
+  [mezőny]` pár DNF/DSQ szegmenssel, dátum- és idő-mező, kézi
+  versenynél név, dátum, statok és égtáj-választó (az első kör
+  egyszerűsítéseit az Addendum 4 K11–K12 rögzíti). A kézi verseny törlése
+  végleges, visszavonás nélkül.
+- **Jelölések:** `~` közelítő (minden ablakfüggő érték), szöveges „KÉZI",
+  dobogó-talapzat a helyezés alatt.
+
+A makett (13. kör) részletei az Addendum 4-ben vannak:
+- elrendezés: 880 px-es oszlop, 640 px-es szövegmérték, `WebLayout`
+  konstansok az `apps/web`-ben (E3);
+- a térkép interakciója (E4);
+- a hover és a fókusz meglévő tokenekből (E5);
+- `ForetackDialog` és snackbar (E6);
+- eltérések a phone komponenseitől (E7);
+- a feltöltés-dialógus állapotai (E8).
+
+A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
+Új szín és új tipográfiai fokozat nincs.
+
+**A web felépítése (ADR 0048 Addendum 4):**
+- `apps/web`, a package neve `foretack_web`. Riverpod-állapot, `http`
+  alapú `ArchiveApiClient`, relatív `/api` cím.
+- A napló sora a phone-é: nap és név. A meta-sor és a helyezés-slot
+  elmarad (K3). A stat-csík és a hónap-fejléc is a közös widget; az
+  évsáv a 7c (`RaceLogYearSelector`), „Összes" opcióval; az évek fix,
+  csökkenő sorrendben állnak, a kiválasztott a helyén nő meg (ADR 0048
+  Addendum 7).
+- Lokálisan egy Caddy (`tools/dev/Caddyfile`) teszi egy originre a webet
+  és az API-t, ahogy élesben.
+- A részletező is a közös csíkokból épül (szél-csík, eredmény-blokk). A
+  térkép gesztus nélküli kártya, rákattintva teljes képernyős nézet
+  nyílik, ahogy a phone-on. A közelítő értékeket egy halk sor jelzi
+  (K7–K10).
+- A szerkesztők (K11–K17): a G4 egyszerűsítve (validált szövegmezők,
+  `[AZNAP | +1 NAP | +2 NAP]` a befutás napjára, 16 elemű égtáj-lista).
+  A mezők olvasása és a szerződés validátora pure; a hibák közös
+  `FieldProblem` típusban jönnek. Az írásokat a `RaceRecordEditor`
+  végzi, a `ForetackDialog` a `foretack_ui`-ban él, a snackbar 480 px-es
+  és az oszlophoz igazított.
+- A feltöltés (K18–K24): `package:web`-alapú fájlválasztó és
+  XHR-feltöltő két függvénytípus mögött (`ImportFilePicker`,
+  `ImportUploader`), feltételes exporttal. A fájl Blobként megy, Dart-
+  memóriába nem kerül; a folyamatjelzés valódi. A dialógus állapotgépe
+  pure, a keretét és az akciósorát a `foretack_ui` adja. Fül bezárásakor
+  `beforeunload` figyelmeztet mentetlen szerkesztésnél és futó
+  feltöltésnél.
+- A görgethető felület az ablak teljes szélessége, a tartalom az
+  oszlopban marad (`WebScrollColumn`). A hivatalos idők másodperccel is
+  megadhatók és látszanak (ADR 0048 Addendum 5 L1–L2).
+- A táblázat (K25–K32): a napló második nézete, `[Lista | Táblázat]`
+  váltóval. A `two_dimensional_scrollables` `TableView`-ja adja a
+  rögzített fejlécet és a rögzített Dátum + Verseny oszlopot. A sorok,
+  a rendezés és az évsorok pure modellből jönnek; a nézet és a rendezés
+  Riverpod-állapot. Az oszlopok a tartalomhoz mértek (a G2 szélességei
+  minimumok), a mértékegység az oszlopfejlécben áll (ADR 0048
+  Addendum 5 L4–L5). Az AppBar vezérlői egy magasak (36 px), de a
+  szerepük szerint eltérők: tónusos váltó, keret nélküli „Új verseny",
+  teal keretes „Feltöltés" (L6).
+- Szeletek: S7a napló, S7b részletező, S7c szerkesztők, S7d feltöltés,
+  S7e táblázat.
+
+**Közös widgetek (Addendum 5):**
+- A `foretack_ui` adja a napló sorát, hónap-fejlécét és stat-csíkját, a
+  státusz-csíkot, a bója-sort, a `TrackStatsRow`-t, a `TrackMap`-et és
+  a térkép-kiegészítőket.
+- A szövegek a saját l10n-jében élnek (`ForetackUiLocalizations`).
+- A web évsávja a makett 7c-je, a phone sajátja a phone-ban marad (F2).
+
+### 20.4b Szezon-statisztika és polár-teljesítmény (ADR 0049)
+
+- **Statisztika-képernyő:** a napló AppBarjából nyílik, a napló közös
+  időszak-állapotával (egy év vagy „Összes év"). A web számolja a napló
+  listájából, pure modellel (D4); a vízen töltött idő szabálya egy közös
+  `elapsedTimeOf`-ban él (Addendum 1 P4).
+  **Elrendezés (Addendum 2, S9b):** egy oszlop, fent a napló évsávja és
+  csíkja (versenyszám, idő, táv). Az abszolút és az egytestű
+  helyezés jobbika egy „Abszolút" kategória; egy évre az évad dobogói
+  vitorla-sorral, Osztályban és Abszolút I/II/III százalékkal, a pálya
+  hat mutatója és a szélsávok; minden évre éremtábla évenként. Magyarázó
+  szöveg nincs; új tokenek: `MedalColors` (arany, ezüst, bronz).
+- **Polár-teljesítmény:** a % a korrigált STW és a phone polárjának
+  (`foretack.pol`, `LookupTargetSpeed`) célsebességének hányadosa.
+  - Minták: a `race_stats` ablaka, `|TWA| ≥ 25°`, TWS-tüske szűrve.
+  - Mutatók: szél, átlag, medián, P90, P99, legjobb 5 mp, ≥ 90% és
+    ≥ 100% aránya; rang 2 kn-os szélvödrökre standardizálva, a szezon
+    széleloszlásával súlyozva.
+  - Összesítés: a futamok átlaga és az időre súlyozott sor.
+  - Az STW-korrekció dátumhoz kötött szorzó a szerver konfigjából
+    (`--stw-corrections`); csak a polár-statisztikát érinti.
+  - Domain (Addendum 3): `PolarSample` (`durationSeconds`: 1 vagy 10),
+    `StwCorrection`, `SummarizePolarPerformance` →
+    `PolarPerformance` (hisztogram, szélvödrök, legjobb 5 mp),
+    `MergePolarPerformance`, `RankPolarPerformance`; a küszöbök a
+    `PolarPerformanceRules`-ban. Data: `PolarSampleReaderImpl`.
+  - Szerver (Addendum 4): `--polar` és `--stw-corrections` fájl-útvonal;
+    hibás bemenetnél a polár-végpontok 503-at adnak. FNV-1a 64
+    ujjlenyomat, `web.sqlite` v4 három táblával, frissítés import,
+    mentés és indulás után. Végpontok: `/api/polar/seasons`,
+    `/api/polar/seasons/{year}`, `/api/races/{id}/polar`.
+  - Web (Addendum 5, 16a–16d makett): egy évnél 06 POLÁR-TELJESÍTMÉNY,
+    összes évnél 04 POLÁR ÉVENKÉNT, a részletezőn POLÁR blokk az eredmény
+    fölött; a két arány alatt egymásra rajzolt mini sáv.
+- **Számítás:** a szerver futamonként hisztogramot (0,5%-os rések) és
+  szélvödör-összegeket cache-el a `web.sqlite` v4-ben, ujjlenyomattal a
+  polárra és a konfigra. A szezon ezekből jön; a `GET` nem ír, és nem
+  számol mintákból.
+- **Megjelenítés:** a polár-táblázat a Statisztika-képernyőn, egy blokk
+  a részletezőn. Diagram és új külső függőség nincs.
+- Szeletek: S5c, S13a–b régi trackek, S9 statisztika, S10–S12 polár,
+  S14 export, utána az S8 deploy.
+
+### 20.4c Régi trackek és a teljes export (ADR 0050)
+
+- **Régi trackek:** a YDVR-napló YDVRCONV-exportjából (`polar.csv`, 10
+  mp, helyi idő) az `import_legacy_tracks` CLI a kézi versenyek
+  hivatalos ablakát a `web.sqlite` `legacy_track_samples` táblájába
+  tölti. A telefonos versenyekhez nem kerül track; az `archive.sqlite`
+  érintetlen.
+- **Statisztika:** a trackes kézi verseny táva, sebessége és szele a
+  trackből számolódik, ugyanazokkal a use case-ekkel, mint a telefonos
+  versenyeké, `official` ablakkal a `race_stats`-ban. A beírt Excel-számok
+  megmaradnak, és hivatalos idő nélkül újra érvényesek.
+- **Megjelenés:** az S13a csak a cache-t írja; a számolt statot a napló
+  az S13b-től adja, a szerkesztő zárolt mezőivel együtt, hogy egy mentés
+  ne írja felül a beírt számokat (Addendum 1 E1).
+- **Frissítés:** külön `LegacyTrackStatsRefresher` (track-import után
+  mind, kézi mentés után a zár alatt); a kézi verseny törlése a trackjét
+  és a stat-sorát is törli (E2).
+- **Polár:** a régi minták is számítanak, mintánként 10 mp súllyal; a
+  „Legjobb 5 mp" ott kötőjel.
+- **Web:** a trackes kézi verseny térképet kap, bóják nélkül
+  (`RaceDetail.legacyTrack`). A szerkesztőben a számolt mezők tiltottak,
+  és a szerver mentéskor a beírt számokat őrzi (Addendum 2 F2, F3).
+- **Export:** a `GET /api/export` egy tar.gz-t ad: a két DB konzisztens
+  mentése (`VACUUM INTO`) és egy JSON minden versenyről, a szerződés
+  kódolóival. Új függőség nincs. Az archívum előbb a `--temp-root`
+  alatt épül fel, és csak utána megy ki (hibánál tiszta 500); a zár
+  alatt csak a két `VACUUM INTO` fut, a JSON a másolatokból készül;
+  egyszerre egy export fut, a második 409 (Addendum 3 G1–G7). A web
+  ikon-gombja egy rejtett `<a download>`-dal indítja a letöltést.
+
+### 20.5 Hozzáférés és üzemeltetés
+
+- **Hozzáférés (ADR 0051, leváltja a D9 `basic_auth`-ját):**
+  - belépés a weboldal QR-jának beolvasásával a Foretack appban, majd
+    ujjlenyomattal; az aláíró ES256-kulcs a telefon Keystore-jában van,
+    és nem exportálható;
+  - szerepek: `owner` (minden) és `crew` (csak olvas, export nélkül);
+    mindenki a Lola archívumát látja;
+  - regisztráció: az `owner` eszköze a VPS-en a `create_owner_enrollment`
+    CLI-vel; a legénység a belépési QR-ral csatlakozási kérelmet küld,
+    amelyet az `owner` az appjában hagy jóvá;
+  - session: `__Host-ft_session` cookie (`Secure`, `HttpOnly`,
+    `SameSite=Strict`), 7 nap tétlenségig, legfeljebb 90 napig;
+  - az appban a webes munkamenetek listája (böngésző, OS, IP, ország,
+    város) kiléptetéssel: az `owner` mindenkiét, a `crew` a sajátját;
+    a hely offline GeoIP-ből (DB-IP Lite) jön;
+  - tartalék csak az `owner`-nek: jelszó vagy helyreállító kód egy
+    mezőben, próbálkozás-korláttal;
+  - a fiókadat külön `auth.sqlite`-ban, kívül az S14 exporton;
+  - a Flutter web build nyilvános, az `/api/*` (a belépési végpontokon
+    kívül) session nélkül 401;
+  - a módosító végpontok továbbra is `X-Foretack-Client` fejlécet
+    követelnek; a szerver csak a `127.0.0.1`-en figyel.
+  - a telefonon a főképernyő AppBarjában QR-beolvasás gomb, a webes
+    hozzáférés képernyői a ⋮ menüből; egy build mindenkinek, a
+    versenyfunkciók fiók és internet nélkül is működnek (Addendum 1);
+  - a telefonnak két P-256 kulcsa van a `biometric_signature`-ben
+    (13.2.0): az aláíró kulcs minden aláíráshoz ujjlenyomatot kér
+    (belépés, jóváhagyás, romboló művelet), a csendes eszközkulcs egy
+    15 perces eszköz-tokent kér a szalaghoz és a listákhoz;
+    ujjlenyomat-változás nem érvényteleníti őket, attesztáció nincs
+    (Addendum 1 H5, Addendum 3 K1–K4);
+  - a szerver csak a tokenek hash-ét tárolja, a jelszót argon2id-vel,
+    a helyreállító kódokat egy `0600`-s titok-fájl HMAC-jével; két CLI
+    (`create_owner_enrollment`, `revoke_device`) kezeli a VPS-en az
+    `owner` telefonját (Addendum 2).
+  - a szerver új, kötelező kapcsolói: `--origin`, `--auth-db`,
+    `--auth-secret`; a `/api/auth/*` végpontok a session-őr előtt, az
+    archívum mögötte fut (`AuthApi`); minden `owner`-regisztráció 10 új
+    helyreállító kódot ad; próbálkozás-korlát IP-nként percenként 10
+    (Addendum 4).
+  - az A2b két részben jön: az A2b-1 az akció-kihívást, a csatlakozást
+    (`joinPending`), a kérelmek, tagok és eszközök kezelését, a
+    munkamenet-listát és a kiléptetést, az átnevezést hozza; az
+    elutasított kérelem a böngészőnek lejártként látszik; mindenki csak
+    a saját nevét írhatja át; egy eszköz visszavonása a vele jóváhagyott
+    munkameneteket is lezárja (Addendum 5).
+  - az A2b-2: tartalék belépés egy mezővel (jelszó vagy kód), minden
+    próbálkozás egy argon2id-ellenőrzéssel és azonos hibaválasszal, a
+    fiókra és IP-nként korlátozva; jelszó és kódok az appból,
+    ujjlenyomattal; belépési események és szalag (gyanús: tartalék, vagy
+    eltérő ország a böngésző és a telefon között), a kiléptetés nyugtáz;
+    csatlakozni csak `pending` belépési kérésre lehet; offline GeoIP a
+    `build_geoip` CLI-vel épített `geoip.sqlite`-ból, a `--geoip`
+    kapcsolóval (Addendum 6).
+  - a weben a munkamenet-kapu a navigátor fölött áll: kijelentkezve vagy
+    bármely `401` után a belépő képernyő látszik; a QR-t a `qr` csomag
+    kódolja, saját painter rajzolja; a `crew` elől a módosító vezérlők
+    rejtve vannak, a név-menüben kijelentkezés (Addendum 7).
+  - a telefonon a regisztráció (CLI-s QR, 10 kód), a QR-belépés és a
+    csatlakozás két részben (A4a, A4b); a fiókadat egy app-privát
+    JSON-fájlban, nem a versenyek DB-jében; más origójú regisztrációs QR
+    megerősítés után lecseréli a fiókot és a kulcsokat (Addendum 8).
+  - a csatlakozásnál a beírt név egy lejárt QR után megmarad, és egy
+    friss QR beolvasása után csak ujjlenyomat kell; a függő kérelmet az
+    app induláskor és előtérbe jövéskor kérdezi le, a döntést snackbar
+    jelzi; a fiók-fájl vagy fiókot, vagy függő kérelmet hord (Addendum 9).
+  - a telefonos kezelőképernyők két részben (A5a: ⋮ menü, szalagok,
+    webes belépések; A5b: legénység, fiók és biztonság); a hívások egy
+    közös, eszköz-tokenes segéden, az ujjlenyomatos műveletek az
+    akció-kihíváson mennek; a szalag induláskor, előtérben és a
+    kezelőképernyőkről visszatérve frissül; a szerver a helyreállító
+    kódok generálási idejét is kiadja (Addendum 10).
+- **Üzemeltetés (ADR 0047 D10, ADR 0052):**
+  - a `https://lola.foretack.hu` egy Linode 2 GB-os VPS-en (Ubuntu 24.04
+    LTS, Frankfurt); natív Caddy automatikus HTTPS-sel,
+    `foretack-archive.service` a dedikált `foretack` userrel;
+  - a build lokálisan fut (`dart build cli` belépési pontonként, a web
+    `--no-web-resources-cdn`-nel); a `deploy/deploy.sh` egy kiadást
+    rsync-el fel az `/opt/foretack/releases` alá, és a szerver meg a web
+    egyetlen szimbolikus link cseréjével, egészség-ellenőrzéssel és
+    visszaállással vált;
+  - DB-k és titok a `/var/lib/foretack/` alatt, az STW-korrekció az
+    `/etc/foretack/`-ben; éjszakai `sqlite3 .backup` 3 napig a VPS-en,
+    amit a fejlesztői gép egy user-timerrel lehúz és 7 napig megőriz;
+  - a `geoip.sqlite` havonta egy timerrel újraépül;
+  - biztonsági fejlécek a Caddyben (HSTS, CSP, `noindex`,
+    `Referrer-Policy: strict-origin` az OSM csempe-szabályzata miatt);
+  - `ufw`: csak 22, 80, 443; SSH csak kulccsal;
+  - az `end_sessions` CLI a webes munkameneteket SSH-ról zárja le;
+  - a repó publikus: a VPS címe a gitignore-olt `deploy/deploy.env`-ben,
+    a titkok csak a VPS-en születnek, és minden commit és deploy előtt a
+    `deploy/check_secrets.sh` (gitleaks + tiltott fájltípusok) fut;
+  - a telepítés, az adatok összefésülése és a visszaállítás lépései a
+    `deploy/README.md`-ben;
+  - a telefonos app a legénységnek (ADR 0053): egy build mindenkinek, a
+    release APK a fejlesztői gépen, a mostani (debug-)keystore-ral
+    aláírva, hogy a meglévő telepítések adatvesztés nélkül frissüljenek;
+    a `versionCode` kiadásonként nő; a
+    `https://lola.foretack.hu/app/foretack.apk` linkről tölthető le, a
+    szerver-kiadástól független könyvtárból;
+  - nincs Docker.
+
+### 20.6 Nem része v1-nek
+
+Az automatikus szinkron (a felhasználóhoz kötött login az ADR 0051-ben
+elkészül), több hajó adata, JSON-export az appból, a 20.4b–c-n túli
+statisztikák és diagramok, Markdown, fotók, verseny-törlés, automatikus
+CI-deploy. Mindegyik külön ADR vagy
+addendum lesz.
 
 ---
 

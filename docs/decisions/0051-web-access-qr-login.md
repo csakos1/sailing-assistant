@@ -1,0 +1,2358 @@
+# ADR 0051 — Hozzáférés a webhez: QR-belépés a Foretack appal
+
+## Státusz
+
+Elfogadva — 2026-10-06. Még nem implementálva. A „Szeletek" sorrendjében
+követi, docs-first. Az ADR 0047 D9-et (Caddy `basic_auth`) leváltja; ezt
+és a többi érintett pontot a „Mit ír felül" szakasz sorolja fel.
+
+A döntések egy része felhasználói döntés, más része Claude javaslata. A
+javaslatokat a pontok „(javaslat)" jelzéssel hordozzák, és a hozzájuk
+tartozó szelet előtt még visszavonhatók.
+
+## Kontextus
+
+Az ADR 0047 D9 a teljes site-ot Caddy `basic_auth`-tal védte volna, és a
+felhasználóhoz kötött belépést egy későbbi ADR-re hagyta (a
+szinkronnal együtt). A deploy (S8) előtt a felhasználó két dolgot kért
+(2026-10-06):
+
+1. az oldalt csak az arra jogosultak láthassák, a lehető legbiztonságosabb
+   módon, de a belépés **nagyon egyszerű és gyors** legyen, és **ne kelljen
+   semmit megjegyezni**;
+2. a felhasználói kör bővül: a **legénység** is belép, és a Lola adatait
+   nézi.
+
+A felhasználó ötlete a belépésre: a weboldal QR-kódot mutat, a telefonos
+Foretack app beolvassa, és a böngésző azonnal belép (a WhatsApp Web és a
+Discord mintája). A passkey (WebAuthn) változatot a felhasználó elvetette:
+idegen gépen Bluetooth kell hozzá, ami szerinte túlbonyolítja a belépést.
+
+A felhasználó célja távlatilag az is, hogy a telefon a versenyeket
+automatikusan feltöltse a szerverre. Ehhez a telefonnak amúgy is
+azonosítania kell magát; az itt bevezetett eszközkulcs erre is alkalmas
+lesz, de **a szinkron és a többhajós adatmodell nem része ennek az
+ADR-nek** (D14).
+
+### Verifikált tények
+
+- A phone app `AndroidManifest.xml`-je már kéri az `INTERNET`
+  jogosultságot. HTTP-kliens, kamera és Keystore-kezelés nincs az appban.
+- A szerver minden módosító kérésnél `X-Foretack-Client: web` fejlécet
+  követel (`client_header_guard.dart`), és csak a `127.0.0.1`-en figyel.
+- A `race_archive_api` hibái egy sealed `ApiError` alá tartoznak; 401,
+  403 és 429 még nincs köztük.
+- A [`biometric_signature`](https://pub.dev/packages/biometric_signature)
+  plugin hardveres (StrongBox / TEE) kulcsot kezel, biometrikus aláírással;
+  a 13.1.0-tól Android kulcs-attesztációt is ad. A pontos verzió és API a
+  telefonos szelet elején, a forrásból ellenőrzendő.
+- A repó publikus, ezért a protokoll is nyilvános; a biztonság nem
+  épülhet a protokoll titkosságára.
+
+## Döntés
+
+### D1 — A belépés: QR + ujjlenyomat, semmi más (felhasználói döntés)
+
+- A felhasználó lépései: a weboldalon a QR-t a Foretack appal beolvassa,
+  majd ujjlenyomattal jóváhagyja. **Más lépés nincs**: nincs
+  számegyeztetés, nincs külön „Jóváhagyom" gomb, nincs kód begépelése.
+- **Ujjlenyomat minden belépésnél** (felhasználói döntés): az aláíró kulcs
+  csak friss biometrikus azonosítás után használható.
+- Minden további védelem a háttérben, a felhasználó számára
+  észrevehetetlenül fut (D4).
+- A gyors beolvasás gombja a telefon főképernyőjének AppBarjában van
+  (javaslat).
+
+### D2 — Fiókok, szerepek és láthatóság (felhasználói döntés)
+
+- **Szerepek:** `owner` (a felhasználó, egy van) és `crew` (a legénység).
+- **Mindenki ugyanazt az adatot látja**: a Lola archívumát (napló,
+  részletező, Statisztika, polár).
+- **A `crew` csak olvas.** Szerkesztés, kézi verseny, feltöltés,
+  **export** és a legénység kezelése csak az `owner`-é. A szerver minden
+  végponton ellenőrzi a szerepet; a web csak elrejti a nem elérhető
+  vezérlőket.
+- **Nincs felhasználónév–jelszó regisztráció:** a fiók egy
+  megjelenítendő névből és egy vagy több regisztrált eszközkulcsból áll.
+- **A munkamenetek láthatósága** (D7): az `owner` minden felhasználó
+  minden webes munkamenetét látja és kiléptetheti; a `crew` csak a
+  sajátjait.
+
+### D3 — Regisztráció (felhasználói döntés)
+
+**Az `owner` eszköze CLI-vel a VPS-en**, az elsőtől kezdve és elveszett
+telefon után is: `create_owner_enrollment` SSH-n.
+- A kimenet a regisztrációs QR tartalma; a terminálban `qrencode -t
+  ansiutf8` rajzolja ki (új Dart-függőség nélkül).
+- A QR: `foretack-enroll:v1:` + base64url( JSON `{origin, token}` ). A
+  token 256 bites véletlen, **egyszer használatos, 15 percig érvényes**
+  (javaslat); a szerver csak a SHA-256 hash-ét tárolja.
+- Az app beolvassa, kulcsot készít (D4), regisztrál, és **egyszer**
+  megmutatja a 10 helyreállító kódot (D6).
+- Ha az `owner`-nek már van eszköze, az új eszköz mellé kerül; a régi az
+  appból vagy a CLI-vel (`revoke_device`) vonható vissza.
+
+**A legénység csatlakozási kérelemmel** (felhasználói döntés):
+1. A legénységi tag a weboldalon a szokásos belépési QR-t olvassa be a
+   saját, még fiók nélküli Foretack appjával.
+2. Az app megkérdezi a nevét (egy mező), kulcsot készít, ujjlenyomatot
+   kér, és csatlakozási kérelmet küld. A kérelem a belépési kéréshez
+   kötődik.
+3. A weboldal ezt mutatja: „Kérelem elküldve, jóváhagyásra vár". A
+   belépési kérés ilyenkor **10 percig** él (javaslat).
+4. Az `owner` az appjában jóváhagyja ujjlenyomattal, és választ: **új
+   tag** vagy **egy meglévő tag új eszköze** (felhasználói döntés). A
+   meglévő tag régi eszköze külön visszavonható.
+5. Ha a weboldal még vár, a böngésző magától belép. Különben a tag
+   legközelebb csak beolvas.
+
+**A kérelem védelme**, mert a QR nyilvános oldalon van (javaslat):
+- a kérelem önmagában semmit nem ad, csak a jóváhagyás;
+- a kérelemben látszik a név, a telefon típusa, az IP, az ország és a
+  város;
+- 24 óra után lejár; egyszerre legfeljebb 5 függő kérelem lehet, a
+  továbbiakat a szerver 429-cel elutasítja;
+- a jóváhagyáshoz ujjlenyomat kell;
+- egy tag (minden eszközével és munkamenetével) egy mozdulattal
+  eltávolítható.
+
+A legénység kezelése (kérelmek, tagok, eszközök, eltávolítás) **csak az
+`owner` appjában** van, a weben nincs (felhasználói döntés).
+
+### D4 — A QR-belépés protokollja és a háttérvédelmek (javaslat)
+
+**A kulcs:** ES256 (P-256) a Keystore-ban, nem exportálható, StrongBox,
+ha van, biometrikus azonosításhoz kötve (`biometric_signature`,
+felhasználói döntés).
+
+**Menet:**
+
+1. A web `POST /api/auth/login-requests`-tel belépési kérést nyit. A
+   szerver létrehoz egy kérést (`requestId` 128 bit, `challenge` 256 bit,
+   **60 mp élettartam**), és egy `HttpOnly` cookie-ban (`__Host-ft_login`)
+   egy 256 bites kötő-tokent ad a böngészőnek.
+2. A web a QR-ban mutatja: `foretack-login:v1:` + base64url( JSON
+   `{origin, requestId, challenge}` ). Lejárat előtt magától új kérést
+   nyit, a régit eldobja.
+3. Az app beolvassa, és **ellenőrzi, hogy az `origin` egyezik-e a
+   regisztrációkor megjegyzettel**; ha nem, a beolvasás hibával áll le.
+   Fiók nélküli app a D3 csatlakozási kérelmét indítja.
+4. Az app lekéri a kérés adatait (`GET /api/auth/login-requests/{id}`: a
+   kérő böngésző leírása, IP-je, országa és városa), és ezt az
+   ujjlenyomat-ablak alcímében mutatja („Belépés: Chrome · Linux ·
+   Budapest"). Ez nem plusz lépés.
+5. Ujjlenyomat után az app aláírja a kanonikus üzenetet, és elküldi
+   (`POST /api/auth/login-requests/{id}/approval`, az eszköz azonosítójával).
+6. A web 1,5 mp-enként kérdezi a kérés állapotát a kötő-cookie-val. A
+   jóváhagyás után **csak az a böngésző** kap session-cookie-t, amelyik a
+   kötő-tokent hordozza; a kérés ezzel elhasználódik.
+
+**A kanonikus aláírt üzenet** (UTF-8, `\n`-nel elválasztva):
+
+```
+foretack-login-v1
+<origin>
+<requestId>
+<challenge>
+<deviceId>
+```
+
+A regisztráció (`foretack-enroll-v1`, a tokennel) és a csatlakozási
+kérelem (`foretack-join-v1`, a `requestId`-vel és a névvel) ugyanígy. A
+kódolás és az üzenet-összerakás a pure Dart `race_archive_api`-ban él, így
+a szerver és az app ugyanazt a kódot használja, és tesztvektorokkal
+tesztelhető.
+
+**Háttérvédelmek** (egyik sem kér lépést a felhasználótól):
+
+| Fenyegetés | Védelem |
+|---|---|
+| A kulcs ellopása a telefonról | Keystore, nem exportálható, StrongBox ha van; minden aláíráshoz ujjlenyomat |
+| Visszajátszás | Egyszer használatos, 60 mp-es kihívás; az aláírás az `origin`-t, a kérést és az eszközt is fedi |
+| A session rossz böngészőbe kerül | A sessiont csak a kötő-cookie-t hordozó böngésző kapja |
+| Más szerver QR-ja | Az app csak a regisztrált `origin`-re ír alá |
+| QR-jacking (idegen QR beolvasása) | A kérő helye és böngészője az ujjlenyomat-ablakban; jelzés az appban (D7); rövid élettartam |
+| Idegen csatlakozási kérelem | Csak az `owner` ujjlenyomatos jóváhagyásával lesz fiók; korlátok (D3) |
+| Ellopott vagy elhagyott session | 7 napos lejárat, kijelentkezés, kiléptetés az appból (D7) |
+| Jelszó- és kódtalálgatás | Próbálkozás-korlát (D8) |
+| CSRF, clickjacking | `SameSite=Strict`, `X-Foretack-Client`, `frame-ancestors 'none'` (D9) |
+| Lehallgatás | HTTPS + HSTS (D9) |
+| Visszavont eszköz vagy eltávolított tag | A szerver minden aláírásnál és kérésnél ellenőrzi az állapotot |
+
+**Maradék kockázat** (elfogadva): egy valós idejű, hamis domainen futó
+közvetítő támadás, amelyben a felhasználó egy idegen QR-t olvas be, és az
+ujjlenyomat-ablak helyét nem nézi meg. Ezt csak a domainhez kötött
+WebAuthn zárná ki, amelyet a felhasználó elvetett.
+
+**Gyanús belépés** (felhasználói döntés): a böngésző és a telefon
+helyének eltérése **nem** akadályozza a belépést (a felhasználó gyakran
+használ VPN-t), csak jelzés jön róla (D7).
+
+### D5 — Session (felhasználói döntés + javaslat)
+
+- **7 nap, használatkor megújul** (felhasználói döntés): 7 nap tétlenség
+  után lejár. Javaslat: abszolút felső korlát 90 nap.
+- Javaslat: a token 256 bites `Random.secure()`-ből; a szerver csak a
+  SHA-256 hash-ét tárolja. Cookie: `__Host-ft_session`, `Secure`,
+  `HttpOnly`, `SameSite=Strict`, `Path=/`. A megújítás legfeljebb óránként
+  ír a DB-be.
+- **Kijelentkezés** a weben (a szerveren is törli a sessiont), és
+  **kiléptetés az appból** (D7).
+
+### D6 — Tartalék belépés, csak az `owner`-nek (felhasználói döntés)
+
+- **Csak az `owner`-nek van tartalék belépése.** A legénységi tag, aki
+  elveszti a telefonját, új csatlakozási kérelmet küld, amelyet az
+  `owner` a meglévő tagjához köt (D3).
+- **A webes űrlap egyetlen mező, név nélkül:** jelszó vagy helyreállító
+  kód.
+- **Helyreállító kódok:** az `owner` regisztrációjakor 10 darab, egyszer
+  használatos, `XXXXX-XXXXX` alakú (base32, ~50 bit). Javaslat: a szerver
+  HMAC-SHA-256-tal (szerveroldali titokkal) tárolja őket; az appban
+  újragenerálhatók (a régiek érvénytelenné válnak).
+- **Jelszó:** opcionális, az appban állítható be. Javaslat: argon2id
+  (`cryptography`), legalább 12 karakter.
+- A tartalék csak **webes belépésre** jó; új telefont az `owner` a CLI-vel
+  regisztrál (D3).
+- Minden tartalék-belépés gyanúsként jelenik meg (D7).
+
+### D7 — Munkamenetek és jelzések az appban (felhasználói döntés)
+
+**„Webes belépések" képernyő** a telefonon:
+- soronként egy webes munkamenet: a böngésző és az OS (a User-Agentből,
+  pl. „Chrome · Windows 11"), az IP-cím, az ország és a város, a belépés
+  módja (QR / jelszó / helyreállító kód), a belépés ideje és az utolsó
+  aktivitás;
+- **minden sor mellett kiléptetés gomb**, azonnal hat;
+- az `owner` **minden felhasználó** munkameneteit látja, felhasználó
+  szerint csoportosítva; a `crew` csak a sajátjait;
+- a böngésző nem adja ki a gép nevét, ezért a sor a böngésző + OS
+  (javaslat; a név bekérése plusz lépés lenne).
+
+**Szalag megnyitáskor** (push és e-mail nincs):
+- az utolsó megnyitás óta történt **gyanús** belépések: tartalék-belépés,
+  vagy QR-belépés, ahol a böngésző és a telefon országa eltér;
+- az `owner`-nél bármely felhasználó gyanús belépése, a `crew`-nál csak a
+  sajátja (felhasználói döntés);
+- az `owner`-nél a függő csatlakozási kérelmek száma is.
+
+**Hely: offline GeoIP** (felhasználói döntés):
+- forrás a DB-IP Lite City (ingyenes, CC BY 4.0), havonta frissítve; az
+  IP nem megy külső szolgáltatáshoz;
+- javaslat: a deploy-szkript a CSV-ből egy `geoip.sqlite`-ot épít
+  IP-tartományokkal, a szerver SQL-lel keres benne; új Dart-függőség nem
+  kell;
+- a hely a belépés pillanatában rögzül a munkamenet mellé;
+- a licenc miatt a „Webes belépések" képernyő alján halk sor: „IP-hely:
+  DB-IP";
+- VPN-nél a VPN kilépési pontja látszik.
+
+### D8 — Próbálkozás-korlát (javaslat)
+
+- A szerver memóriájában, egy folyamatban (a VPS-en egy példány fut).
+- Tartalék-belépés: 5 hibás próbálkozás után növekvő várakozás (1
+  perctől 1 óráig); IP-nként óránként 20; minden hibás válasz azonos
+  szövegű és közel azonos idejű.
+- Belépési kérés nyitása, jóváhagyás, regisztráció: IP-nként percenként
+  10. Csatlakozási kérelem: IP-nként óránként 3, és a D3 felső korlátja.
+- A kliens IP-je az `X-Forwarded-For`-ból jön, de **csak** akkor, ha a
+  kérés a `127.0.0.1`-ről (a Caddytől) érkezik.
+- Új hibatípusok a `race_archive_api`-ban: `NotAuthenticated` (401),
+  `NotAllowed` (403), `TooManyAttempts` (429, `Retry-After`).
+
+### D9 — Mi nyilvános, és a fejlécek (javaslat)
+
+- **A Flutter web build nyilvános**: a bejelentkező képernyő is benne van,
+  és adatot nem tartalmaz. Az `/api/*` a `/api/auth/*` belépési végpontjai
+  kivételével session nélkül 401-et ad.
+- A Caddy nem hitelesít; a `basic_auth` kikerül.
+- Fejlécek (Caddy): `Strict-Transport-Security` (1 év), `Content-Security-
+  Policy` (a Flutter webhez hangolva, `frame-ancestors 'none'`),
+  `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`,
+  `X-Robots-Tag: noindex, nofollow`, az `x-powered-by` elrejtve; a
+  `robots.txt` mindent tilt (felhasználói döntés).
+- A meglévő `X-Foretack-Client` védelem marad; az app a saját végpontjain
+  `X-Foretack-Client: phone`-t küld.
+
+### D10 — Tárolás: külön `auth.sqlite` (javaslat)
+
+- Táblák: `users`, `devices` (nyilvános kulcs, név, telefon-típus,
+  létrehozás, utolsó használat, visszavonás), `enrollments`,
+  `join_requests`, `sessions` (a D7 mezőivel), `login_requests`,
+  `recovery_codes`, `login_events`.
+- **Külön fájl**, nem a `web.sqlite`: az S14 export a `web.sqlite`-ot
+  másolja, a hitelesítési adat (jelszó-hash, kulcsok, sessionök) viszont
+  nem kerülhet egy letölthető fájlba. Az éjszakai mentés (ADR 0047 D10)
+  az `auth.sqlite`-ot is menti, a VPS-en belül.
+- A `geoip.sqlite` újraépíthető, nem mentjük.
+- A szerveroldali titok (HMAC a helyreállító kódokhoz) a VPS-en egy
+  `0600`-s fájlban van, nem a DB-ben és nem a repóban.
+
+### D11 — Rétegek és függőségek (javaslat)
+
+- **`race_archive_api`** (pure Dart): a QR-tartalmak kódolása, a kanonikus
+  üzenetek, az auth végpontok útvonalai és típusai, az új hibák.
+- **`apps/web_server`**: `auth.sqlite` (Drift), aláírás-ellenőrzés,
+  session- és szerep-middleware, próbálkozás-korlát, GeoIP-keresés,
+  végpontok, `create_owner_enrollment` és `revoke_device` CLI. Új külső
+  függőség: `pointycastle` (ECDSA P-256 ellenőrzés), `cryptography`
+  (argon2id).
+- **`apps/web`**: bejelentkező képernyő (QR, „jóváhagyásra vár" állapot,
+  tartalék mező), 401-kezelés, kijelentkezés, szerep szerinti UI. Új
+  külső függőség: QR-rajzoló (`qr_flutter` vagy hasonló, a szeletben dől
+  el).
+- **`apps/phone`**: regisztráció, csatlakozási kérelem, QR-beolvasás,
+  „Webes belépések", szalag, „Legénység" (csak `owner`), jelszó,
+  helyreállító kódok. Új külső függőség: `biometric_signature`
+  (felhasználói döntés), `mobile_scanner`, `http`, `device_info_plus` (a
+  telefon típusa a kérelemhez); függ a `race_archive_api`-tól.
+- A domain réteg nem változik: a hitelesítés infrastruktúra, nem a
+  versenyzés üzleti logikája.
+
+### D12 — UI (javaslat)
+
+- A webes bejelentkező képernyő és a telefonos képernyők (beolvasás,
+  csatlakozás, „Webes belépések", szalag, „Legénység", helyreállító
+  kódok) Claude Design makett alapján készülnek (az ADR 0049 bevált
+  menete); a makett előtt egy promptot írunk.
+
+### D13 — Tesztelés (javaslat)
+
+- A kanonikus üzenetek és a QR-tartalmak tesztvektorokkal
+  (`race_archive_api`), a szerver aláírás-ellenőrzése rögzített P-256
+  kulcsokkal és aláírásokkal (érvényes, hamis, más eszköz, lejárt,
+  elhasznált, visszavont).
+- A teljes belépési és csatlakozási lánc a szerveren HTTP-szinten
+  tesztelve, egy tesztbeli „telefonnal" (pure Dart P-256 aláíró), a
+  láthatósági szabályokkal (`owner` mindent, `crew` csak a sajátját).
+- A Keystore és az ujjlenyomat csak a Pixelen próbálható ki; a telefonos
+  logika a plugin mögötti függvény-`typedef`-en át tesztelhető.
+
+### D14 — Ami nem része ennek az ADR-nek (felhasználói döntés)
+
+- **A telefon automatikus szinkronja** és a hozzá tartozó
+  eszköz-hitelesítés: külön ADR a deploy után.
+- **Több hajó** és felhasználónkénti adat: a legénység ugyanazt az
+  archívumot nézi.
+- A legénység appjának terjesztése (APK) és a telefon release build.
+- Push-értesítés és e-mail.
+
+## Mit ír felül
+
+- **ADR 0047 D9:** a Caddy `basic_auth` kikerül; a hitelesítés a
+  szerverben él (D1–D9). A `127.0.0.1` és az `X-Foretack-Client` marad.
+- **ADR 0047 D10:** a mentés az `auth.sqlite`-ra is kiterjed; új
+  titok-fájl és `geoip.sqlite` a VPS-en (D7, D10).
+- **ADR 0050 G4:** a fejléc nélküli `GET /api/export` idegen oldalról
+  többé nem indítható, mert a `SameSite=Strict` cookie nem megy át; az
+  export csak az `owner`-é.
+- **ADR 0047 / ARCHITECTURE §20.6:** a „felhasználóhoz kötött login" már
+  nem a v1 utáni tétel; a szinkron az marad.
+
+## Szeletek
+
+| # | Commit-scope | Tartalom |
+|---|---|---|
+| A0 | `docs` | ez az ADR, ARCHITECTURE-szinkron |
+| A-UI | — | Claude Design prompt és makett (web + telefon) |
+| A1 | `feat(archive-api)` + `feat(web-server)` | szerződés (kódolók, üzenetek, hibák), `auth.sqlite`, aláírás- és jelszó-ellenőrzés, CLI-k (TDD) |
+| A2 | `feat(web-server)` | végpontok, session- és szerep-middleware, csatlakozás, próbálkozás-korlát, GeoIP (TDD) |
+| A3 | `feat(web)` | bejelentkező képernyő, 401, kijelentkezés, szerep szerinti UI |
+| A4 | `feat(phone)` | kulcs, regisztráció, csatlakozási kérelem, QR-belépés |
+| A5 | `feat(phone)` | „Webes belépések", szalag, „Legénység", jelszó, helyreállító kódok |
+| S8 | `feat(deploy)` | deploy a D9 fejléceivel, a titok-fájllal és a GeoIP-építéssel |
+
+## Következmények
+
+- **Pozitív:**
+  - belépés beolvasással és ujjlenyomattal, jelszó nélkül;
+  - a legénység egy beolvasással és egy névvel csatlakozik;
+  - a titok (a kulcs) nem hagyja el a telefont, és nem is olvasható ki;
+  - minden webes munkamenet látszik az appban, és azonnal kiléptethető;
+  - az eszközkulcs a későbbi szinkron hitelesítésének alapja lehet.
+- **Negatív:**
+  - saját hitelesítési kód a szerveren: a legnagyobb kockázat, ezért
+    teszt- és review-igényes;
+  - a csatlakozási kérelem bárkitől érkezhet; a jóváhagyás felelőssége az
+    `owner`-é;
+  - a phone app internetes funkciót kap, két új szelettel;
+  - hat új külső függőség a szerveren és a telefonon, egy a weben;
+  - egy havonta frissítendő GeoIP-adatbázis;
+  - a deploy kb. hét szelettel később jön.
+
+## Amit ez az ADR NEM dönt el
+
+- a pontos CSP-t (az S8-ban, a valódi Flutter-builddel kipróbálva);
+- a domaint (S8);
+- a QR-rajzoló csomagot a weben (A3);
+- a `biometric_signature` pontos verzióját és az attesztáció használatát
+  (A4);
+- a szinkront és a többhajós adatmodellt (D14).
+
+## Addendum 1 — A makett és a `biometric_signature` (2026-10-06)
+
+Az A1 előtt. A Claude Design makett (17a–17f web, 18a–18l telefon)
+feldolgozása, a `biometric_signature` forrásának ellenőrzése, és ami a
+makettben nem szerepel. A „(javaslat, elfogadva)" pontokat Claude
+javasolta, a felhasználó jóváhagyta; a szelet előtt visszavonhatók.
+
+### H1 — Hol érhető el a webes hozzáférés a telefonon (felhasználói döntés)
+
+- A főképernyő AppBarjában a debug-ikonok előtt egy **QR-beolvasás
+  ikon-gomb** (`onSurface`), a végén egy **⋮** gomb (18a).
+- A ⋮ menü „WEBES HOZZÁFÉRÉS" csoportja (18a-2): „Webes belépések"
+  (18i/18j), „Legénység" (18k, csak az `owner`-nek, a függő kérelmek
+  számával), „Fiók és biztonság" (18l; a `crew`-nál „Fiók", 18l-2).
+- **Fiók nélküli appban a ⋮ rejtve van**, csak a QR-ikon látszik. A
+  beolvasás vezet a csatlakozáshoz (belépési QR) vagy a regisztrációhoz
+  (`foretack-enroll` QR).
+- A szalagok (18h) a lista tetején; a kérelem-szalag a „Legénység"
+  képernyőt nyitja.
+
+### H2 — A 17c nem mutatja, ki olvasta be (felhasználói döntés)
+
+- A beolvasás után a böngésző csak az állapotot mutatja („Erősítsd meg a
+  telefonodon"), **nevet és eszközt nem**. A makett mintaadata (név ·
+  telefon) elmarad: QR-jackingnél a támadó böngészője az ujjlenyomat
+  előtt megtudná, kinek a telefonja olvasta be.
+- A protokoll ezért nem kap „ki olvasta be" állapotot. A belépési kérés
+  állapotai (javaslat, elfogadva): `pending` → `opened` (az app lekérte
+  az adatait, D4 4. lépés) → `approved`, illetve `expired`. A web a
+  lekérdezésben csak az állapotot kapja.
+- Az `opened` kérés az utolsó lekéréstől még 60 mp-ig él (javaslat,
+  elfogadva), hogy az ujjlenyomatra legyen idő; ez idő alatt a web nem
+  cserél QR-t. A „Vissza a QR-kódhoz" link a kérést eldobja, és újat
+  nyit.
+
+### H3 — A jóváhagyó lapon nincs „tulajdonos új telefonja" (felhasználói döntés)
+
+- A 18k-2 választható elemei: „Új tag" (alap) és a `crew` tagjai („Bence
+  új telefonja"). A makett „Ákos új telefonja" eleme elmarad.
+- Ez megerősíti a D3-at: **`owner`-eszköz csak a CLI-vel** kerül be. A
+  szerver a jóváhagyásnál is elutasítja, ha a célfiók `owner`.
+
+### H4 — A napló AppBarja a weben (felhasználói döntés)
+
+- A makett a régi 13a AppBarra rajzolt; helyette **a mai AppBar
+  elemei** maradnak, a végükre egy függőleges elválasztó (`outline`) és a
+  **név-menü** kerül (17f):
+  - `owner`: váltó · Statisztika · Export · Új verseny · Feltöltés | név;
+  - `crew`: váltó · Statisztika | név.
+- A név-gomb nyitva egy menü (240 px, `surfaceContainerHigh`, `outline`
+  keret): a név, a szerep (`TULAJDONOS` / `LEGÉNYSÉG`, mono, halk) és a
+  „Kijelentkezés".
+- A cím és az AppBar színe a mai marad (a makett verzál címe nem jön
+  át). 800 px-en egy widget-teszt ellenőrzi, hogy az `owner` sora elfér.
+- A részletezőn a `crew`-nak a ceruza és a törlés sem látszik.
+
+### H5 — A `biometric_signature` (verifikált tények és döntések)
+
+Verifikálva a forrásból (13.2.0, 2026-09-30):
+- `SignatureType.ecdsa`: Keystore `secp256r1` (P-256), `SHA256withECDSA`.
+- A nyilvános kulcs (`KeyFormat.base64`) base64 X.509
+  **SubjectPublicKeyInfo DER**; az aláírás **DER (ASN.1 `r`, `s`)**,
+  base64 `NO_WRAP`.
+- Minden aláíráshoz friss azonosítás kell
+  (`setUserAuthenticationParameters(0, …)`), időablak nélkül.
+- StrongBox best-effort, sikertelenségnél egyszer TEE-ben.
+- A prompt címe a `promptMessage`, az alcíme a `promptSubtitle`, a
+  gombja a `cancelButtonText` (alapból angol „Cancel").
+- `minSdk` 23, `compileSdk` 35; debug buildben is működik.
+- **`FlutterFragmentActivity` kell**: a phone `MainActivity`-je ma
+  `FlutterActivity` — az A4-ben átírandó, utána Pixel smoke-teszt.
+
+Döntések:
+- **Ujjlenyomat hozzáadása vagy törlése nem érvényteleníti a kulcsot**
+  (felhasználói döntés): `setInvalidatedByBiometricEnrollment: false`. A
+  kulcs használata továbbra is friss biometrikus azonosítást kér; a
+  felhasználó tudatosan elfogadja, hogy aki ismeri a telefon PIN-jét és
+  felveszi a saját ujját, aláírhat.
+- **Kulcs-attesztáció v1-ben nincs** (felhasználói döntés). Később külön
+  addendummal bekapcsolható.
+- Javaslat, elfogadva:
+  - csak biometria, PIN nélkül (`useDeviceCredentials: false`,
+    `allowDeviceCredentials: false`), a D1 „ujjlenyomat" szerint;
+  - a kulcs létrehozása nem kér ujjlenyomatot (`enforceBiometric:
+    false`); az első aláírás (regisztráció, csatlakozás) kéri, így ezek
+    is egyetlen ujjlenyomattal mennek;
+  - aláírás a `createSignatureFromBytes`-szal, a kanonikus üzenet UTF-8
+    bájtjain; egy kulcs-alias (`foretack-web`);
+  - a szerver csak P-256-os SPKI kulcsot fogad el, és DER aláírást
+    ellenőriz; más görbe, RSA vagy hibás kódolás elutasítva.
+- A `keyNotFound` / `keyInvalidated` (pl. a képernyőzár törlése után) a
+  visszavont eszközzel azonos panelt kap (H7).
+
+### H6 — Az ujjlenyomat-ablakok szövegei (javaslat, elfogadva)
+
+| Művelet | Cím | Alcím |
+|---|---|---|
+| QR-belépés (18c) | „Belépés a Foretack webre" | böngésző · OS · város, ország |
+| Csatlakozás (18e) | „Csatlakozás a Lola archívumához" | a szerver hostja |
+| Első regisztráció (18f) | „Telefon regisztrálása" | a szerver hostja |
+| Jóváhagyás (18k-2) | „<név> jóváhagyása" | telefon · város, ország |
+
+- A gomb felirata „Mégse". Megszakításkor az app csendben visszatér az
+  előző képernyőre.
+- A szövegek az app ARB-jében élnek.
+
+### H7 — Hibák és állapotok a telefonon (javaslat, elfogadva)
+
+- A beolvasó alsó hibapanelje (18d-2…5) mellé:
+  - nem Foretack-QR: „Ez nem Foretack-kód";
+  - lejárt vagy már felhasznált kérés: „Lejárt QR-kód";
+  - 429: „Próbáld újra N perc múlva".
+- Visszavont eszköz, illetve elveszett vagy érvénytelen kulcs (H5): „Ez
+  a telefon vissza lett vonva". A `crew`-nál a „Csatlakozás kérése"
+  gomb **előbb törli a helyi fiókadatot és a kulcsot**, majd a 18e-t
+  nyitja; az `owner`-nél a gomb helyett egy sor: regisztráció a
+  szerveren (CLI).
+- Siker: snackbar a főképernyőn („Belépve a webre" + mono eszközsor).
+- Üres lista, betöltés és offline sor („Nincs kapcsolat a szerverrel" +
+  „Újra") a meglévő minták szerint.
+
+### H8 — A gyanús szalag (javaslat, elfogadva)
+
+- A cím a fajta szerint: „Belépés jelszóval", „Belépés helyreállító
+  kóddal", „Belépés más országból". Más felhasználónál a név elöl
+  („Bence · Belépés más országból").
+- A „Rendben" a **szerveren** nyugtázza a belépési eseményt, így a
+  tulajdonos másik telefonján sem jön vissza. A „Kiléptetés" a
+  munkamenetet zárja, és nyugtáz is.
+- Kettőnél több gyanús esemény egy sorba vonódik („3 gyanús belépés" →
+  „Webes belépések").
+
+### H9 — A fiók-képernyők apró szabályai (javaslat, elfogadva)
+
+- A mód-címkék a munkamenet-sorban: `QR`, `JELSZÓ`, `KÓD`.
+- **Önkizárás ellen:** az éppen használt telefon saját sorában nincs
+  „Visszavonás", és az `owner` lapján nincs „Tag eltávolítása". A szerver
+  ezeket is elutasítja.
+- A 18l-ben egy halk sor mutatja a jelszó állapotát („nincs beállítva" /
+  „beállítva: <dátum>"). Törlés nincs, csak csere.
+- A `crew` a 18l-2-ben átírhatja a saját nevét.
+- A tag eltávolítása és a kódok újragenerálása megerősítő dialógust kap
+  (18k-4, 18l-3); az eszköz visszavonása és a kiléptetés azonnal hat.
+
+### H10 — Időzítések a weben (javaslat, elfogadva)
+
+- 17d-2: a „Lejárt — olvasd be újra" sor a következő QR-frissítésig (60
+  mp) látszik, utána az alap 17a.
+- 17e-3: a várakozás percben, felfelé kerekítve; 1 percnél rövidebb is
+  „1 perc".
+- 17b: 240 ms-os lefelé söprés, a sáv 1:00-ra áll vissza.
+
+### H11 — Offline viselkedés és egy build (Claude válasza, elfogadva)
+
+- **Egy build mindenkinek:** az app a szerep szerint (`GET
+  /api/auth/me`) mutat vagy rejt el részeket. A biztonság a szerveren
+  van (401/403), nem az elrejtésen; külön tulajdonosi build nincs.
+- **A versenyfunkciók nem függnek a fióktól.** Az élő verseny, a
+  rögzítés, a napló, a polár és az óra fiók nélkül, offline és a YDWG
+  Wi-Fi-jén is ugyanúgy működik.
+- Az app helyben tárolja a fiókadatot (név, szerep, `origin`,
+  eszköz-azonosító), így offline is tudja, mit mutasson a ⋮ menüben.
+- Offline a „Webes hozzáférés" képernyői halk „Nincs kapcsolat a
+  szerverrel" sort és „Újra" gombot mutatnak, nem hibát.
+- A szalag csak online, megnyitáskor frissül; offline nem vár és nem
+  lassít.
+- A QR-belépéshez internet kell. A szerep változását az app a következő
+  online kérésnél tudja meg; addig a szerver 401/403-mal véd.
+
+### H12 — Tokenek és fokozatok (javaslat, elfogadva)
+
+- Új token nincs. A makett ismétlődő `#C7D5E0`-ja (ikonok, ⋮, mono
+  IP-sor) → `onSurfaceVariant`.
+- A helyreállító kódok `numeralMicroStyle` (14) fokozattal (a makett 15
+  px-et rajzolt).
+- A 18c a rendszer ablaka; a Roboto és a rendszerszínek nem a mi
+  tokenjeink.
+- A webes állapotdoboz és a QR-mező (264 px, `onSurface` alap, 16 px
+  csendes zóna) a meglévő tokenekből épül.
+
+### Mit pontosít
+
+- **D1:** a gyors beolvasás helye most döntés (H1).
+- **D3:** `owner`-eszköz jóváhagyással sem kerülhet be (H3).
+- **D4:** a kérés állapotai és az `opened` élettartama (H2); a kulcs
+  részletei (H5).
+- **„Amit ez az ADR NEM dönt el":** a `biometric_signature` verziója
+  (13.2.0) és az attesztáció (nincs) eldőlt.
+- **Nyitva marad (A2 eleje):** kell-e ujjlenyomat a telefon nem belépési
+  műveleteihez (lista, kiléptetés, jóváhagyás), és hogyan hitelesíti
+  magát ezeknél az eszköz.
+
+## Addendum 2 — Pontosítások az A1 előtt (2026-10-06)
+
+Az A1 (szerződés és szerver-alapok) részletei. Mind Claude javaslata
+(„javaslat"); a felhasználó a szelet átadásakor hagyja jóvá, és a
+következő szelet előtt visszavonhatók.
+
+### J1 — Az A1 terjedelme (javaslat)
+
+- **A1:** a szerződés alapjai (QR-kódolás, aláírt üzenetek, név- és
+  jelszószabály, `UserRole`, a három új hiba) és a szerver alapjai
+  (kriptográfia, titok-fájl, `users` / `devices` / `enrollments`, a két
+  CLI).
+- **A2-be kerül:** a végpontokhoz kötött DTO-k és útvonalak, valamint a
+  `sessions`, `login_requests`, `join_requests`, `recovery_codes` és
+  `login_events` tábla. Ezek alakját a végpontok döntik el; előre
+  kitalálva kétszer kellene megírni őket.
+
+### J2 — A QR-tartalom (javaslat)
+
+- base64url **kitöltés nélkül**, és csak a kanonikus alak érvényes (a
+  visszakódolás ugyanazt adja): egy tokennek egy szöveges alakja van.
+- Az `origin` kanonikus: `https://host[:port]`, kisbetűs host, az
+  alapértelmezett port, útvonal, lekérdezés és felhasználó nélkül; `http`
+  csak `localhost`-ra és `127.0.0.1`-re (a Pixel-próba `adb reverse`-szel
+  megy, §6.4). Az app szövegesen veti össze a regisztráltal.
+- A `requestId` 16, a `challenge` és a `token` 32 bájt; más hossz hibás.
+- A dekódolás hibái: `notForetack` (H7 „Ez nem Foretack-kód"),
+  `unsupportedVersion` (más `foretack-*:vN` kód; a panel: „Frissítsd a
+  Foretack appot") és `malformed` (a panel: „Ez nem Foretack-kód").
+
+### J3 — Az aláírt üzenetek (javaslat)
+
+A D4 belépési üzenete változatlan. A másik kettő bővül:
+
+```
+foretack-enroll-v1        foretack-join-v1
+<origin>                  <origin>
+<token>                   <requestId>
+<base64(SPKI)>            <challenge>
+                          <név>
+                          <base64(SPKI)>
+```
+
+- A nyilvános kulcs (SubjectPublicKeyInfo DER, szabványos base64) mindkét
+  üzenetben benne van: az aláírás így azt is bizonyítja, hogy a beküldő a
+  kulcs birtokosa.
+- A csatlakozás a QR `challenge`-ét is aláírja, így a kérelem a
+  beolvasott QR-hoz kötődik.
+- Egy mező sem lehet üres vagy többsoros; a név a `normalizeDisplayName`
+  kimenete (1–40 kódpont, levágva). Nem lehet benne vezérlőkarakter,
+  sor-elválasztó, irányvezérlő és nulla szélességű jel: a tulajdonos ezt
+  a nevet látja a jóváhagyáskor, így láthatatlan vagy megfordító
+  karakterrel nem álcázható.
+
+### J4 — A jelszó (javaslat)
+
+- argon2id, a szabványos PHC-szöveggel tárolva
+  (`$argon2id$v=19$m=19456,t=2,p=1$<só>$<hash>`), 16 bájtos sóval és 32
+  bájtos hash-sel. A paraméterek a hash mellett vannak, így később
+  szigoríthatók; a régi hash a sajátjaival ellenőrződik.
+- Az OWASP-alapérték (19 MiB, 2 menet, 1 sáv) a 2 GB-os VPS-en mérendő
+  (S8). Egy tárolt hash csak korlátok között használható (legfeljebb 256
+  MiB, 10 menet, 4 sáv), különben „nem egyezik".
+- A jelszó 12–128 Unicode kódpont, és nem alakítjuk át (nincs
+  normalizálás, nincs levágás).
+
+### J5 — Tokenek és összehasonlítás (javaslat)
+
+- Minden token és kihívás `Random.secure()`-ből. A DB csak a tokenek
+  SHA-256 hash-ét tárolja; a keresés a hash-re történik.
+- A memóriában végzett titok-egyezés (hash, kód, jelszó-hash) konstans
+  idejű (`constantTimeEquals`).
+
+### J6 — A titok-fájl (javaslat)
+
+- Nyers bájtok, legalább 32:
+  ```bash
+  (umask 077; head -c 64 /dev/urandom > auth-secret)
+  ```
+  A szerver csak akkor indul, ha a csoportnak és másoknak semmilyen joga
+  nincs a fájlon (pl. `0600`); különben hibával áll le, nem fut csendben
+  tovább.
+- A helyreállító kódok HMAC-SHA-256-ja tartomány-előtaggal készül
+  (`foretack-recovery-v1\n` + kód), hogy a titok más célra is
+  használható maradjon keveredés nélkül.
+
+### J7 — Az `auth.sqlite` v1 (javaslat)
+
+- Az időpontok UTC epoch-milliszekundumban (`*_at_ms`), nem a Drift
+  `dateTime()`-jával (az másodpercre kerekít és helyi időként olvas
+  vissza, §5 5.).
+- A külső kulcsok be vannak kapcsolva (`PRAGMA foreign_keys = ON`): egy
+  fiók törlése az eszközeit is viszi.
+- Legfeljebb egy `owner`: egy részleges egyedi index is őrzi.
+- A visszavont eszköz sora megmarad (`revoked_at_ms`), hogy az app
+  pontos hibát kaphasson (18d-5).
+- Éles adat a deploy (S8) előtt nincs, ezért a v1 séma addig migráció
+  nélkül bővül (az A2 táblái).
+
+### J8 — A két CLI (javaslat)
+
+- **`create_owner_enrollment --auth-db … --origin … [--name …]`:** a
+  `--name` csak az első `owner`-hez kell; ha már van `owner`, név nélkül
+  futtatva az ő új telefonját regisztrálja (névvel hibát ad). A stdout-ra
+  csak a QR-szöveg megy (`| qrencode -t ansiutf8`), minden más a
+  stderr-re. Az első futás létrehozza az `auth.sqlite`-ot `0600`-s
+  joggal (a könyvtárát nem), egy lazább jogú meglévő fájlt pedig
+  `0600`-ra szigorít. A szerver felhasználójaként kell futtatni,
+  hogy a fájl az övé legyen.
+- **`revoke_device --auth-db … [--device …]`:** a `--device` nélkül
+  kilistázza az eszközöket az azonosítójukkal, vele visszavonja.
+- Kilépési kódok: 64 hibás kapcsoló, 65 elutasított kérés, 66 hiányzó
+  fájl vagy könyvtár, 73 a jogosultság nem állítható.
+
+### J9 — Kulcs és aláírás (javaslat)
+
+- A kulcs csak a pontos, 91 bájtos P-256 SubjectPublicKeyInfo lehet,
+  tömörítetlen ponttal, és a pontnak a görbén kell lennie.
+- Az aláírás szigorú DER (rövid hosszak, minimális egészek). Az `s` és az
+  `n − s` is érvényes; ez nem gond, mert minden kihívás és token egyszer
+  használatos.
+- Az ellenőrzés a `pointycastle` ECDSA-jával fut; a tesztvektorok
+  Pythonnal (OpenSSL) készültek, így két független implementáció egyezik.
+
+### J10 — Apróságok (javaslat)
+
+- **Új függőségek a `web_server`-ben:** `pointycastle ^4.0.0` (ECDSA),
+  `cryptography ^2.9.0` (argon2id), `crypto ^3.0.7` (SHA-256, HMAC; a
+  `cryptography` is erre épül).
+- **Helyreállító kód:** RFC 4648 base32 (`A–Z`, `2–7`). Begépeléskor a
+  kis- és nagybetű, a szóköz és a kötőjel mindegy. A makett mintakódja
+  (`K7Q2M-9XWPD`) a `9` miatt nem érvényes; ez csak mintaadat.
+- A `UserRole` (`owner`, `crew`) már a szerződésben van, mert az A2 `me`
+  végpontja és az app is ezt használja.
+
+## Addendum 3 — Az A2 terve: két kulcs, végpontok, két rész (2026-10-07)
+
+Az A2 előtt. A K1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható.
+
+### K1 — Két kulcs a telefonon (felhasználói döntés)
+
+- **Aláíró kulcs** (`foretack-web`, a mostani): minden aláíráshoz
+  ujjlenyomat kell. Ezzel megy a QR-belépés, a regisztráció, a
+  csatlakozás és minden jóváhagyó vagy romboló művelet (K4).
+- **Eszközkulcs** (`foretack-device`, `requireAuthentication: false`):
+  szintén Keystore, nem exportálható, de nem kér ujjlenyomatot. Ezzel a
+  telefon egy rövid életű eszköz-tokent kér (K3) a szalaghoz, a
+  listákhoz, a „Rendben"-hez és a kiléptetéshez.
+- Mindkettő P-256 SubjectPublicKeyInfo; a regisztráció és a csatlakozás
+  mindkettőt felküldi, és az aláíró kulccsal aláírja (K2). A `devices`
+  tábla új, egyedi oszlopa a `device_key`.
+- Egy ellopott **és feloldott** telefonon az eszközkulccsal a listák
+  láthatók és munkamenetek kiléptethetők; jóváhagyni, visszavonni,
+  eltávolítani és jelszót állítani ujjlenyomat nélkül nem lehet.
+
+### K2 — Az aláírt üzenetek bővülése (javaslat)
+
+- `foretack-enroll-v1` és `foretack-join-v1`: az aláíró kulcs sora után
+  egy új sor, az eszközkulcs base64(SPKI)-ja.
+- Új üzenet az eszköz-tokenhez, az **eszközkulccsal** aláírva:
+  `foretack-device-v1`, `<origin>`, `<deviceId>`, `<challenge>`.
+- Új üzenet a K4 műveleteihez, az **aláíró kulccsal** (ujjlenyomattal):
+  `foretack-action-v1`, `<origin>`, `<deviceId>`, `<challenge>`,
+  `<action>`, `<target>`. Az `action` a művelet neve (K4), a `target`
+  az érintett azonosító (vagy `-`).
+- A kihívás mindkettőnél a szerveré: egyszer használatos, 60 mp-ig él,
+  és csak annak az eszköznek szól, amelyik kérte (`challenges` tábla).
+
+### K3 — Eszköz-token (javaslat)
+
+- `POST /api/auth/device-challenges` (`deviceId`) → kihívás; utána
+  `POST /api/auth/device-tokens` (`deviceId`, `challenge`, aláírás) →
+  256 bites token, **15 percig** él. A DB csak a hash-ét tárolja.
+- A telefon `Authorization: Bearer <token>` és `X-Foretack-Client:
+  phone` fejléccel hív. Minden kérésnél ellenőrizzük, hogy az eszköz nincs
+  visszavonva és a fiók létezik: egy visszavonás azonnal hat.
+- Az eszköz `last_used_at` mezője tokenkéréskor frissül.
+
+### K4 — Mi kér ujjlenyomatot (javaslat)
+
+| Művelet (`action`) | `target` | Ujjlenyomat |
+|---|---|---|
+| QR-belépés (D4) | — | igen (`foretack-login-v1`) |
+| Csatlakozási kérelem jóváhagyása (`approveJoin`) | `<kérelem>:<new vagy userId>` | igen |
+| Eszköz visszavonása (`revokeDevice`) | `<deviceId>` | igen |
+| Tag eltávolítása (`removeUser`) | `<userId>` | igen |
+| Jelszó beállítása (`setPassword`) | `-` | igen |
+| Kódok újragenerálása (`regenerateRecoveryCodes`) | `-` | igen |
+| Szalag, listák, kiléptetés, „Rendben", elutasítás, átnevezés | — | nem (eszköz-token) |
+
+### K5 — A belépési kérés életútja (javaslat)
+
+- `pending` (60 mp) → `opened` (az app a K3-tokennel megnyitotta; az
+  utolsó megnyitástól 60 mp, H2) → `approved` (az aláírás után 60 mp-ig
+  váltható be) → beváltva. Lejárt kérés: `expired`.
+- Fiók nélküli app csatlakozásakor a kérés `joinPending` lesz, és **10
+  percig** él (D3). Ha közben az `owner` jóváhagyja, a következő
+  lekérdezéskor a böngésző az új (vagy a meglévő) tag sessionjét kapja.
+- A böngésző a kötő-cookie-val **POST**-tal kérdez (a beváltás ír, és a
+  `GET` nem ír, ADR 0047). Csak az a böngésző kap sessiont, amelyik a
+  kötő-cookie-t hordozza; a kérés ezzel elhasználódik.
+- A jóváhagyáskor rögzül a telefon kérésének IP-je és országa (a
+  gyanús-jelzéshez, K9).
+
+### K6 — Végpontok (javaslat)
+
+Web (session-cookie vagy kötő-cookie, `X-Foretack-Client: web` a
+módosító kéréseken):
+
+| Végpont | Mire |
+|---|---|
+| `POST /api/auth/login-requests` | új kérés; válasz: QR-szöveg, lejárat; kötő-cookie |
+| `POST /api/auth/login-requests/{id}/poll` | állapot; `approved`-nál session-cookie |
+| `POST /api/auth/fallback-login` | jelszó vagy helyreállító kód (A2b) |
+| `POST /api/auth/logout` | a session törlése, a cookie-k törlése |
+| `GET /api/auth/me` | név, szerep (sessionnel vagy eszköz-tokennel) |
+
+Telefon (`X-Foretack-Client: phone`):
+
+| Végpont | Hitelesítés |
+|---|---|
+| `POST /api/auth/enrollments` | a regisztrációs token + aláírás; válasz: fiók, eszköz, 10 kód |
+| `POST /api/auth/device-challenges`, `/device-tokens` | eszközkulcs (K3) |
+| `POST /api/auth/login-requests/{id}/open` | eszköz-token + a QR kihívása; válasz: böngésző, IP, hely |
+| `POST /api/auth/login-requests/{id}/approval` | aláíró kulcs (`foretack-login-v1`) |
+| `POST /api/auth/action-challenges` | eszköz-token; kihívás a K4-hez |
+| `POST /api/auth/join-requests` | aláíró kulcs (`foretack-join-v1`); válasz: kérelem + lekérdező token (A2b) |
+| `POST /api/auth/join-requests/{id}/status` | a lekérdező token (A2b) |
+| a K4 többi művelete, a listák, a szalag | eszköz-token (+ aláírás, ha a K4 kéri) (A2b) |
+
+### K7 — Kapcsolók és middleware (javaslat)
+
+- A szerver új, **kötelező** kapcsolói: `--origin` (kanonikus, az
+  üzenetekbe és a QR-ba kerül), `--auth-db`, `--auth-secret`. Az
+  opcionális `--geoip` nélkül a hely ismeretlen (A2b). Hitelesítés nélküli
+  üzemmód nincs, lokálisan is így fut.
+- Sorrend: naplózás → kivételfogó → kliensfejléc-őr → hitelesítés →
+  szerep → router. A web végpontjain a fejléc `web`, a telefonéin
+  `phone`.
+- Az `/api/*` az auth belépési végpontjain kívül session nélkül 401. A
+  `crew` az archívumból csak `GET`-et kap, az exportot nem (403).
+- A session a D5 szerint: 7 nap tétlenség, legfeljebb 90 nap; a
+  `last_seen_at` legfeljebb óránként íródik.
+
+### K8 — Próbálkozás-korlát (javaslat)
+
+- Memóriában, kulcsonként csúszó ablakkal (a D8 számai); a kliens IP-je
+  az `X-Forwarded-For` utolsó eleméből, de csak `127.0.0.1`-ről jövő
+  kérésnél.
+- 429-nél a válasz `TooManyAttempts` és `Retry-After`.
+
+### K9 — Belépési események és gyanús belépés (javaslat, A2b)
+
+- Minden új session egy eseményt ír (mód, IP, ország, város, böngésző).
+- Gyanús: minden tartalék-belépés, és az a QR-belépés, ahol a böngésző
+  és a jóváhagyó telefon országa ismert és eltér.
+- A szalag a nyugtázatlan, 30 napnál nem régebbi gyanús eseményeket
+  mutatja (az `owner`-nél mindenkiét, a `crew`-nál a sajátjait), plusz
+  az `owner`-nél a függő kérelmek számát.
+
+### K10 — Tartalék belépés (javaslat, A2b)
+
+- A beírt szöveg előbb helyreállító kódként próbálódik (ha a
+  `normalizeRecoveryCode` elfogadja), utána jelszóként. Egy hibás
+  próbálkozás egyszer számít.
+- Az idő nem árulhatja el, mi történt: jelszó nélküli fióknál is lefut
+  egy argon2id-ellenőrzés egy rögzített hash-sel.
+
+### K11 — A böngésző leírása és a hely (javaslat, A2b)
+
+- A User-Agentből saját, kis elemző: Chrome, Edge, Firefox, Safari,
+  Opera, illetve Windows, macOS, Linux, Android, iOS, ChromeOS. A
+  Windows-verzió a User-Agentből nem olvasható ki, ezért csak „Windows"
+  (a makett „Windows 11"-e így nem lesz).
+- `geoip.sqlite`: `ip_ranges(family, start, end, country, city)`, a
+  címek big-endian BLOB-ként, így IPv4-re és IPv6-ra ugyanaz a
+  lekérdezés. Egy `build_geoip` CLI építi a DB-IP Lite City CSV-ből.
+
+### K12 — Két rész (javaslat)
+
+Az A2 egyben kb. a kétszerese lenne a mostani legnagyobb szeletnek, és
+a review is ennyivel gyengébb lenne. Ezért két tarballban jön:
+- **A2a:** a K2 szerződés-változás, kihívások, eszköz-token, a regisztráció
+  végpontja (a 10 kóddal), a belépési kérés teljes útja, session,
+  kijelentkezés, `me`, a middleware-lánc, a próbálkozás-korlát, a
+  kapcsolók.
+- **A2b:** csatlakozás és legénység-kezelés, munkamenet-lista és
+  kiléptetés, szalag és nyugtázás, tartalék belépés, jelszó, kódok
+  újragenerálása, átnevezés, User-Agent és GeoIP.
+
+A hátralévő szeletek így: A2a, A2b, A3, A4, A5, S8.
+
+### K13 — Az `auth.sqlite` v1 új táblái (javaslat)
+
+`challenges`, `device_tokens`, `sessions`, `login_requests` (A2a);
+`join_requests`, `recovery_codes`, `login_events` (a `recovery_codes`
+már az A2a-ban, mert a regisztráció kódot ad). A `devices` új oszlopa a
+`device_key`. Éles adat nincs, ezért migráció nélkül (J7).
+
+## Addendum 4 — Az A2a részletei (2026-10-07)
+
+Az A2a kódjával együtt. Mind Claude javaslata („javaslat"); a
+felhasználó az A2a pusholásával hagyja jóvá, és az A2b előtt még
+visszavonhatók. Az Addendum 3-at nem írja felül, csak kitölti.
+
+### L1 — A szerződés (javaslat)
+
+- Új DTO-k a `race_archive_api`-ban: `AccountInfo`, `LoginRequestTicket`,
+  `LoginRequestStatus` (`pending`, `opened`, `joinPending`, `signedIn`,
+  `expired`), `BrowserLoginDetails`, `EnrollmentRequest`,
+  `EnrollmentResult`, `IssuedSecret` (kihívás vagy eszköz-token),
+  `SignedDeviceRequest`, és a `LoginMethod` (`qr`, `password`,
+  `recoveryCode`, a D7 munkamenet-sorához).
+- Az útvonalak az `auth_routes.dart`-ban; a K6 végpontjai közül az A2a a
+  `login-requests` (nyitás, `poll`, `open`, `approval`), az
+  `enrollments`, a `device-challenges`, a `device-tokens`, a `me` és a
+  `logout` végpontot hozza.
+- Az `action-challenges` az A2b-be kerül: csak a K4 műveletei
+  használják, azok pedig ott jönnek. A `challenges` tábla akkor kap egy
+  `purpose` oszlopot (éles adat előtt, migráció nélkül, J7).
+
+### L2 — Kódolás a dróton (javaslat)
+
+- A kulcs és az aláírás **szabványos base64**, csak a kanonikus alak (a
+  `biometric_signature` így adja, H5). A titkok (token, kihívás) a QR-hoz
+  hasonlóan base64url-ek, és a dekóder a hosszukat is nézi (32 bájt; a
+  kérés-azonosító 16).
+- Az eszköz neve és típusa a dekódoláskor a `normalizeDisplayName`
+  szerint egységesül (levágva, vezérlő- és láthatatlan karakter nélkül).
+- Az időpontok UTC epoch-milliszekundumban, mint az archívum többi
+  végpontján.
+
+### L3 — Két új hiba és a meglévők használata (javaslat)
+
+| Hiba | HTTP | Mikor | Az appban |
+|---|---|---|---|
+| `RequestExpired` (új) | 410 | a kérés, a kihívás vagy a token lejárt, elhasználódott vagy nincs | „Lejárt QR-kód" (H7) |
+| `DeviceRevoked` (új) | 403 | az eszköz vissza van vonva, vagy a szerver nem ismeri (pl. a tagot eltávolították) | 18d-5 |
+| `NotAuthenticated` | 401 | hibás aláírás, hiányzó vagy lejárt eszköz-token vagy session | új token / újra belépés |
+| `MalformedRequest` | 400 | nem P-256 kulcs, a két kulcs azonos, már regisztrált kulcs | — |
+
+### L4 — A kliensfejléc (javaslat)
+
+A `requireClientHeader` mindenhol a `web` és a `phone` értéket is
+elfogadja. A CSRF-védelem a fejléc puszta jelenlétéből jön (egy idegen
+oldal nem tehet egyedi fejlécet a kérésébe), ezért nem kell
+végpontonként szétválasztani.
+
+### L5 — A regisztráció (javaslat)
+
+- Sorrend: a két kulcs alakja → az aláírás (DB nélkül) → egy
+  tranzakcióban a token beváltása, a kulcsok egyedisége, a fiók, az
+  eszköz és a kódok. Egy elutasítás a tranzakciót visszagörgeti, így
+  egy hibás próbálkozás **nem égeti el a tokent**.
+- Egy kulcs csak egyszer lehet a rendszerben, akár aláíró, akár
+  eszközkulcsként; a két kulcs nem lehet azonos.
+- **Minden `owner`-regisztráció új 10 kódot ad, a régiek
+  érvénytelenek.** Az új telefon csak most mutathatja meg őket (18g), a
+  régieket pedig nem tudja.
+- Ha két, még név szerinti token közül a második akkor váltódik be,
+  amikor az `owner` már létezik, a telefon az ő új eszköze lesz (a token
+  csak a VPS-en adható ki, tehát az `owner`-é).
+- Egy más origóra kiadott token `RequestExpired`.
+
+### L6 — A belépési kérés (javaslat)
+
+- A `login_requests` sor a kihívást nyíltan tárolja (az ellenőrzés az
+  aláírt üzenetet ebből rakja össze; a QR-ban amúgy is nyilvános), a
+  kötő-tokennek csak a hash-ét. A beváltott kérés sora törlődik.
+- A megnyitáshoz eszköz-token **és** a QR kihívása kell: a telefon ezzel
+  bizonyítja, hogy a QR-t látta, nem csak az azonosítót. Hogy melyik
+  aktív telefon nyitja meg, az nem számít, és nem is rögzül.
+- A jóváhagyás `pending` és `opened` kérésre is mehet; egy kérés csak
+  egyszer hagyható jóvá. A jóváhagyás is frissíti az eszköz
+  `last_used_at`-ját.
+- A beváltáskor a jóváhagyó eszközt újra nézzük: ha közben visszavonták,
+  a böngésző nem kap sessiont (`expired`). Ha a böngészőnek már volt
+  sessionje, az a beváltáskor lezárul.
+- A `poll` egy ismeretlen, lejárt vagy más böngészőhöz kötött kérésre
+  `expired`-et ad (200), így egy idegen böngésző semmit nem tud meg. A
+  jóváhagyott kérést a következő `poll` váltja be: a web a jóváhagyást
+  nem látja külön állapotként, rögtön `signedIn`-t kap.
+- A böngésző IP-je, böngészője és OS-e a kérés nyitásakor rögzül; ezt
+  kapja a telefon a megnyitáskor. Ország és város az A2b-ig `null`.
+
+### L7 — Próbálkozás-korlát (javaslat)
+
+- IP-nként percenként 10, végpontonként külön számlálva: új belépési
+  kérés, megnyitás, jóváhagyás, regisztráció, eszköz-kihívás.
+- Az eszköz-token nincs külön korlátozva (kihívás nélkül nem kérhető);
+  a `poll` sem (kötő-cookie kell hozzá, és a web 1,5 mp-enként kérdez).
+- 429-nél `TooManyAttempts` és `Retry-After`, felfelé kerekített
+  másodpercben.
+
+### L8 — Session és cookie-k (javaslat)
+
+- `__Host-ft_session`: `Path=/`, `Secure`, `HttpOnly`, `SameSite=Strict`,
+  `Max-Age` 90 nap. A 7 nap tétlenséget a szerver érvényesíti, a
+  `last_seen_at` legfeljebb óránként íródik, így megújításkor új cookie
+  nem kell.
+- `__Host-ft_login` (kötő-cookie): ugyanígy, `Max-Age` 10 perc (a
+  `joinPending` miatt, A2b); a beváltáskor törlődik.
+- A `Secure` cookie-t a Chrome és a Firefox a `http://localhost`-on is
+  elfogadja, így a helyi próba HTTPS nélkül megy.
+- A kijelentkezés mindig `204`, és törli a cookie-t; a titkot hordozó
+  válaszok `Cache-Control: no-store`-ral mennek.
+- A `crew` az archívumból `GET`-et és `HEAD`-et kap.
+- Az archívum az A2a-ban csak sessionnel érhető el, eszköz-tokennel
+  nem. A `me`-nél ha van `Authorization` fejléc, az dönt: egy hibás
+  token nem esik vissza a cookie-ra.
+
+### L9 — Összekötés és takarítás (javaslat)
+
+- A `buildArchiveApiHandler` a fejléc-őr után a `/api/auth/` alatti
+  kéréseket az auth-routernek adja, minden mást a session-őrön át az
+  archívumnak. Az összekötést az `AuthApi` végzi; a szerver és a
+  HTTP-tesztek ugyanezt használják.
+- A lejárt kérések, kihívások, tokenek és sessionök sorait a szerver
+  10 percenként törli; egy takarítási hiba csak naplóba kerül. Az
+  ellenőrzések amúgy is az időt nézik, a takarítás csak a DB méretét
+  tartja kordában.
+
+### L10 — A szerver kapcsolói és kilépési kódjai (javaslat)
+
+- `--origin` csak kanonikus alakban (különben 64), `--auth-db` csak
+  létező fájlra (különben 66: a DB-t a `create_owner_enrollment` hozza
+  létre `0600`-s joggal, a szerver nem), `--auth-secret` olvashatatlan
+  fájlra 66, laza jogra vagy 32 bájtnál rövidebb tartalomra 78.
+- Az A1-gyel létrehozott `auth.sqlite`-ból hiányzik az új tábla és a
+  `device_key` oszlop: éles adat még nincs (J7), ezért törölni kell, és a
+  `create_owner_enrollment` újra létrehozza.
+
+### L11 — A kliens IP-je és a böngésző (javaslat)
+
+- Az `X-Forwarded-For` utolsó eleme csak loopbackről (`127.0.0.1`,
+  `::1`) jövő kérésnél számít, és csak ha valódi IP-cím.
+- A korlát kulcsa a teljes IP-cím, IPv6-nál is. Egy /64-es
+  előtag-kulcs erősebb lenne; ha a VPS-en IPv6-os visszaélés látszik,
+  külön döntés.
+- A próbálkozás-korlát 4096 kulcs fölött ablakonként legfeljebb egyszer
+  takarít, hogy sok cím mellett se fusson minden hívásnál.
+- A K11 User-Agent-elemzője már az A2a-ba kerül, mert a megnyitás
+  válasza (az ujjlenyomat-ablak alcíme) igényli. A GeoIP marad az A2b-ben.
+
+### Mit pontosít
+
+- **K3:** a jóváhagyás is frissíti a `last_used_at`-ot (L6).
+- **K5:** a jóváhagyás `pending` kérésre is mehet (L6).
+- **K6:** az `action-challenges` az A2b-be kerül (L1).
+- **K7:** a kliensfejléc értéke bárhol `web` vagy `phone` (L4); a `crew`
+  `HEAD`-et is kap (L8).
+- **K8:** a loopback a `::1` is (L11).
+- **K11:** a User-Agent-elemző az A2a része (L11).
+- **K13:** a `challenges` tábla `purpose` oszlop nélkül indul (L1).
+
+## Addendum 5 — Az A2b-1 részletei (2026-10-07)
+
+Az A2b-1 előtt. Az M1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. Az Addendum 3 K12 kettéosztását tovább
+bontja; a K-pontokat nem írja felül, csak kitölti.
+
+### M1 — Három döntés (felhasználói döntés)
+
+- **Az A2b két részben jön.** **A2b-1:** akció-kihívás, csatlakozás és
+  `joinPending`, legénység-kezelés, munkamenet-lista és kiléptetés,
+  átnevezés. **A2b-2:** tartalék belépés, jelszó, kódok újragenerálása,
+  belépési események és szalag, GeoIP és `build_geoip`. Az A2b-2
+  részletei egy rövid Addendum 6-ba kerülnek, az A2b-2 előtt. A
+  hátralévő szeletek: A2b-1, A2b-2, A3, A4, A5, S8.
+- **Átnevezés:** mindenki (az `owner` is) csak a saját nevét írhatja át.
+  Az `owner` a tagok nevét nem módosíthatja.
+- **Elutasítás = lejárat:** az elutasított csatlakozási kérelemre a
+  várakozó böngésző `expired`-et kap (17d-2), a telefon pedig a
+  lejárttal azonos `notApproved` állapotot („A kérelem nem lett
+  jóváhagyva"). Külön „Elutasítva" állapot és makett nincs.
+
+### M2 — Akció-kihívás (javaslat)
+
+- `POST /api/auth/action-challenges`, eszköz-tokennel → `IssuedSecret`
+  (60 mp, egyszeri, csak a kérő eszköznek). Korlát: IP-nként percenként
+  10, mint az eszköz-kihívásnál.
+- A `challenges` tábla `purpose` oszlopot kap (`deviceToken` |
+  `action`), CHECK-kel: egy eszköz-token kihívása nem írhat alá
+  műveletet, és fordítva.
+- A K4 műveleteinek törzse `SignedAction{challenge, signature}` (a
+  jóváhagyásnál + `memberId`). Az eszköz az eszköz-tokenből jön, ezért
+  a törzsben nincs `deviceId`.
+- Sorrend: eszköz-token → szerep és cél ellenőrzése (DB-olvasás) → a
+  kihívás elhasználása → aláírás az **aláíró** kulccsal a
+  `deviceActionMessage(origin, deviceId, challenge, action, target)`
+  üzenetre → a művelet. A kihívás az aláírás előtt elhasználódik, így
+  egy kihívásra egy próba jut (mint a K3-nál).
+
+### M3 — A csatlakozás (javaslat)
+
+- `POST /api/auth/join-requests` (`X-Foretack-Client: phone`, eszköz-
+  token nincs, a fiók nélküli app hívja). Törzs: `JoinRequest{requestId,
+  challenge, name, deviceName, model, publicKey, deviceKey, signature}`;
+  az aláírás az aláíró kulccsal a `joinRequestMessage`-re (J3, K2).
+- Ellenőrzés: a két kulcs alakja és különbözősége → aláírás (DB nélkül)
+  → egy tranzakcióban: a belépési kérés él, `pending` vagy `opened`, és
+  a kihívása egyezik; a kulcsok egyike sem szerepel eszközként vagy egy
+  élő, el nem döntött kérelemben; legfeljebb 5 élő, el nem döntött
+  kérelem van. Hiba esetén a belépési kérés nem változik.
+- Siker: új `join_requests` sor (24 óra), a belépési kérés `joinPending`
+  lesz, 10 percig él, és a kérelemre mutat. Válasz `201`
+  `JoinTicket{joinRequestId, statusToken, expiresAt}`; a lekérdező
+  tokennek csak a hash-e tárolódik.
+- Az 5 élő kérelem fölött `TooManyAttempts`, a `Retry-After` a
+  legkorábbi lejáratig hátralévő idő (legfeljebb 24 óra). IP-nként
+  óránként 3 kérelem (D8).
+- A név a `normalizeDisplayName` szerint (J3), és a dekóder ezt már
+  egységesíti. Egy név nem egyedi: két „Bence" is lehet.
+
+### M4 — A kérelem állapota a telefonon (javaslat)
+
+- `POST /api/auth/join-requests/{id}/status`, törzs `{statusToken}`.
+  Válasz `JoinRequestStatus`: `pending`; `approved` + `AccountInfo` +
+  `deviceId`; `notApproved` (elutasítva, lejárt, ismeretlen vagy rossz
+  token, M1).
+- Az `approved` választ a telefon a kérelem lejáratáig (24 óra) bármikor
+  újra lekérdezheti, ha egy hálózati hiba miatt elsőre nem kapta meg.
+- Korlát nincs külön (a 256 bites token nélkül semmit nem mond).
+
+### M5 — A böngésző `joinPending` alatt (javaslat)
+
+- A `poll` `joinPending`-et ad, amíg a kérelem el nem dől.
+- Jóváhagyáskor ugyanabban a tranzakcióban a belépési kérés `approved`
+  lesz a tag fiókjával és az új eszközzel (60 mp a beváltásra), a
+  `phone_ip` a kérelem IP-je. A következő `poll` a meglévő úton
+  (L6) váltja be: a tag `qr` módú sessiont kap.
+- Elutasításkor vagy ha a 10 perc letelt, a belépési kérés sora
+  törlődik, és a `poll` `expired`-et ad (M1).
+- Ha a böngésző már nem vár (a 10 perc letelt), a jóváhagyás ettől még
+  sikerül: a tag legközelebb csak beolvas.
+
+### M6 — A kérelmek kezelése (javaslat, csak `owner`)
+
+- `GET /api/auth/join-requests`, eszköz-tokennel → az élő, el nem
+  döntött kérelmek, a legújabb elöl: `PendingJoinRequest{id, name,
+  deviceName, model, ip, country, city, createdAt, expiresAt}`. Az
+  ország és a város az A2b-2-ig `null`.
+- `POST /api/auth/join-requests/{id}/approval`, törzs
+  `JoinApproval{memberId?, challenge, signature}`; `approveJoin`,
+  `target` = `<id>:new` vagy `<id>:<memberId>` (K4).
+  - `memberId` nélkül: új `crew` fiók a kérelem nevével.
+  - `memberId`-vel: a meglévő tag új eszköze; a tag régi eszközei
+    maradnak (D3), és a kérelem neve nem írja felül a tagét. Ha a cél
+    nem létező vagy `owner`: `NotAllowed` (H3).
+  - Az eszköz, a fiók, a kérelem és a belépési kérés változása egy
+    tranzakcióban történik. Ha közben a kulcsot más regisztrálta:
+    `MalformedRequest` (L3), a kérelem marad.
+  - Válasz `200`, a tag `MemberInfo`-ja (M8).
+- `POST /api/auth/join-requests/{id}/rejection`, eszköz-tokennel,
+  aláírás nélkül (K4) → `204`; a kérelem `rejected`, a belépési kérés
+  törlődik.
+- Ismeretlen, lejárt vagy már eldöntött kérelem: `RequestExpired`
+  (410), így az `owner` két telefonja nem dönthet kétszer.
+- A `crew` mindháromra `NotAllowed` (403).
+
+### M7 — Tagok és eszközök (javaslat)
+
+- `GET /api/auth/members`, eszköz-tokennel, csak az `owner`-nek (a
+  `crew` 18l-2-je csak a nevet mutatja, az a `me`-ből jön). Az `owner`
+  elöl, utána a tagok név szerint.
+- `MemberInfo{account, createdAt, devices}`, és az eszközök
+  `MemberDevice{id, name, model, createdAt, lastUsedAt?}`. Csak az
+  aktív eszközök látszanak; a visszavont eszköz sora csak a pontos
+  hibához marad meg (D10).
+- `POST /api/auth/devices/{id}/revocation`, `revokeDevice`, `target` =
+  `<deviceId>`. Csak az `owner`; bármely aktív eszközt visszavonhat, a
+  sajátjait is, **kivéve azt, amelyikről kéri** (H9: `NotAllowed`). A
+  `crew` nem von vissza: egy elveszett telefont az `owner` von vissza.
+- A visszavonás az eszköz eszköz-tokenjeit és az általa jóváhagyott
+  munkameneteket is törli: egy elveszett telefon így a vele nyitott
+  böngészőket is lezárja.
+- `POST /api/auth/members/{id}/removal`, `removeUser`, `target` =
+  `<userId>`. Csak az `owner`, és csak `crew` célra (H9); a fiók
+  törlése a DB külső kulcsain át visszaviszi az eszközeit, tokenjeit és
+  munkameneteit.
+- Ismeretlen cél vagy már visszavont eszköz: `RequestExpired`. A
+  sikeres művelet `204`.
+
+### M8 — Munkamenetek és kiléptetés (javaslat)
+
+- `GET /api/auth/sessions`, eszköz-tokennel. Az `owner` mindenkiét
+  látja, a `crew` csak a sajátjait; a legutóbb aktív elöl.
+- `WebSession{id, userId, userName, method, ip, browser?, os?, country?,
+  city?, createdAt, lastSeenAt}`. A gyanús-jelzés az A2b-2-ben jön (a
+  belépési eseményekből, K9).
+- `DELETE /api/auth/sessions/{id}`, eszköz-tokennel → `204`. A `crew`
+  csak a sajátját zárhatja (különben `NotAllowed`); egy már nem létező
+  munkamenet is `204` (két telefon egyszerre kiléptet).
+- A lejárt munkamenet nem látszik a listában, akkor sem, ha a
+  takarítás még nem törölte.
+
+### M9 — Átnevezés (javaslat)
+
+- `POST /api/auth/account/name`, eszköz-tokennel, törzs `{name}` → `200`
+  az új `AccountInfo`-val. Mindenki csak a sajátját (M1). A név a
+  `normalizeDisplayName` szerint; üresre vagy túl hosszúra
+  `MalformedRequest`.
+
+### M10 — Az `auth.sqlite` bővülése (javaslat)
+
+- Új tábla: `join_requests(id, status_digest, name, device_name, model,
+  public_key, device_key, ip, country, city, created_at_ms,
+  expires_at_ms, state, user_id?, device_id?)`. A `state` CHECK
+  `pending`/`approved`/`rejected`; a fiók és az eszköz külső kulcsa
+  `SET NULL`, mert egy jóváhagyott kérelem a tag eltávolítása után is
+  `notApproved` lehet.
+- A `login_requests` `state` CHECK-je `joinPending`-gel bővül, és új
+  `join_request_id` oszlopot kap (`SET NULL`).
+- A `challenges` `purpose` oszlopot kap (M2).
+- A sémaverzió marad 1 (J7). Egy helyi, A2a-val létrehozott
+  `auth.sqlite`-ot ezért törölni kell, és a `create_owner_enrollment`
+  újra létrehozza (mint az L10-nél).
+- A takarítás a lejárt kérelmeket is törli (a jóváhagyottakat és az
+  elutasítottakat is a 24 óra után).
+
+### M11 — Szerződés (javaslat)
+
+- Új DTO-k: `JoinRequest`, `JoinTicket`, `JoinRequestStatus` (`pending`,
+  `approved`, `notApproved`), `PendingJoinRequest`, `SignedAction`,
+  `JoinApproval`, `MemberInfo`, `MemberDevice`, `WebSession`, és a
+  kodekjeik az `auth_codecs.dart` mellett egy új fájlban.
+- Új útvonalak az `auth_routes.dart`-ban (új függvények, a meglévők nem
+  változnak). Új hiba nincs: a meglévők (L3, `NotAllowed`,
+  `TooManyAttempts`) lefedik az eseteket.
+
+### M12 — Korlátok és tesztek (javaslat)
+
+- Új limiterek az `AuthRateLimits`-ben: akció-kihívás (10/perc) és
+  csatlakozás (3/óra), IP-nként. A listák, a döntések és az átnevezés
+  eszköz-tokent kérnek, ezért nem kapnak külön korlátot.
+- A HTTP-tesztek a meglévő `AuthHarness`-t és `TestPhone`-t bővítik
+  egy aláírt-művelet segéddel. Lefedik a láthatóságot (`owner` /
+  `crew`), az önkizárást, a kétszeres döntést, a visszavonás hatását a
+  munkamenetekre, a csatlakozás teljes útját a böngésző `poll`-jával, és
+  a korlátokat.
+
+### Mit pontosít
+
+- **K4:** a csatlakozás, a visszavonás, az eltávolítás végpontjai és
+  `target`-jei (M6, M7); a `crew` nem von vissza eszközt (M7).
+- **K5:** a `joinPending` elutasításkor `expired` (M1, M5).
+- **K6:** a végpontok neve és törzse (M2–M9).
+- **K12:** az A2b kettéosztása (M1).
+- **K13:** a `join_requests` az A2b-1-ben, a `login_events` az
+  A2b-2-ben (M10).
+- **H9:** az önkizárás ellen a szerver az éppen kérő eszközt nem vonja
+  vissza, és `owner`-t nem távolít el (M7).
+
+## Addendum 6 — Az A2b-2 részletei (2026-10-07)
+
+Az A2b-2 előtt. Az N1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A K9–K11-et és a D6–D8-at tölti ki.
+
+### N1 — Négy döntés (felhasználói döntés)
+
+- **Csatlakozás csak `pending` belépési kérésre.** Ha egy regisztrált
+  telefon már megnyitotta (`opened`, 17c), a csatlakozás `RequestExpired`
+  (410, „Lejárt QR-kód"); a csatlakozó a következő QR-ral próbálja. Így
+  aki ugyanazt a QR-t látja, nem zavarhat meg egy folyamatban lévő
+  belépést. Felülírja az M3 „`pending` vagy `opened`" részét.
+- **A tartalék belépés várakozása a fiókra és IP-nként is él** (N3).
+  Egy támadó legfeljebb egy órára blokkolhatja a tartalékot; a
+  QR-belépés közben is megy.
+- **A szalag** a nyugtázatlan, 30 napnál nem régebbi gyanús belépéseket
+  mutatja (K9 szerint).
+- **GeoIP teljesen az A2b-2-ben:** `build_geoip` CLI és keresés a
+  szerveren; a VPS-es méret és a havi frissítés az S8-ban.
+
+### N2 — Tartalék belépés: a végpont (javaslat)
+
+- `POST /api/auth/fallback-login`, `X-Foretack-Client: web`, törzs
+  `{secret}` (jelszó vagy helyreállító kód, név nélkül, D6).
+- Siker: `200` + `AccountInfo` + `__Host-ft_session` cookie (a mód
+  `password` vagy `recoveryCode`); a böngésző korábbi sessionje lezárul,
+  mint a QR-belépésnél (L6).
+- Minden hiba **ugyanaz:** `401 NotAuthenticated`, azonos törzzsel. Nem
+  derül ki, hogy van-e jelszó, hogy kód volt-e, vagy hogy létezik-e
+  `owner`.
+- Az idő sem árulkodhat (K10): **minden** próbálkozás pontosan egy
+  argon2id-ellenőrzést futtat (az `owner` hash-ével, vagy ha nincs
+  jelszó vagy `owner`, egy rögzített hash-sel), és pontosan egy
+  kód-keresést (ha a szöveg kód alakú, a HMAC-hash-ével, különben egy
+  biztosan nem létező hash-sel). Siker, ha bármelyik egyezik; ha a
+  szöveg kód és egyezik, a kód elhasználódik (feltételes `UPDATE`, két
+  egyidejű beváltásból egy nyer).
+- A törzs legfeljebb 4 KiB, a szöveg legfeljebb 128 kódpont (a jelszó
+  felső korlátja, J4); hosszabbra is `401`, és az argon2id ekkor is
+  lefut (egy rögzített hash-sel), hogy az idő itt se különbözzön.
+
+### N3 — Tartalék belépés: a korlát (javaslat)
+
+- **IP-nként óránként 20** próbálkozás (sikeres is számít), D8.
+- **A fiókra:** 5 egymást követő hiba után minden újabb próbálkozás
+  előtt várni kell: 1, 2, 4, 8, 16, 32, majd 60 perc (felső korlát),
+  bármely IP-ről. Egy sikeres belépés nullázza. Mivel egy `owner` van,
+  ez egyetlen számláló.
+- A várakozás alatt a válasz `429 TooManyAttempts` + `Retry-After`, és
+  nem fut ellenőrzés (így a helyes jelszó sem enged be ilyenkor).
+- Memóriában (D8): a szerver újraindítása nullázza; ez elfogadott, mert
+  az újraindítás SSH-t kíván.
+
+### N4 — Jelszó és helyreállító kódok (javaslat, csak `owner`)
+
+- `POST /api/auth/account/password`, eszköz-tokennel, törzs
+  `{password, challenge, signature}`; `setPassword`, `target` = `-`
+  (K4). A jelszó `isAcceptablePassword` (12–128 kódpont, J4), különben
+  `MalformedRequest`; argon2id PHC-szöveg a `users.password_hash`-be, a
+  `password_set_at` most. Törölni nem lehet, csak cserélni (H9).
+- `POST /api/auth/account/recovery-codes`, eszköz-tokennel, törzs
+  `SignedAction`; `regenerateRecoveryCodes`, `target` = `-`. Válasz `201`
+  `{recoveryCodes: [10]}`, `no-store`; a régiek érvénytelenek.
+- `GET /api/auth/account/security`, eszköz-tokennel →
+  `AccountSecurity{passwordSetAt?, recoveryCodesLeft}` (18l: „beállítva:
+  <dátum>", „7/10").
+- A `crew` mindháromra `NotAllowed`.
+
+### N5 — Belépési események (javaslat)
+
+- Új tábla: `login_events(id, user_id, session_id?, method, ip, browser,
+  os, country, city, phone_country, is_suspicious, created_at_ms,
+  acknowledged_at_ms)`. A fiók törlése az eseményeit is viszi; a
+  munkamenet törlése után az esemény megmarad (`session_id` NULL).
+- Minden új session egy eseményt ír, ugyanabban a tranzakcióban.
+- **Gyanús** (K9): minden tartalék-belépés, és az a QR-belépés, ahol a
+  böngésző országa és a jóváhagyó telefon országa (a `phone_ip`-ből)
+  ismert és eltér. Csatlakozás utáni első belépésnél a telefon IP-je a
+  kérelemé (M5).
+- A takarítás a 30 napnál régebbi eseményeket törli.
+
+### N6 — Szalag és nyugtázás (javaslat)
+
+- `GET /api/auth/banner`, eszköz-tokennel → `LoginBanner{suspicious,
+  pendingJoinRequests}`. A `suspicious` a nyugtázatlan, ≤ 30 napos gyanús
+  események, a legújabb elöl (`owner`: mindenkié, `crew`: a sajátja);
+  elemenként `SuspiciousLogin{id, userId, userName, method, ip, browser?,
+  os?, country?, city?, createdAt, sessionId?}`. A `pendingJoinRequests`
+  az `owner`-nél az élő, el nem döntött kérelmek száma, a `crew`-nál 0.
+- `POST /api/auth/login-events/{id}/acknowledgement`, eszköz-tokennel →
+  `204`; az `owner` bármelyiket, a `crew` csak a sajátját (különben
+  `NotAllowed`); ismeretlen vagy már nyugtázott esemény is `204`.
+- Egy munkamenet kiléptetése (M8) a hozzá tartozó eseményt is
+  nyugtázza: a szalag „Kiléptetés" gombja (H8) így egy hívás.
+- A `WebSession` új mezője `isSuspicious` (a „Webes belépések" sorában a
+  figyelmeztető jel).
+
+### N7 — GeoIP: az adatbázis (javaslat)
+
+- `geoip.sqlite`: `ip_ranges(family INTEGER, start BLOB, end BLOB,
+  country TEXT, city TEXT)`, elsődleges kulcs `(family, start)`. A címek
+  big-endian bájtjai (IPv4 4, IPv6 16 bájt), így a BLOB-összevetés a
+  címek sorrendje. A keresés: a legnagyobb `start <= ip` sor a családban,
+  és ha a `end >= ip`, az a találat.
+- Az ország ISO 3166 kétbetűs kód (az app fordítja névre), a város a
+  DB-IP szövege; üres mező → `null`.
+- A fájlt a szerver csak olvassa (`sqlite3`, csak olvasható mód).
+
+### N8 — GeoIP: a `build_geoip` CLI (javaslat)
+
+- `dart run web_server:build_geoip --csv <dbip-city-lite-ÉÉÉÉ-HH.csv.gz>
+  --out <geoip.sqlite>`; a `.gz`-t maga bontja (`dart:io` `gzip`), sima
+  `.csv`-t is elfogad.
+- Az elvárt sor (DB-IP Lite City): `ip_start, ip_end, continent,
+  country, stateprov, city, latitude, longitude`, fejléc nélkül,
+  idézőjeles mezőkkel. **Más oszlopszám, érvénytelen cím, vegyes család
+  vagy fordított tartomány esetén leáll** (65), a sor számával: egy
+  formátumváltás így nem lesz csendben rossz hely.
+- Egy ideiglenes fájlba ír egy tranzakcióban, kötegelt beszúrással,
+  végül átnevezi; a meglévő `--out` csak a sikeres építés után cserélődik.
+  A kimenet: sorok száma családonként.
+- A DB-IP formátumát az első futás előtt egy valódi fájl első soraival
+  ellenőrizzük; ha eltér, ez a pont módosul.
+
+### N9 — GeoIP: a szerver (javaslat)
+
+- Új, opcionális kapcsoló: `--geoip <geoip.sqlite>`. Nélküle minden hely
+  `null` (ismeretlen), a szerver fut. **Megadva, de nem olvasható vagy
+  nem ilyen sémájú fájlnál a szerver nem indul** (66): egy elgépelt
+  útvonal így nem lesz csendes „ismeretlen hely".
+- Hol rögzül a hely: a belépési kérés nyitásakor (a böngésző országa és
+  városa; az `open` válaszában, az ujjlenyomat-ablak alcímében, H6), a
+  session létrejöttekor (`sessions.country`, `city`), a csatlakozási
+  kérelemnél (`join_requests.country`, `city`), és a jóváhagyó telefon
+  országa az eseményben (N5).
+- A `unknown` IP (L11) és a privát, loopback és link-local címek
+  keresés nélkül `null`.
+
+### N10 — Szerződés (javaslat)
+
+- Új DTO-k: `FallbackLogin{secret}` (redaktáló `toString`),
+  `PasswordChange{password, action}` (redaktáló), `IssuedRecoveryCodes`,
+  `AccountSecurity`, `LoginBanner`, `SuspiciousLogin`; a `WebSession`
+  `isSuspicious` mezővel (hiányzó kulcs = `false`).
+- Új útvonalak: `fallbackLoginPath`, `accountPasswordPath`,
+  `accountRecoveryCodesPath`, `accountSecurityPath`, `bannerPath`,
+  `loginEventAcknowledgementPath(id)`. Új hiba nincs.
+
+### N11 — Az `auth.sqlite` (javaslat)
+
+- Új tábla a `login_events`; a sémaverzió marad 1 (J7). A helyi
+  `auth.sqlite`-ot ezért újra törölni kell (mint az M10-nél).
+- A `geoip.sqlite` nem része az `auth.sqlite`-nak, és nincs a mentésben
+  (D10): újraépíthető.
+
+### N12 — Tesztek (javaslat)
+
+- A tartalék belépés: jelszó, kód (egyszer), rossz szöveg, jelszó nélküli
+  `owner`, nincs `owner`; azonos hibaválasz; a fiók-várakozás lépései az
+  órával (5 hiba után 1 perc, …, 60 perc felső korlát, nullázás
+  sikerkor); IP-korlát.
+- A jelszó és a kódok: csak `owner`, rossz aláírás, túl rövid jelszó,
+  újragenerálás után a régi kód nem jó.
+- Az események és a szalag: gyanús tartalék és országeltérés egy kis,
+  kézzel épített `geoip.sqlite`-tal; láthatóság; nyugtázás; a kiléptetés
+  nyugtáz; 30 nap után eltűnik.
+- A `build_geoip`: IPv4 és IPv6 sor, gzip, hibás sorok kilépési kóddal; a
+  keresés határesetei (tartomány eleje, vége, rés, másik család).
+
+### Mit pontosít
+
+- **M3:** csatlakozni csak `pending` belépési kérésre lehet (N1).
+- **D6, K10:** a tartalék belépés pontos menete (N2).
+- **D8:** a fiók-szintű várakozás lépései (N3).
+- **D7, K9:** a belépési események és a szalag (N5, N6); a kiléptetés
+  nyugtáz (N6).
+- **K11:** a `geoip.sqlite` és a `build_geoip` (N7, N8); a `--geoip`
+  hibás fájlra nem indul (N9).
+- **M8:** a `WebSession` `isSuspicious` mezőt kap (N6).
+
+### Pontosítás a valódi DB-IP fájl alapján (az A2b-2-vel)
+
+A felhasználó a `dbip-city-lite-2026-10.csv.gz`-t (86 MB) letöltötte, és
+megnézte az első sorait. Ez az N7–N8-at pontosítja:
+
+- A sorok formátuma egyezik az N8-cal (8 oszlop, fejléc nélkül), de **a
+  mezők csak szükség szerint idézőjelesek** (`"South Brisbane"`,
+  `Wenquan`), és az idézőjelen belül vessző vagy kettőspont is lehet
+  (`"San Diego (Mid-City:City Heights)"`). Ezért a CLI egy RFC 4180-es
+  sorolvasót használ, nem `split`-et.
+- A fenntartott tartományok országa `ZZ` (`0.0.0.0,0.255.255.255,ZZ,ZZ,,,0,0`):
+  ezt az építés ismeretlen országként tárolja.
+- Az `end` SQL kulcsszó, ezért a tábla oszlopai `range_start` és
+  `range_end`.
+- A CSV-ben az IPv4-be ágyazott IPv6 címek (`::ffff:a.b.c.d`) az IPv6
+  családban maradnak; csak a keresés bontja ki őket IPv4-re.
+
+A review alapján még:
+
+- **N3, párhuzamos próbálkozások:** a próbálkozást az ellenőrzés előtt,
+  szinkron le kell foglalni. Egyszerre legfeljebb annyi futhat, ahány hiba
+  még belefér az 5-be, a várakozás után pedig egyszerre egy. Különben egy
+  párhuzamos sorozat a hibák rögzítése előtt átjutna. A foglaltság miatt
+  elutasított próbálkozás `429`, 1 mp-es `Retry-After`-rel.
+- **N5:** egy 30 napnál régebbi, de még élő munkamenet (legfeljebb 90 nap)
+  eseménye már törlődött, ezért a „Webes belépések" sorában a gyanús-jel
+  nem látszik. Ez elfogadott: a szalag is csak 30 napot mutat.
+- **N8:** a `build_geoip` az ismétlődő tartomány-kezdetet elutasítja, az
+  egymást átfedő tartományokat nem ellenőrzi (a DB-IP ilyet nem ad). Egy
+  hibás gzip vagy UTF-8 65, egy nem írható kimenet 73.
+
+## Addendum 7 — Az A3 részletei: a web bejelentkezése (2026-10-07)
+
+Az A3 előtt. A P1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A makett 17a–17f (Addendum 1 H2, H4, H10,
+H12) mellé teszi, ami a makettben nincs.
+
+### P1 — Két döntés (felhasználói döntés)
+
+- **QR-rajzolás:** a `qr` csomag (4.0, kevmoo, csak a `meta`-tól függ)
+  kódol, a rajzolás egy saját `CustomPainter`. A `qr_flutter` 2023 óta nem
+  frissült, és a régi `qr ^3`-ra épül. Új külső függőség a webben: `qr`.
+- **Lejárt belépés munka közben:** bármely `401` után a web azonnal a
+  belépő képernyőre vált, egy halk sorral („A belépés lejárt"). Egy éppen
+  szerkesztett, el nem mentett verseny elvész; a mentés amúgy is `401`-et
+  kapna.
+
+### P2 — A munkamenet állapota és a kapu (javaslat)
+
+- `sessionProvider` (`AsyncNotifier<AccountInfo?>`): indításkor
+  `GET /api/auth/me`; `200` → a fiók, `401` → `null` (kijelentkezve).
+  Hálózati hiba → a meglévő hibasor („Nincs kapcsolat a szerverrel" +
+  ÚJRA), nem a belépő képernyő.
+- A kapu a `MaterialApp.builder`-ben áll, a navigátor fölött:
+  kijelentkezve a belépő képernyő a navigátor **helyett** látszik, így a
+  megnyitott képernyők (részletező, szerkesztő) is eltűnnek; belépés után
+  a napló indul újra. Betöltés alatt üres háttér és egy folyamatjelző.
+- A szerep a `sessionProvider`-ből jön (`isOwnerProvider`). A biztonság a
+  szerveren van (403), ez csak azt dönti el, mit mutat a web (H11).
+
+### P3 — A `401` bárhol (javaslat)
+
+- A HTTP-kliens egy vékony burok (`SessionAwareClient`): ha egy válasz
+  `401`, és a kérés nem a `/api/auth/` alá megy, a munkamenet `null` lesz
+  `expired` okkal. A belépő képernyő ekkor a P1 sorát mutatja.
+- A kijelentkezés (`POST /api/auth/logout`) után is `null`, de ok nélkül:
+  nincs halk sor.
+- Az `/api/auth/*` hívásai a saját válaszukat kezelik (pl. a tartalék
+  belépés `401`-e a 17e-2), ezért a burok nem nyúl hozzájuk.
+
+### P4 — A QR-belépés állapotai (javaslat)
+
+| Állapot | Mikor | Mit mutat |
+|---|---|---|
+| alap (17a) | új kérés után | QR, „Olvasd be a Foretack appal", 60 mp-es sáv és mono idő |
+| frissül (17b) | a 60 mp letelt | új kérés, 240 ms-os lefelé söprés (H10) |
+| megnyitva (17c) | a `poll` `opened` | „Erősítsd meg a telefonodon", név és eszköz **nélkül** (H2), „Vissza a QR-kódhoz" |
+| csatlakozás (17d-1) | a `poll` `joinPending` | „Kérelem elküldve", „A tulajdonos jóváhagyására vár", 10 perces mono visszaszámláló, név és eszköz **nélkül** (a H2 miatt), „Vissza a QR-kódhoz" |
+| lejárt (17d-2) | `expired` megnyitott vagy csatlakozó kérésnél | új QR, a felirat helyén „Lejárt — olvasd be újra" a következő frissítésig |
+| belépett | `signedIn` | a munkamenet beáll, a napló nyílik |
+
+- A böngésző 1,5 mp-enként kérdez (`POST …/poll`, a kötő-cookie-t a
+  böngésző küldi). A 60 mp-et és a 10 percet a web a válasz megérkezésétől
+  méri, nem a szerver `expiresAt`-jából: egy elcsúszott gépidő így nem
+  rontja el a visszaszámlálást. A kérés tényleges lejáratát a `poll`
+  mondja meg.
+- A „Vissza a QR-kódhoz" eldobja a kérést és újat nyit (H2).
+- Egy `poll` hálózati hibája nem állítja meg a lekérdezést; ha egymás után
+  háromszor elbukik, a felirat helyén „Nincs kapcsolat a szerverrel" áll,
+  amíg egy újabb `poll` sikerül.
+- A QR-kép csak a megnyitott oldalon él: a lap elhagyásakor (belépés,
+  tartalék-űrlap) a lekérdezés leáll.
+
+### P5 — A tartalék-űrlap (javaslat)
+
+- A 17a alján „Belépés jelszóval vagy helyreállító kóddal" link →
+  17e-1: egyetlen mező („Jelszó vagy helyreállító kód", rejtett szöveg,
+  jelszó-kitöltési jelöléssel), „Belépés" gomb, Enter is belép, „Vissza a
+  QR-kódhoz".
+- `401` → 17e-2: „Nem sikerült belépni", a mező piros kerete az egyetlen
+  piros; a mező kiürül.
+- `429` → 17e-3: a mező és a gomb 35%-on, tiltva; „Próbáld újra N perc
+  múlva" (a `Retry-After`, percre felfelé kerekítve, legalább 1, H10),
+  percenként csökken, a végén újra próbálható.
+- Hálózati hiba → „Nincs kapcsolat a szerverrel", a mező megmarad.
+- A beírt szöveg csak az űrlap állapotában él, a visszalépéskor törlődik.
+
+### P6 — A QR-kép (javaslat)
+
+- `QrCode(payload: QrPayload.fromString(qrText), errorCorrectLevel:
+  QrErrorCorrectLevel.medium)` → `QrImage`; a 260 körüli karakteres
+  szöveg kb. a 10-es verzió (57 modul).
+- 264 px-es mező, `onSurface` (`#F2F7FA`) alap, `surface` modulok (H12).
+  A modul mérete egész pixel (`floor((264 − 2·16) ÷ modulszám)`), a
+  maradék a csendes zónához adódik, és a kép középre kerül: a szkennernek
+  éles, egyforma modulok kellenek.
+- A QR-képhez képernyőolvasó-címke: „Belépési QR-kód".
+
+### P7 — Név-menü és szerepek (javaslat)
+
+- A napló AppBarja a H4 szerint: `owner`: váltó · Statisztika · Export ·
+  Új verseny · Feltöltés | név; `crew`: váltó · Statisztika | név. A név
+  előtt függőleges `outline` elválasztó.
+- A név-gomb egy `MenuAnchor`: 240 px-es panel (`surfaceContainerHigh`,
+  `outline` keret), benne a név, a szerep mono halkan (`TULAJDONOS` /
+  `LEGÉNYSÉG`), elválasztó, és „Kijelentkezés" ikonnal.
+- A `crew` elől rejtve a módosítás minden belépési pontja: Új verseny,
+  Feltöltés, Export, a részletező ceruzája, a kézi verseny törlése, az
+  üres eredmény szerkesztőt nyitó sora (13l) és az üres napló feltöltésre
+  hívó gombja.
+
+### P8 — Tesztek és lokális próba (javaslat)
+
+- Widget-tesztek `MockClient`-tel: indulás (`me` `200` / `401` / hálózati
+  hiba); a QR-állapotok a teszt órájával (`opened`, `joinPending`,
+  `expired`, `signedIn`, a 60 mp-es frissítés, a „Vissza"); a tartalék
+  `401` és `429` (percenkénti csökkenés); a `401` munka közben a belépő
+  képernyőre visz a halk sorral; kijelentkezés; a `crew` vezérlői; a
+  800 px-es `owner`-sor elfér (H4). A QR-painter egy egységtesztben a
+  modulméretet és a középre igazítást nézi.
+- A `__Host-` cookie `http://localhost:8080`-on (L8) a felhasználó
+  böngészős próbája; ha a böngésző elutasítja, egy fejlesztői kapcsoló
+  külön döntés.
+
+### Mit pontosít
+
+- **H2:** a 17d-1 sem mutat nevet és eszközt (P4).
+- **H10:** a visszaszámlálás a válasz megérkezésétől mér (P4).
+- **H11, D9:** a web szerep szerint rejt, és bármely `401` a belépő
+  képernyőre visz (P2, P3).
+- **D11:** a QR-rajzoló a `qr` csomag + saját painter (P1, P6).
+
+### Pontosítás a kód után (2026-10-07)
+
+Az A3 kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **P2:** a `sessionProvider` állapota egy sealed `SessionState`
+  (`SignedIn` a fiókkal, `SignedOut` az `isExpired` jelzővel), nem
+  `AccountInfo?`: a halk sorhoz az okot is hordozni kell. A szerep az
+  `isOwnerProvider`, a fiók azonosítója a `signedInUserIdProvider`. Az
+  archívum kliense az utóbbit figyeli, így fiókváltáskor (belépés,
+  lejárat, kijelentkezés) újraépül, és egy lejárat előtti `401` hibája
+  nem ragad be a következő belépésre.
+- **P3:** a `SessionAwareClient` az archívum kliensén ül, a hitelesítés
+  kliense nem kapja. A feltöltés a böngésző `XMLHttpRequest`-jén megy,
+  ezért a feltöltő saját burkot kap. Az export rejtett `<a download>`-dal
+  tölt le: ennek `401`-ét a web nem látja, a böngésző letöltés-sávja
+  sikertelen letöltésként mutatja (mint a `409`-et, ADR 0050 G2).
+- **P4:** ha egy új belépési kérés nem nyitható (hálózat vagy
+  szerverhiba), a QR helyén „Nincs kapcsolat a szerverrel" áll, és a web
+  5 mp múlva újra próbál, `429`-nél a `Retry-After` után. A
+  visszaszámlálás másodperces ütemekből áll, nem a gép órájából; egy
+  háttérbe tett lapon a böngésző ritkítja az ütemeket, de a kérés valódi
+  lejáratát úgyis a `poll` mondja meg. Egy senki által be nem olvasott,
+  a szerver szerint lejárt QR jelzés nélkül cserélődik.
+- **P5:** egy szerverhiba (nem `401` és nem `429`) is „Nincs kapcsolat a
+  szerverrel"; a beírt szöveg ilyenkor megmarad.
+- **P7:** ha a kijelentkezés nem éri el a szervert, a web belépve marad,
+  és egy snackbar szól („Nem sikerült kijelentkezni. Próbáld újra."): a
+  session-cookie `HttpOnly`, a web nem tudja törölni, és egy idegen gépen
+  a kijelentkezett kép félrevezető lenne. A `crew` az üres naplóban
+  feltöltésre hívás nélküli szöveget kap. Az üres eredmény sora nála is
+  látszik, de nem nyit szerkesztőt. 960 px-nél keskenyebb ablakban a
+  név-gomb egy 36 px-es ikon (a név a tooltipben és a panel fejében),
+  hogy a tulajdonos sora 800 px-en is elférjen (H4); szélesebben a név
+  látszik, 160 px-nél levágva.
+- **P8:** a telefon nélküli helyi próbához a
+  `tools/dev/foretack_dev_phone.py` (csak fejlesztéshez, a szerverbe és
+  a telefonra nem kerül): a `create_owner_enrollment` QR-szövegével
+  tulajdonosként regisztrál és kiírja a 10 helyreállító kódot, egy webes
+  belépési QR-t (szövegként vagy a `zbarimg`-mel képből) pedig megnyit és
+  jóváhagy. A kulcsai egy `0600`-s helyi fájlban vannak, ujjlenyomat
+  nélkül, ezért éles szerveren nem használható.
+
+## Addendum 8 — Az A4 részletei: regisztráció, belépés, csatlakozás a telefonon (2026-10-07)
+
+Az A4 előtt. A V1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A makett 18a–18g (Addendum 1 H1, H5–H7,
+H11, H12) mellé teszi, ami a makettben nincs. A kezelő képernyők
+(18a-2, 18h–18l) az A5-ben jönnek.
+
+### V1 — Négy döntés (felhasználói döntés)
+
+- **Fiók-csere más origóra:** ha egy regisztrált telefon egy más
+  origójú regisztrációs QR-t (`foretack-enroll:`) olvas be, az app
+  megerősítést kér („Ez a telefon a localhost:8080-on van regisztrálva.
+  Lecseréled erre: archivum.example.hu?"). Igenre törli a helyi
+  fiókadatot és a két kulcsot, és újakkal regisztrál. Belépési QR-ral
+  ez sosem történik meg (az a 18d-3 hibát adja). Több szerver
+  párhuzamos kezelése v1-ben nincs.
+- **A fiók tára: saját JSON-fájl** az app privát könyvtárában (V3), új
+  függőség nélkül. Nem a versenyek Drift-DB-jében: egy fiók-csere vagy
+  egy visszavont eszköz takarítása versenyt nem érinthet.
+- **QR-olvasás: `mobile_scanner`, beépített ML Kit** (az alapérték):
+  +3–10 MB APK, de a beolvasás az első alkalommal is Play
+  Services-letöltés nélkül megy.
+- **Két rész + dev-szkript:** az **A4a** a függőségeket, a
+  `FlutterFragmentActivity`-t, a kliensréteget, az eszköz-tokent, a
+  regisztrációt a kódokkal és a QR-belépést hozza; az **A4b** a
+  csatlakozást. A `tools/dev/foretack_dev_phone.py` az A4b-ben
+  `join-requests`, `approve-join` és `reject-join` parancsot kap, így a
+  csatlakozás az A5 (a tulajdonos kezelő képernyői) előtt is végig
+  kipróbálható.
+
+### V2 — Függőségek és platform (javaslat)
+
+- Új függőségek az `apps/phone`-ban: `biometric_signature: ^13.2.0`
+  (H5), `mobile_scanner: ^7.4.2`, `http: ^1.2.2` (a webével azonos),
+  `device_info_plus: ^13.3.0`, és a `race_archive_api` (pure Dart, a
+  D11 szerint megengedett irány).
+- A `MainActivity` `FlutterFragmentActivity`-re vált (H5), egy önálló
+  `refactor(phone)` commitban, amely előtt DB-mentés, utána Pixel
+  smoke-teszt (élő verseny, rögzítés, óra) jön: egy hibás váltás a
+  versenyfunkciókat is érintené.
+- A manifest `CAMERA` engedélyt kap; a `mobile_scanner` futásidőben
+  kéri. Megtagadott engedélynél a beolvasó helyén: „A beolvasáshoz
+  kamera-engedély kell" + „Újra" és „Bezárás". A rendszer-beállítások
+  megnyitásához nem veszünk fel újabb csomagot.
+- A `minSdk` marad `flutter.minSdkVersion` (Flutter 3.41-en 24); a
+  `biometric_signature` 23-at, a többi legfeljebb 24-et kér.
+- A szerver felé menő HTTP a `dart:io` kliensén megy, amely az Android
+  Network Security Config-ját nem nézi, így a `http://localhost:8080`
+  (`adb reverse`) fejlesztői próba cleartext-beállítás nélkül megy. A
+  Pixel-próbán ellenőrizendő.
+
+### V3 — A fiók tára (javaslat)
+
+- Fájl: `web_account.json` a `getApplicationSupportDirectory()` alatt
+  (a `path_provider` már függőség). Tartalom:
+  `{"version":1,"origin","userId","name","role","deviceId"}`, és ha van,
+  `"pendingJoin":{"origin","joinRequestId","statusToken","expiresAt",
+  "name"}` (V9).
+- Írás: ideiglenes fájlba, utána `rename` (atomi csere); egy félbemaradt
+  írás nem hagy fél fájlt.
+- Olvasás: hiányzó fájl → nincs fiók. Olvashatatlan JSON vagy ismeretlen
+  `version` → nincs fiók, egy naplósorral; az app nem omlik össze, és a
+  következő regisztráció vagy csatlakozás felülírja (a kulcsokat is
+  újakra cseréli, V4).
+- A `statusToken` titok, de rövid életű (24 óra) és csak a kérelem
+  állapotát adja; a fájl app-privát, ezért külön titkosítás nem kell.
+- Egy `WebAccountStore` (olvas, ír, töröl) interfész mögött; a teszt
+  ideiglenes könyvtárral fut, és ellenőrzi, hogy a törlés csak ezt a
+  fájlt érinti.
+
+### V4 — A két kulcs (javaslat, a H5 és a K1 szerint)
+
+- Aliasok: `foretack-web` (aláíró: `requireAuthentication: true`,
+  `setInvalidatedByBiometricEnrollment: false`, `enforceBiometric:
+  false`, `useDeviceCredentials: false`) és `foretack-device` (csendes:
+  `requireAuthentication: false`). Mindkettő `SignatureType.ecdsa`,
+  a kulcs `KeyFormat.base64` (SPKI DER), az aláírás DER base64.
+- Regisztráció és csatlakozás előtt az app mindkét aliast törli és
+  újra létrehozza: egy korábbi, félbemaradt próbálkozás kulcsa így nem
+  maradhat meg egy új fiók mellett.
+- A plugin hívásai függvény-`typedef`-ek mögött vannak (kulcs
+  létrehozása, aláírás ujjlenyomattal, csendes aláírás, kulcsok
+  törlése), így a folyamatok Keystore nélkül, tesztben is futnak (D13).
+- A `keyNotFound` / `keyInvalidated` a 18d-5 panelt adja (H5, H7).
+
+### V5 — A beolvasás útválasztása (javaslat)
+
+A `decodeQrPayload` eredménye és a helyi állapot dönt:
+
+| Beolvasott | Helyi állapot | Mi történik |
+|---|---|---|
+| `notForetack` / `malformed` | bármi | „Ez nem Foretack-kód" (H7) |
+| `unsupportedVersion` | bármi | „Frissítsd a Foretack appot" (J2) |
+| belépési QR | fiók, azonos origó | QR-belépés (V6) |
+| belépési QR | fiók, más origó | 18d-3, mono hosttal |
+| belépési QR | nincs fiók, élő `pendingJoin` | a meglévő kérelem 18e-2-je (nem küld újat) |
+| belépési QR | nincs fiók | csatlakozás, 18e (A4b) |
+| regisztrációs QR | nincs fiók | regisztráció, 18f (V8) |
+| regisztrációs QR | fiók, más origó | megerősítés, majd csere (V1) |
+| regisztrációs QR | fiók, azonos origó | megerősítés („Új regisztráció. A régi eszköz a szerveren aktív marad, amíg vissza nem vonod."), majd új kulcsokkal regisztrál |
+
+- Az útválasztás egy pure függvény (bemenet: a dekódolt QR és a helyi
+  fiók), táblateszttel.
+- A beolvasó (18b) csak QR-formátumot keres, az első érvényes találatnál
+  megáll, és rezeg (`HapticFeedback`, csomag nélkül).
+
+### V6 — A QR-belépés (javaslat)
+
+1. Eszköz-token (V7), majd `POST …/{id}/open` a QR kihívásával →
+   `BrowserLoginDetails`.
+2. Ujjlenyomat-ablak a H6 szerint: „Belépés a Foretack webre" /
+   „Chrome · Linux · Budapest, HU" (a hiányzó részek kimaradnak).
+3. `loginApprovalMessage` aláírása az aláíró kulccsal →
+   `POST …/{id}/approval`.
+4. Siker: a beolvasó bezárul, a főképernyőn 4 mp-es snackbar (18d):
+   „Belépve a webre" + a mono böngészősor.
+
+Hibák a beolvasó alsó paneljén (18d-2…5, H7):
+
+| Hiba | Panel |
+|---|---|
+| `410 RequestExpired` | „Lejárt QR-kód" |
+| `403 DeviceRevoked`, `keyNotFound`, `keyInvalidated` | 18d-5 |
+| `429 TooManyAttempts` | „Próbáld újra N perc múlva" (percre felfelé, legalább 1) |
+| hálózat, időtúllépés (10 mp) | 18d-4 |
+| más szerverhiba | 18d-4 szövegével |
+
+- Ha a felhasználó az ujjlenyomat-ablakot elveti, a beolvasó csendben
+  bezárul (H6).
+
+### V7 — Eszköz-token (javaslat)
+
+- `POST /api/auth/device-challenges` → `foretack-device-v1` aláírása a
+  csendes kulccsal → `POST /api/auth/device-tokens`. A token csak
+  memóriában él, 15 percig; az app a lejárat előtt 1 perccel, vagy egy
+  `401` után egyszer újat kér.
+- A kérés minden módosító hívásnál `X-Foretack-Client: phone`, a
+  tokennel `Authorization: Bearer …` (K3).
+
+### V8 — A regisztráció (javaslat, A4a)
+
+- 18f: a QR után az app elkészíti a kulcsokat (V4), aláírja az
+  `enrollmentMessage`-et (ujjlenyomat, H6 „Telefon regisztrálása" / a
+  szerver hostja), és `POST /api/auth/enrollments`.
+- Eszköznév és típus a `device_info_plus`-ból: `deviceName` = a
+  `model` („Pixel 8"), `model` = `manufacturer` + `model` („Google
+  Pixel 8"); mindkettő a `normalizeDisplayName`-en át, üresnél
+  „Android".
+- A fiók csak a szerver sikeres válasza után íródik a tárba. Hibánál
+  nincs fiók; a token egy elutasított próbálkozásnál nem ég el (L5),
+  így ugyanaz a QR 15 percen belül újra beolvasható. Ha a szerver
+  beváltotta, de a válasz elveszett, új QR kell a CLI-ből.
+- 18g: a 10 kód csak memóriában, két oszlopban, `numeralMicroStyle`
+  (H12); „Másolás" a vágólapra teszi mind a tizet, „Elmentettem" zárja
+  le; vissza-gomb és vissza-gesztus nincs (`PopScope`). Ha az app
+  közben bezárul, a kódok elvesznek: újakat az A5 „Fiók és biztonság"
+  képernyője vagy a CLI-s újraregisztráció ad.
+
+### V9 — A csatlakozás (javaslat, A4b)
+
+- 18e: a szerver hostja mono, egy névmező (`normalizeDisplayName`,
+  1–40 kódpont), „Kérelem küldése" → kulcsok (V4) → ujjlenyomat (H6:
+  „Csatlakozás a Lola archívumához" / host) → `POST
+  /api/auth/join-requests`.
+- A `JoinTicket` a `pendingJoin`-ba kerül (V3), utána 18e-2:
+  „Kérelem elküldve", név, telefon, a 24 órás lejárat mono
+  visszaszámlálással.
+- Az app a `…/status`-t 5 mp-enként kérdezi, amíg a 18e-2 nyitva van,
+  és indításkor, ha van élő `pendingJoin`.
+  - `approved`: a fiók a válaszból (`AccountInfo`, `deviceId`) a tárba
+    kerül, a `pendingJoin` törlődik, az app a főképernyőre vált.
+  - `notApproved` vagy lejárt `pendingJoin`: a `pendingJoin` és a két
+    kulcs törlődik; egy panel: „A kérelmet nem hagyták jóvá, vagy
+    lejárt." + „Bezárás".
+- A küldés hibái: `410` → „Lejárt QR-kód" (a belépési kérés már nem
+  `pending`, N1); `429` → „Próbáld újra N perc múlva"; hálózat → 18d-4.
+- A 18d-5 „Csatlakozás kérése" gombja (`crew`) törli a fiókot és a
+  kulcsokat, és újra a beolvasót nyitja: a csatlakozáshoz egy friss
+  belépési QR kell. Az `owner`-nél a gomb helyett a „Regisztráld újra a
+  szerveren (CLI)" sor áll (H7).
+
+### V10 — Hol látszik az A4-ben (javaslat)
+
+- A főképernyő AppBarjában a QR-ikon a debug-ikonok előtt (H1). A ⋮
+  menü és a szalagok az A5-tel jönnek; az A4-ben nincs mit mögéjük
+  tenni.
+- A szerep és a név az A4-ben a tárból jön; a `GET /api/auth/me`-vel
+  való frissítés (H11) a szalaggal együtt az A5-ben.
+- A versenyfunkciók a fióktól függetlenek maradnak (H11): a
+  `web_access` feature egyetlen versenyes providert sem olvas és ír.
+
+### V11 — Rétegek (javaslat)
+
+- `apps/phone/lib/features/web_access/`: `data/` (a HTTP-kliens a
+  `race_archive_api` kodekjeivel, a JSON-tár, a plugin-adapterek),
+  `application/` (Riverpod: fiók, eszköz-token, a belépés, regisztráció
+  és csatlakozás folyamata), `presentation/` (18b–18g).
+- A folyamatok a V4 `typedef`-jeit és egy `http.Client`-et kapnak;
+  tesztben `MockClient` és hamis aláíró. A domain nem változik (D11).
+- A szövegek az app ARB-jében (H6, H7 és a V-pontok szövegei).
+
+### V12 — A dev-szkript bővítése (javaslat, A4b)
+
+- `join-requests`: a függő kérelmek listája (`GET
+  /api/auth/join-requests`).
+- `approve-join <id> [--member <userId>]`: akció-kihívás →
+  `deviceActionMessage` (`approveJoin`, `joinApprovalTarget`) →
+  `POST …/approval`.
+- `reject-join <id>`: `POST …/rejection`.
+- Továbbra is csak fejlesztéshez; a tulajdonosi állapot ugyanaz a
+  `0600`-s fájl.
+
+### V13 — Tesztek és próba (javaslat)
+
+- Egységtesztek: a V5 útválasztás táblája; a JSON-tár (hiányzó,
+  hibás, ismeretlen verzió, atomi írás, a törlés csak a saját fájlt
+  érinti); a kliens `MockClient`-tel (fejlécek, kodekek, hibák
+  leképezése); a V6–V9 folyamatai hamis kulcsműveletekkel (ujjlenyomat
+  elvetése, `keyNotFound`, `410`, `403`, `429`, hálózat).
+- Widget-tesztek: 18e-2 lekérdezése teszt-órával (`approved`,
+  `notApproved`); 18g vissza nélkül; a hibapanelek szövegei.
+- Pixel-próba: `adb reverse tcp:8080 tcp:8080`, origó
+  `http://localhost:8080`; regisztráció a CLI QR-jával, belépés a webre,
+  visszavonás (`revoke_device`) → 18d-5, csatlakozás a dev-szkript
+  jóváhagyásával. A YDWG Wi-Fi-jén egy belépés-próba (a szerver felé
+  menő kérés a mobilneten megy-e, és az NMEA-kapcsolat nem szakad-e meg).
+
+### Mit pontosít
+
+- **H1:** a ⋮ menü az A5-tel jelenik meg (V10).
+- **H5:** két alias (`foretack-web`, `foretack-device`, K1), és a
+  kulcsok minden regisztráció és csatlakozás előtt újak (V4).
+- **H7:** a 18d-5 „Csatlakozás kérése" a beolvasót nyitja, mert a 18e
+  egy friss belépési QR-t igényel (V9).
+- **D11:** a fiókadat helye egy app-privát JSON-fájl (V3); a QR-olvasó
+  a `mobile_scanner` beépített ML Kit-tel (V1).
+
+### Pontosítás a kód után (A4a, 2026-10-07)
+
+Az A4a kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **V2:** a `mobile_scanner` saját manifestje is hozza a `CAMERA`
+  engedélyt; az app manifestjében mégis kiírjuk, hogy a jogosultság a
+  repóban látszódjon. A beolvasó az alapértelmezett (`normal`)
+  felismerési sebességgel fut: a `noDuplicates` egy „Újra" után
+  ugyanazt a kódot nem adná újra; a második találatot az app maga szűri.
+- **V4:** a plugin a kulcsot és az aláírást nyers DER-ként adja
+  (`KeyFormat.raw`, `SignatureFormat.raw`), így nincs base64-kör. A
+  plugin hibakódjai (az aláíró kulcs létrehozása előtt az app
+  megnézi, van-e beállított ujjlenyomat, mert a Keystore különben
+  általános hibát adna): elvetett vagy a rendszer által megszakított ablak →
+  csendes bezárás; `keyNotFound` / `keyInvalidated` → 18d-5; nincs
+  ujjlenyomat vagy képernyőzár → „Nincs beállított ujjlenyomat"; zárolt
+  érzékelő → „Az ujjlenyomat zárolva"; minden más → „Nem sikerült
+  aláírni". Ez a három panel a 18d-2 mintáját követi.
+- **V5:** az A4b-ig egy fiók nélküli telefon belépési QR-ja egy
+  ideiglenes panelt kap („Ez a telefon nincs regisztrálva"); az A4b a
+  csatlakozással cseréli.
+- **V6:** a megnyitás egy `401` után egyszer új eszköz-tokennel
+  újrapróbál; a második `401` és bármely `NotAuthenticated` a 18d-5
+  panelt adja (a szerver nem fogadja el a telefon kulcsát). A
+  regisztráció hibái tulajdonosként jelennek meg (regisztrációs QR-t
+  csak a tulajdonos kap); egy lejárt regisztrációs kódnál a panel a
+  szerveren kért új kódra utal, nem a weboldalra. Egy váratlan
+  platformhiba (pl. a plugin csatornája) a „Nem sikerült aláírni"
+  panelt adja, hogy a beolvasó ne ragadjon a folyamatjelzőn. A siker
+  snackbarja lebegő, `surfaceContainerHigh` alapon (az M3 alapja világos
+  lenne a sötét témában).
+- **V8:** a fiók-csere dialógusa alatt a kamera áll, és nincs
+  folyamatjelző a dialógus mögött. A megerősítés után a régi helyi fiók
+  és a kulcsok azonnal törlődnek; ha utána az ujjlenyomat-ablakot
+  elveti, vagy a szerver elutasít, a telefon fiók nélkül marad, és
+  ugyanaz a QR 15 percen belül újra beolvasható.
+- **V9:** a 18d-5 „Csatlakozás kérése" gombja már az A4a-ban törli a
+  helyi fiókot és a kulcsokat, és újra a beolvasót nyitja.
+
+## Addendum 9 — Az A4b részletei: a csatlakozás a telefonon (2026-10-08)
+
+Az A4b előtt. Az X1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A V9 (Addendum 8) és a 18e/18e-2 makett
+mellé teszi, ami a kód előtt kérdés volt.
+
+### X1 — Három döntés (felhasználói döntés)
+
+- **A QR 60 mp-e:** a fiók nélküli telefon nem nyitja meg a belépési
+  kérést (N1: csatlakozni csak `pending` kérésre lehet), ezért a kérés a
+  létrehozásától 60 mp-ig él, és a web a visszaszámlálás végén új QR-t
+  kér. A tagnak a beolvasástól átlagosan kb. 30 mp jut a névre és az
+  ujjlenyomatra. Ha kifut (`410`), a beírt név megmarad, és egy friss
+  QR beolvasása után az app űrlap nélkül, rögtön az ujjlenyomatot kéri
+  (X2). A szerver nem változik; a „foglaló" végpont (a kérés
+  meghosszabbítása a fiók nélküli telefonról) elvetve.
+- **A 18e-2 bezárása után:** az app induláskor és előtérbe jövéskor
+  egyszer, csendben lekérdezi a függő kérelmet, és a döntést egy
+  snackbar jelzi (X3).
+- **A névmező:** üres, autofókusszal; a telefon nevéből nem töltjük
+  elő (az Android-eszköznév többnyire a modell, nem személynév).
+
+### X2 — A név megőrzése (javaslat)
+
+- A 18e-ben beírt (normalizált) név a küldés előtt egy memóriabeli
+  „vázlatba" kerül (Riverpod, az app élettartamára; fájlba nem). A
+  vázlat sikeres küldés (18e-2) után törlődik; az app újraindítása is
+  törli.
+- A küldés bármely hibája (`410`, `429`, hálózat, foglalt kulcs)
+  megtartja a vázlatot. A `410` panelje a csatlakozásnál: „Lejárt
+  QR-kód" / „Olvasd be újra a QR-kódot; a neved megmaradt." + „Újra".
+- Fiók és `pendingJoin` nélkül, élő vázlattal egy belépési QR a 18e
+  helyett azonnal a kulcsokat és az ujjlenyomatot kéri, a vázlat
+  nevével.
+- Az elvetett ujjlenyomat a 18e-t mutatja (vázlatnál a vázlat nevével,
+  ott javítható), nem csendes bezárás, mert a felhasználó itt már adatot
+  írt be.
+
+### X3 — Lekérdezés a főképernyőn (javaslat)
+
+- A 18e-2 nyitva: 5 mp-enként (V9). Bezárva: a főképernyő indításkor és
+  minden `resumed` életciklus-váltáskor egyszer kérdez, ha van élő
+  `pendingJoin`; időzítő a 18e-2-n kívül nincs.
+- `approved`: a fiók a tárba, a `pendingJoin` törlődik, snackbar
+  „Csatlakoztál a Lola archívumához" (a 18e-2-ről is, a főképernyőre
+  váltás után).
+- `notApproved` vagy lejárt `pendingJoin` (az `expiresAt` a telefon
+  órája szerint elmúlt): a `pendingJoin` és a két kulcs törlődik,
+  snackbar „A csatlakozási kérelmet nem hagyták jóvá, vagy lejárt."
+  (a 18e-2-n a V9 panelje).
+- `pending`, hálózati hiba, szerverhiba: csend (H11); a következő
+  indításkor újra.
+- A lekérdezés a `web_access` feature-ben él; a főképernyő csak egy
+  figyelő widgettel köti be, versenyes providert nem érint (V10).
+
+### X4 — A fiók-fájl alakja (javaslat, a V3 pontosítása)
+
+- A `web_account.json` vagy egy fiókot, vagy egy `pendingJoin`-t hord,
+  egyszerre sosem: `{"version":1,"origin","userId","name","role",
+  "deviceId"}` vagy `{"version":1,"pendingJoin":{"origin",
+  "joinRequestId","statusToken","expiresAt","name"}}`. Mindkettő együtt
+  → olvashatatlan (nincs fiók, naplósor, V3). A `version` marad 1.
+- A `pendingJoin` a `deviceName`-et nem tárolja: a 18e-2 „Telefon"
+  sora újra az eszközadatból jön (V8). Az „Elküldve" sor a
+  `expiresAt − 24 óra`.
+
+### X5 — Az útválasztás bővítése (javaslat, a V5 pontosítása)
+
+| Beolvasott | Helyi állapot | Mi történik |
+|---|---|---|
+| belépési QR | `pendingJoin`, azonos origó | a meglévő kérelem 18e-2-je |
+| belépési QR | `pendingJoin`, más origó | 18d-3 a függő kérelem hostjával |
+| belépési QR | nincs fiók, élő vázlat | ujjlenyomat a vázlat nevével (X2) |
+| belépési QR | nincs fiók | 18e (A4b; az A4a ideiglenes panelje megszűnik) |
+| regisztrációs QR | `pendingJoin` | regisztráció megerősítés nélkül; a függő kérelem és a kulcsok törlődnek |
+
+- A lejárt `pendingJoin` az útválasztás előtt törlődik (mintha nem
+  lenne).
+- A regisztrációs QR (V5) eldobja a vázlatot is.
+
+### X6 — Szövegek (javaslat)
+
+- 18e: AppBar „Csatlakozás"; „Csatlakozás a Lola archívumához"; a host
+  mono; „NEVED"; „Kérelem küldése" (tiltva, amíg a
+  `normalizeDisplayName` nem fogadja el a mezőt); hibás név → halk piros
+  sor „1–40 karakter, sortörés nélkül".
+- 18e-2: „KÉRELEM ELKÜLDVE"; „Várj a tulajdonos jóváhagyására"; Név,
+  Telefon, Elküldve (`ÓÓ:PP`), Lejár (mono `23 ó 59 p`); „Bezárás"
+  (csak bezár: szerveroldali visszavonás nincs, a kérelem 24 óra múlva
+  lejár).
+- Az ujjlenyomat-ablak: „Csatlakozás a Lola archívumához" / host (H6).
+
+### X7 — A dev-szkript és a Pixel-próba (javaslat)
+
+- A V12 három parancsa; az `approve-join` alapból új tagot hagy jóvá,
+  `--member <userId>` egy meglévő `crew` tag új telefonja.
+- A Pixel-próbához a tulajdonosi fiók lekerül a Pixelről: `revoke_device
+  --device <id>` a szerveren, és a `web_account.json` törlése `adb shell
+  run-as`-szal (a versenyek DB-je nem változik). A jóváhagyó a
+  dev-szkript tulajdonosi eszköze. A próba után a Pixel egy friss
+  CLI-QR-ral újra tulajdonos lesz (a V5 megerősítő dialógusán át), a
+  legénységi tagja `revoke_device`-szal visszavonható.
+
+### X8 — Tesztek (javaslat)
+
+- Egység: a kliens két új hívása; a kodek (fiók, `pendingJoin`, mindkettő
+  → olvashatatlan); a csatlakozás folyamata (siker, elvetett ujjlenyomat,
+  `410`, `429`, `400`); a lekérdezés kimenetei; az útválasztás X5 sorai.
+- Widget: 18e (tiltott gomb, hibás név, küldés → 18e-2); 18e-2 teszt-órával
+  (`pending` → `approved` → főképernyő + snackbar; `notApproved` →
+  panel); `410` → panel → új beolvasás → ujjlenyomat űrlap nélkül; a
+  főképernyő indításkori lekérdezése.
+
+### Mit pontosít
+
+- **V3:** a fiók és a `pendingJoin` kizárja egymást (X4).
+- **V5:** a `pendingJoin` és a vázlat sorai (X5); a beolvasott szöveg
+  a dekódolás előtt `trim()`-elődik, mert a `create_owner_enrollment`
+  kimenete záró sortöréssel kerül a `qrencode`-ba (A4a utáni javítás).
+- **V9:** a név megőrzése (X2), a lekérdezés a 18e-2-n kívül és a
+  snackbar (X3); az elvetett ujjlenyomat a csatlakozásnál a 18e-n hagy.
+
+### Pontosítás a kód után (A4b, 2026-10-08)
+
+Az A4b kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **X3:** a 18e-2 csak előtérben kérdez: háttérbe kerüléskor a 5 mp-es
+  lekérdezés leáll (akkumulátor), előtérbe jövéskor azonnal kérdez és
+  újraindul. Egy tár- vagy platformhiba csak naplósor, a következő ütem
+  újra próbálja.
+- **X5:** egy függő kérelem mellett beolvasott más szerver belépési QR-ja
+  a 18d-3 panelt a **beolvasott kód** hostjával mutatja (nem a függő
+  kérelemével), mert a panel szövege („A kód ehhez tartozik:") a kódról
+  szól; így a fiókos esettel azonos.
+- **X2:** a lejárt kód panelje a kód fajtája szerint szól (belépés,
+  regisztráció, csatlakozás); a csatlakozásnál „Olvasd be újra a
+  QR-kódot; a neved megmaradt.". Ha a csatlakozó telefon kulcsa
+  elveszett (ritka platformhiba), a legénység visszavont-panelje jön.
+- **X2:** a 18e küldése közben egy váratlan platform- vagy fájlhiba a
+  beolvasó „Nem sikerült aláírni" paneljét adja; a képernyő nem ragad a
+  folyamatjelzőn, és a név megmarad.
+- **X3:** ritkán, ha a főképernyő indításkori lekérdezése és a 18e-2
+  első lekérdezése egyszerre fut, a jóváhagyás snackbarja kétszer
+  jelenhet meg; a fiók egyszer, helyesen mentődik. Elfogadva.
+
+### Pontosítás a Pixel-próba után (2026-10-08)
+
+A felhasználó döntése a próba alapján, és a gombok a makett szerint.
+
+- **X2:** a név a **beolvasó nyitva tartásáig** él, a beolvasó állapota
+  (nem app-szintű provider). A 18e-ről a kamerára visszalépve megmarad:
+  a következő beolvasás a 18e-t ezzel tölti ki. Egy elküldött, de el nem
+  ment név (elvetett ujjlenyomat, `410`, `429`, hálózat) után a
+  következő beolvasás űrlap nélkül az ujjlenyomatot kéri, hacsak a 18e-n
+  közben át nem írta (akkor az űrlap jön az új névvel). A beolvasó
+  bezárása (vissza a főképernyőre, vagy egy panel „Bezárás"-a) mindkettőt
+  eldobja, így egy későbbi beolvasás nem kér váratlanul ujjlenyomatot.
+- **X6:** a webes hozzáférés gombjai (18d-2…5, 18e, 18e-2, 18f, 18g és a
+  kamera hibája) a makett szerint: 48 px magas, lekerekítés nélkül,
+  14/600 felirat; az elsődleges teal (`primary`/`onPrimary`), a
+  másodlagos átlátszó, 1 px-es `outline` kerettel; köztük 10 px, a sáv
+  20 px-es margón belül. A tiltott gomb 35 %-ra halványul (makett 13g),
+  a dolgozó forgót mutat, és nem halványul (13h).
+- **V6:** a „Nincs hálózat" panel mögötti hibát az app a konzolra is
+  kiírja (`web_access: …`, a `flutter run` és a logcat látja), az
+  elvetett ujjlenyomat-ablakot nem; a hibák szövege titkot nem tartalmaz.
+
+## Addendum 10 — Az A5 részletei: a kezelőképernyők a telefonon (2026-10-08)
+
+Az A5 előtt. A Z1 felhasználói döntés, a többi Claude javaslata
+(„javaslat"); a felhasználó az addendum pusholásával hagyja jóvá, és a
+kód előtt még visszavonható. A H1, H3, H6, H8, H9, H11 (Addendum 1), az
+M2, M6–M9 (Addendum 5), az N4, N6 (Addendum 6) és a 18a, 18a-2,
+18h–18l makett mellé teszi, ami a kód előtt kérdés volt.
+
+### Z1 — Négy döntés (felhasználói döntés)
+
+- **Két rész:** **A5a** (⋮ menü, a `/me`-frissítés, a szalagok 18h, a
+  „Webes belépések" 18i/18j, a közös hívó- és aláíró-segédek) és **A5b**
+  („Legénység" 18k–18k-4, „Fiók és biztonság" 18l–18l-3, a kódok
+  generálási dátuma a szerveren). Mindkettő után Pixel-próba.
+- **A kódok generálási dátuma** (18l „generálva …"): a szerver kiadja
+  (Z12). A `recovery_codes.created_at_ms` már tárolva van, csak az
+  `AccountSecurity` nem adja.
+- **A telefon neve** (18l „EZ A TELEFON"): csak kiírás, szerkesztés és
+  új végpont nélkül.
+- **A második telefon a próbához:** a `tools/dev/foretack_dev_phone.py`
+  fiók nélküli „telefonként" is csatlakozni tud (Z14); a Pixel hagyja
+  jóvá.
+
+### Z2 — Ami a makettben van, de nem lesz (javaslat)
+
+- **18k-2 „Ákos új telefonja":** a H3 szerint `owner`-eszköz csak a
+  CLI-vel jöhet, és a szerver egy nem `crew` `memberId`-re `NotAllowed`-ot
+  ad. A lapon csak „Új tag" és a `crew` tagjai szerepelnek.
+- **Maszkolt IP** (`185.220.x.x`): a makett mintaadata. Az app a teljes
+  IP-t mutatja, mert a tulajdonosnak egy gyanús belépésnél ez a
+  legfontosabb adat, és a `crew` csak a saját belépéseit látja.
+
+### Z3 — Közös hívó és aláíró (javaslat)
+
+- **Hitelesített hívás:** minden eszköz-tokenes hívás egy közös segéden
+  megy (`AuthorizedCall`): token → hívás; egy `401` után a token
+  eldobása és egyszer új (a V6 megnyitásának mintája, általánosítva).
+- **Ujjlenyomatos művelet** (`SignedActionRunner`): token →
+  `POST /api/auth/action-challenges` → `deviceActionMessage` (művelet,
+  cél) → aláírás az aláíró kulccsal (Z13 szövegeivel) → `SignedAction`.
+  A kihívás egyszeri, ezért egy hibás művelet (pl. `410`) után nem
+  próbál újra; az elvetett ujjlenyomat csendes (a képernyő marad).
+- **Hibák a képernyőkön** (egy közös leképezés):
+
+  | Hiba | Mit lát |
+  |---|---|
+  | hálózat, időtúllépés, olvashatatlan válasz, `5xx` | „Nincs kapcsolat a szerverrel" + „Újra" (H11) |
+  | `403 DeviceRevoked`, `keyMissing`, `keyInvalidated` | a visszavont állapot (Z4) |
+  | `410 RequestExpired` egy döntésnél | snackbar „Ez már nem érvényes", a lista újratölt |
+  | `429` | snackbar „Próbáld újra N perc múlva" |
+  | `400`, `403 NotAllowed`, más | snackbar „Nem sikerült", a hiba a konzolra (V6) |
+  | elvetett ujjlenyomat | semmi |
+
+  A lista-képernyők betöltési hibája a képernyő helyén áll („Újra"-val),
+  egy gomb hibája snackbar, a lista megmarad.
+
+### Z4 — A fiók frissítése és a visszavont telefon (javaslat)
+
+- **`/me`:** fiókkal induláskor, előtérbe jövéskor és egy webes
+  képernyőről visszatérve (Z5) a telefon lekéri a `GET /api/auth/me`-t
+  eszköz-tokennel. Ha a név vagy a szerep eltér a helyitől, a fiók-fájl
+  frissül (V3; az origó és az eszköz nem változik). Hálózati hiba csend
+  (H11).
+- **Visszavont telefon** (`403 DeviceRevoked` vagy hiányzó kulcs a
+  tokenkérésnél): a helyi fiók **megmarad** (a versenyekhez nem nyúl, és
+  egy következő QR-beolvasás úgyis a 18d-5-öt adja), de memóriában
+  „visszavont" lesz: a szalagok helyén egyetlen sor áll (piros négyzet,
+  „Ez a telefon vissza lett vonva", „Részletek" → a 18d-5 panel a
+  szerep szerinti gombjaival), és a ⋮ menü a H1 szerint rejtve van.
+  Egy app-újraindítás újra lekérdez.
+
+### Z5 — A szalagok és a jelvény frissítése (javaslat, az X3 általánosítása)
+
+- A főképernyő figyelője (`WebAccessRefresher`, a `PendingJoinWatcher`
+  helyett) induláskor és `resumed`-kor egyszer fut, ha a főképernyő van
+  felül: függő kérelemnél az X3 lekérdezése, fióknál a `/me` és a
+  `GET /api/auth/banner`.
+- Egy webes kezelőképernyőről (18i–18l) visszatérve a szalag újratölt (a
+  megnyitó a `Navigator.push` után frissít), hogy egy elintézett kérelem
+  vagy egy nyugtázott belépés azonnal eltűnjön.
+- A szalag-állapot memóriában él; hiba esetén nincs szalag (H11, nem a
+  régi látszik). A ⋮ menü „Legénység" jelvénye ugyanebből jön.
+- A futó lekérdezést a figyelő és a képernyők megosztják, így egy
+  egyidejű kérés nem fut kétszer (a §7 91. dupla snackbarja is
+  megszűnik).
+
+### Z6 — A ⋮ menü (javaslat, a H1 szerint)
+
+- Az AppBar végén, a debug-ikonok után; fiók nélkül és visszavont
+  telefonon rejtve. `PopupMenuButton` a 18a-2 szerint:
+  `surfaceContainerHigh` panel, `outline` keret, szekció-címke „WEBES
+  HOZZÁFÉRÉS", sorok „Webes belépések", „Legénység" (csak `owner`, a
+  függő kérelmek számával mono jelvényben, 0-nál jelvény nélkül), „Fiók
+  és biztonság" (`crew`-nál „Fiók").
+
+### Z7 — A szalagok (javaslat, a H8 szerint)
+
+- Sorrend: gyanús belépések, alatta a függő kérelmek sora (18h-3).
+- **Gyanús belépés** (`warning` négyzet): cím a H8 szerint („Belépés
+  jelszóval", „Belépés helyreállító kóddal", „Belépés más országból";
+  más felhasználónál a név elöl: „Dóri · Belépés más országból");
+  alatta mono sor: böngésző · OS · város, ország · idő (Z8). Gombok:
+  „Rendben" (másodlagos) és „Kiléptetés" (romboló, Z9), ez csak ha a
+  munkamenet még él (`sessionId`). Mindkettő azonnal, ujjlenyomat
+  nélkül; utána a szalag újratölt.
+- 2-nél több gyanús belépés egy sorba vonódik: „3 gyanús belépés" + nyíl
+  → „Webes belépések".
+- **Függő kérelmek** (csak `owner`): „N csatlakozási kérelem" +
+  „Legénység" nyíl, `secondaryContainer` háttérrel (18h-1).
+
+### Z8 — Formázás (javaslat)
+
+- Időpont: ma „ma 09:12", tegnap „tegnap 21:40", az idei évben
+  „okt. 3.", korábban „2025. aug. 30."; a szalagon a mai belépés csak
+  „14:32". Helyi idő a telefon időzónájában.
+- Eltelt idő: „most", „N perce", „N órája", „N napja" (lefelé kerekítve,
+  1 perc alatt „most"); lejárat: „lejár 23 ó múlva" (1 óra alatt „N p
+  múlva").
+- Hely: „Budapest, HU", csak ország „HU", semmi esetén a sor elhagyja.
+  Böngésző és OS: ami ismert, „·"-tal; ha egyik sem, „Ismeretlen
+  böngésző".
+- Rendezés: a nevek egy kis saját, magyar ábécé szerinti összehasonlítóval
+  (az ékezetes magánhangzók a párjuk után, kis- és nagybetű nélkül, a
+  kettős betűk nélkül; `intl` nincs, §7 11.); az `owner` mindig elöl.
+
+### Z9 — Gombok (javaslat, az Addendum 9 pontosításának bővítése)
+
+- A `WebActionButton` egy harmadik változatot kap: **romboló**
+  (Kiléptetés, Visszavonás, Elutasítás, Tag eltávolítása): átlátszó,
+  1 px-es `error` keret, `onSurface` felirat; a makett mért értékei
+  szerint.
+- A sorokban álló gombok (18i Kiléptetés, 18k-3 Visszavonás) a saját
+  szélességükön, 40 px magasan; az alsó sávban 48 px.
+
+### Z10 — Webes belépések, 18i/18j (javaslat, A5a)
+
+- `GET /api/auth/sessions`; `owner`: felhasználónként csoportosítva,
+  elöl a saját („ÁKOS · TE"), a többi a Z8 rendezése szerint; a
+  csoport fejlécén a darabszám; csoporton belül a legutóbb aktív elöl.
+  `crew`: a saját sorai csoportfej nélkül.
+- Sor: (gyanúsnál felül `warning` sor: „Tartalék-belépés" a tartalék
+  módnál, „Belépés más országból" a QR-nál) · böngésző · OS · mód-címke
+  (`QR` / `JELSZÓ` / `KÓD`, H9) · IP · hely · „belépett …" · „aktív …"
+  · „Kiléptetés" (azonnal, H9).
+- Alul „IP-hely: DB-IP" (D7). Üresen „Nincs aktív webes belépés".
+  Lehúzással frissít.
+
+### Z11 — Legénység és fiók, 18k–18l (javaslat, A5b)
+
+- **18k:** `GET /api/auth/join-requests` és `GET /api/auth/members`
+  (+ a munkamenetek a „web: …"-hoz). Kérelem-kártya: név, „lejár …",
+  telefon, IP · hely, beküldés óta eltelt idő, „Elutasítás" (azonnal,
+  megerősítés nélkül: a tag újra kérhet) és „Jóváhagyás" → 18k-2.
+  Tagok: név (+ `TULAJDONOS`), „N eszköz · web: …" — a „web" a tag
+  legutóbb aktív munkamenete a `GET /api/auth/sessions`-ből, munkamenet
+  nélkül „web: —". Sorra kattintva 18k-3.
+- **18k-2** (alsó lap): „<név> jóváhagyása" / telefon · hely; „Új tag"
+  (alap) és a `crew` tagjai az eszközszámukkal (Z2); „Mégse" és
+  „Jóváhagyás" → ujjlenyomat → a lap bezárul, a lista újratölt.
+- **18k-3:** „Utolsó webes aktivitás", „Webes munkamenet N" (a
+  munkamenetekből), eszközök a regisztrálás és az utolsó használat
+  idejével; „Visszavonás" ujjlenyomattal, azonnal; a kérő telefon sorában
+  gomb helyett „Ez a telefon" (H9). „Tag eltávolítása" (nem az
+  `owner`-nél) → 18k-4 dialógus → ujjlenyomat → vissza a 18k-ra.
+- **18l (`owner`):** a makettől eltérve felül „NÉV / NEVED" (az M1
+  szerint az `owner` is átnevezheti magát; a 18l-2 mintája). „WEBES
+  JELSZÓ": állapot-sor („Beállítva: <dátum>" vagy „Nincs jelszó", H9),
+  mező a `n / 12` számlálóval, „Jelszó mentése" tiltva 12 alatt és 128
+  fölött → ujjlenyomat → snackbar „Jelszó mentve", a mező kiürül.
+  „HELYREÁLLÍTÓ KÓDOK": „Felhasználatlan N / 10", „generálva …";
+  „Újragenerálás" → 18l-3 → ujjlenyomat → a 18g képernyő az új kódokkal.
+  „EZ A TELEFON": a telefon neve és típusa, csak kiírás (Z1). Alul
+  linkek: „Webes belépések" (a munkamenetek száma) és „Legénység" („N
+  kérelem").
+- **18l-2 (`crew`, „Fiók"):** „NÉV / NEVED" és a „Webes belépések" link.
+- **Átnevezés** (mindkettőn): a mező a mentett névvel indul; ha eltér és
+  a `normalizeDisplayName` elfogadja, alatta megjelenik a „Mentés" gomb
+  (a makettben nincs gomb, de egy elhagyáskor csendben mentő mező
+  meglepetés lenne); siker után a fiók-fájl neve is frissül.
+
+### Z12 — A kódok generálási dátuma a szerveren (javaslat, A5b)
+
+- `AccountSecurity` új mező: `recoveryCodesGeneratedAt` (UTC, `null`,
+  ha nincs kód); a JSON-ban opcionális, a hiányzó kulcs `null`, így egy
+  régi szerver mellett a telefon a sort elhagyja.
+- A szerver a felhasználó kódjainak legkésőbbi `created_at_ms`-éből
+  adja (a 10 kód egyszerre készül, L5). Séma nem változik.
+- Két commit (`feat(archive-api)`, `feat(web-server)`), az A5b telefonos
+  kódja előtt; a szerver és a telefon sorrendje közömbös.
+
+### Z13 — Az ujjlenyomat-ablakok szövegei (javaslat, a H6 bővítése)
+
+| Művelet | Cím | Alcím |
+|---|---|---|
+| `approveJoin` | „<név> jóváhagyása" | telefon · város, ország |
+| `revokeDevice` | „<eszköz> visszavonása" | a tag neve |
+| `removeUser` | „<név> eltávolítása" | „Minden telefonja és munkamenete" |
+| `setPassword` | „Webes jelszó beállítása" | a host |
+| `regenerateRecoveryCodes` | „Új helyreállító kódok" | a host |
+
+A gomb mindenhol „Mégse".
+
+### Z14 — A dev-szkript csatlakozása (javaslat)
+
+- `join <qr-szöveg|--image png> --name <név>`: két új P-256 kulcs,
+  `foretack-join-v1` aláírás, `POST /api/auth/join-requests`; a jegy és
+  a kulcsok egy saját állapotfájlba (`--state`, javasolt
+  `~/.config/foretack-dev-phone/crew.json`, `0600`).
+- `join-status`: egy lekérdezés; `approved`-nál a fiók és az eszköz az
+  állapotfájlba kerül, így utána ugyanez a fájl a meglévő `approve`
+  paranccsal belépteti a böngészőt `crew`-ként (18j, a web `crew`
+  nézete).
+- Eszköznév „Dev telefon", típus „Dev (Linux)", mint az `enroll`-nál.
+
+### Z15 — Rétegek és tesztek (javaslat)
+
+- `data/`: a `WebAccessApiClient` `GET` és `DELETE` hívásokkal bővül
+  (közös küldő, Bearer); minden új végpont egy metódus a
+  `race_archive_api` kodekjeivel.
+- `application/`: `AuthorizedCall`, `SignedActionRunner`, a hibák
+  leképezése, a frissítő (Z5), autoDispose providerek a listákhoz,
+  érvénytelenítés a műveletek után; a `/me` a `WebAccountNotifier`-be
+  ír.
+- `presentation/`: képernyőnként egy fájl, a dialógusok
+  `ForetackDialog`-gal, gombok a `WebActionButton`-nal; ARB-kulcsok
+  `webMenu*`, `webBanner*`, `webSessions*`, `webCrew*`, `webAccount*`.
+- Tesztek: a kliens új hívásai; `AuthorizedCall` (`401` → egy
+  újrapróba); `SignedActionRunner` (az aláírt üzenet, elvetés, kulcshiba);
+  a formázók és a rendezés; widget-teszt képernyőnként (412 px-es
+  tesztnézet, tesztbetűs szélesség, `handlePopRoute` a `pageBack`
+  helyett); a frissítő induláskor, előtérben és visszatéréskor.
+
+### Mit pontosít
+
+- **H1:** a ⋮ menü a visszavont telefonon is rejtve (Z4).
+- **H8:** a szalag frissítése és a gyanús sor „Kiléptetés"-e csak élő
+  munkamenetnél (Z5, Z7).
+- **H9:** az `owner` 18l-je is kap névmezőt; a névmező „Mentés" gombbal
+  (Z11).
+- **N4:** az `AccountSecurity` a kódok generálási idejével (Z12).
+- **X3:** a `PendingJoinWatcher` helyett egy általános frissítő (Z5).
+- **Addendum 9 pontosítása (gombok):** a romboló változat (Z9).
+
+### Pontosítás a kód után (A5a, 2026-10-08)
+
+Az A5a kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **Z1, Z7:** a függő kérelmek szalagja (18h-1) és a ⋮ menü
+  „Legénység" sora az A5b-vel jön, mert a céljuk, a „Legénység"
+  képernyő is ott készül. Az A5a menüjében csak a „Webes belépések" áll.
+- **Z4:** a visszavont telefon sora nem „Részletek"-re nyit, hanem
+  rögtön a 18d-5 szövegét és (a legénységnél) a „Csatlakozás kérése"
+  gombot mutatja: egy panel egyetlen gombért fölösleges lépés. A
+  visszavont jelzés egy új fiókig megmarad; egy közben jött hálózati
+  hiba nem törli.
+- **Z5:** egy művelet (nyugtázás, kiléptetés) után a szalag mindig új
+  lekérdezéssel frissül, nem egy előtte indult, még futó lekérdezést
+  vár meg (az a régi szalagot hozná). Ha csak a `/me` bukik el, a friss
+  szalag megmarad.
+- **Z14:** a dev-szkript `join` a nevet levágja és ellenőrzi (1–40
+  karakter, vezérlőjel nélkül), mert a szerver a levágott névvel
+  ellenőrzi az aláírást.
+
+### Pontosítás a kód után (A5b, 2026-10-08)
+
+Az A5b kódja közben eldőlt részletek (javaslat; a felhasználó a
+pusholással hagyja jóvá).
+
+- **Z11, 18k-2:** a jóváhagyó lap csak választ („Új tag" vagy egy tag új
+  telefonja); az ujjlenyomat és a kérés már a „Legénység" képernyőn fut,
+  hogy egy hiba snackbarja ne a lap mögé kerüljön. Jóváhagyás és
+  elutasítás után nincs snackbar: a kérelem eltűnik a listáról.
+- **Z11, 18k-4 és 18l-3:** a megerősítés a közös `ForetackDialog`, mint
+  az app többi visszafordíthatatlan műveleténél: a romboló gomb piros
+  felirat, nem piros kitöltés, ahogy a makett mutatja.
+- **Z11, 18k-3:** aktív eszköz nélküli tagnál „Nincs aktív telefonja".
+  A tag eltávolítása után a lap akkor is bezárul, ha a lista újratöltése
+  előbb ér vissza.
+- **Z11, 18l:** az „EZ A TELEFON" két adatsor („Név", „Típus") a telefon
+  saját adataiból; a makett szövegmező-doboza elmarad, mert a név nem
+  szerkeszthető (Z1). A jelszómezőn nincs „mutasd" ikon (a makettben sincs);
+  a számláló („n / 12") csak 12 alatt látszik, 128 fölött „Legfeljebb 128
+  karakter". A sikeres mentés teal négyzetes snackbart kap („Név mentve",
+  „Jelszó mentve"). A névmező egy kívülről jött névváltozást (a `/me`)
+  követ, ha a felhasználó közben nem írta át. A „Webes belépések" link
+  száma a telefon által látott élő munkamenetek száma (`owner`-nél
+  mindenkié).
+- **Z5:** egy legénység-művelet (jóváhagyás, elutasítás, visszavonás,
+  eltávolítás) után a szalag egy új, megvárt lekérdezéssel frissül, akkor
+  is, ha egy korábbi még fut, így a ⋮ menü jelvénye és a 18h-1 sor már a
+  művelet utáni számot mutatja.
+- **Z12:** a „generálva" a felhasználó összes kódjának legkésőbbi
+  `created_at_ms`-e, a felhasználtakkal együtt: a készlet ugyanaz marad,
+  amíg újra nem generálják.

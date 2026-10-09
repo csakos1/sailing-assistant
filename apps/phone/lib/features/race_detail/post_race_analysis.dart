@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:phone/features/race_detail/track_point.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 
 /// A befejezett verseny on-device post-race elemzésének projekciója
 /// (ADR 0034). A megkerülésenkénti eredmények és a belőlük számolt összegző

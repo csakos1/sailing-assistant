@@ -1,7 +1,7 @@
 import 'package:data/src/nmea/parser/decoded_sentence.dart';
 import 'package:data/src/nmea/parser/sentence.dart';
 import 'package:data/src/nmea/parser/sentence_decoder.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 // Valós, érvényes mezőkészletek a megfelelő dekóder-tesztekből (a hosszú,
 // többször használt kettő kiemelve).

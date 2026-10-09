@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
 import 'package:phone/features/safety_map/widgets/boat_symbol_layer.dart';
 import 'package:phone/features/safety_map/widgets/boat_vector_layer.dart';
@@ -12,7 +14,6 @@ import 'package:phone/features/safety_map/widgets/race_mark_layer.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/safety_mark_repository_provider.dart';
-import 'package:phone/widgets/map_attribution.dart';
 
 void main() {
   const tihany = Coordinate(latitude: 46.894, longitude: 17.899);
@@ -51,7 +52,7 @@ void main() {
           ),
         ],
         child: const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: SafetyMapScreen(),
         ),

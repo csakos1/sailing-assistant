@@ -144,3 +144,17 @@ sheetben).
   hook és a picker bekötődik.
 - ADR 0029 Addendum 1 (koordináta-parser) — a picker beillesztette koordinátát
   a parser-rel konzisztens tizedes-fokban tölti a mezőkbe.
+
+## Utólagos nyom — az L8 két kikötése feloldva
+
+Az L8 a pickert read-only, **koordináta nélküli**, kereső nélküli
+elemként rögzítette. Ebből kettő az **ADR 0044 Addendum 5**-tel feloldásra
+került: a sor mostantól kiírja a koordinátát (D51), és a lap kap egy
+kliens-oldali kereső-mezőt (D52).
+
+Az L8 többi kikötése áll: a picker továbbra sem enged könyvtár-sort
+törölni vagy szerkeszteni, a könyvtár írása továbbra is best-effort hook a
+verseny-mentésen (L5), és a `saved_marks` továbbra sem kerül az órára.
+
+Séma-hatás nincs: a koordinátát és a forrás-verseny nevét a tábla az L4
+óta tárolja.

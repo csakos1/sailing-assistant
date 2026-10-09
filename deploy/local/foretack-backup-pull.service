@@ -1,0 +1,9 @@
+# A VPS-mentés lehúzása (ADR 0052 D7). User-unit a fejlesztői gépen:
+#   ~/.config/systemd/user/foretack-backup-pull.service
+# Az ExecStart a repó helyére mutat; ha máshol van, írd át.
+[Unit]
+Description=Foretack VPS-mentés lehúzása
+
+[Service]
+Type=oneshot
+ExecStart=%h/Documents/develop/hajo/sailing-assistant/deploy/local/pull_backup.sh

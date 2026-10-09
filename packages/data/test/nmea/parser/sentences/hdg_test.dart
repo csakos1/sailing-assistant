@@ -3,8 +3,8 @@ import 'package:data/src/nmea/parser/nmea0183_line_parser.dart';
 import 'package:data/src/nmea/parser/sentence.dart';
 import 'package:data/src/nmea/parser/sentences/hdg.dart';
 import 'package:domain/domain.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:shared/shared.dart';
+import 'package:test/test.dart';
 
 void main() {
   const parser = Nmea0183LineParser();

@@ -1,0 +1,23 @@
+name: race_archive_api
+description: >-
+  A webes versenyarchívum HTTP-szerződése (ADR 0047 D2 + Addendum 1,
+  ADR 0048 D6 + Addendum 2): DTO-k, kodekek, a bemenetek validációja. Pure
+  Dart, dart:io nélkül.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  domain:
+    path: ../domain
+  equatable: ^2.0.5
+  meta: ^1.16.0
+  shared:
+    path: ../shared
+
+dev_dependencies:
+  test: ^1.25.0

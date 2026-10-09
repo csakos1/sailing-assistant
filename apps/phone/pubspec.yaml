@@ -1,7 +1,7 @@
 name: phone
 description: Sailing Assistant phone app (race-time UI for the Pixel).
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.11.0
@@ -10,11 +10,14 @@ environment:
 resolution: workspace
 
 dependencies:
+  biometric_signature: ^13.2.0
   cupertino_icons: ^1.0.8
   data:
     path: ../../packages/data
+  device_info_plus: ^13.3.0
   domain:
     path: ../../packages/domain
+  drift_flutter: ^0.3.0
   flutter:
     sdk: flutter
   flutter_foreground_task: ^9.2.2
@@ -22,9 +25,15 @@ dependencies:
     sdk: flutter
   flutter_map: ^7.0.0
   flutter_riverpod: ^2.5.0
+  foretack_ui:
+    path: ../../packages/foretack_ui
   geolocator: ^14.0.0
+  http: ^1.2.2
   latlong2: ^0.9.0
+  mobile_scanner: ^7.4.2
   path_provider: ^2.1.0
+  race_archive_api:
+    path: ../../packages/race_archive_api
   share_plus: ^13.2.0
   shared:
     path: ../../packages/shared

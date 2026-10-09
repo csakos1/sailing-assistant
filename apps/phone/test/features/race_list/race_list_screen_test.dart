@@ -2,12 +2,20 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
-import 'package:phone/features/race_list/widgets/finished_races_sheet.dart';
+import 'package:phone/features/race_list/widgets/race_list_row.dart';
+import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
+import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_track_stats_provider.dart';
+import 'package:phone/providers/track_sample_reader_provider.dart';
+
+import '../web_access/web_access_fakes.dart';
 
 void main() {
   const mark = Mark(
@@ -26,16 +34,32 @@ void main() {
       activeRace(id, name).finish(at: clock);
 
   Future<void> pumpList(WidgetTester tester, List<Race> races) {
+    final webStore = MemoryWebAccountStore();
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
           raceRepositoryProvider.overrideWithValue(_FakeRaceRepository(races)),
+          // A naplo stat-csikja a minta-olvasot hasznalja; enelkul a
+          // navigacios teszt a valos adatbazist epitene fel.
+          trackSampleReaderProvider.overrideWith((ref) {
+            return (raceId) async => const <TrackSample>[];
+          }),
+          raceTrackStatsReaderProvider.overrideWith(
+            (ref) =>
+                (raceId) async => null,
+          ),
+          raceTrackStatsWriterProvider.overrideWith((ref) => _ignoreWrite),
+          // A fokepernyo a webes allapotot frissiti (fuggo kerelem, fiok,
+          // szalag); enelkul a valodi fiok-fajlt keresne.
+          pendingJoinStoreProvider.overrideWithValue(webStore),
+          webAccountStoreProvider.overrideWithValue(webStore),
         ],
-        child: const MaterialApp(
-          locale: Locale('hu'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
+          localizationsDelegates: phoneLocalizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: RaceListScreen(),
+          home: const RaceListScreen(),
         ),
       ),
     );
@@ -56,20 +80,23 @@ void main() {
     expect(find.text('Kedd esti'), findsOneWidget);
 
     // ACT — sorra koppintunk.
-    await tester.tap(find.byType(ListTile));
+    await tester.tap(find.byType(RaceListRow));
     await tester.pumpAndSettle();
 
     // ASSERT — a detail nyílt meg.
     expect(find.byType(RaceDetailScreen), findsOneWidget);
   });
 
-  testWidgets('a FAB a setup képernyőt nyitja', (tester) async {
+  testWidgets('az Új verseny gomb a setup képernyőt nyitja', (
+    tester,
+  ) async {
     // ARRANGE
     await pumpList(tester, const []);
     await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
 
     // ACT
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.listAddRace));
     await tester.pumpAndSettle();
 
     // ASSERT
@@ -115,7 +142,7 @@ void main() {
     expect(activeY, lessThan(notStartedY));
   });
 
-  testWidgets('a befejezett-gomb megjelenik, ha van befejezett', (
+  testWidgets('a befejezett-gomb aktív, ha van befejezett', (
     tester,
   ) async {
     // ARRANGE — csak befejezett -> a fő lista üres.
@@ -123,25 +150,32 @@ void main() {
     await tester.pumpAndSettle();
     final l10n = l10nOf(tester);
 
-    // ASSERT — a befejezett-gomb + az üres fő lista együtt látszik.
-    expect(find.text(l10n.listFinishedRacesTitle), findsOneWidget);
+    // ASSERT - az ures fo lista mellett a befejezett-gomb kattinthato.
     expect(find.text(l10n.listEmpty), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, l10n.logTitle),
+    );
+    expect(button.onPressed, isNotNull);
   });
 
-  testWidgets('a befejezett-gomb rejtett befejezett nélkül', (
+  testWidgets('a befejezett-gomb letiltva marad befejezett nélkül', (
     tester,
   ) async {
-    // ARRANGE — csak notStarted.
+    // ARRANGE - csak notStarted.
     final race = Race.create(id: 'r1', name: 'Alfa', marks: const [mark]);
     await pumpList(tester, [race]);
     await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
 
-    // ASSERT — nincs befejezett-gomb.
-    expect(find.byIcon(Icons.history), findsNothing);
+    // ASSERT - a gomb ott van, de nem kattinthato: az akcio-sav
+    // felezese nem ugralhat attol, hogy van-e befejezett verseny.
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, l10n.logTitle),
+    );
+    expect(button.onPressed, isNull);
   });
 
-  testWidgets('a befejezett-gombra koppintva a modal nyílik', (
+  testWidgets('a befejezett-gombra koppintva a napló nyílik', (
     tester,
   ) async {
     // ARRANGE
@@ -152,8 +186,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
 
-    // ASSERT — a sheet nyílt meg, benne a befejezett verseny neve.
-    expect(find.byType(FinishedRacesSheet), findsOneWidget);
+    // ASSERT — a napló-képernyő nyílt meg, benne a verseny neve.
+    expect(find.byType(RaceLogScreen), findsOneWidget);
     expect(find.text('Charlie'), findsOneWidget);
   });
 }
@@ -175,3 +209,11 @@ class _FakeRaceRepository implements RaceRepository {
   @override
   Future<Race?> getRace(String id) async => null;
 }
+
+/// A gyorsitotar-iro semmit nem csinalo dublore a teszthez.
+Future<void> _ignoreWrite(
+  String raceId,
+  TrackStats stats, {
+  required int sampleCount,
+  required DateTime computedAt,
+}) async {}

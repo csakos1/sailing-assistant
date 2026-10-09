@@ -2,8 +2,8 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
-import 'package:phone/app/marine_colors.dart';
 import 'package:phone/features/safety_map/boat_course.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 

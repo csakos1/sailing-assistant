@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:foretack_ui/foretack_ui.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phone/features/safety_map/widgets/boat_symbol_layer.dart';
 import 'package:phone/features/safety_map/widgets/boat_vector_layer.dart';
@@ -10,7 +11,6 @@ import 'package:phone/features/safety_map/widgets/safety_mark_layers.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/safety_mark_provider.dart';
-import 'package:phone/widgets/map_attribution.dart';
 
 /// Az élő biztonsági térkép teljes képernyős nézete (ADR 0037,
 /// ARCHITECTURE.md 8.10).

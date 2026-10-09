@@ -2149,6 +2149,456 @@ class SavedMarksCompanion extends UpdateCompanion<SavedMarkRow> {
   }
 }
 
+class $RaceTrackStatsTable extends RaceTrackStats
+    with TableInfo<$RaceTrackStatsTable, RaceTrackStatsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RaceTrackStatsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _raceIdMeta = const VerificationMeta('raceId');
+  @override
+  late final GeneratedColumn<String> raceId = GeneratedColumn<String>(
+    'race_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES races (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _distanceMetersMeta = const VerificationMeta(
+    'distanceMeters',
+  );
+  @override
+  late final GeneratedColumn<double> distanceMeters = GeneratedColumn<double>(
+    'distance_meters',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxSpeedMpsMeta = const VerificationMeta(
+    'maxSpeedMps',
+  );
+  @override
+  late final GeneratedColumn<double> maxSpeedMps = GeneratedColumn<double>(
+    'max_speed_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _avgSpeedMpsMeta = const VerificationMeta(
+    'avgSpeedMps',
+  );
+  @override
+  late final GeneratedColumn<double> avgSpeedMps = GeneratedColumn<double>(
+    'avg_speed_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sampleCountMeta = const VerificationMeta(
+    'sampleCount',
+  );
+  @override
+  late final GeneratedColumn<int> sampleCount = GeneratedColumn<int>(
+    'sample_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _computedAtMeta = const VerificationMeta(
+    'computedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> computedAt = GeneratedColumn<DateTime>(
+    'computed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    raceId,
+    distanceMeters,
+    maxSpeedMps,
+    avgSpeedMps,
+    sampleCount,
+    computedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'race_track_stats';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RaceTrackStatsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('race_id')) {
+      context.handle(
+        _raceIdMeta,
+        raceId.isAcceptableOrUnknown(data['race_id']!, _raceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_raceIdMeta);
+    }
+    if (data.containsKey('distance_meters')) {
+      context.handle(
+        _distanceMetersMeta,
+        distanceMeters.isAcceptableOrUnknown(
+          data['distance_meters']!,
+          _distanceMetersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_speed_mps')) {
+      context.handle(
+        _maxSpeedMpsMeta,
+        maxSpeedMps.isAcceptableOrUnknown(
+          data['max_speed_mps']!,
+          _maxSpeedMpsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('avg_speed_mps')) {
+      context.handle(
+        _avgSpeedMpsMeta,
+        avgSpeedMps.isAcceptableOrUnknown(
+          data['avg_speed_mps']!,
+          _avgSpeedMpsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sample_count')) {
+      context.handle(
+        _sampleCountMeta,
+        sampleCount.isAcceptableOrUnknown(
+          data['sample_count']!,
+          _sampleCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sampleCountMeta);
+    }
+    if (data.containsKey('computed_at')) {
+      context.handle(
+        _computedAtMeta,
+        computedAt.isAcceptableOrUnknown(data['computed_at']!, _computedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_computedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {raceId};
+  @override
+  RaceTrackStatsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RaceTrackStatsRow(
+      raceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}race_id'],
+      )!,
+      distanceMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_meters'],
+      ),
+      maxSpeedMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_speed_mps'],
+      ),
+      avgSpeedMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}avg_speed_mps'],
+      ),
+      sampleCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sample_count'],
+      )!,
+      computedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}computed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RaceTrackStatsTable createAlias(String alias) {
+    return $RaceTrackStatsTable(attachedDatabase, alias);
+  }
+}
+
+class RaceTrackStatsRow extends DataClass
+    implements Insertable<RaceTrackStatsRow> {
+  final String raceId;
+  final double? distanceMeters;
+  final double? maxSpeedMps;
+  final double? avgSpeedMps;
+  final int sampleCount;
+  final DateTime computedAt;
+  const RaceTrackStatsRow({
+    required this.raceId,
+    this.distanceMeters,
+    this.maxSpeedMps,
+    this.avgSpeedMps,
+    required this.sampleCount,
+    required this.computedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['race_id'] = Variable<String>(raceId);
+    if (!nullToAbsent || distanceMeters != null) {
+      map['distance_meters'] = Variable<double>(distanceMeters);
+    }
+    if (!nullToAbsent || maxSpeedMps != null) {
+      map['max_speed_mps'] = Variable<double>(maxSpeedMps);
+    }
+    if (!nullToAbsent || avgSpeedMps != null) {
+      map['avg_speed_mps'] = Variable<double>(avgSpeedMps);
+    }
+    map['sample_count'] = Variable<int>(sampleCount);
+    map['computed_at'] = Variable<DateTime>(computedAt);
+    return map;
+  }
+
+  RaceTrackStatsCompanion toCompanion(bool nullToAbsent) {
+    return RaceTrackStatsCompanion(
+      raceId: Value(raceId),
+      distanceMeters: distanceMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceMeters),
+      maxSpeedMps: maxSpeedMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxSpeedMps),
+      avgSpeedMps: avgSpeedMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avgSpeedMps),
+      sampleCount: Value(sampleCount),
+      computedAt: Value(computedAt),
+    );
+  }
+
+  factory RaceTrackStatsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RaceTrackStatsRow(
+      raceId: serializer.fromJson<String>(json['raceId']),
+      distanceMeters: serializer.fromJson<double?>(json['distanceMeters']),
+      maxSpeedMps: serializer.fromJson<double?>(json['maxSpeedMps']),
+      avgSpeedMps: serializer.fromJson<double?>(json['avgSpeedMps']),
+      sampleCount: serializer.fromJson<int>(json['sampleCount']),
+      computedAt: serializer.fromJson<DateTime>(json['computedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'raceId': serializer.toJson<String>(raceId),
+      'distanceMeters': serializer.toJson<double?>(distanceMeters),
+      'maxSpeedMps': serializer.toJson<double?>(maxSpeedMps),
+      'avgSpeedMps': serializer.toJson<double?>(avgSpeedMps),
+      'sampleCount': serializer.toJson<int>(sampleCount),
+      'computedAt': serializer.toJson<DateTime>(computedAt),
+    };
+  }
+
+  RaceTrackStatsRow copyWith({
+    String? raceId,
+    Value<double?> distanceMeters = const Value.absent(),
+    Value<double?> maxSpeedMps = const Value.absent(),
+    Value<double?> avgSpeedMps = const Value.absent(),
+    int? sampleCount,
+    DateTime? computedAt,
+  }) => RaceTrackStatsRow(
+    raceId: raceId ?? this.raceId,
+    distanceMeters: distanceMeters.present
+        ? distanceMeters.value
+        : this.distanceMeters,
+    maxSpeedMps: maxSpeedMps.present ? maxSpeedMps.value : this.maxSpeedMps,
+    avgSpeedMps: avgSpeedMps.present ? avgSpeedMps.value : this.avgSpeedMps,
+    sampleCount: sampleCount ?? this.sampleCount,
+    computedAt: computedAt ?? this.computedAt,
+  );
+  RaceTrackStatsRow copyWithCompanion(RaceTrackStatsCompanion data) {
+    return RaceTrackStatsRow(
+      raceId: data.raceId.present ? data.raceId.value : this.raceId,
+      distanceMeters: data.distanceMeters.present
+          ? data.distanceMeters.value
+          : this.distanceMeters,
+      maxSpeedMps: data.maxSpeedMps.present
+          ? data.maxSpeedMps.value
+          : this.maxSpeedMps,
+      avgSpeedMps: data.avgSpeedMps.present
+          ? data.avgSpeedMps.value
+          : this.avgSpeedMps,
+      sampleCount: data.sampleCount.present
+          ? data.sampleCount.value
+          : this.sampleCount,
+      computedAt: data.computedAt.present
+          ? data.computedAt.value
+          : this.computedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RaceTrackStatsRow(')
+          ..write('raceId: $raceId, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('maxSpeedMps: $maxSpeedMps, ')
+          ..write('avgSpeedMps: $avgSpeedMps, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('computedAt: $computedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    raceId,
+    distanceMeters,
+    maxSpeedMps,
+    avgSpeedMps,
+    sampleCount,
+    computedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RaceTrackStatsRow &&
+          other.raceId == this.raceId &&
+          other.distanceMeters == this.distanceMeters &&
+          other.maxSpeedMps == this.maxSpeedMps &&
+          other.avgSpeedMps == this.avgSpeedMps &&
+          other.sampleCount == this.sampleCount &&
+          other.computedAt == this.computedAt);
+}
+
+class RaceTrackStatsCompanion extends UpdateCompanion<RaceTrackStatsRow> {
+  final Value<String> raceId;
+  final Value<double?> distanceMeters;
+  final Value<double?> maxSpeedMps;
+  final Value<double?> avgSpeedMps;
+  final Value<int> sampleCount;
+  final Value<DateTime> computedAt;
+  final Value<int> rowid;
+  const RaceTrackStatsCompanion({
+    this.raceId = const Value.absent(),
+    this.distanceMeters = const Value.absent(),
+    this.maxSpeedMps = const Value.absent(),
+    this.avgSpeedMps = const Value.absent(),
+    this.sampleCount = const Value.absent(),
+    this.computedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RaceTrackStatsCompanion.insert({
+    required String raceId,
+    this.distanceMeters = const Value.absent(),
+    this.maxSpeedMps = const Value.absent(),
+    this.avgSpeedMps = const Value.absent(),
+    required int sampleCount,
+    required DateTime computedAt,
+    this.rowid = const Value.absent(),
+  }) : raceId = Value(raceId),
+       sampleCount = Value(sampleCount),
+       computedAt = Value(computedAt);
+  static Insertable<RaceTrackStatsRow> custom({
+    Expression<String>? raceId,
+    Expression<double>? distanceMeters,
+    Expression<double>? maxSpeedMps,
+    Expression<double>? avgSpeedMps,
+    Expression<int>? sampleCount,
+    Expression<DateTime>? computedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (raceId != null) 'race_id': raceId,
+      if (distanceMeters != null) 'distance_meters': distanceMeters,
+      if (maxSpeedMps != null) 'max_speed_mps': maxSpeedMps,
+      if (avgSpeedMps != null) 'avg_speed_mps': avgSpeedMps,
+      if (sampleCount != null) 'sample_count': sampleCount,
+      if (computedAt != null) 'computed_at': computedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RaceTrackStatsCompanion copyWith({
+    Value<String>? raceId,
+    Value<double?>? distanceMeters,
+    Value<double?>? maxSpeedMps,
+    Value<double?>? avgSpeedMps,
+    Value<int>? sampleCount,
+    Value<DateTime>? computedAt,
+    Value<int>? rowid,
+  }) {
+    return RaceTrackStatsCompanion(
+      raceId: raceId ?? this.raceId,
+      distanceMeters: distanceMeters ?? this.distanceMeters,
+      maxSpeedMps: maxSpeedMps ?? this.maxSpeedMps,
+      avgSpeedMps: avgSpeedMps ?? this.avgSpeedMps,
+      sampleCount: sampleCount ?? this.sampleCount,
+      computedAt: computedAt ?? this.computedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (raceId.present) {
+      map['race_id'] = Variable<String>(raceId.value);
+    }
+    if (distanceMeters.present) {
+      map['distance_meters'] = Variable<double>(distanceMeters.value);
+    }
+    if (maxSpeedMps.present) {
+      map['max_speed_mps'] = Variable<double>(maxSpeedMps.value);
+    }
+    if (avgSpeedMps.present) {
+      map['avg_speed_mps'] = Variable<double>(avgSpeedMps.value);
+    }
+    if (sampleCount.present) {
+      map['sample_count'] = Variable<int>(sampleCount.value);
+    }
+    if (computedAt.present) {
+      map['computed_at'] = Variable<DateTime>(computedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RaceTrackStatsCompanion(')
+          ..write('raceId: $raceId, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('maxSpeedMps: $maxSpeedMps, ')
+          ..write('avgSpeedMps: $avgSpeedMps, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('computedAt: $computedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2160,6 +2610,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingsTable settings = $SettingsTable(this);
   late final $SnapshotLogsTable snapshotLogs = $SnapshotLogsTable(this);
   late final $SavedMarksTable savedMarks = $SavedMarksTable(this);
+  late final $RaceTrackStatsTable raceTrackStats = $RaceTrackStatsTable(this);
   late final Index telemetryRaceTime = Index(
     'telemetry_race_time',
     'CREATE INDEX telemetry_race_time ON telemetry_records (race_id, timestamp)',
@@ -2183,6 +2634,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     settings,
     snapshotLogs,
     savedMarks,
+    raceTrackStats,
     telemetryRaceTime,
     snapshotLogRaceTime,
     savedMarkIdentity,
@@ -2209,6 +2661,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('snapshot_logs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'races',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('race_track_stats', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -2292,6 +2751,24 @@ final class $$RacesTableReferences
     ).filter((f) => f.raceId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_snapshotLogsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$RaceTrackStatsTable, List<RaceTrackStatsRow>>
+  _raceTrackStatsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.raceTrackStats,
+    aliasName: $_aliasNameGenerator(db.races.id, db.raceTrackStats.raceId),
+  );
+
+  $$RaceTrackStatsTableProcessedTableManager get raceTrackStatsRefs {
+    final manager = $$RaceTrackStatsTableTableManager(
+      $_db,
+      $_db.raceTrackStats,
+    ).filter((f) => f.raceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_raceTrackStatsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2408,6 +2885,31 @@ class $$RacesTableFilterComposer extends Composer<_$AppDatabase, $RacesTable> {
           }) => $$SnapshotLogsTableFilterComposer(
             $db: $db,
             $table: $db.snapshotLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> raceTrackStatsRefs(
+    Expression<bool> Function($$RaceTrackStatsTableFilterComposer f) f,
+  ) {
+    final $$RaceTrackStatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.raceTrackStats,
+      getReferencedColumn: (t) => t.raceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RaceTrackStatsTableFilterComposer(
+            $db: $db,
+            $table: $db.raceTrackStats,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2574,6 +3076,31 @@ class $$RacesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> raceTrackStatsRefs<T extends Object>(
+    Expression<T> Function($$RaceTrackStatsTableAnnotationComposer a) f,
+  ) {
+    final $$RaceTrackStatsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.raceTrackStats,
+      getReferencedColumn: (t) => t.raceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RaceTrackStatsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.raceTrackStats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$RacesTableTableManager
@@ -2593,6 +3120,7 @@ class $$RacesTableTableManager
             bool marksRefs,
             bool telemetryRecordsRefs,
             bool snapshotLogsRefs,
+            bool raceTrackStatsRefs,
           })
         > {
   $$RacesTableTableManager(_$AppDatabase db, $RacesTable table)
@@ -2657,6 +3185,7 @@ class $$RacesTableTableManager
                 marksRefs = false,
                 telemetryRecordsRefs = false,
                 snapshotLogsRefs = false,
+                raceTrackStatsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -2664,6 +3193,7 @@ class $$RacesTableTableManager
                     if (marksRefs) db.marks,
                     if (telemetryRecordsRefs) db.telemetryRecords,
                     if (snapshotLogsRefs) db.snapshotLogs,
+                    if (raceTrackStatsRefs) db.raceTrackStats,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2727,6 +3257,27 @@ class $$RacesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (raceTrackStatsRefs)
+                        await $_getPrefetchedData<
+                          RaceRow,
+                          $RacesTable,
+                          RaceTrackStatsRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$RacesTableReferences
+                              ._raceTrackStatsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$RacesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).raceTrackStatsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.raceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2751,6 +3302,7 @@ typedef $$RacesTableProcessedTableManager =
         bool marksRefs,
         bool telemetryRecordsRefs,
         bool snapshotLogsRefs,
+        bool raceTrackStatsRefs,
       })
     >;
 typedef $$MarksTableCreateCompanionBuilder =
@@ -4048,6 +4600,361 @@ typedef $$SavedMarksTableProcessedTableManager =
       SavedMarkRow,
       PrefetchHooks Function()
     >;
+typedef $$RaceTrackStatsTableCreateCompanionBuilder =
+    RaceTrackStatsCompanion Function({
+      required String raceId,
+      Value<double?> distanceMeters,
+      Value<double?> maxSpeedMps,
+      Value<double?> avgSpeedMps,
+      required int sampleCount,
+      required DateTime computedAt,
+      Value<int> rowid,
+    });
+typedef $$RaceTrackStatsTableUpdateCompanionBuilder =
+    RaceTrackStatsCompanion Function({
+      Value<String> raceId,
+      Value<double?> distanceMeters,
+      Value<double?> maxSpeedMps,
+      Value<double?> avgSpeedMps,
+      Value<int> sampleCount,
+      Value<DateTime> computedAt,
+      Value<int> rowid,
+    });
+
+final class $$RaceTrackStatsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $RaceTrackStatsTable, RaceTrackStatsRow> {
+  $$RaceTrackStatsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $RacesTable _raceIdTable(_$AppDatabase db) => db.races.createAlias(
+    $_aliasNameGenerator(db.raceTrackStats.raceId, db.races.id),
+  );
+
+  $$RacesTableProcessedTableManager get raceId {
+    final $_column = $_itemColumn<String>('race_id')!;
+
+    final manager = $$RacesTableTableManager(
+      $_db,
+      $_db.races,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_raceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RaceTrackStatsTableFilterComposer
+    extends Composer<_$AppDatabase, $RaceTrackStatsTable> {
+  $$RaceTrackStatsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get maxSpeedMps => $composableBuilder(
+    column: $table.maxSpeedMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get avgSpeedMps => $composableBuilder(
+    column: $table.avgSpeedMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RacesTableFilterComposer get raceId {
+    final $$RacesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableFilterComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RaceTrackStatsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RaceTrackStatsTable> {
+  $$RaceTrackStatsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get maxSpeedMps => $composableBuilder(
+    column: $table.maxSpeedMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get avgSpeedMps => $composableBuilder(
+    column: $table.avgSpeedMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RacesTableOrderingComposer get raceId {
+    final $$RacesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableOrderingComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RaceTrackStatsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RaceTrackStatsTable> {
+  $$RaceTrackStatsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get maxSpeedMps => $composableBuilder(
+    column: $table.maxSpeedMps,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get avgSpeedMps => $composableBuilder(
+    column: $table.avgSpeedMps,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => column,
+  );
+
+  $$RacesTableAnnotationComposer get raceId {
+    final $$RacesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.raceId,
+      referencedTable: $db.races,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RacesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.races,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RaceTrackStatsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RaceTrackStatsTable,
+          RaceTrackStatsRow,
+          $$RaceTrackStatsTableFilterComposer,
+          $$RaceTrackStatsTableOrderingComposer,
+          $$RaceTrackStatsTableAnnotationComposer,
+          $$RaceTrackStatsTableCreateCompanionBuilder,
+          $$RaceTrackStatsTableUpdateCompanionBuilder,
+          (RaceTrackStatsRow, $$RaceTrackStatsTableReferences),
+          RaceTrackStatsRow,
+          PrefetchHooks Function({bool raceId})
+        > {
+  $$RaceTrackStatsTableTableManager(
+    _$AppDatabase db,
+    $RaceTrackStatsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RaceTrackStatsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RaceTrackStatsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RaceTrackStatsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> raceId = const Value.absent(),
+                Value<double?> distanceMeters = const Value.absent(),
+                Value<double?> maxSpeedMps = const Value.absent(),
+                Value<double?> avgSpeedMps = const Value.absent(),
+                Value<int> sampleCount = const Value.absent(),
+                Value<DateTime> computedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RaceTrackStatsCompanion(
+                raceId: raceId,
+                distanceMeters: distanceMeters,
+                maxSpeedMps: maxSpeedMps,
+                avgSpeedMps: avgSpeedMps,
+                sampleCount: sampleCount,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String raceId,
+                Value<double?> distanceMeters = const Value.absent(),
+                Value<double?> maxSpeedMps = const Value.absent(),
+                Value<double?> avgSpeedMps = const Value.absent(),
+                required int sampleCount,
+                required DateTime computedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RaceTrackStatsCompanion.insert(
+                raceId: raceId,
+                distanceMeters: distanceMeters,
+                maxSpeedMps: maxSpeedMps,
+                avgSpeedMps: avgSpeedMps,
+                sampleCount: sampleCount,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RaceTrackStatsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({raceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (raceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.raceId,
+                                referencedTable: $$RaceTrackStatsTableReferences
+                                    ._raceIdTable(db),
+                                referencedColumn:
+                                    $$RaceTrackStatsTableReferences
+                                        ._raceIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RaceTrackStatsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RaceTrackStatsTable,
+      RaceTrackStatsRow,
+      $$RaceTrackStatsTableFilterComposer,
+      $$RaceTrackStatsTableOrderingComposer,
+      $$RaceTrackStatsTableAnnotationComposer,
+      $$RaceTrackStatsTableCreateCompanionBuilder,
+      $$RaceTrackStatsTableUpdateCompanionBuilder,
+      (RaceTrackStatsRow, $$RaceTrackStatsTableReferences),
+      RaceTrackStatsRow,
+      PrefetchHooks Function({bool raceId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4064,4 +4971,6 @@ class $AppDatabaseManager {
       $$SnapshotLogsTableTableManager(_db, _db.snapshotLogs);
   $$SavedMarksTableTableManager get savedMarks =>
       $$SavedMarksTableTableManager(_db, _db.savedMarks);
+  $$RaceTrackStatsTableTableManager get raceTrackStats =>
+      $$RaceTrackStatsTableTableManager(_db, _db.raceTrackStats);
 }

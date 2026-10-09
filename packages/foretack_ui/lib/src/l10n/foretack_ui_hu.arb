@@ -1,0 +1,50 @@
+{
+  "@@locale": "hu",
+  "listStatusNotStarted": "NEM INDULT",
+  "@listStatusNotStarted": {
+    "description": "A lajstrom-sor státusz-felirata még nem indult versenynél."
+  },
+  "listStatusActive": "FOLYAMATBAN",
+  "@listStatusActive": {
+    "description": "A lajstrom-sor státusz-felirata futó versenynél."
+  },
+  "listStatusFinished": "BEFEJEZETT",
+  "@listStatusFinished": {
+    "description": "A befejezett verseny verzál státusz-felirata a detail-képernyő csíkján."
+  },
+  "detailFinishedDate": "{date}",
+  "@detailFinishedDate": {
+    "description": "A befejezes datuma a detail statusz-csikjan; a verzalt a hivo adja.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "listNoMarksCaps": "BÓJA NÉLKÜL",
+  "@listNoMarksCaps": {
+    "description": "A bója nélküli verseny meta-felirata, verzál alakban."
+  },
+  "listMarkCountCaps": "{count} BÓJA",
+  "@listMarkCountCaps": {
+    "description": "A lajstrom-sor bója-számlálója, verzál alakban.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailTrackMaxSpeedCaps": "MAX SEB.",
+  "@detailTrackMaxSpeedCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: maximális SOG."
+  },
+  "detailTrackAvgSpeedCaps": "ÁTLAG SEB.",
+  "@detailTrackAvgSpeedCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: átlagos SOG."
+  },
+  "detailTrackDistanceCaps": "TÁV",
+  "@detailTrackDistanceCaps": {
+    "description": "Track-stat cella verzál címkéje a detailen: megtett út."
+  }
+}

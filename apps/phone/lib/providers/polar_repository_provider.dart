@@ -1,6 +1,6 @@
-import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phone/app/asset_polar_repository.dart';
 
 /// A domain [PolarRepository] interfész provider-e (ADR 0028 Addendum 2).
 ///

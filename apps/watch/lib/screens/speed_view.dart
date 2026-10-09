@@ -149,7 +149,7 @@ String _formatTargetPercent(double? percent) =>
 /// Az élő és a cél VMG óra-formázása egy cellába: `élő / cél` (pl.
 /// `4.5 / 6.1`), csomóban, előjelesen. Ha nincs élő VMG → „—" (a cél is
 /// rejtve); ha csak a cél hiányzik, az élő áll magában. A phone
-/// `formatVmgWithTarget`-jének óra-mása (fix HU, nem ARB).
+/// `formatVmgLive`-jének óra-mása (fix HU, nem ARB).
 String _formatVmg(double? live, double? target) {
   if (live == null) {
     return '—';

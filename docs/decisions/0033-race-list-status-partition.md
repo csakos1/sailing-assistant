@@ -5,6 +5,8 @@
 - **Kontextus-ADR-ek:** ADR 0009 (RaceRepository + `watchRaces`), ADR 0029
   (szerkeszthető bóják, D5 reaktív lista), ADR 0032 (bója-könyvtár — a modal
   `SavedMarkPicker`-mintája), §8.7 (telefon marine téma).
+- **Addendum 1 (2026-08):** a D6 megfordítva — a befejezett versenyek
+  önálló képernyőre kerülnek (ADR 0044 4d).
 
 ## Kontextus
 
@@ -130,3 +132,82 @@ következő megnyitás friss.
   modal-teszt).
 - A particionálás kliens-oldali, így a teljesítmény a lista méretével lineáris;
   a jelenlegi nagyságrendben elhanyagolható, a skálázódás a deferred lapozásé.
+
+---
+
+## Addendum 1 — A befejezett versenyek képernyőre költöznek (a D6 megfordítása)
+
+Ez az addendum **egyetlen döntést fordít meg**: a D6-ot. A befejezett
+versenyek nem bottom sheetben, hanem önálló képernyőn jelennek meg
+(`RaceLogScreen`, „Versenynapló"). A képernyő tényleges alakját — geometria,
+tipográfia, év-szűrő, hónap-csoportosítás, összesítő fejléc — az **ADR 0044
+4d szakasza** írja le (D31–D44); ez az ADR marad az, ami eddig is volt: a
+**particionálás** döntése.
+
+### Amit megfordít: a D6
+
+A `showModalBottomSheet` alapértelmezetten a képernyő felénél megáll. Egy
+szezonnyi verseny már ma is görgetést kíván benne, két szezonnál a lap
+gyakorlatilag teljes képernyővé nyúlna — akkor viszont már nincs indoka,
+hogy modal legyen. A napló ráadásul időközben túlnőtt a „kiegészítő nézet"
+szerepén: év-szűrőt és összesítő fejlécet kapott, két állandó sávot, ami egy
+sheeten belül kontextus-vesztés nélkül nem fér el.
+
+A `FinishedRacesSheet` widget ezzel megszűnik. A D6-ban leírt csempe-tartalom
+(név + bója-szám + tompított státusz-chip) sem él tovább: a napló-soron a
+verseny neve áll egyedül, mert a naplóban **minden** verseny befejezett — egy
+mindenhol azonos státusz-jelölés nem hordoz információt.
+
+### Amit megtart: a D1, a D2, a D7 és a D8
+
+A **D1** és a **D2** érintetlen: a fő lista továbbra is kizárólag
+`notStarted` + `active` versenyt mutat, az aktívakkal elöl
+(`race_list_screen.dart:115-120`).
+
+A **D7** tap-szemantikája változatlan: a befejezett verseny detailje
+read-only eredmény-nézet, nincs külön tap-ág, és nincs újraaktiválás. Egyetlen
+lépés esik ki belőle — a „modalt a navigáció előtt bezárjuk" —, mert nincs
+többé bezárandó modal. A napló-sorról a detail közvetlenül pusholódik.
+
+A **D8** megerősítve: a napló ugyanabból az `raceListProvider`
+(`watchRaces()`) reaktív projekcióból szűr kliens-oldalon, mint a lajstrom.
+Nincs új `RaceRepository`-metódus, nincs séma-változás, nincs
+`schemaVersion`-bump. A D8 „a modal a megnyitáskori projekcióból épül"
+mondata a képernyőre ugyanígy igaz.
+
+### Ami korábban, máshol esett ki: a D3 és a D5
+
+Ez a két tétel **nem ennek az addendumnak a döntése** — a rendrakás kedvéért
+áll itt, mert az ADR 0033 törzse máig úgy olvasható, mintha élnének.
+
+A **D3** (státusz-függő színezésű `RaceStatusChip`) a lajstrom-soron már nem
+áll: a státuszt ott az ADR 0044 D12 szögletes jelölője és verzál mono
+felirata (`StatusBadge`) mutatja. A detail-képernyő AppBarjáról a D20 vette
+le a chipet. A D3 szín-döntése így a mai felületen már csak a most megszűnő
+modalban élt.
+
+A **D5** (befejezett-affordancia: `Icons.history` + felirat + chevron, egy
+lista-sorban, N = 0 esetén **rejtve**) formáját az ADR 0044 D14 váltotta
+fel: a belépési pont az alsó akció-sáv bal fele, amely N = 0 esetén nem
+eltűnik, hanem **letiltva** marad, hogy a sáv felezése ne ugráljon
+(`list_action_bar.dart:24-25`). A belépési pont tehát nem ebben a
+szakaszban változik — már ma is az akciósáv.
+
+### Következmények (Addendum 1)
+
+A `finished_races_sheet.dart` törlődik, a `race_list_screen.dart`
+`_openFinished` metódusa `showModalBottomSheet` helyett `Navigator.push`-ra
+vált, és az akciósáv felirata „Befejezett versenyek"-ről „Versenynapló"-ra
+változik (ADR 0044 D44).
+
+A törlés az ADR 0044 4d szelet-tervének **utolsó** kód-szelete, hogy a
+branch minden szeleten zöld maradjon: addig a mai modal működik.
+
+A `RaceStatusChip` utolsó ismert fogyasztója a törlendő sheet volt. Hogy a
+widget árván marad-e, és ha igen, törlődik-e, az S10 szelet kérdése — ez az
+addendum nem dönt róla. Ugyanez áll a D4 `inProgressColor` tokenjére.
+
+A D8 „Halasztva" listájának **lapozás / lazy-load** tétele érvényben marad, és
+az ADR 0044 4d szakasza is halasztottként veszi át (keresés/törlés a
+naplóban). Ha egyszer sorra kerül, a két lista tételeit egy döntésben kell
+rendezni.

@@ -1,5 +1,5 @@
 import 'package:data/src/nmea/mapper/depth_source_selector.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   final t0 = DateTime.utc(2026, 5, 24, 9);

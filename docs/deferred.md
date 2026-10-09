@@ -383,6 +383,277 @@ a vízen szürke háttérrel megy.
 - **Miért nem most**: a két on-device kör egyetlen szivárgást sem talált
   — a D5 `ColorScheme`-rögzítése elégnek bizonyult.
 
+## Foretack design-rendszer és az 1c élő képernyő (ADR 0041 + 0042)
+
+Az ADR 0041 és az ADR 0042 „Halasztva" szakaszaiból emelve, plusz amit az
+implementáció és az első on-device kör tett hozzá.
+
+### Font-subsetelés
+- **Mi**: a bundle-ölt TTF-ek latin-only vágása.
+- **Mikor**: ha az APK-méret szemponttá válik.
+- **Miért nem most**: a vágás a tömörítetlen ~978 KB-ot ~260-ra vinné (a
+  valós APK-növekmény ma ~450 KB), de az IBM Plex OFL-je Reserved Font
+  Name-es, tehát a subsetelt család átnevezést igényelne.
+- **Hivatkozás**: ADR 0041 D9.
+
+### A többi képernyő migrációja az 1c token-rétegre
+- **Mi**: a verseny-lista, a detail, a biztonsági térkép és a fullscreen
+  track-nézet elrendezésének átvitele (a design-dokumentum 1g, 1i, 1j
+  és 1k lapjai). A setup/edit űrlapot az ADR 0044 1h szakasza elvitte.
+- **Mikor**: képernyőnként, egyenként.
+- **Miért nem most**: a paletta és a tipográfia app-szintű, tehát minden
+  képernyő megkapta a tokeneket — az elrendezésük viszont még a régi. Ez a
+  vegyes állapot tudatos.
+- **Hivatkozás**: ADR 0041 (hatókör); ADR 0042 „Halasztva"; ADR 0044.
+
+### A tizedesvessző kiterjesztése a többi képernyőre
+- **Mi**: a phone-lokális vesszős formázás ma csak az élő képernyőn hat; a
+  többi felület a `shared` pontos alakját mutatja (`1.85 km`).
+- **Mikor**: az érintett képernyő migrációjával együtt.
+- **Miért nem most**: a `shared` az óra igazságforrása is, és az óra
+  kijelzése szándékosan nem változik.
+- **Hivatkozás**: ADR 0042 D5.
+
+### Az 1c geometria és a Martian Mono átvitele az órára
+- **Mi**: a műszer-oszlop elrendezés és a szám-font órás megfelelője.
+- **Miért nem most**: az óra saját design-rendszerrel megy (Saira /
+  JetBrains Mono), és a v1-ben on-device igazolt. Külön döntés.
+- **Hivatkozás**: ADR 0041 „Halasztva".
+
+### Landscape / tablet elrendezés
+- **Mi**: a műszer-oszlop és a sín fekvő elrendezése.
+- **Miért nem most**: a képernyő verseny közben portrait-lockolt, fekvő
+  nézetre nincs használati eset.
+- **Hivatkozás**: ADR 0042 „Halasztva".
+
+### A `formatVmgKnots` takarítása
+- **Mi**: a `live_formatters.dart` `formatVmgKnots` függvényének nincs
+  hívója.
+- **Mikor**: önálló `refactor(phone)` commit.
+- **Miért nem most**: nem az 1c átépítés hagyta árván (a
+  `formatVmgWithTarget`-et igen, azt el is vitte), tehát nem annak a
+  commitnak a témája.
+- **Hivatkozás**: ADR 0042 „Halasztva".
+
+### Az `ARCHITECTURE.md` §4.1 fájl-fája
+- **Mi**: a fa több levélen elmarad — az ADR 0041 három `app/` fájlja, az
+  ADR 0042 öt új `live_race/widgets/` fájlja és az ADR 0044 öt új
+  widgetje (`section_label.dart`, `mark_row_card.dart`,
+  `form_action_bar.dart`, `race_list_row.dart`, `list_action_bar.dart`)
+  sem szerepel benne.
+- **Mikor**: a doksi-sync batch-csel.
+- **Miért nem most**: tudatosan halasztott, nem blokkol.
+
+### A sáv-váz kiemelése közös widgetbe
+- **Mi**: a `ListActionBar` (lajstrom) és a `LiveRaceScreen`
+  `_roundMarkButton`-je ugyanazt a keretet rajzolja: felső 1 dp hairline,
+  `SafeArea(top: false)`, fix 60 dp magasság, radius és padding nélkül.
+- **Mikor**: az első olyan fogyasztóra, amelyik a **tartalmat** is osztja,
+  vagy ha a sáv geometriája változik és két helyen kellene követni.
+- **Miért nem most**: csak a keret közös, a tartalom nem — a lajstromon két
+  fél, elválasztó vonallal és 14-es feliratokkal, az élő képernyőn egyetlen
+  teljes szélességű gomb 18-cal. A kiemelés ma egy néhány soros vázért
+  nyúlna bele egy frissen on-device igazolt képernyőbe.
+- **Hivatkozás**: ADR 0042 Addendum 2; ADR 0044 D14, D17.
+
+---
+
+## CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
+
+Az ADR 0044 képernyő-szakaszaiból eredő halasztott tételek: 1h
+(`RaceSetupScreen` / `RaceEditScreen`) és 2a (`RaceListScreen`). A
+szakasz a migráció haladtával bővül.
+
+### A `SavedMarkPicker` sheet migrációja
+- **Mi**: a bója-könyvtár bottom sheet a téma-szintű tokeneket megkapta, az
+  elrendezését viszont nem vittük át az 1h kártya-nyelvre.
+- **Mikor**: ha a design-dokumentum kap sheet-makettet.
+- **Miért nem most**: a lapon nincs sheet-makett, a geometriát pedig nem
+  vezetjük le tippből — ez az egész migráció alapszabálya.
+- **Hivatkozás**: ADR 0044 D8.
+
+### DDM-előtöltés a koordináta-mezőkben
+- **Mi**: a mezők ma `latitude.toString()`-et töltenek (tizedes-fok), a
+  makett viszont DDM-et rajzol.
+- **Mikor**: önálló `feat(phone)` commit, formázó függvénnyel és teszttel.
+- **Miért nem most**: a `ParseGeoAngle` mindhárom alakot érti, tehát ez
+  kényelmi kérdés, nem funkcionális hiány — és az előtöltés formátuma a
+  `race_form_test` assertjeit is átírná.
+- **Hivatkozás**: ADR 0044 (a döntés: az előtöltés marad decimális).
+
+### A `SectionLabel` közös használata a többi képernyőn
+- **Mi**: a widget már a közös `apps/phone/lib/widgets/`-ben ül, de ma
+  egyetlen fogyasztója van, a bója-szakasz címkéje.
+- **Mikor**: az 1g / 1i migrációjával, ha tényleg kell nekik verzál
+  szakasz-címke.
+- **Miért nem most**: a közösbe emelés megtörtént, a használat viszont az
+  első valódi igényre vár — nem tervezünk fogyasztót előre.
+
+### Az `InputDecorationTheme` kiterjesztése a keresőmezőre
+- **Mi**: az ADR 0033 v2 befejezett-lista keresőmezője a téma új
+  mező-alapértelmezését örökli majd; a kártya-mezőkhöz hasonlóan
+  valószínűleg lokális szűkítés kell hozzá (`isDense`, kisebb radius).
+- **Mikor**: az ADR 0033 v2 munkájával együtt.
+- **Miért nem most**: a keresőmező még nem létezik, a témát pedig nem
+  hangoljuk nem létező hívóhelyre.
+- **Hivatkozás**: ADR 0044 D3; ADR 0033 v2.
+
+### A `race_edit_screen_test` megnövelt teszt-viewportja
+- **Mi**: a teszt `physicalSize`-t állít, hogy a teljes űrlap elférjen.
+- **Mikor**: ha a teszt-készlet viewport-kezelését egyben nézzük át.
+- **Miért nem most**: az eredeti ok (a mentés gomb csak görgetés után volt
+  elérhető) a rögzített akció-sávval megszűnt, a komment javítva — de a
+  méret levétele önmagában is elronthat assertokat, tehát nem vak törlés.
+- **Hivatkozás**: ADR 0044 D1.
+
+### Az eltelt idő az aktív lajstrom-soron
+- **Mi**: a 2a makett `03:12:44` alakban mutatja a futó verseny eltelt
+  idejét; a megvalósult sor csak a bója-számot viszi.
+- **Mikor**: ha a telefon-lista tényleg kap élő szerepet.
+- **Miért nem most**: az adat megvan (`Race.startedAt`), de a kijelzés
+  másodpercenként ketyeg, és három dolgot húzna egy ma teljesen statikus
+  képernyőre: 1 Hz-es tick-forrást, külön widgetet a szám köré (különben az
+  egész `ListView` újraépülne), és a widget-tesztekbe fake órát. Verseny
+  közben a telefon zsebben van, az eltelt idő az órán látszik.
+- **Hivatkozás**: ADR 0044 D13.
+
+### A `finished_races_sheet.dart` migrációja
+- **Mi**: a sheet még `ListTile` + `RaceStatusChip` párost mutat, tehát a
+  befejezett lista vizuálisan elvált a lajstromtól.
+- **Mikor**: az ADR 0033 v2 munkájával, vagy a következő lista-körben.
+- **Miért nem most**: a design-dokumentumban nincs sheet-makett — ugyanaz a
+  gát, ami a `SavedMarkPicker`-t is tartja (D8).
+
+### A 2b és 2c lista-irányok
+- **Mi**: a design-dokumentum két további irányt is megrajzolt (2b aktív
+  műszerfej élő mini-adatokkal, 2c napló-tábla mono dátum-sínnel).
+- **Miért nem most**: a 2a irány landolt és on-device igazolt; a másik
+  kettő alternatíva volt, nem hátralék.
+
+### A `listMarkCount` ARB-kulcs árván áll
+- **Mi**: a régi, kisbetűs `{count} bója` kulcsnak nincs hívója; a
+  lajstrom-sor a verzál `listMarkCountCaps`-et használja.
+- **Mikor**: önálló `chore(phone)` commit, ha a l10n-t egyben takarítjuk.
+- **Miért nem most**: **nem ez a szelet hagyta árván** — a régi lista-sor
+  sem hívta (nem volt alcíme), a kulcs leírása viszont alcímnek szánta.
+  Külön koncern, külön commit.
+
+### A verzál AppBar-cím csak a home-képernyőn áll
+- **Mi**: a home-cím `VERSENYEK` verzál 26; a mélyebb képernyők a
+  `screenTitleStyle` 19-esével, rendes kis-nagybetűvel címeznek.
+- **Mikor**: a többi képernyő migrációjával, ha az AppBar-nyelvet
+  egységesen verzálra visszük.
+- **Miért nem most**: a verzál a home hangsúlyát viszi — a
+  `homeTitleStyle` eleve azért vált külön a `screenTitleStyle`-tól. A
+  mélyebb képernyők verzálozása több ARB-kulcsot és saját on-device kört
+  kérne, és nem ez a javítás tárgya volt.
+- **Hivatkozás**: ADR 0044 Addendum 2.
+
+---
+
+### A pálya-hossz a státusz-csíkon
+
+**Mi:** a design-lap `8,4 KM` mezője a nem indult és a folyamatban lévő
+detail csíkján, a bója-szám mellett.
+
+**Mikor:** ha a domain amúgy is kap egy szár-távolság use case-t.
+
+**Miért:** a bója-számmal ellentétben ez nem a `Race`-ből olvasható ki: a
+szomszédos bóják közti haversine-összeg új domain-számítás, saját
+tesztekkel. Egy megjelenítési szeletbe nem fér bele.
+
+**Hivatkozás:** ADR 0044 3a, halasztott tételek.
+
+### A menetidő a befejezett csíkon
+
+**Mi:** a design-lap `04:48:12` mezője a befejezett verseny csíkján, a
+dátum mellett vagy helyett.
+
+**Mikor:** ha a lajstrom aktív sorára is kell eltelt idő — az már külön
+`deferred`-tétel, és a kettő egy formázót használna.
+
+**Miért:** új formázó kellene (`Duration` → `óó:pp:mm`), és a csík jobb
+oldalán ma a dátum áll; a kettő együtt szűk helyre kerülne.
+
+**Hivatkozás:** ADR 0044 D21.
+
+### A setup és a detail koordináta-alakja eltér
+
+**Mi:** a `RaceSetupScreen` DDM-alakban veszi fel a koordinátát, a
+detail-sor viszont tizedes fokban mutatja (`46.9000, 18.0500`).
+
+**Mikor:** ha a felhasználót zavarja a vízen, vagy ha a DDM-előtöltés
+tétele amúgy is elővétetik.
+
+**Miért:** az ADR 0044 D25 szándékosan nem nyúlt a formátumhoz: a váltás
+önálló döntés, saját kockázattal és saját tesztekkel, és nincs köze
+ahhoz, hogy a sor hogyan néz ki.
+
+**Hivatkozás:** ADR 0044 D25.
+
+### A 60 dp-s sáv-váz közös widgetbe emelése (pontosított feltétel)
+
+**Mi:** a `ListActionBar` és a `DetailActionBar` közös vázának kiemelése.
+
+**Mikor:** ha megjelenik a **harmadik egysoros** fogyasztó.
+
+**Miért:** a korábbi tétel feltétele csak „harmadik fogyasztót" mondott, és
+a detail sávja formálisan az lett volna — de az **kétsoros**, és van
+kitöltött sora, tehát a közös keret vékonyabb lenne, mint a különbség. A
+`FormActionBar` pedig egészen más alak (52 dp, r14, két gomb egy sorban).
+
+**Hivatkozás:** ADR 0044 D30.
+
+### A track-stat formázók egységesítése
+
+**Mi:** a `formatKnots` / `formatDistance` (string, tizedespont) és a
+`measureKnots` / `measureDistance` (érték/egység pár, tizedesvessző)
+párhuzamosan él.
+
+**Mikor:** ha a megosztható track-kép (ADR 0036) számképét amúgy is
+hozzányúljuk.
+
+**Miért:** a régieket ma már csak a `track_export_content.dart` használja.
+Az ADR 0036 felülete lezárt, és az **on-device verifikációja még hátra
+van** — egy kép számképét nem írjuk át olyankor, amikor a felület
+állapotát még nem igazoltuk.
+
+**Hivatkozás:** ADR 0044 D29.
+
+### A post-race szekció kettéválasztása
+
+**Mi:** a `PostRaceAnalysisSection` ma egy widget: track-kártya + stat-sor
+(release) **és** a debug-only next-TWA elemzés. A 3a a szekciót a
+pálya-lista fölé tette, tehát a debug-elemzés is oda került.
+
+**Mikor:** ha a debug-elemzés a lista alatt kényelmesebb, vagy ha a
+track-fejléc önállóan is kellene máshol.
+
+**Miért:** a szétválasztás új widget-határt húz egy 520 soros fájlban, és
+a 3a szeletnek nem volt tárgya. Debug-buildben zavaró lehet, release-ben
+nem látszik.
+
+**Hivatkozás:** ADR 0044 3a.
+
+
+## Adatréteg
+
+### A telemetria-flush elkapatlan `SqliteException`-je
+- **Mi**: a `TelemetryLoggerImpl._flush` batch-commitja `Unhandled
+  Exception`-ként dobja a `SqliteException(5): database is locked` hibát.
+- **Mikor**: önálló `fix(data)` commit, teszttel.
+- **Miért nem most**: az ADR 0042 UI-munkája közben derült ki, de nincs
+  köze hozzá — külön koncern, külön commit.
+- **Megjegyzés**: telepítéskor ártalmatlan volt (az előző futás
+  háttér-izolátuma még fogta a DB-t), de a vízen ugyanez a lock-ütközés
+  előfordulhat a foreground-service és az UI-izolátum között. Egy
+  elkapatlan kivétel a telemetria miatt nem dönthet meg semmit: a
+  telemetria kényelmi funkció, nem verseny-kritikus.
+- **Hivatkozás**: `packages/data/lib/src/persistence/repositories/`
+  `telemetry_logger_impl.dart:67`.
+
+---
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,
@@ -415,3 +686,13 @@ kerülnek ide.)_
   `onCritical` token, és tompított jel-színek (Addendum 1).
 - **Hol**: hét commit, `fb09ec6` … `a337d8c`; docs + `shared` + `watch`,
   huszonkilenc új teszttel, kétszer on-device igazolva.
+
+### Foretack design-rendszer és az 1c élő képernyő (ADR 0041 + 0042) — `6cdc657`…`87428ac`
+- **Mi**: app-szintű paletta és tipográfia nyolc bundle-ölt fonttal, majd a
+  `LiveRaceScreen` átépítése az 1c műszer-oszlop elrendezésre: méret-lépcsős
+  fő oszlop, fix 132 dp-s adatsín cellánkénti `FittedBox`-szal,
+  `CustomPainter` nyilak, kontúros TARTOTT / ELAVULT pillek, és a
+  palettához kötött kapcsolat-jelző (a zöld kizárólag starboard marad).
+- **Hol**: a `feature/ui-redesign` branch commitjai, `6cdc657` … `87428ac`;
+  két ADR, öt új widget, három törölt, négy új teszt-fájl, egy on-device
+  javítókör.

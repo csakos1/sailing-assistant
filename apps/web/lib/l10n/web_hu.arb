@@ -1,0 +1,1278 @@
+{
+  "@@locale": "hu",
+  "appTitle": "Foretack archívum",
+  "@appTitle": {
+    "description": "A böngészőfül címe."
+  },
+  "logTitle": "Versenynapló",
+  "@logTitle": {
+    "description": "A Versenynapló képernyő címe."
+  },
+  "logMonth": "{month}",
+  "@logMonth": {
+    "description": "A hónap neve a Versenynapló hónap-fejlécén.",
+    "placeholders": {
+      "month": {
+        "type": "DateTime",
+        "format": "MMMM"
+      }
+    }
+  },
+  "logRaceCountCaps": "{count} VERSENY",
+  "@logRaceCountCaps": {
+    "description": "Verseny-darabszám az évsávon és a hónap-fejléceken (verzál).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "logAllYearsCaps": "ÖSSZES",
+  "@logAllYearsCaps": {
+    "description": "Az évsáv opciója, amely minden év versenyét mutatja (14w)."
+  },
+  "logYearRange": "{first}–{last}",
+  "@logYearRange": {
+    "description": "Az évsáv nagy felirata, ha az összes év van kiválasztva.",
+    "placeholders": {
+      "first": {
+        "type": "int"
+      },
+      "last": {
+        "type": "int"
+      }
+    }
+  },
+  "logStatTimeCaps": "VÍZEN TÖLTÖTT",
+  "@logStatTimeCaps": {
+    "description": "A napló stat-csík első cellája: vízen töltött idő."
+  },
+  "logStatDistanceCaps": "ÖSSZ. TÁV",
+  "@logStatDistanceCaps": {
+    "description": "A napló stat-csík második cellája: össztáv."
+  },
+  "logStatRecordCaps": "REKORD",
+  "@logStatRecordCaps": {
+    "description": "A napló stat-csík harmadik cellája: sebesség-rekord."
+  },
+  "logLoadError": "Nem sikerült betölteni a versenyeket. Az adat nem veszett el, csak most nem érhető el.",
+  "@logLoadError": {
+    "description": "A napló hiba-állapota (13d)."
+  },
+  "logRetryCaps": "ÚJRA",
+  "@logRetryCaps": {
+    "description": "A hiba-állapot újrapróbálás gombja."
+  },
+  "logEmpty": "Még nincs verseny az archívumban. Tölts fel egy telefonos adatbázist, vagy vegyél fel egy versenyt kézzel.",
+  "@logEmpty": {
+    "description": "Az üres napló szövege (13b)."
+  },
+  "detailLoadError": "Nem sikerült betölteni a versenyt. Az adat nem veszett el, csak most nem érhető el.",
+  "@detailLoadError": {
+    "description": "A részletező hiba-állapota."
+  },
+  "detailNotFound": "Ez a verseny már nincs az archívumban.",
+  "@detailNotFound": {
+    "description": "A részletező, ha a szerver RaceNotFound-ot ad."
+  },
+  "detailManualCaps": "KÉZI RÖGZÍTÉS",
+  "@detailManualCaps": {
+    "description": "A kézi verseny státusz-csíkja (14m)."
+  },
+  "detailWindAvgCaps": "ÁTL. SZÉL",
+  "@detailWindAvgCaps": {
+    "description": "A szél-csík első cellája."
+  },
+  "detailWindMaxCaps": "MAX SZÉL",
+  "@detailWindMaxCaps": {
+    "description": "A szél-csík második cellája."
+  },
+  "detailWindDirectionCaps": "SZÉLIRÁNY",
+  "@detailWindDirectionCaps": {
+    "description": "A szél-csík harmadik cellája."
+  },
+  "detailApproximate": "~ Közelítő értékek a teljes rögzítésből. A hivatalos rajttal és befutással a versenyablakra pontosodnak.",
+  "@detailApproximate": {
+    "description": "A közelítő-sor (ADR 0048 Addendum 4 K9)."
+  },
+  "detailResultCaps": "EREDMÉNY",
+  "@detailResultCaps": {
+    "description": "Az eredmény-blokk szakaszcíme."
+  },
+  "detailNoResult": "Eredmény még nincs rögzítve.",
+  "@detailNoResult": {
+    "description": "Az üres eredmény halk sora (13l)."
+  },
+  "detailClassPlaceCaps": "OSZTÁLY",
+  "@detailClassPlaceCaps": {
+    "description": "Az osztályhelyezés cellája."
+  },
+  "detailOverallPlaceCaps": "ABSZOLÚT",
+  "@detailOverallPlaceCaps": {
+    "description": "Az abszolút helyezés cellája."
+  },
+  "detailMonohullPlaceCaps": "EGYTESTŰ",
+  "@detailMonohullPlaceCaps": {
+    "description": "Az egytestű helyezés cellája."
+  },
+  "detailYsCaps": "YS-SZÁM",
+  "@detailYsCaps": {
+    "description": "A YS-szám cellája."
+  },
+  "detailOfficialStartCaps": "HIVATALOS RAJT",
+  "@detailOfficialStartCaps": {
+    "description": "A hivatalos rajt cellája."
+  },
+  "detailOfficialFinishCaps": "HIVATALOS BEFUTÁS",
+  "@detailOfficialFinishCaps": {
+    "description": "A hivatalos befutás cellája."
+  },
+  "detailElapsedCaps": "MENETIDŐ",
+  "@detailElapsedCaps": {
+    "description": "A hivatalos menetidő cellája."
+  },
+  "detailNextDayCaps": "+1 NAP",
+  "@detailNextDayCaps": {
+    "description": "A rajt utáni napon történt befutás jele."
+  },
+  "detailPrizeCaps": "DÍJ",
+  "@detailPrizeCaps": {
+    "description": "A díj címkéje."
+  },
+  "detailMarksCaps": "BÓJÁK",
+  "@detailMarksCaps": {
+    "description": "A bóják szakaszcíme."
+  },
+  "detailSummaryCaps": "ÖSSZEFOGLALÓ",
+  "@detailSummaryCaps": {
+    "description": "Az összefoglaló szakaszcíme."
+  },
+  "detailTrackEmpty": "Nincs track-adat ehhez a versenyhez.",
+  "@detailTrackEmpty": {
+    "description": "A térkép üres állapota."
+  },
+  "detailTrackOpenFullscreen": "Track nagyítása",
+  "@detailTrackOpenFullscreen": {
+    "description": "A térkép-kártya tooltipje: teljes képernyős nézet."
+  },
+  "detailTrackLegendTitle": "sebesség (kn)",
+  "@detailTrackLegendTitle": {
+    "description": "A sebesség-legenda fejléce a teljes képernyős térképen."
+  },
+  "detailTrackLegendUnknown": "nincs adat",
+  "@detailTrackLegendUnknown": {
+    "description": "A legenda címkéje az ismeretlen sebességű szakaszhoz."
+  },
+  "detailEditTooltip": "Szerkesztés",
+  "@detailEditTooltip": {
+    "description": "A részletező AppBarjának ceruza-gombja (ADR 0048 Addendum 4 K15)."
+  },
+  "editResultTitle": "Eredmény szerkesztése",
+  "@editResultTitle": {
+    "description": "A telemetriás verseny eredmény-szerkesztőjének címe (G4)."
+  },
+  "editSave": "Mentés",
+  "@editSave": {
+    "description": "A szerkesztő ragadós alsó sávjának gombja."
+  },
+  "editTelemetryReadOnlyCaps": "A TELEFON ADATA · NEM SZERKESZTHETŐ",
+  "@editTelemetryReadOnlyCaps": {
+    "description": "A telemetriás szerkesztő csak olvasható kontextus-sávja (13m)."
+  },
+  "editRecordingCaps": "{date} · RÖGZÍTÉS {start} – {end}",
+  "@editRecordingCaps": {
+    "description": "A telemetriás kontextus-sáv adatsora: a nap és a rögzítés ideje.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "editSectionResultCaps": "EREDMÉNY",
+  "@editSectionResultCaps": {
+    "description": "A szerkesztő eredmény-szakaszának címe."
+  },
+  "editSectionTimesCaps": "HIVATALOS IDŐ",
+  "@editSectionTimesCaps": {
+    "description": "A szerkesztő idő-szakaszának címe."
+  },
+  "editSectionPrizeSummaryCaps": "DÍJ ÉS ÖSSZEFOGLALÓ",
+  "@editSectionPrizeSummaryCaps": {
+    "description": "A szerkesztő díj- és összefoglaló-szakaszának címe."
+  },
+  "editClassPlace": "Osztály",
+  "@editClassPlace": {
+    "description": "Az osztályhelyezés sorának címkéje."
+  },
+  "editOverallPlace": "Abszolút",
+  "@editOverallPlace": {
+    "description": "Az abszolút helyezés sorának címkéje."
+  },
+  "editMonohullPlace": "Egytestű",
+  "@editMonohullPlace": {
+    "description": "Az egytestű helyezés sorának címkéje."
+  },
+  "editPlaceFieldCaps": "HELYEZÉS",
+  "@editPlaceFieldCaps": {
+    "description": "A helyezés-mező felirata."
+  },
+  "editFleetFieldCaps": "MEZŐNY",
+  "@editFleetFieldCaps": {
+    "description": "A mezőny-mező felirata."
+  },
+  "editPlacingNumberCaps": "SZÁM",
+  "@editPlacingNumberCaps": {
+    "description": "A helyezés-szegmens számszerű cellája."
+  },
+  "editPlacingDnfCaps": "DNF",
+  "@editPlacingDnfCaps": {
+    "description": "A helyezés-szegmens feladás-cellája."
+  },
+  "editPlacingDsqCaps": "DSQ",
+  "@editPlacingDsqCaps": {
+    "description": "A helyezés-szegmens kizárás-cellája."
+  },
+  "editYs": "YS-szám",
+  "@editYs": {
+    "description": "A YS-szám sorának címkéje."
+  },
+  "editYsFieldCaps": "YS",
+  "@editYsFieldCaps": {
+    "description": "A YS-mező felirata."
+  },
+  "editYsHint": "két tizedes, pl. 75,90",
+  "@editYsHint": {
+    "description": "A YS-mező kitöltési mintája."
+  },
+  "editOfficialStart": "Hivatalos rajt",
+  "@editOfficialStart": {
+    "description": "A hivatalos rajt sorának címkéje."
+  },
+  "editOfficialFinish": "Hivatalos befutás",
+  "@editOfficialFinish": {
+    "description": "A hivatalos befutás sorának címkéje."
+  },
+  "editDateFieldCaps": "DÁTUM",
+  "@editDateFieldCaps": {
+    "description": "A dátummező felirata."
+  },
+  "editDateHint": "ÉÉÉÉ.HH.NN",
+  "@editDateHint": {
+    "description": "A dátummező kitöltési mintája."
+  },
+  "editTimeFieldCaps": "IDŐ",
+  "@editTimeFieldCaps": {
+    "description": "Az időmező felirata."
+  },
+  "editTimeHint": "ÓÓ:PP(:MM)",
+  "@editTimeHint": {
+    "description": "Az időmező kitöltési mintája; a másodperc nem kötelező."
+  },
+  "editSameDayCaps": "AZNAP",
+  "@editSameDayCaps": {
+    "description": "A befutás napja: a rajt napja (K11)."
+  },
+  "editNextDayCaps": "+1 NAP",
+  "@editNextDayCaps": {
+    "description": "A befutás napja: a rajt utáni nap (K11)."
+  },
+  "editSecondDayCaps": "+2 NAP",
+  "@editSecondDayCaps": {
+    "description": "A befutás napja: a rajt utáni második nap (K11)."
+  },
+  "editElapsed": "Menetidő",
+  "@editElapsed": {
+    "description": "A számolt menetidő sorának címkéje."
+  },
+  "editComputedCaps": "SZÁMOLT",
+  "@editComputedCaps": {
+    "description": "A számolt sorok címke-alatti jele."
+  },
+  "editElapsedSourceCaps": "A HIVATALOS RAJTBÓL ÉS BEFUTÁSBÓL",
+  "@editElapsedSourceCaps": {
+    "description": "A hiányzó menetidő magyarázata."
+  },
+  "editPrize": "Díj",
+  "@editPrize": {
+    "description": "A díj mezőjének címe."
+  },
+  "editPrizeFieldCaps": "RÖVID SZÖVEG",
+  "@editPrizeFieldCaps": {
+    "description": "A díj-mező felirata."
+  },
+  "editPrizeHint": "pl. érem, kupa, Hungária pezsgő",
+  "@editPrizeHint": {
+    "description": "A díj-mező kitöltési mintája."
+  },
+  "editSummary": "Összefoglaló",
+  "@editSummary": {
+    "description": "Az összefoglaló mezőjének címe."
+  },
+  "editSummaryFieldCaps": "SIMA SZÖVEG",
+  "@editSummaryFieldCaps": {
+    "description": "Az összefoglaló-mező felirata."
+  },
+  "editSummaryHint": "Hogyan ment a verseny? Szél, taktika, tanulságok…",
+  "@editSummaryHint": {
+    "description": "Az összefoglaló-mező kitöltési mintája."
+  },
+  "editProblemWholeNumber": "Csak pozitív egész szám írható ide.",
+  "@editProblemWholeNumber": {
+    "description": "Hibaüzenet: a helyezés vagy a mezőny nem egész szám."
+  },
+  "editProblemDecimal": "Szám kell, pl. 10,2.",
+  "@editProblemDecimal": {
+    "description": "Hibaüzenet: a mennyiség nem szám."
+  },
+  "editProblemYs": "Két tizedes kell, pl. 75,90.",
+  "@editProblemYs": {
+    "description": "Hibaüzenet: rossz YS-formátum (14p)."
+  },
+  "editProblemDate": "Hibás dátum, pl. 2026.06.13.",
+  "@editProblemDate": {
+    "description": "Hibaüzenet: olvashatatlan vagy nem létező nap."
+  },
+  "editProblemTime": "Hibás idő, pl. 10:00 vagy 10:00:30.",
+  "@editProblemTime": {
+    "description": "Hibaüzenet: olvashatatlan idő."
+  },
+  "editProblemPlaceAtLeastOne": "A helyezés legalább 1.",
+  "@editProblemPlaceAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív helyezés (13n)."
+  },
+  "editProblemFleetAtLeastOne": "A mezőny legalább 1.",
+  "@editProblemFleetAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív mezőny."
+  },
+  "editProblemYsAtLeastOne": "A YS-szám nem lehet nulla.",
+  "@editProblemYsAtLeastOne": {
+    "description": "Hibaüzenet: nulla YS-szám."
+  },
+  "editProblemPlaceExceedsFleet": "A helyezés nem lehet nagyobb a mezőnynél ({fleetSize}).",
+  "@editProblemPlaceExceedsFleet": {
+    "description": "Hibaüzenet: a helyezés nagyobb a saját mezőnyénél (14p).",
+    "placeholders": {
+      "fleetSize": {
+        "type": "String"
+      }
+    }
+  },
+  "editProblemFinishNotAfterStart": "A befutás nem későbbi a rajtnál. Másnap értetek be? Válaszd a +1 NAP-ot.",
+  "@editProblemFinishNotAfterStart": {
+    "description": "Hibaüzenet: a befutás nem a rajt után van (14p)."
+  },
+  "editProblemNegative": "Nem lehet negatív.",
+  "@editProblemNegative": {
+    "description": "Hibaüzenet: negatív mennyiség."
+  },
+  "editProblemRequired": "Kötelező mező.",
+  "@editProblemRequired": {
+    "description": "Hibaüzenet: üres kötelező mező."
+  },
+  "editProblemAtLeastOne": "Az érték legalább 1.",
+  "@editProblemAtLeastOne": {
+    "description": "Hibaüzenet: nem pozitív érték egyéb mezőben."
+  },
+  "editSaveFailed": "A mentés nem sikerült. A változtatások megmaradtak, próbáld újra.",
+  "@editSaveFailed": {
+    "description": "A mentés hibája a Mentés gomb fölött (K16)."
+  },
+  "editRaceGone": "Ez a verseny már nincs az archívumban.",
+  "@editRaceGone": {
+    "description": "A mentés hibája, ha a szerver RaceNotFound-ot ad."
+  },
+  "editDiscardTitle": "Elveted a változtatásokat?",
+  "@editDiscardTitle": {
+    "description": "A mentetlen változtatás dialógusának címe (13o)."
+  },
+  "editDiscardMessage": "A módosításokat nem mentetted. Ha most kilépsz, elvesznek.",
+  "@editDiscardMessage": {
+    "description": "A mentetlen változtatás dialógusának szövege (13o)."
+  },
+  "editDiscardKeep": "Folytatom",
+  "@editDiscardKeep": {
+    "description": "A 13o biztonságos akciója."
+  },
+  "editDiscardConfirm": "Elvetés",
+  "@editDiscardConfirm": {
+    "description": "A 13o destruktív akciója."
+  },
+  "snackResultSaved": "Eredmény mentve",
+  "@snackResultSaved": {
+    "description": "Snackbar az eredmény mentése után (ADR 0047 E6)."
+  },
+  "logNewRace": "Új verseny",
+  "@logNewRace": {
+    "description": "A napló AppBarjának gombja: üres kézi-verseny szerkesztő (G1)."
+  },
+  "newRaceTitle": "Új verseny",
+  "@newRaceTitle": {
+    "description": "Az új kézi verseny szerkesztőjének címe (G4)."
+  },
+  "editManualTitle": "Verseny szerkesztése",
+  "@editManualTitle": {
+    "description": "A kézi verseny szerkesztőjének címe (G4)."
+  },
+  "editDeleteTooltip": "Verseny törlése",
+  "@editDeleteTooltip": {
+    "description": "A kézi szerkesztő kuka-gombja (G5)."
+  },
+  "editManualCaps": "KÉZI VERSENY",
+  "@editManualCaps": {
+    "description": "A kézi szerkesztő státusz-sávja (14r)."
+  },
+  "editManualNoTelemetryCaps": "TELEMETRIA NÉLKÜL · NINCS TÉRKÉP ÉS BÓJA",
+  "@editManualNoTelemetryCaps": {
+    "description": "A kézi szerkesztő státusz-sávjának jobb oldala (14r)."
+  },
+  "editSectionRaceCaps": "VERSENY",
+  "@editSectionRaceCaps": {
+    "description": "A kézi szerkesztő alapadat-szakaszának címe."
+  },
+  "editName": "Név",
+  "@editName": {
+    "description": "A verseny nevének sor-címkéje."
+  },
+  "editRequiredCaps": "KÖTELEZŐ",
+  "@editRequiredCaps": {
+    "description": "A kötelező mező címke-alatti jele."
+  },
+  "editNameFieldCaps": "NÉV",
+  "@editNameFieldCaps": {
+    "description": "A név-mező felirata."
+  },
+  "editNameHint": "pl. 57. Kékszalag (nyílt)",
+  "@editNameHint": {
+    "description": "A név-mező kitöltési mintája."
+  },
+  "editDate": "Dátum",
+  "@editDate": {
+    "description": "A verseny napjának sor-címkéje."
+  },
+  "editSectionDistanceWindCaps": "TÁV ÉS SZÉL",
+  "@editSectionDistanceWindCaps": {
+    "description": "A kézi szerkesztő stat-szakaszának címe."
+  },
+  "editDistanceSpeed": "Táv és sebesség",
+  "@editDistanceSpeed": {
+    "description": "A táv és a max. sebesség sorának címkéje."
+  },
+  "editDistanceFieldCaps": "TÁV · KM",
+  "@editDistanceFieldCaps": {
+    "description": "A táv-mező felirata."
+  },
+  "editMaxKnotsFieldCaps": "MAX · KN",
+  "@editMaxKnotsFieldCaps": {
+    "description": "A max. sebesség és a max. szél mezőjének felirata."
+  },
+  "editAvgSpeed": "Átlagsebesség",
+  "@editAvgSpeed": {
+    "description": "A számolt átlagsebesség sorának címkéje."
+  },
+  "editAvgSpeedSourceCaps": "TÁVBÓL ÉS MENETIDŐBŐL SZÁMOLVA",
+  "@editAvgSpeedSourceCaps": {
+    "description": "A hiányzó átlagsebesség magyarázata."
+  },
+  "editKnotsValue": "{value} kn",
+  "@editKnotsValue": {
+    "description": "A számolt átlagsebesség értéke csomóban.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "editWind": "Szél",
+  "@editWind": {
+    "description": "Az átlagos és a max. szél sorának címkéje."
+  },
+  "editAvgKnotsFieldCaps": "ÁTLAG · KN",
+  "@editAvgKnotsFieldCaps": {
+    "description": "Az átlagos szél mezőjének felirata."
+  },
+  "editWindDirection": "Szélirány",
+  "@editWindDirection": {
+    "description": "A szélirány sorának címkéje."
+  },
+  "editWindDirectionNone": "nincs megadva",
+  "@editWindDirectionNone": {
+    "description": "A szélirány-lista üres eleme (K12)."
+  },
+  "editWindFromCaps": "HONNAN FÚJ",
+  "@editWindFromCaps": {
+    "description": "A szélirány-lista felirata."
+  },
+  "editDeleteTitle": "Törlöd a versenyt?",
+  "@editDeleteTitle": {
+    "description": "A törlés megerősítő dialógusának címe (14t)."
+  },
+  "editDeleteMessage": "A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.",
+  "@editDeleteMessage": {
+    "description": "A törlés megerősítő dialógusának szövege (14t)."
+  },
+  "editDeleteCancel": "Mégse",
+  "@editDeleteCancel": {
+    "description": "A törlés-dialógus biztonságos akciója."
+  },
+  "editDeleteConfirm": "Törlés",
+  "@editDeleteConfirm": {
+    "description": "A törlés-dialógus destruktív akciója."
+  },
+  "editDeleteRowRace": "Verseny",
+  "@editDeleteRowRace": {
+    "description": "A törlés-dialógus adatcellájának első sora."
+  },
+  "editDeleteRowDate": "Dátum",
+  "@editDeleteRowDate": {
+    "description": "A törlés-dialógus adatcellájának második sora."
+  },
+  "editDeleteFailed": "A törlés nem sikerült. Próbáld újra.",
+  "@editDeleteFailed": {
+    "description": "A törlés hibája a Mentés gomb fölött."
+  },
+  "snackRaceSaved": "Verseny mentve",
+  "@snackRaceSaved": {
+    "description": "Snackbar a kézi verseny mentése után (K15)."
+  },
+  "snackRaceCreated": "Verseny létrehozva",
+  "@snackRaceCreated": {
+    "description": "Snackbar az új verseny létrehozása után (G5)."
+  },
+  "snackRaceDeleted": "Verseny törölve",
+  "@snackRaceDeleted": {
+    "description": "Snackbar a törlés után (G5)."
+  },
+  "logUpload": "Feltöltés",
+  "@logUpload": {
+    "description": "A napló AppBarjának gombja: a feltöltés-dialógust nyitja (G1, K23)."
+  },
+  "importTitle": "Adatbázis feltöltése",
+  "@importTitle": {
+    "description": "A feltöltés-dialógus címe (13f)."
+  },
+  "importMessage": "A telefon Foretack-adatbázisa. A befejezett versenyek bekerülnek a naplóba, a már meglévők frissülnek.",
+  "@importMessage": {
+    "description": "A feltöltés-dialógus magyarázata (13f)."
+  },
+  "importDatabaseLabelCaps": "ADATBÁZIS · KÖTELEZŐ",
+  "@importDatabaseLabelCaps": {
+    "description": "A fő fájl cellájának verzál felirata (13f)."
+  },
+  "importWalLabelCaps": "WAL-FÁJL · OPCIONÁLIS",
+  "@importWalLabelCaps": {
+    "description": "A -wal fájl cellájának verzál felirata (13f)."
+  },
+  "importNoFile": "Nincs kiválasztva",
+  "@importNoFile": {
+    "description": "Az üres fájl-cella szövege (13g; a ráhúzás később jön, K19)."
+  },
+  "importBrowseCaps": "TALLÓZÁS",
+  "@importBrowseCaps": {
+    "description": "Az üres fájl-cella akciója (13g)."
+  },
+  "importReplaceCaps": "CSERE",
+  "@importReplaceCaps": {
+    "description": "A kiválasztott fájl cellájának akciója (13f)."
+  },
+  "importWalHint": "A -wal fájl a legutóbbi verseny adatainak egy részét hordozhatja, ezért érdemes azt is feltölteni.",
+  "@importWalHint": {
+    "description": "Magyarázat a -wal cella alatt (13f)."
+  },
+  "importCancel": "Mégse",
+  "@importCancel": {
+    "description": "A feltöltés-dialógus bezáró akciója; feltöltés közben megszakít (K20)."
+  },
+  "importStart": "Feltöltés",
+  "@importStart": {
+    "description": "A feltöltést indító akció (13f)."
+  },
+  "importUploading": "Feltöltés…",
+  "@importUploading": {
+    "description": "Az akció felirata feltöltés közben, a forgó mellett (13h)."
+  },
+  "importPercent": "{percent} %",
+  "@importPercent": {
+    "description": "A feltöltés haladása a címsorban (13h).",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "importProcessingCaps": "FELDOLGOZÁS",
+  "@importProcessingCaps": {
+    "description": "A címsor felirata, amikor minden bájt kiment, és a szerver dolgozik (K20)."
+  },
+  "importDoneTitle": "Feltöltés kész",
+  "@importDoneTitle": {
+    "description": "A sikeres import címe (13i)."
+  },
+  "importDoneMessage": "A napló a bezáráskor frissül.",
+  "@importDoneMessage": {
+    "description": "A sikeres import magyarázata (13i)."
+  },
+  "importWalIgnored": "A WAL-fájl érvénytelen volt, ezért csak a fő fájl adatai kerültek be.",
+  "@importWalIgnored": {
+    "description": "Halk mondat a sikeres import alatt, ha a szerver figyelmen kívül hagyta a -wal fájlt (K20)."
+  },
+  "importNothingFound": "A fájlban nem volt verseny.",
+  "@importNothingFound": {
+    "description": "A sikeres import szövege, ha egyik csoportban sincs verseny (K21)."
+  },
+  "importGroupAdded": "Új",
+  "@importGroupAdded": {
+    "description": "Az eredmény-lista csoportja: újonnan felvett versenyek (13i; a fejléc verzálosít)."
+  },
+  "importGroupUpdated": "Frissült",
+  "@importGroupUpdated": {
+    "description": "Az eredmény-lista csoportja: frissült versenyek (13i)."
+  },
+  "importGroupSkipped": "Kimaradt · nem befejezett",
+  "@importGroupSkipped": {
+    "description": "Az eredmény-lista csoportja: kihagyott, nem befejezett versenyek (13i)."
+  },
+  "importRaceDate": "{date}",
+  "@importRaceDate": {
+    "description": "A verseny rövid dátuma az eredmény-lista sorának jobb szélén (13i; a widget verzálosít).",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "MMMd"
+      }
+    }
+  },
+  "importClose": "Bezárás",
+  "@importClose": {
+    "description": "Az eredmény és a séma-hiba egyetlen akciója (13i, 13j)."
+  },
+  "importSchemaTitle": "Az app újabb adatbázis-verziót használ",
+  "@importSchemaTitle": {
+    "description": "A séma-hiba címe (13j)."
+  },
+  "importSchemaMessage": "Frissítsd a szervert, és töltsd fel újra a fájlt. A napló nem változott.",
+  "@importSchemaMessage": {
+    "description": "A séma-hiba magyarázata (13j)."
+  },
+  "importSchemaServer": "Szerver",
+  "@importSchemaServer": {
+    "description": "A séma-hiba adatcellájának második címkéje (13j)."
+  },
+  "importSchemaVersionCaps": "SÉMA v{version}",
+  "@importSchemaVersionCaps": {
+    "description": "Egy sémaverzió az adatcellában (13j).",
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailedNetwork": "A feltöltés megszakadt. Ellenőrizd a kapcsolatot, és próbáld újra.",
+  "@importFailedNetwork": {
+    "description": "Hálózati hiba a feltöltés közben (K20)."
+  },
+  "importFailedNotSqlite": "A kiválasztott fájl nem SQLite-adatbázis.",
+  "@importFailedNotSqlite": {
+    "description": "A szerver elutasította: a fő fájl nem SQLite (K20)."
+  },
+  "importFailedNotForetack": "A kiválasztott fájl nem a Foretack adatbázisa.",
+  "@importFailedNotForetack": {
+    "description": "A szerver elutasította: idegen adatbázis (K20)."
+  },
+  "importFailedMainFileMissing": "A fő adatbázis-fájl nem érkezett meg. Válaszd ki újra, és próbáld újra.",
+  "@importFailedMainFileMissing": {
+    "description": "A szerver elutasította: hiányzik a fő fájl (K20)."
+  },
+  "importFailedTooLarge": "A fájl nagyobb a szerver korlátjánál ({limit}).",
+  "@importFailedTooLarge": {
+    "description": "A szerver elutasította: túl nagy törzs (K20).",
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "importFailedServer": "A szerver nem tudta feldolgozni a fájlt. Próbáld újra később.",
+  "@importFailedServer": {
+    "description": "Bármely más szerverhiba a feltöltés után (K20)."
+  },
+  "logViewList": "Lista",
+  "@logViewList": {
+    "description": "A napló nézet-váltójának első cellája (G1, K32)."
+  },
+  "logViewTable": "Táblázat",
+  "@logViewTable": {
+    "description": "A napló nézet-váltójának második cellája (G1, K32)."
+  },
+  "logViewToggleLabel": "Napló nézete",
+  "@logViewToggleLabel": {
+    "description": "A nézet-váltó csoportjának szemantikai címkéje (K32)."
+  },
+  "tableGroupRaceCaps": "VERSENY",
+  "@tableGroupRaceCaps": {
+    "description": "A táblázat csoportsora: dátum és név (G2)."
+  },
+  "tableGroupResultCaps": "EREDMÉNY · HELYEZÉS/MEZŐNY",
+  "@tableGroupResultCaps": {
+    "description": "A táblázat csoportsora: helyezések és YS (G2)."
+  },
+  "tableGroupTimeCaps": "IDŐ ÉS TÁV",
+  "@tableGroupTimeCaps": {
+    "description": "A táblázat csoportsora: rajt, befutás, menetidő, táv (G2)."
+  },
+  "tableGroupSpeedCaps": "SEBESSÉG ÉS SZÉL",
+  "@tableGroupSpeedCaps": {
+    "description": "A táblázat csoportsora: sebesség, szél, irány (G2)."
+  },
+  "tableGroupPrizeCaps": "DÍJ",
+  "@tableGroupPrizeCaps": {
+    "description": "A táblázat csoportsora: a díj (G2)."
+  },
+  "tableColumnDateCaps": "DÁTUM",
+  "@tableColumnDateCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnNameCaps": "VERSENY",
+  "@tableColumnNameCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnClassCaps": "OSZT.",
+  "@tableColumnClassCaps": {
+    "description": "Oszlopfejléc: osztályhelyezés (G2)."
+  },
+  "tableColumnOverallCaps": "ABSZ.",
+  "@tableColumnOverallCaps": {
+    "description": "Oszlopfejléc: abszolút helyezés (G2)."
+  },
+  "tableColumnMonohullCaps": "EGYT.",
+  "@tableColumnMonohullCaps": {
+    "description": "Oszlopfejléc: egytestű helyezés (G2)."
+  },
+  "tableColumnYsCaps": "YS",
+  "@tableColumnYsCaps": {
+    "description": "Oszlopfejléc: YS-szám (G2)."
+  },
+  "tableColumnStartCaps": "RAJT",
+  "@tableColumnStartCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnFinishCaps": "BEFUTÁS",
+  "@tableColumnFinishCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnElapsedCaps": "MENETIDŐ",
+  "@tableColumnElapsedCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnDistanceCaps": "TÁV",
+  "@tableColumnDistanceCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnAvgSpeedCaps": "ÁTLAG",
+  "@tableColumnAvgSpeedCaps": {
+    "description": "Oszlopfejléc: átlagsebesség (G2)."
+  },
+  "tableColumnMaxSpeedCaps": "MAX",
+  "@tableColumnMaxSpeedCaps": {
+    "description": "Oszlopfejléc: legnagyobb sebesség (G2)."
+  },
+  "tableColumnAvgWindCaps": "ÁTL. SZÉL",
+  "@tableColumnAvgWindCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnMaxWindCaps": "MAX SZÉL",
+  "@tableColumnMaxWindCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableColumnDirectionCaps": "IRÁNY",
+  "@tableColumnDirectionCaps": {
+    "description": "Oszlopfejléc: uralkodó szélirány (G2)."
+  },
+  "tableColumnPrizeCaps": "DÍJ",
+  "@tableColumnPrizeCaps": {
+    "description": "Oszlopfejléc (G2)."
+  },
+  "tableManualCaps": "KÉZI",
+  "@tableManualCaps": {
+    "description": "Címke a kézi verseny neve után a táblázatban (G6)."
+  },
+  "tableNextDay": "+1",
+  "@tableNextDay": {
+    "description": "Jel a másnapi befutás mellett (G2)."
+  },
+  "tableSortedAscending": "{column}, növekvő sorrend",
+  "@tableSortedAscending": {
+    "description": "A rendezett oszlop fejlécének szemantikai címkéje (K29).",
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "tableSortedDescending": "{column}, csökkenő sorrend",
+  "@tableSortedDescending": {
+    "description": "A rendezett oszlop fejlécének szemantikai címkéje (K29).",
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "tableUnitKilometers": "km",
+  "@tableUnitKilometers": {
+    "description": "Mértékegység a Táv fejlécében (L5)."
+  },
+  "tableUnitKnots": "kn",
+  "@tableUnitKnots": {
+    "description": "Mértékegység a sebesség és a szél fejlécében (L5)."
+  },
+  "tableUnitClock": "ó:p",
+  "@tableUnitClock": {
+    "description": "A rajt és a befutás fejlécének második sora (L5)."
+  },
+  "tableUnitElapsed": "ó:p:mp",
+  "@tableUnitElapsed": {
+    "description": "A menetidő fejlécének második sora (L5)."
+  },
+  "editStatsFromTrackNote": "A táv, a sebesség és a szél a régi trackből számolódik, a hivatalos rajt és befutás között.",
+  "@editStatsFromTrackNote": {
+    "description": "Halk sor a kézi szerkesztő stat-szakaszában, ha a statok a régi trackből számoltak (ADR 0050 Addendum 2 F3)."
+  },
+  "editAvgSpeedTrackSourceCaps": "A TRACKBŐL SZÁMOLVA",
+  "@editAvgSpeedTrackSourceCaps": {
+    "description": "Az átlagsebesség magyarázata, ha a trackből számolt, de nincs értéke."
+  },
+  "logStatistics": "Statisztika",
+  "@logStatistics": {
+    "description": "A napló AppBar ikon-gombjának tooltipje, amely a Statisztika-képernyőt nyitja (ADR 0049 Addendum 1 P1)."
+  },
+  "logExport": "Export",
+  "@logExport": {
+    "description": "A napló AppBar ikon-gombjának tooltipje, amely a teljes exportot (tar.gz) tölti le (ADR 0050 Addendum 3 G1)."
+  },
+  "statsTitle": "Statisztika",
+  "@statsTitle": {
+    "description": "A Statisztika-képernyő címe (ADR 0049 D2)."
+  },
+  "statsStatRacesCaps": "VERSENY",
+  "@statsStatRacesCaps": {
+    "description": "A Statisztika MENNYISÉG csíkjának első cellája: a versenyek száma."
+  },
+  "statsColumnPodiumCaps": "DOBOGÓS",
+  "@statsColumnPodiumCaps": {
+    "description": "Az éremtábla oszlopa: dobogós versenyek száma és aránya (ADR 0049 Addendum 2 R3)."
+  },
+  "statsWindBandsCaps": "ÁTLAGSZÉL SZERINT",
+  "@statsWindBandsCaps": {
+    "description": "A szélsávok szakaszcíme (Addendum 1 P3, Addendum 2 R2)."
+  },
+  "statsWindBandBelow": "< {high} kn",
+  "@statsWindBandBelow": {
+    "description": "A legalsó szélsáv címkéje.",
+    "placeholders": {
+      "high": {
+        "type": "int"
+      }
+    }
+  },
+  "statsWindBandRange": "{low}–{high} kn",
+  "@statsWindBandRange": {
+    "description": "Egy közbülső szélsáv címkéje.",
+    "placeholders": {
+      "low": {
+        "type": "int"
+      },
+      "high": {
+        "type": "int"
+      }
+    }
+  },
+  "statsWindBandAbove": "≥ {low} kn",
+  "@statsWindBandAbove": {
+    "description": "A legfelső szélsáv címkéje.",
+    "placeholders": {
+      "low": {
+        "type": "int"
+      }
+    }
+  },
+  "statsColumnYearCaps": "ÉV",
+  "@statsColumnYearCaps": {
+    "description": "Az éremtábla első oszlopa (R3)."
+  },
+  "statsSeasonCaps": "AZ ÉVAD",
+  "@statsSeasonCaps": {
+    "description": "Az egy-év nézet első szakaszcíme (R2)."
+  },
+  "statsPodiumRacesCaps": "DOBOGÓS VERSENY",
+  "@statsPodiumRacesCaps": {
+    "description": "Az évad nagy száma: hány versenyen volt osztály- vagy abszolút dobogó (R5)."
+  },
+  "statsPodiumRateCaps": "DOBOGÓS ARÁNY",
+  "@statsPodiumRateCaps": {
+    "description": "Az évad nagy száma: dobogós versenyek a megjelenített versenyekhez (R5)."
+  },
+  "statsPodiumPlacingsCaps": "DOBOGÓS HELYEZÉS",
+  "@statsPodiumPlacingsCaps": {
+    "description": "A dobogós helyezések száma; az évad sorában és a kategóriák alján (R5)."
+  },
+  "statsClassCaps": "OSZTÁLYBAN",
+  "@statsClassCaps": {
+    "description": "Az osztályhelyezések szakaszcíme és éremtábla-oszlopa (R2, R3)."
+  },
+  "statsOverallCaps": "ABSZOLÚT",
+  "@statsOverallCaps": {
+    "description": "Az összevont abszolút helyezések szakaszcíme és éremtábla-oszlopa (R1)."
+  },
+  "statsFirstPlaceCaps": "I. HELY",
+  "@statsFirstPlaceCaps": {
+    "description": "Az első helyek sora egy kategóriában."
+  },
+  "statsSecondPlaceCaps": "II. HELY",
+  "@statsSecondPlaceCaps": {
+    "description": "A második helyek sora egy kategóriában."
+  },
+  "statsThirdPlaceCaps": "III. HELY",
+  "@statsThirdPlaceCaps": {
+    "description": "A harmadik helyek sora egy kategóriában."
+  },
+  "statsOfStarts": "a {total} indulásból",
+  "@statsOfStarts": {
+    "description": "A százalék utáni szöveg egy helyezés-sorban.",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "statsOffPodium": "Dobogón kívül:",
+  "@statsOffPodium": {
+    "description": "A dobogón kívüli helyezések sorának eleje (R4)."
+  },
+  "statsTrackCaps": "A PÁLYÁN",
+  "@statsTrackCaps": {
+    "description": "A pálya-mutatók szakaszcíme (R2)."
+  },
+  "statsLongestRaceCaps": "LEGHOSSZABB TÁV",
+  "@statsLongestRaceCaps": {
+    "description": "Pálya-mutató: a leghosszabb táv versenye."
+  },
+  "statsAverageSpeedCaps": "ÁTLAGSEBESSÉG",
+  "@statsAverageSpeedCaps": {
+    "description": "Pálya-mutató: össztáv ÷ összidő."
+  },
+  "statsFastestAverageCaps": "LEGGYORSABB VERSENY",
+  "@statsFastestAverageCaps": {
+    "description": "Pálya-mutató: a legnagyobb átlagsebességű verseny."
+  },
+  "statsTopSpeedCaps": "CSÚCSSEBESSÉG",
+  "@statsTopSpeedCaps": {
+    "description": "Pálya-mutató: a legnagyobb max. sebesség versenye."
+  },
+  "statsStrongestWindCaps": "LEGERŐSEBB SZÉL",
+  "@statsStrongestWindCaps": {
+    "description": "Pálya-mutató: a legnagyobb max. szél versenye."
+  },
+  "statsPrevailingWindCaps": "URALKODÓ SZÉLIRÁNY",
+  "@statsPrevailingWindCaps": {
+    "description": "Pálya-mutató: a leggyakoribb égtáj."
+  },
+  "statsMedalTableCaps": "ÉREMTÁBLA ÉVENKÉNT",
+  "@statsMedalTableCaps": {
+    "description": "Az összes év nézet első szakaszcíme (R3)."
+  },
+  "statsColumnStartsCaps": "INDULÁS",
+  "@statsColumnStartsCaps": {
+    "description": "Az éremtábla oszlopa: versenyek száma."
+  },
+  "statsColumnHarvestCaps": "AZ ÉV TERMÉSE",
+  "@statsColumnHarvestCaps": {
+    "description": "Az éremtábla oszlopa: az év dobogós helyezései vitorlákkal."
+  },
+  "statsTotalRow": "Össz.",
+  "@statsTotalRow": {
+    "description": "Az éremtábla összesítő sorának címkéje."
+  },
+  "statsHarvestTotal": "dobogós helyezés",
+  "@statsHarvestTotal": {
+    "description": "Az éremtábla összesítő sorában a dobogós helyezések száma után."
+  },
+  "polarSeasonSectionCaps": "POLÁR-TELJESÍTMÉNY",
+  "@polarSeasonSectionCaps": {
+    "description": "Az egy év nézet polár-szakaszának címe (W1)."
+  },
+  "polarSeasonTrailing": "{count} verseny · időrendben",
+  "@polarSeasonTrailing": {
+    "description": "A polár-szakaszcím jobb oldali halk felirata egy év nézetben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarYearsSectionCaps": "POLÁR ÉVENKÉNT",
+  "@polarYearsSectionCaps": {
+    "description": "Az összes év nézet polár-szakaszának címe (W1)."
+  },
+  "polarYearsTrailing": "időre súlyozva · {count} verseny",
+  "@polarYearsTrailing": {
+    "description": "A polár-szakaszcím jobb oldali halk felirata az összes év nézetben.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarGroupPercentCaps": "POLÁR %",
+  "@polarGroupPercentCaps": {
+    "description": "A polár-táblázat fejlécének csoportcíme a százalék-oszlopok fölött."
+  },
+  "polarGroupTimeCaps": "AZ IDŐ %",
+  "@polarGroupTimeCaps": {
+    "description": "A polár-táblázat fejlécének csoportcíme a két időarány fölött."
+  },
+  "polarColumnYearCaps": "ÉV",
+  "@polarColumnYearCaps": {
+    "description": "A polár-táblázat oszlopa: év."
+  },
+  "polarColumnRankCaps": "RANG",
+  "@polarColumnRankCaps": {
+    "description": "A polár-táblázat oszlopa: szezonbeli rang."
+  },
+  "polarColumnDateCaps": "DÁTUM",
+  "@polarColumnDateCaps": {
+    "description": "A polár-táblázat oszlopa: a verseny napja."
+  },
+  "polarColumnRaceCaps": "VERSENY",
+  "@polarColumnRaceCaps": {
+    "description": "A polár-táblázat oszlopa: a verseny neve vagy a versenyek száma."
+  },
+  "polarColumnWindCaps": "SZÉL",
+  "@polarColumnWindCaps": {
+    "description": "A polár-táblázat oszlopa: átlagos TWS."
+  },
+  "polarColumnAverageCaps": "ÁTLAG",
+  "@polarColumnAverageCaps": {
+    "description": "Polár-mutató: a százalékok átlaga."
+  },
+  "polarColumnMedianCaps": "MEDIÁN",
+  "@polarColumnMedianCaps": {
+    "description": "Polár-mutató: a százalékok mediánja."
+  },
+  "polarColumnP90Caps": "P90",
+  "@polarColumnP90Caps": {
+    "description": "Polár-mutató: a százalékok 90. percentilise."
+  },
+  "polarColumnP99Caps": "P99",
+  "@polarColumnP99Caps": {
+    "description": "Polár-mutató: a százalékok 99. percentilise."
+  },
+  "polarColumnBestCaps": "LEGJOBB",
+  "@polarColumnBestCaps": {
+    "description": "A polár-táblázat oszlopa: legjobb 5 mp, első sor."
+  },
+  "polarColumnBestUnitCaps": "5 MP",
+  "@polarColumnBestUnitCaps": {
+    "description": "A polár-táblázat oszlopa: legjobb 5 mp, második sor."
+  },
+  "polarColumnAbove90Caps": "90%",
+  "@polarColumnAbove90Caps": {
+    "description": "A polár-táblázat oszlopa: a 90% fölötti idő, első sor."
+  },
+  "polarColumnAbove100Caps": "100%",
+  "@polarColumnAbove100Caps": {
+    "description": "A polár-táblázat oszlopa: a 100% fölötti idő, első sor."
+  },
+  "polarColumnAboveUnitCaps": "FELETT",
+  "@polarColumnAboveUnitCaps": {
+    "description": "A két időarány-oszlop második sora."
+  },
+  "polarRankTooltip": "Szélvödrökre standardizált átlag",
+  "@polarRankTooltip": {
+    "description": "A RANG fejléc és a SZEZONBELI RANG tooltipje."
+  },
+  "polarApproximateTooltip": "Közelítő: nincs hivatalos rajt és befutás, a teljes rögzítésből",
+  "@polarApproximateTooltip": {
+    "description": "A ≈ jel tooltipje."
+  },
+  "polarYearRacesSuffix": "vers.",
+  "@polarYearRacesSuffix": {
+    "description": "Az évsorban a versenyszám utáni halk toldalék."
+  },
+  "polarRaceAverage": "A futamok átlaga",
+  "@polarRaceAverage": {
+    "description": "Az első összesítő sor felirata."
+  },
+  "polarTimeWeighted": "Időre súlyozva",
+  "@polarTimeWeighted": {
+    "description": "A második összesítő sor felirata."
+  },
+  "polarMeasuredHours": "{hours} ó mért idő",
+  "@polarMeasuredHours": {
+    "description": "A mért idő összege az összesítő sorok alatt.",
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "polarFootnote": "A százalék a mért vízsebesség (STW) és a polár célsebességének aránya az adott szélszögre és -erősségre. A 100% nem plafon, hanem a historikus felső tized küszöbe.",
+  "@polarFootnote": {
+    "description": "A polár-táblázat lábjegyzete egy év nézetben (16a)."
+  },
+  "polarFewData": "kevés adat",
+  "@polarFewData": {
+    "description": "A sor alcíme, ha 60 mp-nél kevesebb a mért idő (W2)."
+  },
+  "polarNotComputed": "még nincs számolva",
+  "@polarNotComputed": {
+    "description": "A sor alcíme, ha a szerver még nem számolta a versenyt (W2)."
+  },
+  "polarStale": "Újraszámolás a szerveren — a korábbi értékek látszanak.",
+  "@polarStale": {
+    "description": "A frissítés alatti állapot sora (16d-2)."
+  },
+  "polarUnavailable": "Nincs polár a szerveren, ezért teljesítmény-százalék nem számolható.",
+  "@polarUnavailable": {
+    "description": "A szakasz mondata, ha a szerveren nincs polár (16d-3)."
+  },
+  "polarLoadError": "A polár-adatok nem tölthetők be.",
+  "@polarLoadError": {
+    "description": "A polár-szakasz betöltési hibája (W2)."
+  },
+  "polarDetailCaps": "POLÁR",
+  "@polarDetailCaps": {
+    "description": "A részletező polár-blokkjának címe (16c)."
+  },
+  "polarDetailApproximateCaps": "≈ KÖZELÍTŐ",
+  "@polarDetailApproximateCaps": {
+    "description": "A részletező polár-fejlécének jobb slotja közelítő versenynél."
+  },
+  "polarDetailFewDataCaps": "KEVÉS ADAT",
+  "@polarDetailFewDataCaps": {
+    "description": "A részletező polár-fejlécének jobb slotja kevés adatnál."
+  },
+  "polarDetailRankCaps": "SZEZONBELI RANG",
+  "@polarDetailRankCaps": {
+    "description": "A részletező polár-blokkjának rang-cellája."
+  },
+  "polarDetailRankOf": "/ {count}",
+  "@polarDetailRankOf": {
+    "description": "A szezonbeli rang mezőnye: a rangot kapott versenyek száma.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "polarDetailBestCaps": "LEGJOBB 5 MP",
+  "@polarDetailBestCaps": {
+    "description": "A részletező cellája: legjobb 5 mp."
+  },
+  "polarDetailAbove90Caps": "90% FELETT",
+  "@polarDetailAbove90Caps": {
+    "description": "A részletező cellája: a 90% fölötti idő aránya."
+  },
+  "polarDetailAbove100Caps": "100% FELETT",
+  "@polarDetailAbove100Caps": {
+    "description": "A részletező cellája: a 100% fölötti idő aránya."
+  },
+  "signInBrandCaps": "FORETACK",
+  "@signInBrandCaps": {
+    "description": "A belépő képernyő felirata a cím fölött (17a, verzál)."
+  },
+  "signInTitle": "Lola versenyarchívum",
+  "@signInTitle": {
+    "description": "A belépő képernyő címe (17a)."
+  },
+  "signInExpired": "A belépés lejárt",
+  "@signInExpired": {
+    "description": "Halk sor a belépő képernyőn, ha munka közben járt le a belépés (ADR 0051 Addendum 7 P1)."
+  },
+  "signInScanPrompt": "Olvasd be a Foretack appal",
+  "@signInScanPrompt": {
+    "description": "A QR-kód alatti felszólítás (17a)."
+  },
+  "signInQrLabel": "Belépési QR-kód",
+  "@signInQrLabel": {
+    "description": "A QR-kép képernyőolvasó-címkéje (P6)."
+  },
+  "signInConfirmOnPhone": "Erősítsd meg a telefonodon",
+  "@signInConfirmOnPhone": {
+    "description": "A beolvasott QR helyén álló doboz szövege (17c)."
+  },
+  "signInJoinSentCaps": "KÉRELEM ELKÜLDVE",
+  "@signInJoinSentCaps": {
+    "description": "A csatlakozási kérelem dobozának felirata (17d-1, verzál)."
+  },
+  "signInJoinAwaitingOwner": "A tulajdonos jóváhagyására vár",
+  "@signInJoinAwaitingOwner": {
+    "description": "A csatlakozási kérelem dobozának szövege (17d-1)."
+  },
+  "signInQrExpired": "Lejárt — olvasd be újra",
+  "@signInQrExpired": {
+    "description": "A felirat helyén, ha a megnyitott vagy csatlakozó kérés lejárt (17d-2)."
+  },
+  "signInOffline": "Nincs kapcsolat a szerverrel",
+  "@signInOffline": {
+    "description": "A szerver nem érhető el (belépő képernyő, induló kapu)."
+  },
+  "signInBackToQr": "Vissza a QR-kódhoz",
+  "@signInBackToQr": {
+    "description": "Link vissza a QR-belépéshez (17c, 17d-1, 17e)."
+  },
+  "signInUseFallback": "Belépés jelszóval vagy helyreállító kóddal",
+  "@signInUseFallback": {
+    "description": "Link a tartalék belépéshez (17a)."
+  },
+  "signInFallbackLabelCaps": "JELSZÓ VAGY HELYREÁLLÍTÓ KÓD",
+  "@signInFallbackLabelCaps": {
+    "description": "A tartalék mező címkéje (17e-1, verzál)."
+  },
+  "signInSubmit": "Belépés",
+  "@signInSubmit": {
+    "description": "A tartalék űrlap gombja (17e-1)."
+  },
+  "signInRejected": "Nem sikerült belépni",
+  "@signInRejected": {
+    "description": "A hibás tartalék próba semleges szövege (17e-2)."
+  },
+  "signInRetryInMinutes": "Próbáld újra {minutes} perc múlva",
+  "@signInRetryInMinutes": {
+    "description": "A túl sok próbálkozás utáni várakozás (17e-3); a perc száma mono betűvel jelenik meg.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMenuTooltip": "Fiók",
+  "@accountMenuTooltip": {
+    "description": "A név-menü gombjának tooltipje (17f)."
+  },
+  "accountRoleOwnerCaps": "TULAJDONOS",
+  "@accountRoleOwnerCaps": {
+    "description": "A tulajdonos szerepe a név-menüben (17f-1, verzál)."
+  },
+  "accountRoleCrewCaps": "LEGÉNYSÉG",
+  "@accountRoleCrewCaps": {
+    "description": "A legénység szerepe a név-menüben (17f-2, verzál)."
+  },
+  "accountSignOut": "Kijelentkezés",
+  "@accountSignOut": {
+    "description": "A név-menü kijelentkezés-sora (17f)."
+  },
+  "accountSignOutFailed": "Nem sikerült kijelentkezni. Próbáld újra.",
+  "@accountSignOutFailed": {
+    "description": "Snackbar, ha a kijelentkezés nem érte el a szervert; a web belépve marad."
+  },
+  "logEmptyCrew": "Még nincs verseny az archívumban.",
+  "@logEmptyCrew": {
+    "description": "Az üres archívum szövege a legénységnek, feltöltésre hívás nélkül."
+  }
+}

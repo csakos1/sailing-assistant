@@ -1,0 +1,497 @@
+# ADR 0050 — Régi versenyek trackje a YDVR-naplóból és a teljes export
+
+## Státusz
+
+Elfogadva — 2026-10-05. Még nem implementálva. A „Szeletek" sorrendjében
+követi, docs-first. Az ADR 0048 H3 és I2 egy-egy pontját, valamint az ADR
+0049 D10 sémaverzióját pontosítja; ezeket a „Mit ír felül" szakasz sorolja
+fel.
+
+A döntések egy része felhasználói döntés, más része Claude javaslata. A
+javaslatokat a pontok „(javaslat)" jelzéssel hordozzák, és a hozzájuk
+tartozó szelet előtt még visszavonhatók.
+
+## Kontextus
+
+Az Excel-import (ADR 0048 Addendum 6) után a web 2021-től minden versenyt
+mutat, de a régi versenyek csak beírt számok: nincs térképük, és a
+polár-statisztika (ADR 0049) sem számolható rájuk. Pedig a hajón 2021 óta
+egy Yacht Devices YDVR-04 adatrögzítő naplózza az NMEA 2000 buszt
+SD-kártyára. Ebből a YDVRCONV-val készült egy `polar.csv`, amelyből az
+Excel táv-, sebesség- és szél-oszlopai is származnak.
+
+A felhasználó két kérése (2026-10-02):
+
+1. a régi versenyeknek is legyen pontos statisztikája és térképe (bóják
+   nélkül);
+2. a végén minden verseny minden adata és statisztikája egyetlen fájlba
+   menthető legyen, biztonsági másolatnak.
+
+### Verifikált tények
+
+- **`polar.csv`** (104 MB, 247 179 sor):
+  - 2021-04-24 15:55:36 és 2026-07-04 14:55:01 között, ~686 óra mért idő;
+  - a lépésköz 10 mp, kisebb ingadozással (9–11 mp), ritkán 16–18 mp-es
+    lyukakkal;
+  - a fejléc: `Time,Latitude,Longitude`, majd a TWS, TWD, TWA, AWS, AWA
+    és ROT öt változata (pillanatérték, `(med)`, `(avg)`, `(min)`,
+    `(max)`), az STW, Heading, COG és SOG három változata (pillanatérték,
+    `(min)`, `(max)`);
+  - a sebességek csomóban, a szögek fokban vannak;
+  - **a TWA 0–360°**, nem előjeles: a 180° fölötti érték bal halz;
+  - egyes cellák üresek (pozíció: 686 sor, szél: ~980 sor);
+  - a TWS-ben tüskék vannak (maximum 90 kn), az ADR 0049 D7 szűrője
+    kezeli őket.
+- **A `Time` oszlop Europe/Budapest helyi idő** (felhasználói mérés,
+  2026-10-05): a telefon 2026-06-20 08:30:00 UTC-kor a 46,93767 /
+  17,95021 ponton volt; a CSV `10:30:06`-os sora 46,93781 / 17,95033.
+- **Lefedettség:** a hivatalos rajt–befutás ablakban a 61 Excelből jött
+  kézi versenyből 56-hoz van track, 89–100%-os lefedettséggel. Hiányzik a
+  2021-es Timu és Beszédes (nincs hivatalos idő), a 2025-ös Évadnyitó
+  (DNF, nincs befutás) és a 2025-ös Földvár (az Excel szerint is „nincs
+  telemetria").
+- **Összevetés az Excellel** ugyanabban az ablakban:
+  - az átlagos szél tizedre egyezik;
+  - a pozíciókból számolt táv a legtöbb versenyen ±0,5 NM-en belül van.
+    Gyenge szélben 2–5 NM-rel több (a 2021-es Tihany-kör 12,8 NM a 8,3
+    helyett): sodródásnál a GPS-pozíció vándorol, a SOG 0 közelében
+    alulmér;
+  - a nyers SOG-maximum 0,5–3 kn-ral nagyobb a szűrt Excel-csúcsnál; ez
+    az ADR 0048 D4 ismert eltérése.
+- **A `.DAT` fájlok** a busz nyers naplói (`YDVR v04`): 2 bájtos idő
+  (ms a percen belül), 4 bájtos CAN-azonosító és változó hosszú adat.
+  Felismerhető benne a pozíció (129025), a COG/SOG (129026), az irány
+  (127250), a szél (130306), az STW (128259) és a GNSS (129029). A rekord
+  hossza a PGN-től függ (a fast-packet üzenetek összerakva, egyes
+  üzenetek 3 bájtosak), ezért egy dekóder a hivatalos formátumleírás
+  nélkül törékeny.
+- A webes stat-számítás a `WindowedTrackSampleReader`-re és a
+  `WindSampleReader`-re épül (`RaceStatsCalculator`), a polár-statisztika
+  a tervezett `PolarSampleReader`-re (ADR 0049 D13). Mind függvény-alakú
+  kontraktus, egy új forrás saját implementációval beköthető.
+- Az archívum-import a feltöltés versenyeit cseréli, a többit nem
+  (`ArchiveMerger`). Az `archive.sqlite` sémája a telefoné.
+
+## Döntés
+
+### D1 — A forrás a `polar.csv` (javaslat)
+
+- A régi trackek a YDVRCONV által már dekódolt `polar.csv`-ből jönnek.
+- A `.DAT` fájlok nyers archívumként a felhasználónál maradnak. Saját
+  DAT-dekóder nem készül: 1 Hz-es régi adatra jelenleg nincs igény, és a
+  formátum leírás nélkül törékeny.
+
+### D2 — Mi kerül fel (felhasználói döntés)
+
+- **Csak a hivatalos ablak:** a kézi verseny eredményének hivatalos
+  rajtja és befutása közötti sorok (a határokat is beleértve).
+- Hivatalos idő nélküli vagy befutás nélküli (DNF) kézi versenyhez nem
+  kerül track.
+- **Telemetriás versenyhez sem kerül**, akkor sem, ha a CSV lefedi (a
+  2026-os Mihálkovics, Tramontana, Alsóörs): a telefon adata az elsődleges
+  (ADR 0048 döntés 11).
+- Edzés és túra nem kerül fel.
+
+### D3 — Tárolás: `legacy_track_samples` a `web.sqlite` v3-ban (javaslat)
+
+- A track egy kézi versenyhez tartozik, ezért a `web.sqlite`-ba kerül, nem
+  az `archive.sqlite`-ba. Hamis telefonos pillanatképek nem készülnek, a
+  telefon sémája érintetlen.
+- **Sorok:** `race_id` (a kézi verseny azonosítója), `timestamp_ms`
+  (epoch-ms, UTC, az I2 elve szerint), és a következő mezők, mind
+  `null`-képes, SI-mértékegységben:
+
+  | Oszlop | Forrás | Mire |
+  |---|---|---|
+  | `lat_deg`, `lon_deg` | `Latitude`, `Longitude` | térkép, táv |
+  | `sog_mps` | `SOG` | átlag- és max. sebesség |
+  | `stw_mps` | `STW` | polár |
+  | `tws_mps` | `TWS` | átlagos és max. szél |
+  | `twd_deg` | `TWD(med)` | uralkodó irány |
+  | `polar_tws_mps` | `TWS(med)` | polár |
+  | `polar_twa_deg` | `TWA(med)`, előjelesre váltva | polár |
+
+- Elsődleges kulcs: `(race_id, timestamp_ms)`. Egy verseny trackjének
+  cseréje törlés és beszúrás egy tranzakcióban.
+- **A kézi verseny törlése** a trackjét is törli, ugyanabban a
+  tranzakcióban (az ADR 0048 I7 mintájára).
+- **Miért ezek az oszlopok:** a sebesség- és szél-statisztika a
+  pillanatértékből jön, ahogy a telefonon (1 Hz-es pillanatkép). A polár
+  a mediánokból, mert a `foretack.pol` is a `TWA(med)` × `TWS(med)`
+  vödrökből épült (ADR 0028 Addendum 1 A3).
+- **Előjeles TWA:** a 180° fölötti érték `érték − 360` (bal halz,
+  negatív), a domain konvenciója szerint.
+- **Az irány:** a CSV TWD-je földrajzi irányként értelmeződik. Az Excel
+  uralkodó iránya is ebből készült.
+
+### D4 — Az import: `import_legacy_tracks` (javaslat)
+
+```
+dart run web_server:import_legacy_tracks \
+  --web-db … --csv polar.csv [--apply]
+```
+
+- **Bemenet:** a `web.sqlite` kézi versenyei a hivatalos idejükkel. Az
+  Excel-import után fut, mert onnan jönnek a hivatalos idők.
+- **A CSV olvasása** pure, tesztelt Dart-kódban:
+  - a fejlécet név szerint olvassa, a hiányzó oszlop hiba;
+  - a `Time` helyi időként értelmeződik (`budapestWallClockToUtc`, ADR
+    0048 Addendum 6 M3);
+  - a csomó m/s-re vált, az üres cella `null`;
+  - a CSV időrendben van, így a versenyek ablakai egy menetben,
+    rendezett kereséssel vághatók.
+- **Alapból próbafuttatás:** versenyenként kiírja a mintaszámot, a
+  lefedettséget (mért mp ÷ ablak hossza), a pozícióból számolt távot és
+  az Excelben beírt távot. 80% alatti lefedettségnél figyelmeztet.
+- **`--apply`:** versenyenként cseréli a tracket, majd frissíti a
+  statisztikát (D5). Idempotens: egy újrafuttatás ugyanazt az állapotot
+  adja.
+- Kevesebb mint két pozíció esetén a verseny nem kap tracket.
+- A szerver fusson le előtte, ahogy a többi CLI-nél (ADR 0048 Addendum 6
+  M7).
+- **Élesben** az S8 után ugyanez fut a VPS-en, a felmásolt CSV-vel.
+
+### D5 — A statisztika a trackből (felhasználói döntés)
+
+- **Trackes kézi verseny:** a táv, a sebesség és a szél a trackből
+  számolódik, a `SummarizeTrack`-kal és a `SummarizeWind`-del, a
+  hivatalos ablakból. A 2021-es és a 2026-os számok így ugyanazzal a
+  definícióval készülnek (az ADR 0048 döntés 11 analógiája).
+- A **táv** a pozíciók haversine-összege, ahogy a telefonon. Gyenge
+  szélben ez több lehet az Excel SOG-integráljánál; ez ismert eltérés.
+- A **max. sebesség** a 10 mp-es SOG-pillanatértékek maximuma. A
+  mintavétel ritkább, mint a telefonon, ezért a csúcsok egy része
+  kimaradhat.
+- **Cache:** a trackes kézi verseny is kap `race_stats` sort, `official`
+  ablakkal. A frissítő a kézi versenyeket is bejárja:
+  - a track importja után;
+  - eredmény-mentés után, ha a hivatalos idők megváltoztak.
+- **Track nélküli kézi verseny:** változatlanul a beírt számok
+  (`ManualEntry`).
+- **A beírt Excel-számok** a `manual_races`-ben megmaradnak. Ha a
+  hivatalos idők törlődnek, a verseny visszaesik rájuk.
+- **Szerkesztő:** trackes kézi versenyen a táv, a sebesség és a szél
+  mezői nem szerkeszthetők, és egy halk sor jelzi, hogy a trackből
+  számolódnak (a K9 mintájára). A név, a nap és az eredmény
+  szerkeszthető.
+
+### D6 — A polár-statisztika a régi versenyekre is (felhasználói döntés)
+
+- A trackes kézi verseny polár-mintái a `legacy_track_samples`-ből
+  jönnek: `polar_twa_deg`, `polar_tws_mps` és `stw_mps`.
+- **Súly:** egy minta 10 másodpercet ér a hisztogramban, a vödrökben és a
+  mért időben. A „60 mp" és a „vödrönként legalább 60 mp" küszöb (ADR
+  0049 D8, D9) így hat mintát jelent.
+- **STW-korrekció nincs** (ADR 0049 D6): a 2026-07-20 előtti minták a
+  régi szenzorról jönnek, a polár is azon készült.
+- **A tüske-szűrő** (ADR 0049 D7) a 10 mp-es mintákon is fut: 5 minta
+  csúszó mediánja, 50 mp-es ablakkal.
+- **A „Legjobb 5 mp"** 10 mp-es mintákból nem számolható: a régi
+  versenyek sorában kötőjel áll.
+
+### D7 — Szerződés és web (javaslat)
+
+- **`RaceSummary`:** a kézi verseny `stats.window`-ja `OfficialWindow` is
+  lehet, ha a verseny trackes. Az ADR 0048 H3 összhang-szabálya
+  ennyiben bővül. Új jelző nem kell: a web a `stats.window`-ból tudja,
+  hogy a statok számoltak.
+- **`RaceDetail`:** új, opcionális `legacyTrack` mező, a meglévő
+  `ArchiveTrackPoint` listájával (pozíció, SOG). Bója és bójakerülés
+  nincs hozzá.
+- **Részletező:** a trackes kézi verseny a telemetriás versenyek
+  térkép-kártyáját kapja (K8), bóják nélkül.
+- **Napló és táblázat:** változatlan; a számolt statok a megszokott
+  cellákba kerülnek.
+
+### D8 — A teljes export: tar.gz a webről (felhasználói döntés)
+
+- **`GET /api/export`** egy `foretack-history-<YYYY-MM-DD>.tar.gz` fájlt
+  ad. Tartalma:
+  - **`archive.sqlite`** és **`web.sqlite`:** konzisztens mentés
+    (`VACUUM INTO` egy ideiglenes fájlba, a közös `SerialLock` alatt, I5),
+    így egy közben futó import nem tör bele;
+  - **`foretack-history.json`:** minden verseny a meglévő szerződés
+    kódolóival: a napló sora (`RaceSummary`: eredmény, statok) és a
+    részletező (`RaceDetail`: track, bóják, bójakerülések, régi track);
+  - **`README.txt`:** a formátum rövid leírása, a szerver verziója és az
+    export ideje.
+- **Formátum:** tar.gz, új függőség nélkül (felhasználói döntés): a
+  `dart:io` `GZipCodec`-je és egy kis, tesztelt tar-író a
+  `web_server`-ben (USTAR fejléc, 512 bájtos blokkok).
+- A fájl egy ideiglenes könyvtárban készül, onnan streamelődik, és a
+  válasz után törlődik. A mérete a telefonos pillanatképek miatt nagy
+  lehet; a tömörítés ezen sokat segít.
+- **Hozzáférés:** a Caddy `basic_auth` alatt, mint minden más. `GET`,
+  nem módosít, ezért nem kell `X-Foretack-Client` fejléc (ADR 0047 D9).
+- **Web:** egy „Export" elem a napló AppBarjában; a böngésző letöltést
+  indít.
+- A `.DAT` fájlok és a `polar.csv` nem részei az exportnak, a
+  felhasználó maga őrzi őket.
+
+## Mit ír felül
+
+- **ADR 0048 H3:** a kézi verseny `OfficialWindow`-t is kaphat, ha
+  trackes (D7).
+- **ADR 0048 I2:** a `race_stats` trackes kézi versenynek is tárol sort
+  (D5).
+- **ADR 0049 D10:** a polár-cache migrációja `web.sqlite` v3 → v4 lesz,
+  mert a v3 a `legacy_track_samples` (D3).
+- **ADR 0049 D8:** a „Legjobb 5 mp" a régi versenyeken kötőjel (D6).
+
+## Szeletek
+
+| # | Commit-scope | Tartalom |
+|---|---|---|
+| S13-0 | `docs` | ez az ADR, az ADR 0049 pontosítása, ARCHITECTURE-szinkron |
+| S13a | `feat(web-server)` | `web.sqlite` v3, CSV-olvasó, `import_legacy_tracks`, readerek, stat-cache a trackes kézi versenyre (TDD) |
+| S13b | `feat(archive-api)` + `feat(web)` | szerződés (`legacyTrack`, H3), térkép és szerkesztő a trackes kézi versenyen |
+| S9 | `feat(web)` | szezon-statisztika (ADR 0049) |
+| S10–S12 | | polár (ADR 0049), a régi minták D6 szerinti súlyával |
+| S14 | `feat(web-server)` + `feat(web)` | export: tar-író, végpont, gomb (TDD a tar-íróra) |
+| S8 | `feat(deploy)` | deploy; a VPS-en az Excel- és a track-import |
+
+## Következmények
+
+- **Pozitív:**
+  - 56 régi verseny térképet és a 2026-osokkal azonos definíciójú
+    statisztikát kap;
+  - a polár-teljesítmény 2021-től összevethető;
+  - a teljes történet egy fájlban, új függőség nélkül menthető;
+  - a telefon sémája és az archívum érintetlen.
+- **Negatív:**
+  - a régi versenyek táva gyenge szélben eltér az Exceltől;
+  - a régi trackek 10 mp-esek: a csúcsok egy része kimarad, és a
+    „Legjobb 5 mp" nem számolható;
+  - egy újabb egyszeri import és egy újabb séma-migráció;
+  - az export mérete nagy lehet.
+
+## Amit ez az ADR NEM dönt el
+
+- saját `.DAT`-dekódert és az 1 Hz-es régi adatot;
+- az edzések és a túrák feltöltését;
+- a régi versenyek bójáit és bójakerüléseit;
+- az export automatikus ütemezését és a visszaállítást egy exportból.
+
+## Addendum 1 — Pontosítások az S13a előtt (2026-10-05)
+
+### E1 — A számolt stat az S13b-ben jelenik meg (felhasználói döntés)
+
+- **Verifikált tény:** a webes kézi szerkesztő a napló-sor statjaiból
+  tölti elő a táv-, sebesség- és szél-mezőket, és mentéskor ezeket írja
+  vissza a `manual_races`-be (`manualEditorValuesOf`). Ha a szerver a
+  trackes kézi versenyre számolt statot adna, egy mentés a beírt
+  Excel-számokat a számoltakkal írná felül, és a D5 „visszaesés" elveszne.
+- **Ezért:** az S13a csak a cache-t írja (`race_stats`, `official`
+  ablakkal). A napló és a részletező az S13b-ben kezdi adni, a szerződés
+  H3-bővítésével (D7) és a szerkesztő zárolt mezőivel (D5) együtt. A
+  szerződés-patch így az S13b-be kerül.
+
+### E2 — Külön frissítő a trackes kézi versenyekre (javaslat)
+
+- **`LegacyTrackStatsRefresher`**, a telemetriás `RaceStatsRefresher`
+  mellett (OCP): a telemetriás frissítő változatlan.
+- **Várt ablak:** `OfficialWindow`, ha a kézi versenynek van tracke, és
+  az eredményében mindkét hivatalos idő megvan, a befutás a rajtnál
+  későbbi. Különben nincs számolt stat: egy meglévő `race_stats` sor
+  törlődik (D5 visszaesés).
+- **`refreshAll`** a track-import és az Excel-import `--apply`-ja után
+  (ez utóbbi az `--overwrite`-tal a hivatalos időket is írhatja): minden
+  trackes kézi verseny statja újraszámolódik akkor is, ha az ablak nem
+  változott, mert a track tartalma igen. A track nélküli kézi versenyek
+  sora törlődik.
+- **`refreshIfStale`** a kézi verseny mentése után, a közös `SerialLock`
+  alatt (I5), ha az ablak eltér a tárolttól.
+- **A kézi verseny törlése** a trackjét és a `race_stats` sorát is
+  törli, egy tranzakcióban, a zár alatt, hogy egy közben futó frissítés
+  ne hagyhasson árva sort.
+- Ha a hivatalos idők a track-import után változnak, a stat a tárolt
+  trackből számolódik az új ablakban. A track csak a régi ablakot fedi:
+  egy szélesebb ablakhoz az `import_legacy_tracks` újrafuttatása kell.
+
+### E3 — A CSV olvasása (javaslat)
+
+- **Fejléc:** a `Time`, `Latitude`, `Longitude`, `SOG`, `STW`, `TWS`,
+  `TWD(med)`, `TWS(med)` és `TWA(med)` oszlop kötelező; bármelyik
+  hiánya vagy ismétlődése leállítja az importot.
+- **Hibás sor** (eltérő cellaszám, olvashatatlan idő vagy szám, a
+  tartományon kívüli koordináta): kimarad, és a CLI kiírja a számukat és
+  az első ilyen sor számát. A hivatalos ablakokon kívüli sorokat csak az
+  időbélyegig olvassa.
+- **Ismétlődő időbélyeg** egy versenyen belül: a későbbi sor marad
+  (a PK miatt).
+- **Szögek:** a TWD `[0, 360)`-ra normálva, a TWA `(−180, 180]`-ra
+  hajtva (a 180° fölötti érték `érték − 360`).
+
+### E4 — A próbafuttatás és az `--apply` (javaslat)
+
+- **Lefedettség** = mintaszám × 10 mp ÷ az ablak hossza, legfeljebb
+  100%. A 10 mp a D6 súlya.
+- **Az `--apply` a teljes állapotot írja:** minden kézi verseny tracke a
+  mostani futás eredménye. Egy track nélkülire (nincs hivatalos ablak,
+  kevesebb mint két pozíció) a korábbi track törlődik. Így a futtatás
+  idempotens, és a hivatalos idők törlése után is helyes.
+- Egy tranzakcióban fut, utána a `refreshAll` (E2).
+
+### E5 — A CLI-k védelme (javaslat, handover §7 23.)
+
+- Ha egy megadott DB-fájl nem létezik, a CLI hibával kilép (66), mert a
+  Drift egy üres DB-t hozna létre, és a próbafuttatás „semmi"-t mutatna.
+- Az `import_legacy_races` külön sorban jelzi, ha az archívumban nincs
+  befejezett verseny, és ilyenkor nem fut az `--apply`.
+
+## Addendum 2 — Pontosítások az S13b előtt (2026-10-05)
+
+### F1 — A napló a cache-ből, csak érvényes ablakkal (javaslat)
+
+- A kézi verseny napló-sora akkor kap számolt statot (`OfficialWindow`),
+  ha a `race_stats` sora megvan, és az ablaka pontosan a mostani hivatalos
+  ablak. Különben a beírt számok (`ManualEntry`), ahogy eddig.
+- A `GET` itt sem számol: a kézi verseny frissítése a mentés és az
+  importok dolga (E2). Egy elmaradt frissítés a beírt számokra esik
+  vissza, nem hibára.
+- A számolt átlagsebesség a SOG-minták átlaga, mint a telefonos
+  versenyeken; a beírt számoknál továbbra is táv ÷ menetidő.
+
+### F2 — A mentés nem írja felül a beírt számokat (javaslat)
+
+- **A szerver őrzi meg őket:** ha a kézi verseny a mentés előtt számolt
+  statot mutatott (van tracke és érvényes hivatalos ablaka), a kérés táv-,
+  sebesség- és szél-mezőit figyelmen kívül hagyja, és a tárolt (Excel)
+  értékek maradnak. A szerkesztő előtöltése ilyenkor a számolt értékeket
+  küldené vissza; a szerver nem bízik a kliens zárolásában.
+- **A mentés válasza** a frissítés utáni napló-sor: ha a hivatalos idők
+  változtak, már az új ablak statjával.
+
+### F3 — Szerkesztő (javaslat, a D5 pontosítása)
+
+- Számolt statnál a táv, a max. sebesség, a szél és az irány mezője
+  tiltott, a számolt értékkel. Az átlagsebesség sora a számolt
+  SOG-átlagot mutatja. A szakasz címe alatt halk sor: a számok a régi
+  trackből számolódnak, a hivatalos rajt és befutás között.
+- Ha a hivatalos idők törlődnek, a következő megnyitáskor a mezők újra
+  szerkeszthetők, a beírt számokkal (D5 visszaesés).
+
+### F4 — Részletező és szerződés (javaslat)
+
+- **`RaceDetail.legacyTrack`:** a kézi verseny régi trackjének pozíciós
+  pontjai, ha van tracke; különben `null`. Telemetriás versenyen nem
+  lehet jelen. A régebbi szerver válaszából hiányzó kulcs `null`.
+- **Térkép:** a kézi verseny a K8 kártyáját kapja bóják nélkül, ha van
+  tracke, akkor is, ha a hivatalos idők azóta törlődtek.
+- **Telepítés:** a szerver és a web egyszerre megy ki: egy régi web a
+  kézi verseny hivatalos ablakát (H3 bővítés) hibaként utasítaná el.
+
+## Addendum 3 — Pontosítások az S14 előtt (2026-10-06)
+
+### G1 — Az „Export" gomb (felhasználói döntés)
+
+- Ikon-gomb a napló AppBarjában, a Statisztika ikonja után
+  (`Icons.download_outlined`, „Export" tooltip, 36 px, ADR 0048
+  Addendum 5 L6). Szöveges gombként 800 px-en nem férne el.
+
+### G2 — Előbb lemezre, utána küld (felhasználói döntés)
+
+- A szerver a teljes tar.gz-t a `--temp-root` alatti
+  `foretack-export-*` könyvtárban építi fel, és csak utána válaszol
+  `200`-zal, `Content-Length`-gel. Egy építés közbeni hiba így tiszta
+  `500` (`InternalError`), nem csonka fájl `200`-as státusszal.
+- A web egy rejtett `<a href="/api/export" download>` kattintásával
+  indítja a letöltést (`package:web`, K18). Azonos origó, így a böngésző
+  a Caddy `basic_auth` hitelesítését viszi. Folyamatjelző nincs, a
+  böngésző letöltés-sávja mutatja; a hibát (`500`, `409`) is ott jelzi
+  sikertelen letöltésként. A web a státuszt nem látja, snackbar nincs.
+- A könyvtár a válasz streamelésének végén törlődik, a kapcsolat
+  megszakadásakor is. Szerverinduláskor az árva `foretack-export-*`
+  könyvtárak törlődnek (egy összeomlás maradéka).
+
+### G3 — Pillanatkép a zár alatt, JSON a másolatokból (felhasználói döntés)
+
+- A közös `SerialLock` alatt (ADR 0048 Addendum 3 I5) csak a két
+  `VACUUM INTO` fut: előbb az `archive.sqlite`, utána a `web.sqlite`.
+  Az archívumot csak a zár alatti import írja, és a frissítők is a zár
+  alatt futnak, így import vagy frissítés nem esik a két másolat közé.
+  Egy eredmény- vagy kézi mentés maga zár nélkül ír; ha a két `VACUUM`
+  közé esik, a `web.sqlite` másolatban már benne van, a cache-sora
+  viszont még a régi lehet — ugyanúgy, mint az élő szerveren a mentés
+  utáni frissítésig. A JSON ettől helyes, mert a hiányzó vagy elavult
+  telemetriás statot az olvasó a mintákból számolja (I4).
+- A `foretack-history.json` már a zár nélkül, **a két másolatból**
+  készül, háttér-isolate kapcsolattal, ugyanazokkal az olvasó
+  szolgáltatásokkal, mint a `GET` végpontok. Ehhez a `RaceSummaryService`
+  és a `RaceDetailService` összerakása a `bin/server.dart`-ból egy közös
+  `ArchiveReadServices`-be kerül (javaslat). A JSON így pontosan a csomag
+  DB-it írja le, és az export nem tartja fel az importot.
+- A phone `AppDatabase` megnyitáskor WAL-ra állítja a másolatot; adat nem
+  változik, a lezárás a `-wal`-t visszaírja és törli. A csomagolás csak a
+  két kapcsolat lezárása után indul, és egy megmaradt, nem üres napló
+  (`-wal`, `-journal`) hibát ad, mert a csomagba csak a fő fájl kerül.
+
+### G4 — Egyszerre egy export (felhasználói döntés)
+
+- Új `ApiError`: `ExportInProgress` (`409`, `exportInProgress`). Az
+  export az építés kezdetétől a válasz streamelésének végéig foglalt; a
+  közben érkező kérés azonnal 409-et kap, így nincs dupla lemezhasználat.
+- A `HEAD /api/export` `405`: a router a `GET` útvonalra a `HEAD`-et is
+  a handlerhez irányítja és eldobja a törzset, így egy felépült, de soha
+  ki nem olvasott export foglalt maradna.
+- A `GET` a D9 szerint nem kér `X-Foretack-Client` fejlécet, így egy
+  idegen oldal (gyorsítótárazott `basic_auth` mellett) elindíthat egy
+  exportot. Adat nem szivárog (a választ az idegen oldal nem olvashatja),
+  a kár legfeljebb egy fölösleges építés; tudatosan elfogadva.
+
+### G5 — A tar-író (javaslat)
+
+- **USTAR:** fejlécenként egy 512 bájtos blokk: név ≤ 100 bájt (ASCII),
+  mód `0000644`, uid/gid 0, méret és mtime oktálisan (11 jegy + `\0`),
+  típus `0`, `ustar\0` + `00`, felhasználó- és csoportnév üres. A
+  checksum a fejléc bájtjainak összege, a checksum-mezőt nyolc szóköznek
+  számolva; 6 oktális jegy + `\0` + szóköz. A tartalom 512 bájtra
+  nullákkal kiegészítve, a végén két nulla blokk.
+- **Korlát:** a fájlméret < 8 GiB (a 11 oktális jegy határa); felette
+  `ArgumentError`, mert az export hibás lenne.
+- **Stream:** a tar egy `async*` generátor (`Stream<List<int>>`) a
+  bejegyzések forrásaiból; a `gzip.encoder` és a fájlba írás a
+  visszanyomást (backpressure) tiszteli, így a 1,7 GB-os archívum sem
+  kerül a memóriába. A generátor a forrás tényleges bájtszámát a
+  fejlécbe írt mérethez veti, eltérésnél `StateError` (egy közben változó
+  fájl ne adjon hibás archívumot).
+- **Elrendezés:** a csomag egy `foretack-history-<YYYY-MM-DD>/`
+  könyvtárat tartalmaz (`archive.sqlite`, `web.sqlite`,
+  `foretack-history.json`, `README.txt`), így kicsomagoláskor nem
+  szóródik szét. Könyvtár-bejegyzés nincs, a `tar` létrehozza.
+- **mtime** az export pillanata; a pure fejléc-építő TDD-vel készül.
+
+### G6 — A JSON szerkezete (javaslat)
+
+```json
+{"format": "foretack-history", "version": 1,
+ "exportedAt": "2026-10-06T09:30:00.000Z",
+ "races": [<encodeRaceDetail>, ...]}
+```
+
+- A `RaceDetail` a napló sorát (`summary`) is tartalmazza, ezért nincs
+  külön `RaceSummary`-lista: a D8 „napló sora + részletező" tartalma így
+  egyszer szerepel. A sorrend a napló sorrendje.
+- Versenyenként íródik és ürül (flush): a memóriában egyszerre egy
+  verseny részletezője van. Egy a listában szereplő, de részletező nélküli
+  verseny (ellentmondás a másolatban) kimarad, és a napló jelzi.
+- A polár-cache nem része a JSON-nak; a `web.sqlite`-ban benne van, és
+  újraszámolható.
+
+### G7 — README és fájlnév (javaslat)
+
+- **`README.txt`** (magyarul): a négy fájl szerepe, az export ideje
+  (UTC és budapesti idő), a versenyek száma, a szerver verziója, a két DB
+  sémaverziója, a JSON `format`/`version` értéke, és a kézi visszaállítás
+  lépései (szerver leállítása, a két DB visszamásolása, indítás).
+- **A szerver verziója:** `webServerVersion` konstans a `web_server`-ben;
+  egy teszt veti össze a `pubspec.yaml` `version` mezőjével, hogy ne
+  térjenek el.
+- **Válasz:** `Content-Type: application/gzip`, `Content-Disposition:
+  attachment; filename="foretack-history-<YYYY-MM-DD>.tar.gz"` (a nap
+  Europe/Budapest szerint, `budapestDayOf`), `Content-Length`,
+  `Cache-Control: no-store`.
+- **S8:** a Caddy `encode` ne tömörítse újra az `application/gzip`-et
+  (alapból nem teszi), és a hosszú letöltést időkorlát ne vágja el.
+  A VPS-en a `--temp-root` alatt kb. a két DB + JSON + tar.gz helye kell
+  (most kb. 2–3 GB).

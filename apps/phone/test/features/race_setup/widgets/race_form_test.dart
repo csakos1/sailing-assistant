@@ -1,8 +1,11 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/widgets/foretack_switch.dart';
 
 void main() {
   const markA = Mark(
@@ -25,8 +28,9 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: foretackTheme,
         locale: const Locale('hu'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: RaceForm(initialRace: initialRace, onSubmit: onSubmit),
@@ -35,6 +39,13 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  // A savban ma egyetlen kitoltott gomb ul, de a mentest tovabbra is
+  // a feliratarol cimezzuk, hogy egy uj gomb ne tegye ketertelmuve.
+  Finder saveButton(WidgetTester tester) => find.widgetWithText(
+    FilledButton,
+    AppLocalizations.of(tester.element(find.byType(RaceForm)))!.setupSave,
+  );
 
   testWidgets('edit módban feltölti a mezőket az initialRace-ből', (
     tester,
@@ -72,7 +83,7 @@ void main() {
     );
 
     // ACT
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — sorrend és sequence a vizuális sorrendet követi.
@@ -107,7 +118,7 @@ void main() {
     reorderable.onReorder(1, 0);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — B előre került, a sequence az új vizuális sorrendet tükrözi.
@@ -140,7 +151,7 @@ void main() {
     expect(find.byType(TextFormField), findsNWidgets(7));
 
     // ACT — az első sort töröljük.
-    await tester.tap(find.byIcon(Icons.remove_circle_outline).first);
+    await tester.tap(find.byIcon(Icons.close).first);
     await tester.pumpAndSettle();
 
     // ASSERT — egy sor maradt (név + 1 sor = 4 mező).
@@ -158,7 +169,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), '200');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a tartományon kívüli szélesség megállította a mentést.
@@ -178,7 +189,7 @@ void main() {
     await tester.enterText(fields.at(1), 'VK');
     await tester.enterText(fields.at(2), "46° 56.793' N");
     await tester.enterText(fields.at(3), "018° 00.727' E");
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a DDM-bemenet tizedes-fokra konvertálva került ki.
@@ -198,7 +209,7 @@ void main() {
     await tester.enterText(fields.at(1), 'VK');
     await tester.enterText(fields.at(2), '46° 56\' 47.6" N');
     await tester.enterText(fields.at(3), '18° 0\' 43.6" E');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — a DMS-bemenet ugyanarra a fok-értékre konvertál.
@@ -220,10 +231,84 @@ void main() {
     await tester.enterText(fields.at(1), 'Z1');
     await tester.enterText(fields.at(2), 'abc');
     await tester.enterText(fields.at(3), '18.05');
-    await tester.tap(find.byType(FilledButton));
+    await tester.tap(saveButton(tester));
     await tester.pumpAndSettle();
 
     // ASSERT — az érvénytelen formátum megállította a mentést.
     expect(submitted, isFalse);
+  });
+
+  testWidgets('a kapcsoló kiveszi a bója-blokkot a fából', (tester) async {
+    // ARRANGE — create: név + 1 bója-sor = 4 mező.
+    await pumpForm(tester, onSubmit: (_, _) {});
+    expect(find.byType(TextFormField), findsNWidgets(4));
+
+    // ACT
+    await tester.tap(find.byType(ForetackSwitch));
+    await tester.pumpAndSettle();
+
+    // ASSERT — csak a verseny-név marad; a sorok, a hozzáadás és a
+    // könyvtár-választó is eltűnt.
+    expect(find.byType(TextFormField), findsNWidgets(1));
+    expect(find.byType(ReorderableListView), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byIcon(Icons.history), findsNothing);
+  });
+
+  testWidgets('bekapcsolva üres listát ad ki, validáció nélkül', (
+    tester,
+  ) async {
+    // ARRANGE — a bója-sor mezői kitöltetlenek maradnak.
+    String? emittedName;
+    List<Mark>? emitted;
+    await pumpForm(
+      tester,
+      onSubmit: (name, marks) {
+        emittedName = name;
+        emitted = marks;
+      },
+    );
+    await tester.enterText(find.byType(TextFormField).at(0), 'Túra');
+
+    // ACT
+    await tester.tap(find.byType(ForetackSwitch));
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton(tester));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a kitöltetlen bója-sor nem blokkolta a mentést.
+    expect(emittedName, 'Túra');
+    expect(emitted, isEmpty);
+  });
+
+  testWidgets('vissza-kapcsolva a beírt sorok megmaradnak', (tester) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'V',
+      marks: const [markA, markB],
+    );
+    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+
+    // ACT — ki, majd vissza.
+    await tester.tap(find.byType(ForetackSwitch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(ForetackSwitch));
+    await tester.pumpAndSettle();
+
+    // ASSERT — a két sor és a bennük lévő adat is visszatért.
+    expect(find.byType(TextFormField), findsNWidgets(7));
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
+  });
+
+  testWidgets('edit-mód üres bójákkal bekapcsolva indul', (tester) async {
+    // ARRANGE & ACT — az ADR 0046 D1 óta ez érvényes Race.
+    final race = Race.create(id: 'r1', name: 'Túra', marks: const []);
+    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+
+    // ASSERT — csak a verseny-név mezője látszik.
+    expect(find.byType(TextFormField), findsNWidgets(1));
+    expect(find.byIcon(Icons.add), findsNothing);
   });
 }

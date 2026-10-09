@@ -1,6 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/widgets/race_status_chip.dart';
 
@@ -9,7 +10,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('hu'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: RaceStatusChip(status: status)),
       ),
