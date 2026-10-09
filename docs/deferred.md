@@ -652,6 +652,93 @@ nem látszik.
 - **Hivatkozás**: `packages/data/lib/src/persistence/repositories/`
   `telemetry_logger_impl.dart:67`.
 
+## Telefonos UI v1, szabad mód, tervezett verseny (ADR 0054–0056)
+
+A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.
+
+### Egyszerűsített óranézet szabad módra
+- **Mi**: az óra szabad módban (verseny nélkül) ma a versenyképernyőt
+  mutatja üres bója-mezőkkel; helyette egy egyszerű nézet: sebesség,
+  polár-cél %, szél.
+- **Mikor**: a telefonos UI v1 kiadása után, külön ADR-rel vagy az ADR
+  0054 addendumával; a `WatchPayload` egy mód-mezőt kap.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): „egyelőre a
+  versenyképernyő legyen, üres bója-mezőkkel, de jegyezzük fel".
+- **Hivatkozás**: ADR 0054 D2; `apps/watch/lib/screens/`.
+
+### Visszaszámláló a rajtig
+- **Mi**: visszaszámláló a tervezett rajtig a Műszerek fülön és az órán.
+- **Mikor**: ha a vízen hiányzik; az órás része az előző tétellel együtt.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): „nem kell".
+- **Hivatkozás**: ADR 0055 „Amit nem dönt el".
+
+### Rajtidő-javítás aktív versenyen (visszahívás, késői halasztás)
+- **Mi**: egy már (akár automatikusan) elindult verseny `startedAt`-jének
+  javítása a telefonon, a track és a telemetria megtartásával.
+- **Mikor**: ha az első szezonban előfordul téves automatikus rajt.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): v1-ben nem
+  kezeljük; a weben utólag javítható.
+- **Hivatkozás**: ADR 0055 D8.
+
+### Rajtvonal két ponttal
+- **Mi**: a rajthely helyett rajtvonal (rendezőhajó + bója),
+  vonaltávolsággal és oldal-jelzéssel.
+- **Mikor**: v2.
+- **Miért halasztva**: nagyobb munka (geometria, megjelenítés); v1-ben a
+  rajthely-pont elég.
+- **Hivatkozás**: ADR 0055 „Amit nem dönt el".
+
+### Opcionális rajt előtti rögzítés
+- **Mi**: kapcsoló, amivel a rajt előtti szakasz (rajtvonal körüli
+  manőverek) is a trackbe és a telemetriába kerül.
+- **Mikor**: ha a felhasználó a rajtot elemezni szeretné.
+- **Miért halasztva**: a felhasználó kifejezetten azt kérte, hogy a rajt
+  előtti rávezetés ne rögzüljön.
+- **Hivatkozás**: ADR 0054 D3.
+
+### Háttér-kapcsolódás a WiFi-hálózat figyelésével
+- **Mi**: az app akkor is induljon szabad módban, ha a telefon a hajó
+  WiFi-jére lép, és az app épp nincs előtérben.
+- **Mikor**: ha az app-nyitásos próba a gyakorlatban kevés.
+- **Miért halasztva**: felhasználói döntés (az app-nyitásos változat);
+  háttér-jogosultság és platformkód kellene hozzá.
+- **Hivatkozás**: ADR 0054 D4.
+
+### A UI-oldali második TCP-kliens felülvizsgálata
+- **Mi**: a `nmeaStreamProvider` (nyers NMEA-néző,
+  `telemetryLoggerProvider`) a UI-izolátumban egy második kapcsolatot
+  nyit a gateway felé; aktív versenyen ez kettős telemetria-írást és a
+  fenti `database is locked` ütközést okozhatja.
+- **Mikor**: az ADR 0054 E1 szelete előtt ellenőrizni; ha igazolódik,
+  önálló `fix(phone)` szelet.
+- **Miért halasztva**: nem a szabad mód része, de vele derült ki.
+- **Hivatkozás**: ADR 0054 „Verifikált tények";
+  `apps/phone/lib/providers/telemetry_logger_provider.dart`.
+
+### GPS-idő ritkítása szabad módban
+- **Mi**: szabad módban a service GPS-ideje ritkábban vagy egyáltalán
+  nem fut.
+- **Mikor**: az első vízi akkumulátor-mérés után, ha indokolt.
+- **Miért halasztva**: előbb mérni kell (`adb shell dumpsys
+  batterystats`).
+- **Hivatkozás**: ADR 0054 D8.
+
+### Tervezett rajt és rajthely a weben
+- **Mi**: a webes részlet és lista mutassa a tervezett rajtot és a
+  rajthelyet.
+- **Mikor**: a telefonos UI v1 kiadása után.
+- **Miért halasztva**: a mezők a v6-os sémával a szerverre is átjönnek,
+  de a web v1-ben nem mutatja őket.
+- **Hivatkozás**: ADR 0055 D4.
+
+### Fok-perces koordináta-bevitel a RaceSetupban
+- **Mi**: a bója- és rajthely-koordináta fok-percben is beírható legyen
+  (a versenykiírások jellemzően így adják meg).
+- **Mikor**: a „DDM-előtöltés a koordináta-mezőkben" tétellel együtt.
+- **Miért halasztva**: felhasználói döntés (2026-10-10): a bevitel marad
+  a tizedes fok.
+- **Hivatkozás**: ADR 0056; `docs/design/phone-ui-v1.md` §5.
+
 ---
 
 ## Done
