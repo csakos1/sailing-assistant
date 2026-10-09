@@ -5636,16 +5636,23 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     akció-kihíváson mennek; a szalag induláskor, előtérben és a
     kezelőképernyőkről visszatérve frissül; a szerver a helyreállító
     kódok generálási idejét is kiadja (Addendum 10).
-- **Üzemeltetés (D10):**
-  - natív Caddy automatikus HTTPS-sel, `foretack-archive.service`
-    dedikált userrel;
-  - DB-k a `/var/lib/foretack/` alatt (az `auth.sqlite` is), éjszakai
-    `sqlite3 .backup` timerrel, 14 nap megőrzéssel; a szerveroldali titok
-    egy `0600`-s fájlban; a `geoip.sqlite`-ot a deploy havonta
-    újraépíti;
-  - biztonsági fejlécek a Caddyben (HSTS, CSP, `noindex`, ADR 0051 D9);
-  - `ufw`: csak 22, 80, 443;
-  - a build lokálisan fut, a `deploy/deploy.sh` rsync-eli fel;
+- **Üzemeltetés (ADR 0047 D10, ADR 0052):**
+  - a `https://lola.foretack.hu` egy Linode 2 GB-os VPS-en (Ubuntu 24.04
+    LTS, Frankfurt); natív Caddy automatikus HTTPS-sel,
+    `foretack-archive.service` a dedikált `foretack` userrel;
+  - a build lokálisan fut (`dart build cli` belépési pontonként, a web
+    `--no-web-resources-cdn`-nel); a `deploy/deploy.sh` egy kiadást
+    rsync-el fel az `/opt/foretack/releases` alá, és a szerver meg a web
+    egyetlen szimbolikus link cseréjével, egészség-ellenőrzéssel és
+    visszaállással vált;
+  - DB-k és titok a `/var/lib/foretack/` alatt, az STW-korrekció az
+    `/etc/foretack/`-ben; éjszakai `sqlite3 .backup` 3 napig a VPS-en,
+    amit a fejlesztői gép egy user-timerrel lehúz és 30 napig megőriz;
+  - a `geoip.sqlite` havonta egy timerrel újraépül;
+  - biztonsági fejlécek a Caddyben (HSTS, CSP, `noindex`,
+    `Referrer-Policy: strict-origin` az OSM csempe-szabályzata miatt);
+  - `ufw`: csak 22, 80, 443; SSH csak kulccsal;
+  - az `end_sessions` CLI a webes munkameneteket SSH-ról zárja le;
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek
