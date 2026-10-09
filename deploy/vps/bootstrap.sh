@@ -18,7 +18,7 @@
 #      (a szerver) és a foretack-pull (csak a mentések olvasása);
 #   4. könyvtárak, a szerveroldali titok, az alap STW-korrekció;
 #   5. a foretack-activate, -backup, -geoip szkriptek és a sudoers-szabály;
-#   6. systemd unitok és timerek, a Caddyfile;
+#   6. systemd unitok és timerek, a Caddyfile, a telefonos app könyvtára;
 #   7. tűzfal; végül az SSH szigorítása (csak kulcs, root nem léphet be).
 #
 # Az utolsó lépés után root-ként nem lehet SSH-n belépni: előtte egy
@@ -123,6 +123,9 @@ install_config() {
   # A mentés-timert a README 11.1 kapcsolja be, amikor már van adat.
   systemctl enable --now foretack-geoip.timer
 
+  # A telefonos app könyvtára (ADR 0053 D4): az admin tölti fel, a Caddy
+  # olvassa. Itt jön létre, hogy egy --config-only futás is pótolja.
+  install -d -m 0755 -o "$admin" -g "$admin" /srv/foretack-app
   sed "s/@FORETACK_DOMAIN@/$domain/g" "$script_dir/Caddyfile" \
     >/etc/caddy/Caddyfile.new
   caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new

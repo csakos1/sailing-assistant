@@ -28,6 +28,28 @@
 		}
 	}
 
+	# A telefonos app a legénységnek (ADR 0053 D4): belépés nélkül
+	# letölthető, mert a belépéshez épp ez az app kell. Csak a három
+	# fájl szolgálható ki, a szerver-kiadástól független könyvtárból.
+	handle /app/foretack.apk {
+		root * /srv/foretack-app
+		rewrite * /foretack.apk
+		header >Content-Type "application/vnd.android.package-archive"
+		header Cache-Control "no-cache"
+		file_server
+	}
+	@appText path /app/foretack.apk.sha256 /app/VERSION
+	handle @appText {
+		root * /srv/foretack-app
+		uri strip_prefix /app
+		header >Content-Type "text/plain; charset=utf-8"
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle /app/* {
+		respond 404
+	}
+
 	handle /robots.txt {
 		respond <<ROBOTS
 			User-agent: *

@@ -56,6 +56,8 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+# Az APK aláíró kulcsa soha nem kerülhet a repóba (ADR 0053 D2).
+*.keystore
 
 # iOS/XCode related
 **/ios/**/*.mode1v3

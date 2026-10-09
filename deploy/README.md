@@ -26,6 +26,7 @@ kerülhet titok, kulcs, adatbázis, mentés, a VPS címe vagy egy kitöltött
 12. [Napi üzemeltetés](#12-napi-üzemeltetés)
 13. [Vészhelyzetek](#13-vészhelyzetek)
 14. [Lokális fejlesztés az élesítés után](#14-lokális-fejlesztés-az-élesítés-után)
+15. [A telefonos app kiadása a legénységnek](#15-a-telefonos-app-kiadása-a-legénységnek)
 
 Jelölések: **[gép]** a fejlesztői gépeden (Arch, zsh, a repó gyökeréből),
 **[VPS]** SSH-n a VPS-en, **[telefon]** a Pixelen, **[böngésző]** a
@@ -901,3 +902,97 @@ http://localhost:8080`) váltasz vissza („Fiók cseréje"), a végén egy
 szerveren; az élesét mentsd el újra.
 
 A versenyek és a telefon saját adatbázisa a cserétől nem változik.
+
+---
+
+## 15. A telefonos app kiadása a legénységnek
+
+A legénység ugyanazt az appot kapja, mint te (ADR 0053 D1), egy
+nyilvános linkről: `https://lola.foretack.hu/app/foretack.apk`. A link a
+belépés előtt elérhető, mert a belépéshez épp ez az app kell; az APK-ban
+nincs titok és nincs adat.
+
+**A legfontosabb szabály:** minden kiadás ugyanazzal a kulccsal legyen
+aláírva, mint a telefonokon lévő app. Egy más kulccsal aláírt APK csak az
+app eltávolítása után települne, és az eltávolítás a telefonon rögzített
+versenyeket is törli. A `build_phone_apk.sh` ezért egy eltérő kulcsú
+APK-t nem ad ki.
+
+### 15.1 Az aláíró kulcs [gép]
+
+A release build a gép debug-kulcsával van aláírva (ADR 0053 D2). Ezen a
+gépen az Android-eszközök az XDG-mappát használják, ezért a kulcs itt
+van (és **nem** a `~/.android/` alatt):
+
+```zsh
+ls -l ~/.config/.android/debug.keystore
+/opt/android-studio/jbr/bin/keytool -list -v \
+  -keystore ~/.config/.android/debug.keystore -storepass android | grep 'SHA256:'
+```
+
+- **Mentés:** a fájl a jelszókezelőben vagy egy titkosított mentésben.
+  Ha elveszik, egyetlen telefon sem frissíthető adatvesztés nélkül.
+- **A repóba soha** (a `.gitignore` és a `check_secrets.sh` tiltja).
+- **Másik gépen** csak a kulcs átmásolása után buildelj kiadást; a
+  `build_phone_apk.sh` egy idegen kulcsot úgyis elutasít.
+- **Az ujjlenyomat a `deploy.env`-be** (egyszer), kettőspontokkal vagy
+  nélkülük:
+
+```zsh
+PHONE_SIGNING_SHA256=93:87:AC:…   # a keytool SHA256 sora
+```
+
+### 15.2 A VPS előkészítése (egyszer) [gép + VPS]
+
+A Caddy `/app/` útvonala és a `/srv/foretack-app` könyvtár a
+konfigurációval megy ki: a 12. pont „A szerver-oldali konfiguráció
+frissítése" szerint (`bootstrap.sh --config-only`). Utána:
+
+```zsh
+curl -s -o /dev/null -w '%{http_code}\n' https://lola.foretack.hu/app/foretack.apk
+# 404: az útvonal él, még nincs feltöltve semmi
+```
+
+### 15.3 Egy kiadás [gép]
+
+1. **Verzió-emelés** egy saját commitban: az `apps/phone/pubspec.yaml`
+   `version:` sora, a `+` utáni szám mindig eggyel nő (`0.2.0+2` →
+   `0.2.1+3`). A telefon csak egy nem kisebb `versionCode`-ot fogad el
+   frissítésként.
+2. **Build és közzététel** (tiszta munkafából):
+
+```zsh
+cd ~/Documents/develop/hajo/sailing-assistant
+deploy/check_secrets.sh
+deploy/publish_apk.sh
+```
+
+Mit csinál: `flutter build apk --release`, az aláírás és a
+csomagnév/verzió ellenőrzése, SHA-256; feltöltés, csere átnevezéssel,
+végül letölti a kint lévő APK-t, és a SHA-256-ját a helyivel veti össze.
+Várt vége:
+
+```
+==> Kész: 0.2.0+2 a https://lola.foretack.hu/app/foretack.apk címen
+```
+
+Egy már megépített APK újra kiadása: `deploy/publish_apk.sh
+build/phone-apk/<verzió>-<hash>`. Egy régebbi kiadásra visszaállni csak
+egy újabb `versionCode`-dal lehet (a telefon visszalépést nem enged).
+
+### 15.4 A legénység teendői [telefon]
+
+Ezt küldd el a tagnak a linkkel együtt:
+
+1. Nyisd meg a linket a telefon böngészőjében, és töltsd le az APK-t.
+2. Telepítéskor az Android engedélyt kér a böngészőnek az „ismeretlen
+   forrásból" való telepítéshez: engedélyezd.
+3. **A régi Foretack appot ne távolítsd el**, a telepítő „Frissítés"-t
+   kínál. A versenyeid megmaradnak.
+4. Indítsd el az appot; a webre a jobb felső QR-ikonnal, a weboldal
+   QR-kódjának beolvasásával lépsz be (az első alkalommal a neveddel
+   csatlakozási kérelmet küldesz, amit a tulajdonos jóváhagy).
+
+Ha a telepítő azt írja, hogy az app „ütközik egy meglévő csomaggal" vagy
+„nincs telepítve": a kulcs eltér. **Ilyenkor ne távolítsa el a régit**;
+szólj, és nézzük meg a 15.1-et.
