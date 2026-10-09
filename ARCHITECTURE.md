@@ -5664,7 +5664,8 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     aláírva, hogy a meglévő telepítések adatvesztés nélkül frissüljenek;
     a `versionCode` kiadásonként nő; a
     `https://lola.foretack.hu/app/foretack.apk` linkről tölthető le, a
-    szerver-kiadástól független könyvtárból;
+    szerver-kiadástól független könyvtárból (élesítve 2026-10-09,
+    `0.2.0+2`);
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek
