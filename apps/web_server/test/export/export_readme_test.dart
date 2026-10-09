@@ -10,6 +10,7 @@ void main() {
       serverVersion: '0.1.0',
       archiveSchemaVersion: 5,
       webSchemaVersion: 4,
+      hasStwCorrections: false,
     );
 
     test('states the export time in UTC and in Budapest summer time', () {
@@ -41,6 +42,31 @@ void main() {
       ]) {
         expect(text, contains(name));
       }
+    });
+  });
+
+  group('exportReadme with stw corrections', () {
+    String readme({required bool hasStwCorrections}) => exportReadme(
+      exportedAt: DateTime.utc(2026, 10, 6, 9, 30),
+      raceCount: 74,
+      serverVersion: '0.1.0',
+      archiveSchemaVersion: 5,
+      webSchemaVersion: 4,
+      hasStwCorrections: hasStwCorrections,
+    );
+
+    test('names the file and the restore step when it is packed', () {
+      final text = readme(hasStwCorrections: true);
+
+      expect(text, contains(exportStwCorrectionsFileName));
+      expect(text, contains('--stw-corrections útvonalára'));
+    });
+
+    test('leaves the file out when it is not packed', () {
+      final text = readme(hasStwCorrections: false);
+
+      expect(text, isNot(contains(exportStwCorrectionsFileName)));
+      expect(text, contains('3. A szerver indítása'));
     });
   });
 

@@ -59,8 +59,8 @@ import 'package:web_server/src/web_server_version.dart';
 //     --origin https://archivum.example.hu \
 //     --auth-db /var/lib/foretack/auth.sqlite \
 //     --auth-secret /var/lib/foretack/auth-secret \
-//     --polar /var/lib/foretack/foretack.pol \
-//     --stw-corrections /var/lib/foretack/stw-corrections.json \
+//     --polar /opt/foretack/current/share/foretack.pol \
+//     --stw-corrections /etc/foretack/stw-corrections.json \
 //     --geoip /var/lib/foretack/geoip.sqlite
 
 const _defaultPort = 8087;
@@ -354,6 +354,7 @@ Future<void> main(List<String> arguments) async {
         archiveSchemaVersion: archive.schemaVersion,
         webSchemaVersion: webDatabase.schemaVersion,
         serverVersion: webServerVersion,
+        stwCorrections: _optionalFile(options.option('stw-corrections')),
         log: _log,
       ),
     ),
@@ -428,3 +429,6 @@ int _positiveInt(ArgResults options, String name) {
   }
   return value;
 }
+
+// Egy opcionális útvonal fájlként; kapcsoló nélkül nincs fájl.
+File? _optionalFile(String? path) => path == null ? null : File(path);

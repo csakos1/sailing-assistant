@@ -12,6 +12,9 @@ const String exportHistoryJsonFileName = 'foretack-history.json';
 /// A csomag leírásának neve.
 const String exportReadmeFileName = 'README.txt';
 
+/// Az STW-korrekciók helye a csomagban (ADR 0052 D9).
+const String exportStwCorrectionsFileName = 'config/stw-corrections.json';
+
 /// A csomag alapneve a [exportedAt] budapesti napjával:
 /// `foretack-history-<YYYY-MM-DD>` (ADR 0050 D8). Ez a letöltött fájl
 /// neve `.tar.gz`-vel, és a csomagbeli könyvtár neve (Addendum 3 G5).

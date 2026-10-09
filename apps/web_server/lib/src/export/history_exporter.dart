@@ -34,6 +34,7 @@ final class HistoryExporter {
     required int archiveSchemaVersion,
     required int webSchemaVersion,
     required String serverVersion,
+    File? stwCorrections,
     DateTime Function() now = DateTime.now,
     ServerLog log = ignoreServerLog,
   }) : _tempRoot = tempRoot,
@@ -44,6 +45,7 @@ final class HistoryExporter {
        _archiveSchemaVersion = archiveSchemaVersion,
        _webSchemaVersion = webSchemaVersion,
        _serverVersion = serverVersion,
+       _stwCorrections = stwCorrections,
        _now = now,
        _log = log;
 
@@ -55,6 +57,7 @@ final class HistoryExporter {
   final int _archiveSchemaVersion;
   final int _webSchemaVersion;
   final String _serverVersion;
+  final File? _stwCorrections;
   final DateTime Function() _now;
   final ServerLog _log;
 
@@ -99,14 +102,21 @@ final class HistoryExporter {
     _ensureClosed(webCopy);
 
     final baseName = exportBaseName(exportedAt);
+    final stwEntry = await _stwCorrectionsEntry(baseName);
     final archiveFile = File('${workDirectory.path}/$baseName.tar.gz');
     await _pack(
       target: archiveFile,
       entries: [
-        _readmeEntry(baseName, exportedAt: exportedAt, raceCount: raceCount),
+        _readmeEntry(
+          baseName,
+          exportedAt: exportedAt,
+          raceCount: raceCount,
+          hasStwCorrections: stwEntry != null,
+        ),
         await _fileEntry(baseName, exportHistoryJsonFileName, historyJson),
         await _fileEntry(baseName, exportArchiveFileName, archiveCopy),
         await _fileEntry(baseName, exportWebDatabaseFileName, webCopy),
+        ?stwEntry,
       ],
       exportedAt: exportedAt,
     );
@@ -140,10 +150,28 @@ final class HistoryExporter {
     return (archiveCopy: archiveCopy, webCopy: webCopy);
   }
 
+  // A korrekció-fájl az export pillanatában olvasva (ADR 0052 D9). Ha nem
+  // olvasható, az export nélküle készül el: a polár ilyenkor amúgy sem
+  // elérhető, az adat mentése fontosabb.
+  Future<TarEntry?> _stwCorrectionsEntry(String baseName) async {
+    final file = _stwCorrections;
+    if (file == null) return null;
+    try {
+      return TarEntry.bytes(
+        name: '$baseName/$exportStwCorrectionsFileName',
+        bytes: await file.readAsBytes(),
+      );
+    } on FileSystemException catch (error) {
+      _log('export: az STW-korrekció nem olvasható, kimarad: $error');
+      return null;
+    }
+  }
+
   TarEntry _readmeEntry(
     String baseName, {
     required DateTime exportedAt,
     required int raceCount,
+    required bool hasStwCorrections,
   }) => TarEntry.bytes(
     name: '$baseName/$exportReadmeFileName',
     bytes: utf8.encode(
@@ -153,6 +181,7 @@ final class HistoryExporter {
         serverVersion: _serverVersion,
         archiveSchemaVersion: _archiveSchemaVersion,
         webSchemaVersion: _webSchemaVersion,
+        hasStwCorrections: hasStwCorrections,
       ),
     ),
   );

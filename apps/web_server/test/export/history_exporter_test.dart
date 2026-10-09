@@ -42,6 +42,7 @@ void main() {
 
   HistoryExporter exporter({
     Future<void> Function(String path)? snapshotArchive,
+    File? stwCorrections,
   }) => HistoryExporter(
     tempRoot: tempRoot,
     lock: lock,
@@ -52,6 +53,7 @@ void main() {
     archiveSchemaVersion: databases.archive.schemaVersion,
     webSchemaVersion: databases.web.schemaVersion,
     serverVersion: '9.9.9',
+    stwCorrections: stwCorrections,
     now: () => exportedAt,
     log: logLines.add,
   );
@@ -100,6 +102,49 @@ void main() {
       utf8.decode(entries['$_base/README.txt']!),
       contains('Versenyek:     2'),
     );
+  });
+
+  test('packs the stw corrections when the server has them', () async {
+    const corrections = '[{"from":"2026-07-20T00:00:00Z","factor":1.081}]';
+    final file = File('${databases.directory.path}/stw-corrections.json')
+      ..writeAsStringSync(corrections);
+
+    final entries = readTarGz(
+      await readAll(await exportOk(exporter(stwCorrections: file))),
+    );
+
+    expect(entries.keys, [
+      '$_base/README.txt',
+      '$_base/foretack-history.json',
+      '$_base/archive.sqlite',
+      '$_base/web.sqlite',
+      '$_base/config/stw-corrections.json',
+    ]);
+    // A kulcsok sorrendjet fent ellenoriztuk: a bejegyzes biztosan megvan.
+    expect(
+      utf8.decode(entries['$_base/config/stw-corrections.json']!),
+      corrections,
+    );
+    expect(
+      utf8.decode(entries['$_base/README.txt']!),
+      contains('config/stw-corrections.json'),
+    );
+  });
+
+  test('exports without an unreadable stw corrections file', () async {
+    final missing = File('${databases.directory.path}/missing.json');
+
+    final entries = readTarGz(
+      await readAll(await exportOk(exporter(stwCorrections: missing))),
+    );
+
+    expect(entries.keys, isNot(contains(endsWith('stw-corrections.json'))));
+    // A README minden csomagban az elso bejegyzes.
+    expect(
+      utf8.decode(entries['$_base/README.txt']!),
+      isNot(contains('config/stw-corrections.json')),
+    );
+    expect(logLines, contains(startsWith('export: az STW-korrekció')));
   });
 
   test('describes every race in the json with the contract codec', () async {
