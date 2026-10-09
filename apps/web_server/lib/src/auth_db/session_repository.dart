@@ -103,6 +103,20 @@ class SessionRepository {
     ];
   }
 
+  /// A [userId] fiók összes munkamenetének azonosítója, a lejártakkal
+  /// együtt (az `end_sessions` CLI, ADR 0052 D10).
+  Future<List<String>> idsOfUser(String userId) async {
+    final query = _database.selectOnly(_database.sessions)
+      ..addColumns([_database.sessions.id])
+      ..where(_database.sessions.userId.equals(userId))
+      ..orderBy([OrderingTerm.asc(_database.sessions.id)]);
+    return [
+      for (final row in await query.get())
+        // Az id a PK, és a lekérdezés kifejezetten ezt választja ki.
+        row.read(_database.sessions.id)!,
+    ];
+  }
+
   /// Az [id] munkamenet törlése (kiléptetés); nem létezőnél sem hiba.
   Future<void> deleteById(String id) async {
     await (_database.delete(

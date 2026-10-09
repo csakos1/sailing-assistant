@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:drift/native.dart';
 import 'package:web_server/src/auth/cli/describe_devices.dart';
-import 'package:web_server/src/auth_db/auth_database.dart';
+import 'package:web_server/src/auth_db/cli_auth_database.dart';
 import 'package:web_server/src/auth_db/device_repository.dart';
 import 'package:web_server/src/auth_db/device_revocation.dart';
 import 'package:web_server/src/cli/missing_files.dart';
@@ -42,7 +41,7 @@ Future<void> main(List<String> arguments) async {
     return;
   }
 
-  final authDatabase = AuthDatabase(NativeDatabase(File(authDbPath)));
+  final authDatabase = openAuthDatabaseForCli(authDbPath);
   try {
     final devices = DeviceRepository(authDatabase);
     if (deviceId == null) {

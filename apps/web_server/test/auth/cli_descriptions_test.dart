@@ -4,6 +4,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:test/test.dart';
 import 'package:web_server/src/auth/cli/describe_devices.dart';
 import 'package:web_server/src/auth/cli/describe_owner_enrollment.dart';
+import 'package:web_server/src/auth/cli/describe_sessions.dart';
 import 'package:web_server/src/auth/owner_enrollment.dart';
 import 'package:web_server/src/auth_db/auth_device.dart';
 import 'package:web_server/src/auth_db/auth_user.dart';
@@ -95,6 +96,53 @@ void main() {
 
     test('says so when there is no device', () {
       expect(describeDevices(const []), ['Nincs regisztrált eszköz.']);
+    });
+  });
+
+  group('describeSessions', () {
+    test('lists one live session per line with its id first', () {
+      final lines = describeSessions([
+        WebSession(
+          id: 's-1',
+          userId: 'u-akos',
+          userName: 'Ákos',
+          method: LoginMethod.recoveryCode,
+          ip: '198.51.100.20',
+          browser: 'Firefox',
+          os: 'Linux',
+          country: 'AT',
+          city: 'Wien',
+          // Nyari ido: UTC+2.
+          createdAt: DateTime.utc(2026, 10, 6, 18),
+          lastSeenAt: DateTime.utc(2026, 10, 6, 19, 30),
+          isSuspicious: true,
+        ),
+        WebSession(
+          id: 's-2',
+          userId: 'u-bence',
+          userName: 'Bence',
+          method: LoginMethod.qr,
+          ip: '127.0.0.1',
+          createdAt: DateTime.utc(2026, 10, 7, 6),
+          lastSeenAt: DateTime.utc(2026, 10, 7, 6, 5),
+        ),
+      ]);
+
+      expect(lines, hasLength(2));
+      expect(
+        lines.first,
+        's-1  Ákos (u-akos)  kód  198.51.100.20 Wien, AT  Firefox · Linux  '
+        'belépett 2026-10-06 20:00  utoljára 2026-10-06 21:30  GYANÚS',
+      );
+      expect(
+        lines.last,
+        's-2  Bence (u-bence)  QR  127.0.0.1  '
+        'belépett 2026-10-07 08:00  utoljára 2026-10-07 08:05',
+      );
+    });
+
+    test('says so when there is no live session', () {
+      expect(describeSessions(const []), ['Nincs élő webes munkamenet.']);
     });
   });
 }
