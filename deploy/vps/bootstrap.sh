@@ -265,8 +265,15 @@ for expected in 'passwordauthentication no' 'kbdinteractiveauthentication no' \
     exit 78
   fi
 done
-if ! grep -qix "allowusers $admin foretack-pull" <<<"$effective"; then
-  echo "Az sshd AllowUsers beállítása nem a várt." >&2
+# Az sshd -T az AllowUsers minden elemét külön sorba írja.
+for user in "$admin" foretack-pull; do
+  if ! grep -qix "allowusers $user" <<<"$effective"; then
+    echo "Az sshd AllowUsers-éből hiányzik: $user" >&2
+    exit 78
+  fi
+done
+if [[ "$(grep -ci '^allowusers ' <<<"$effective")" -ne 2 ]]; then
+  echo "Az sshd AllowUsers-ében más felhasználó is van." >&2
   exit 78
 fi
 systemctl restart ssh

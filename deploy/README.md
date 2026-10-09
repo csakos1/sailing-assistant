@@ -250,7 +250,7 @@ systemctl list-timers 'foretack-*'   # foretack-geoip.timer (a mentésé a 11.1-
 sudo -n /usr/local/sbin/foretack-activate 2>&1 | head -1   # Használat: … (jelszó nélkül fut)
 free -h | grep -i swap               # ~2.5Gi (a Linode 512 MB-ja + a mi 2 GB-unk)
 sudo sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|allowusers) '
-# passwordauthentication no / permitrootlogin no / allowusers akos foretack-pull
+# passwordauthentication no / permitrootlogin no / allowusers akos / allowusers foretack-pull
 journalctl -u caddy -n 3 --no-pager  # sudo nélkül is látszik (adm csoport)
 ```
 
