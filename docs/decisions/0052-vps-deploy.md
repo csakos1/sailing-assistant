@@ -447,3 +447,24 @@ lokális `dev-env` másolataként. A telefon DB-je a webes feltöltés helyett
   fejléc kikerül, a `robots.txt` mindent tilt, a fejlécek a D6 szerint
   mennek ki.
 - Minden szkript `shellcheck`-tiszta.
+
+### P6 — A Caddy a GitHub-kiadásból (2026-10-09, a telepítés közben)
+
+- **Ok:** a hivatalos apt-tároló (`dl.cloudsmith.io/public/caddy/stable`)
+  a VPS-ről `402 Payment Required`-et adott, és a bootstrap az
+  `apt-get update`-nél megállt. Egy idegen apt-tároló kiesése a rendszer
+  frissítéseit is megakasztaná.
+- **Döntés (javaslat):** a Caddy a GitHub-kiadás `.deb`-jéből települ, a
+  `bootstrap.sh`-ban rögzített verzióval (`2.11.7`) és SHA-512-vel; eltérő
+  hash mellett nem telepít. A `.deb` ugyanazt a `caddy` usert és
+  `caddy.service`-t hozza, mint a tároló. A bootstrap egy korábbi futás
+  Cloudsmith-listáját törli.
+- **Frissítés:** a két érték átírása egy commitban, utána
+  `bootstrap.sh --config-only` (a `deploy/README.md` 12. pontja). Az
+  Ubuntu automatikus frissítése a Caddyt egyik úton sem frissítené (csak
+  az Ubuntu-forrásokat nézi), így ez nem veszteség.
+- **Verifikálva:** a 2.11.7 `.deb` hash-e a kiadás `checksums.txt`-jével
+  egyezik, a csomag függőség nélküli, és a Caddyfile a 2.11.7-tel
+  `caddy validate`-en átmegy.
+- A „Mit ír felül" D6-ja: a Caddy nem a hivatalos apt-tárolóból jön
+  (ADR 0047 D10).

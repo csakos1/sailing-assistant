@@ -56,6 +56,42 @@ fi
 
 step() { echo; echo "==> $*"; }
 
+# A Caddy a GitHub-kiadás .deb-jéből, rögzített verzióval és SHA-512-vel
+# (ADR 0052 P6): a hivatalos apt-tároló (Cloudsmith) 2026-10-09-én 402-t
+# adott, és egy idegen apt-tároló kiesése az apt-get update-et is
+# megakasztaná. Frissítés: a két érték átírása egy commitban (az új
+# kiadás caddy_<v>_checksums.txt-jéből), utána --config-only.
+export DEBIAN_FRONTEND=noninteractive
+# A módosított konfigurációs fájloknál se kérdezzen (a helyit tartja meg).
+apt_options=(-y -o Dpkg::Options::=--force-confdef
+  -o Dpkg::Options::=--force-confold)
+
+readonly caddy_version=2.11.7
+readonly caddy_deb_sha512=47e8351c2317b427af14a103e763ca1118a3d2396a88b4c0669cdec9c4a68a957690194e2423a1633f53135741c33a41bdac2b55515b7d0f7adc8b733add50d9
+
+install_caddy() {
+  local installed
+  installed="$(dpkg-query -W -f '${Version}' caddy 2>/dev/null || true)"
+  if [[ "$installed" == "$caddy_version" ]]; then
+    echo "Caddy $caddy_version már telepítve."
+    return
+  fi
+  local work deb
+  work="$(mktemp -d)"
+  deb="$work/caddy_${caddy_version}_linux_amd64.deb"
+  curl -fsSL --retry 3 -o "$deb" \
+    "https://github.com/caddyserver/caddy/releases/download/v$caddy_version/caddy_${caddy_version}_linux_amd64.deb"
+  if ! echo "$caddy_deb_sha512  $deb" | sha512sum -c --quiet -; then
+    rm -rf "$work"
+    echo "A Caddy .deb SHA-512-je nem egyezik; nem telepítem." >&2
+    exit 1
+  fi
+  chmod 0755 "$work"
+  chmod 0644 "$deb"
+  apt-get "${apt_options[@]}" install "$deb"
+  rm -rf "$work"
+}
+
 # Az 5–6. lépés: a repóból jövő konfiguráció. A --config-only csak ezt
 # futtatja, a telepítés is ezt hívja.
 install_config() {
@@ -74,6 +110,7 @@ install_config() {
   mv "$sudoers.new" "$sudoers"
 
   step "6. systemd és Caddy"
+  install_caddy
   local unit
   for unit in foretack-archive.service foretack-backup.service \
     foretack-backup.timer foretack-geoip.service foretack-geoip.timer; do
@@ -117,24 +154,12 @@ if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != 24.04 ]]; then
 fi
 
 step "1. Rendszerfrissítés és csomagok"
-export DEBIAN_FRONTEND=noninteractive
-# A módosított konfigurációs fájloknál se kérdezzen (a helyit tartja meg).
-apt_options=(-y -o Dpkg::Options::=--force-confdef
-  -o Dpkg::Options::=--force-confold)
+# Egy korábbi futás Cloudsmith-tárolója ne akassza meg az apt-get update-et.
+rm -f /etc/apt/sources.list.d/caddy-stable.list \
+  /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 apt-get update
 apt-get "${apt_options[@]}" full-upgrade
-apt-get "${apt_options[@]}" install curl gnupg debian-keyring \
-  debian-archive-keyring apt-transport-https
-if [[ ! -f /usr/share/keyrings/caddy-stable-archive-keyring.gpg ]]; then
-  curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key |
-    gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
-    >/etc/apt/sources.list.d/caddy-stable.list
-  chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update
-fi
-apt-get "${apt_options[@]}" install caddy sqlite3 qrencode rsync ufw \
+apt-get "${apt_options[@]}" install curl sqlite3 qrencode rsync ufw \
   unattended-upgrades
 
 step "2. Automatikus biztonsági frissítések és swap"

@@ -61,13 +61,14 @@ leghosszabb.
 ### 1.1 Eszközök [gép]
 
 ```zsh
-sudo pacman -S --needed gitleaks rsync openssh bind sqlite android-tools \
-  python-openpyxl qrencode
-gitleaks version        # legalább 8.25
+pacman -Q gitleaks rsync openssh sqlite android-tools python-openpyxl qrencode
 ```
 
-A `bind` a `dig`-ért kell (DNS-ellenőrzés), az `android-tools` az
-`adb`-ért, a `sqlite` a `sqlite3`-ért.
+Ami hiányzik, csak azt telepítsd (`sudo pacman -S --needed …`); ha a
+csomag új verziója újabb könyvtárakat kér, az részleges frissítés lenne,
+ilyenkor előbb egy teljes `pacman -Syu`. A gitleaks legalább 8.25 legyen
+(`pacman -Q gitleaks`). Az `android-tools` az `adb`-ért, a `sqlite` a
+`sqlite3`-ért kell.
 
 ### 1.2 Titokkeresés [gép]
 
@@ -188,9 +189,15 @@ Ha a felület a teljes nevet kéri, `lola.foretack.hu`. Mentés után
 **[gép]**:
 
 ```zsh
-dig +short lola.foretack.hu A       # a Linode IPv4-e
-dig +short lola.foretack.hu AAAA    # a Linode IPv6-a
+for t in A AAAA; do
+  curl -s "https://dns.google/resolve?name=lola.foretack.hu&type=$t" |
+    python3 -c 'import sys,json; print([a["data"] for a in json.load(sys.stdin).get("Answer",[])])'
+done
+# ['<IPv4>']  és  ['<IPv6>']; az üres [] azt jelenti, hogy még nem látszik
 ```
+
+Ez a Google nyilvános feloldóját kérdezi, nem a gép vagy a router
+gyorsítótárát: azt látod, amit a Let's Encrypt is látni fog.
 
 Pár perctől néhány óráig tarthat. **Csak akkor menj tovább**, ha mindkettő
 a helyes címet adja: a Caddy a 4. lépésben e szerint kér tanúsítványt, és
@@ -736,6 +743,21 @@ sudo -u foretack $F/end_sessions --auth-db $A --user <userId>    # egy fiók ös
 sudo -u foretack $F/revoke_device --auth-db $A                   # eszközök
 sudo -u foretack $F/revoke_device --auth-db $A --device <id>     # visszavonás
 ```
+
+### A Caddy frissítése [gép + VPS]
+
+A Caddy a GitHub-kiadás `.deb`-jéből jön, a `bootstrap.sh`-ban rögzített
+verzióval és SHA-512-vel (ADR 0052 P6); az Ubuntu automatikus frissítése
+nem frissíti. Negyedévente, vagy egy biztonsági kiadás után:
+
+1. **[gép]** A <https://github.com/caddyserver/caddy/releases> oldalon az
+   új verzió `caddy_<v>_checksums.txt`-jéből a
+   `caddy_<v>_linux_amd64.deb` sora; a `bootstrap.sh` `caddy_version` és
+   `caddy_deb_sha512` értéke erre, egy `chore(deploy)` commitban.
+2. A Caddyfile ellenőrzése az új verzióval, ha van helyben Caddy:
+   `caddy validate --adapter caddyfile --config <(sed 's/@FORETACK_DOMAIN@/lola.foretack.hu/' deploy/vps/Caddyfile)`.
+3. A „szerver-oldali konfiguráció frissítése" lépései (`--config-only`):
+   a szkript letölti, a hash-t ellenőrzi, és csak egyezésnél telepít.
 
 ### Rendszerfrissítés [VPS]
 
