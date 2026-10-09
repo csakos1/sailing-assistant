@@ -5647,7 +5647,7 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     visszaállással vált;
   - DB-k és titok a `/var/lib/foretack/` alatt, az STW-korrekció az
     `/etc/foretack/`-ben; éjszakai `sqlite3 .backup` 3 napig a VPS-en,
-    amit a fejlesztői gép egy user-timerrel lehúz és 30 napig megőriz;
+    amit a fejlesztői gép egy user-timerrel lehúz és 7 napig megőriz;
   - a `geoip.sqlite` havonta egy timerrel újraépül;
   - biztonsági fejlécek a Caddyben (HSTS, CSP, `noindex`,
     `Referrer-Policy: strict-origin` az OSM csempe-szabályzata miatt);

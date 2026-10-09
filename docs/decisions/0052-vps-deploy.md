@@ -2,8 +2,10 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-09. Még nem implementálva. A „Szeletek" sorrendjében
-követi, docs-first. Az ADR 0047 D10 üzemeltetési pontjait, az ADR 0051 D9
+Elfogadva és élesítve — 2026-10-09 (`7b690ef`, a
+`https://lola.foretack.hu`). A „Szeletek" sorrendjében készült,
+docs-first; a telepítés tapasztalatait a „Pontosítás a telepítés után
+(S8e)" szakasz rögzíti. Az ADR 0047 D10 üzemeltetési pontjait, az ADR 0051 D9
 `Referrer-Policy`-ját és D10 mentését pontosítja; ezeket a „Mit ír felül"
 szakasz sorolja fel.
 
@@ -179,8 +181,7 @@ A felhasználó döntései (2026-10-09):
   nélkül. A `no-referrer` sértené az OSM csempe-szabályzatát, és a térkép
   csempéi tiltásba futhatnának. Az URL-ekben titok nincs (a tokenek
   törzsben és cookie-ban utaznak), így az origó kiadása nem kockázat.
-- **CSP** (kiinduló, a VPS-próbán a böngésző konzolja alapján
-  véglegesítve):
+- **CSP** (a 2026-10-09-i VPS-próba óta végleges, P7):
 
   ```
   default-src 'self';
@@ -213,7 +214,8 @@ A felhasználó döntései (2026-10-09):
   lehúzza a `latest`-et a
   `~/Documents/develop/hajo/backup/vps/<ÉÉÉÉ-HH-NN>/` alá. A
   `--link-dest` az előző napra mutat, és `--checksum` dönt, így egy
-  változatlan archívum nem foglal újra 1,7 GB-ot. **30 nap** marad meg.
+  változatlan archívum nem foglal újra 1,9 GB-ot. **7 nap** marad meg
+  (eredetileg 30; a felhasználó gépének helye miatt csökkentve, P8).
 - **Hozzáférés:** a `foretack-pull` kulcsa az `authorized_keys`-ben
   `restrict,command="rrsync -ro /var/backups/foretack"`: csak olvasni
   tud, és csak ezt a könyvtárat.
@@ -311,8 +313,10 @@ változóban van.
   - `dart compile exe` helyett `dart build cli` (D3);
   - `/srv/foretack/web/` helyett kiadások az `/opt/foretack/releases`
     alatt, szimbolikus linkkel (D4);
-  - a 14 napos mentés helyett 3 nap a VPS-en és 30 nap a felhasználó
-    gépén (D7).
+  - a 14 napos mentés helyett 3 nap a VPS-en és 7 nap a felhasználó
+    gépén (D7, P8);
+  - a Caddy nem a hivatalos apt-tárolóból, hanem a GitHub-kiadás
+    `.deb`-jéből települ (P6).
 - **ADR 0051 D9:** `Referrer-Policy: no-referrer` helyett `strict-origin`
   (D6).
 - **ADR 0051 D10:** a mentés (az `auth.sqlite` és a titok is) a VPS-en kívül,
@@ -328,7 +332,7 @@ változóban van.
 | S8c | `feat(web-server)` | az `end_sessions` CLI (D10) |
 | S8d | `chore(deploy)` | a `deploy/` könyvtár és a `deploy/README.md` (D11) |
 | — | — | a felhasználó telepít a `deploy/README.md` szerint (D12) |
-| S8e | `fix(…)` | ami a VPS-próbán kiderül (CSP, időzítések) |
+| S8e | `fix(deploy)`, `docs(adr)` | a telepítés tapasztalatai (P6–P9): a két telepítés közbeni javítás, a 7 napos megőrzés, a README pontosításai |
 
 ## Következmények
 
@@ -435,7 +439,7 @@ lokális `dev-env` másolataként. A telefon DB-je a webes feltöltés helyett
   éjjel új mtime-ot ad, és `-t` mellett a `--link-dest` sosem
   hardlinkelne. Szimbolikus link a VPS-ről nem jön át.
 - Ismert kompromisszum: a mentéseket a `foretack` írja, így egy
-  feltört szerver-folyamat a VPS-mentéseket is elronthatja (és 30 nap
+  feltört szerver-folyamat a VPS-mentéseket is elronthatja (és 7 nap
   alatt a lehúzottakat is). A felhasználó gépének régebbi napjai és a
   webes Export ad ez ellen tartalékot.
 
@@ -468,3 +472,67 @@ lokális `dev-env` másolataként. A telefon DB-je a webes feltöltés helyett
   `caddy validate`-en átmegy.
 - A „Mit ír felül" D6-ja: a Caddy nem a hivatalos apt-tárolóból jön
   (ADR 0047 D10).
+
+## Pontosítás a telepítés után (S8e, 2026-10-09)
+
+A felhasználó a `deploy/README.md` szerint telepített (13:04–16:00). Két
+hiba a telepítés közben javult (`dee11ef`: P6; `7b690ef`: az `sshd -T`
+az `AllowUsers` minden elemét külön sorba írja, és a bootstrap
+ellenőrzése egy sorban kereste a kettőt). A többi lépés hiba nélkül
+ment.
+
+### P7 — A CSP végleges
+
+- A D6 CSP-je változatlanul marad. A VPS-próbán a napló, a részletező, a
+  térkép csempéi és a Statisztika betöltődtek, új CSP-sor nem jött.
+- A konzol egyetlen CSP-sora („blocked an inline script", forrása egy
+  „sandbox eval code", privát ablakban egy UUID) egy böngésző-bővítményé:
+  a Flutter 3.41 betöltője csak `src`-s `<script>`-et ad hozzá. A többi
+  konzolsor (a betöltő naplója, a CanvasKit WebGL-figyelmeztetései, a
+  hiányzó source map) ártalmatlan; a `deploy/README.md` 9. pontja
+  felsorolja őket.
+- Fejlécek a `curl -sI` szerint: HSTS, CSP, `strict-origin`,
+  `noindex, nofollow`, `no-cache`; `Server` nincs; a `robots.txt`
+  mindent tilt; az API belépés nélkül `401`.
+
+### P8 — A D7 pontosítása: 7 nap a felhasználó gépén (felhasználói döntés)
+
+- **Ok:** a felhasználó `/home`-ja (btrfs, `compress=zstd:3`) 94%-on
+  van, 31 GB szabad. Egy megváltozott archívum lehúzása napi +1,9 GB;
+  30 nap legrosszabb esetben ~57 GB lenne, 7 nap ~13 GB.
+- **Döntés:** `kept_days=7`. A VPS 3 napja és a webes Export mellett ez
+  elég tartalék; egy hétnél régebbi állapotra a gyakorlatban az Export
+  vagy egy kézzel félretett mentés való.
+- **Ellenőrizendő:** hogy a `--link-dest` + `--checksum` egy változatlan
+  archívumot valóban hardlinkel-e (a `sqlite3 .backup` egy változatlan
+  DB-ről várhatóan bájtra azonos fájlt ad). Az első összevetés a
+  második napi lehúzás után (`stat -c '%h %i'`). Ha nem hardlinkel,
+  minden nap +1,9 GB kerül a gépre, és a megőrzést újra kell gondolni.
+
+### P9 — Mért értékek és ismert korlátok
+
+| Mi | Érték |
+|---|---|
+| GeoIP-építés a VPS-en | 1 p 55 mp (lokálisan 37 mp); `geoip.sqlite` 538 MB, 3 620 434 IPv4- és 4 166 430 IPv6-tartomány |
+| Feltöltés (`rsync`, a telefon DB-je) | 1,9 GB, ~10 MB/s, 3 perc |
+| VPS-mentés (`foretack-backup.service`) | 1 p 8 mp, 23 mp CPU |
+| Lehúzás a gépre | 1 p 18 mp |
+| `archive.sqlite` / `web.sqlite` / `auth.sqlite` | 1,95 GB / 16,8 MB / 110 KB |
+| A VPS lemeze az élesítés után | 11 GB foglalt, 36 GB szabad (49 GB) |
+
+- **A friss import eredménye** (P3) a lokálissal egyezik: 15 befejezett
+  telemetriás verseny (a 14 + a Unitef kupa), 61 kézi verseny, 72
+  eredmény, 57 régi track (84 607 minta), `race_stats` 65 `official` + 7
+  `recording`.
+- **A `-wal` opcionális:** ha a telefonon nincs `-wal`, a lehúzás egy
+  üres fájlt hagy; a README 7.3–7.4 csak a nem üreset viszi fel és adja
+  át az `import_race_db`-nek.
+- **IPv6:** az `AAAA` rekord és az `ufw` v6 szabályai megvannak, de a
+  felhasználó hálózatán nincs IPv6, így kívülről IPv6-on még nem
+  próbált.
+- **Nyitott:** a szerver az `auth.sqlite`-ot `busy_timeout` nélkül
+  nyitja (a CLI-k 5 mp-cel, S8c). Egy CLI írása alatt egy webes kérés
+  ritkán `500`-at kaphat; adatvesztés nincs. Kis `fix(web-server)`
+  szelet.
+- **A mentés-lehúzó user-unit** a munkafa szkriptjét futtatja; egy
+  `deploy/` nélküli ágon aznap elbukik (README 11.4).
