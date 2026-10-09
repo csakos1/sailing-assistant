@@ -4,7 +4,8 @@
 #
 # A mentés a BACKUP_DIR/<ÉÉÉÉ-HH-NN>/ alá kerül. A --link-dest az előző
 # napra mutat, a --checksum dönt, így egy változatlan archívum hardlink
-# marad, nem foglal újra 1,7 GB-ot. 30 nap marad meg.
+# marad, nem foglal újra 1,9 GB-ot. 7 nap marad meg: egy megváltozott
+# archívum napi +1,9 GB, ez 7 nappal legfeljebb ~13 GB.
 #
 # A mentésben ott az auth-secret és az auth.sqlite is: a könyvtár csak a
 # te felhasználódé (0700).
@@ -22,7 +23,7 @@ trap 'status=$?; if ((status != 0)); then notify_failure; fi' EXIT
 # shellcheck source=deploy/load_env.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../load_env.sh"
 
-readonly kept_days=30
+readonly kept_days=7
 : "${PULL_USER:?A deploy.env-ből hiányzik: PULL_USER}"
 : "${PULL_SSH_KEY:?A deploy.env-ből hiányzik: PULL_SSH_KEY}"
 : "${BACKUP_DIR:?A deploy.env-ből hiányzik: BACKUP_DIR}"

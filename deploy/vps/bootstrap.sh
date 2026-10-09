@@ -11,7 +11,8 @@
 #   sudo bash bootstrap.sh --config-only --domain lola.foretack.hu --admin akos
 #
 # Mit csinál, sorban:
-#   1. rendszerfrissítés, a Caddy hivatalos apt-tárolója, csomagok;
+#   1. rendszerfrissítés, csomagok, a Caddy a GitHub-kiadás .deb-jéből
+#      (rögzített verzió és SHA-512, ADR 0052 P6);
 #   2. automatikus biztonsági frissítések, 2 GB swap;
 #   3. felhasználók: az admin (sudo, a root SSH-kulcsával), a foretack
 #      (a szerver) és a foretack-pull (csak a mentések olvasása);

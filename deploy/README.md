@@ -45,7 +45,7 @@ gépeden.
 | `auth-secret` (HMAC-titok) | VPS `/var/lib/foretack/`, a mentésben a gépeden | **nem** |
 | `stw-corrections.json` | VPS `/etc/foretack/` | nem |
 | Éjszakai mentés, 3 nap | VPS `/var/backups/foretack/` | nem |
-| Lehúzott mentés, 30 nap | gépen `~/Documents/develop/hajo/backup/vps/` | nem |
+| Lehúzott mentés, 7 nap | gépen `~/Documents/develop/hajo/backup/vps/` | nem |
 | Helyreállító kódok, admin sudo-jelszó | jelszókezelő | **nem** |
 
 Felhasználók a VPS-en: `akos` (te, SSH-kulccsal és sudo-val), `foretack`
@@ -268,6 +268,14 @@ Ha az admin belépés **nem** megy: a nyitott root-terminálban
 `rm /etc/ssh/sshd_config.d/10-foretack.conf && systemctl restart ssh`,
 és szólj. Végső esetben a Linode LISH-konzolja mindig működik.
 
+Ha a VPS-en a `journalctl` vagy a `systemctl` `WARNING: terminal is not
+fully functional`-t ír, a VPS nem ismeri a terminálod típusát. Egyszer
+felmásolod a leírását **[gép]**:
+
+```zsh
+infocmp -x | ssh -i "$VPS_SSH_KEY" "$VPS_USER@$VPS_HOST" -- tic -x -
+```
+
 ### 4.3 A HTTPS [gép]
 
 ```zsh
@@ -324,12 +332,11 @@ A szerver a `--geoip` nélkül nem indul, ezért ez a szerver előtt kell.
 ```bash
 time sudo systemctl start foretack-geoip.service
 journalctl -u foretack-geoip -n 5 --no-pager    # GeoIP frissítve: DB-IP 2026-10
-ls -lh /var/lib/foretack/geoip.sqlite           # ~560 MB
+sudo ls -lh /var/lib/foretack/geoip.sqlite      # ~540 MB (a könyvtár zárt)
 ```
 
-Lokálisan 37 mp volt; a VPS-en lassabb lehet. **Írd fel az időt**, az
-ADR-be bekerül (handover §7 49.). Ha a letöltés nem megy, a
-`journalctl` mutatja az URL-t.
+A VPS-en 2026-10-09-én 1 p 55 mp volt (lokálisan 37 mp). Ha a letöltés
+nem megy, a `journalctl` mutatja az URL-t.
 
 ---
 
@@ -355,9 +362,14 @@ mkdir -p ~/Documents/develop/hajo/vps-import && cd ~/Documents/develop/hajo/vps-
 adb shell am force-stop com.csakos.foretack
 adb exec-out run-as com.csakos.foretack cat app_flutter/foretack.sqlite     > foretack.sqlite
 adb exec-out run-as com.csakos.foretack cat app_flutter/foretack.sqlite-wal > foretack.sqlite-wal
-ls -lh foretack.sqlite*        # ~1,7 GB + a -wal (lehet 0 bájt is)
+ls -lh foretack.sqlite*        # ~1,9 GB + a -wal (lehet 0 bájt vagy hiányozhat)
 sqlite3 foretack.sqlite 'pragma quick_check;'   # ok
 ```
+
+Ha a telefonon nincs `-wal` (a force-stop után az app mindent a fő
+fájlba írt), a második `cat` hibát ír, és egy üres fájlt hagy. Ez nem
+baj: az üres `-wal` nem hordoz adatot, a 7.3 és a 7.4 csak a nem üreset
+viszi.
 
 Biztonsági másolat a régi mintájára:
 `cp foretack.sqlite* ~/Documents/develop/hajo/db/` egy dátumos névvel, ha
@@ -382,15 +394,17 @@ vinné át). A `--partial` megszakadás után folytatja.
 
 ```zsh
 cd ~/Documents/develop/hajo/sailing-assistant && source deploy/deploy.env
+I=~/Documents/develop/hajo/vps-import
+files=($I/foretack.sqlite $I/legacy_races.json
+       ~/Documents/develop/hajo/race-data/polar.csv)
+# a -wal csak akkor, ha nem üres
+[[ -s $I/foretack.sqlite-wal ]] && files+=($I/foretack.sqlite-wal)
 rsync -rtpv --partial --progress --chmod=F640 -e "ssh -i $VPS_SSH_KEY" \
-  ~/Documents/develop/hajo/vps-import/foretack.sqlite \
-  ~/Documents/develop/hajo/vps-import/foretack.sqlite-wal \
-  ~/Documents/develop/hajo/vps-import/legacy_races.json \
-  ~/Documents/develop/hajo/race-data/polar.csv \
-  "$VPS_USER@$VPS_HOST:/srv/foretack-import/"
+  $files "$VPS_USER@$VPS_HOST:/srv/foretack-import/"
 ```
 
-20 Mbit/s-os feltöltéssel kb. 12–15 perc.
+2026-10-09-én kb. 10 MB/s-mal 3 perc volt (az 1,9 GB). Ha az `rsync`
+`code 23`-mal ér véget, egy forrásfájl hiányzott: nézd meg, melyik.
 
 ### 7.4 A telefonos adatbázis importja [VPS]
 
@@ -399,14 +413,17 @@ A szerver ekkor még nem fut (ez a CLI-k feltétele).
 ```bash
 systemctl is-active foretack-archive     # inactive
 cd /srv/foretack-import
-ls -l                                    # a 4 fájl, csoport: foretack
+ls -l                                    # a 3–4 fájl, csoport: foretack
 F=/opt/foretack/current/bin
 D=/var/lib/foretack
 
+# a -wal csak akkor megy át, ha feltöltötted (a 7.3 a nem üreset viszi)
+W=/srv/foretack-import/foretack.sqlite-wal
+wal=()
+[[ -s $W ]] && wal=(--wal "$W")
 sudo -u foretack $F/import_race_db \
   --archive $D/archive.sqlite --web-db $D/web.sqlite \
-  --database /srv/foretack-import/foretack.sqlite \
-  --wal /srv/foretack-import/foretack.sqlite-wal
+  --database /srv/foretack-import/foretack.sqlite "${wal[@]}"
 
 sudo -u foretack sqlite3 $D/archive.sqlite \
   'select status_index, count(*) from races group by 1;'
@@ -558,8 +575,19 @@ sudo -u foretack /opt/foretack/current/bin/revoke_device \
 5. Statisztika: a 2026-os év, a polár-tábla (ha még „frissítés alatt",
    pár perc múlva újratöltés).
 6. **A böngésző konzolja** (F12 → Console): **CSP-hibát** keress
-   (`Content-Security-Policy` / `blocked`). Ha van, másold ki; ezzel
-   véglegesítjük a CSP-t (ADR 0052 D6, S8e).
+   (`Content-Security-Policy` / `blocked`). A CSP a 2026-10-09-i próba
+   óta végleges (ADR 0052 D6). Ártalmatlan sorok, amik akkor is
+   látszottak:
+   - egy `blocked an inline script` „sandbox eval code" vagy egy UUID
+     forrással: egy böngésző-bővítményé, nem az oldalé (a Flutter
+     betöltője csak `src`-s szkriptet ad hozzá);
+   - `Injecting <script> tag. Using callback.` (a Flutter betöltője);
+   - `WEBGL_debug_renderer_info is deprecated`, `READ_BUFFER attachment
+     is multisampled` (CanvasKit);
+   - `Source map error … 404` (release buildben nincs source map).
+
+   Ha ezeken kívül jön CSP-sor, vagy a térkép csempéi nem töltődnek be,
+   másold ki.
 7. Fejlécek **[gép]**:
 
 ```zsh
@@ -626,6 +654,13 @@ ssh -i "$PULL_SSH_KEY" -o IdentitiesOnly=yes "$PULL_USER@$VPS_HOST"
 A kulcs ugyanaz, amit a 2.1-ben ellenőriztél, így a kérdés nem jön elő
 (ha mégis, ugyanúgy hasonlítsd össze). Mivel ez a kulcs csak `rrsync`-et
 futtathat, egy hibaüzenettel azonnal kilép: ez a **helyes** viselkedés.
+A várt kimenet:
+
+```
+PTY allocation request failed on channel 0
+/usr/bin/rrsync error: Not invoked via sshd
+Connection to … closed.
+```
 
 ### 11.3 Az első lehúzás kézzel [gép]
 
@@ -649,7 +684,30 @@ systemctl --user list-timers foretack-backup-pull.timer
 
 Ha a repó nem a `~/Documents/develop/hajo/sailing-assistant`-ban van, a
 `.service` `ExecStart` sorát írd át. Hiba esetén asztali értesítés jön
-(`notify-send`); a napló: `journalctl --user -u foretack-backup-pull`.
+(`notify-send`); a napló: `journalctl --user -u foretack-backup-pull`
+(a kézi 11.3-as futás ide nem ír, csak a timeré).
+
+**Figyelem:** az időzítő a munkafád `deploy/local/pull_backup.sh`-ját
+futtatja. Ha egy olyan ágra váltasz, ahol nincs `deploy/` (pl. a
+`feature/ui-redesign` a merge-hez), a lehúzás aznap elbukik, és
+értesítés jön. A visszaváltás után a következő futás a legfrissebb
+mentést húzza le.
+
+**Hely a gépen.** Egy megváltozott archívum (új verseny vagy
+újraimport) napi +1,9 GB; egy változatlan napnál a `--link-dest`
+hardlinkel, és alig foglal. 7 nap így legfeljebb ~13 GB. Btrfs-en a
+tömörítés tovább csökkenti (`findmnt -no OPTIONS /home` →
+`compress=zstd`); ha nincs bekapcsolva, a könyvtárra külön is
+bekapcsolható:
+`btrfs property set ~/Documents/develop/hajo/backup/vps compression zstd`.
+
+A második naptól ellenőrizhető, hogy a változatlan archívum valóban
+hardlink-e:
+
+```zsh
+stat -c '%h %i %n' ~/Documents/develop/hajo/backup/vps/*/archive.sqlite
+# változatlan archívumnál a napok ugyanazt az inode-ot mutatják, a linkszám > 1
+```
 
 ### 11.5 Visszaállítási próba [gép]
 
