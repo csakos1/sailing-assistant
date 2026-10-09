@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Titokkeresés minden commit előtt (ADR 0052 P1). Bekapcsolás egyszer:
+#
+#   git config core.hooksPath deploy/git-hooks
+#
+# A commitra szánt (staged) változásokat nézi: gitleaks, és hogy tiltott
+# fájltípus ne kerüljön a repóba. Megkerülni csak tudatosan lehet
+# (git commit --no-verify) — ne tedd.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: nincs gitleaks (sudo pacman -S gitleaks)." >&2
+  exit 1
+fi
+
+gitleaks git --pre-commit --staged --redact --no-banner \
+  --config .gitleaks.toml .
+
+forbidden="$(
+  git diff --cached --name-only --diff-filter=ACR |
+    grep -Ei '(\.sqlite(-wal|-shm|-journal)?$|\.db$|auth-secret|(^|/)deploy\.env|\.pem$|\.key$|\.p12$|\.jks$|\.keystore$|id_(rsa|ed25519)|foretack-history-.*\.tar\.gz$|stw-corrections\.json$|dbip-.*\.csv)' |
+    grep -v '^deploy/deploy\.env\.example$' || true
+)"
+if [[ -n "$forbidden" ]]; then
+  echo "pre-commit: ezek nem kerülhetnek a repóba:" >&2
+  echo "$forbidden" >&2
+  exit 1
+fi

@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Egy feltöltött kiadás aktiválása a VPS-en (ADR 0052 D4). Rootként fut;
+# a bootstrap.sh az /usr/local/sbin alá telepíti, és az admin
+# felhasználó jelszó nélkül csak ezt futtathatja sudo-val.
+#
+#   foretack-activate [--install-only] <hash>
+#
+# 1. Az /opt/foretack/incoming/<hash> (ha van) átkerül a releases alá,
+#    root tulajdonba, csak olvashatóan.
+# 2. Az /opt/foretack/current link atomian átáll rá.
+# 3. A szolgáltatás újraindul, és 30 mp-en belül a
+#    http://127.0.0.1:8087/api/auth/me 401-et kell adjon; ha nem, a link
+#    visszaáll az előző kiadásra, és a szkript hibával lép ki.
+# 4. Az aktívon kívül a két legújabb kiadás marad meg.
+#
+# Egy régi kiadásra visszaállás: foretack-activate <régi hash>.
+set -euo pipefail
+
+readonly base=/opt/foretack
+readonly service=foretack-archive.service
+readonly health_url=http://127.0.0.1:8087/api/auth/me
+readonly kept_releases=3
+
+install_only=false
+if [[ "${1:-}" == --install-only ]]; then
+  install_only=true
+  shift
+fi
+hash="${1:-}"
+if [[ ! "$hash" =~ ^[0-9a-f]{7,40}$ ]]; then
+  echo "Használat: foretack-activate [--install-only] <hash>" >&2
+  exit 64
+fi
+
+die() {
+  echo "$*" >&2
+  exit 1
+}
+
+# Egyszerre egy aktiválás fut.
+exec 9>/run/foretack-activate.lock
+flock -n 9 || die "Egy másik aktiválás fut."
+
+incoming="$base/incoming/$hash"
+release="$base/releases/$hash"
+previous=""
+if [[ -L "$base/current" ]]; then
+  previous="$(readlink -e "$base/current" || true)"
+fi
+
+if [[ -e "$incoming" || -L "$incoming" ]]; then
+  # Az incoming az admin írható könyvtára: szimbolikus link sem a kiadás
+  # helyén, sem benne nem lehet, különben a root rossz fájlt adna ki.
+  [[ -d "$incoming" && ! -L "$incoming" ]] ||
+    die "Az $incoming nem könyvtár."
+  [[ "$release" != "$previous" ]] ||
+    die "A(z) $hash az aktív kiadás; egy új commitból építs."
+  staged="$base/releases/.$hash.new"
+  rm -rf "$staged"
+  mv "$incoming" "$staged"
+  chown -R root:root "$staged"
+  # A root tulajdon után nézzük: utána az admin már nem tehet bele linket.
+  if [[ -n "$(find "$staged" -type l -print -quit)" ]]; then
+    rm -rf "$staged"
+    die "Szimbolikus link a kiadásban: $hash"
+  fi
+  chmod -R u+rwX,go+rX,go-w "$staged"
+  rm -rf "$release"
+  mv -T "$staged" "$release"
+fi
+[[ -d "$release" && ! -L "$release" && -x "$release/bin/server" ]] || {
+  echo "Nincs ilyen kiadás: $release" >&2
+  exit 66
+}
+
+switch_to() {
+  ln -sfn "$1" "$base/current.new"
+  mv -T "$base/current.new" "$base/current"
+}
+
+is_healthy() {
+  local code
+  for _ in $(seq 1 30); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' "$health_url" || true)"
+    [[ "$code" == 401 ]] && return 0
+    sleep 1
+  done
+  return 1
+}
+
+switch_to "$release"
+echo "Aktív kiadás: $hash" >&2
+
+if [[ "$install_only" == true ]]; then
+  echo "Telepítve; a szolgáltatás nem indult (--install-only)." >&2
+  exit 0
+fi
+
+systemctl restart "$service"
+if ! is_healthy; then
+  echo "A szerver nem válaszol rendben; részletek:" >&2
+  echo "  journalctl -u $service -n 50" >&2
+  if [[ -n "$previous" && "$previous" != "$release" && -d "$previous" ]]; then
+    switch_to "$previous"
+    systemctl restart "$service" || true
+    echo "Visszaállva: $(basename "$previous")" >&2
+  else
+    echo "Nincs előző kiadás, nincs mire visszaállni." >&2
+  fi
+  exit 1
+fi
+echo "A szerver fut." >&2
+
+# Takarítás: egy korábbi, félbemaradt aktiválás maradéka; az aktív
+# marad, mellette a legújabbak a kept_releases-ig.
+find "$base/releases" -mindepth 1 -maxdepth 1 -name '.*.new' \
+  -exec rm -rf {} +
+mapfile -t releases < <(ls -1dt "$base"/releases/[0-9a-f]*/ 2>/dev/null || true)
+kept=1
+for candidate in "${releases[@]}"; do
+  candidate="${candidate%/}"
+  [[ "$candidate" == "$release" ]] && continue
+  if ((kept < kept_releases)); then
+    kept=$((kept + 1))
+    continue
+  fi
+  rm -rf "$candidate"
+done

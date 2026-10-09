@@ -1,0 +1,20 @@
+# Éjszakai mentés a VPS-en (ADR 0052 D7). A foretack userként fut, hogy a
+# DB-k mellé ne kerüljön root tulajdonú -wal vagy -shm fájl. A mentés-
+# könyvtár setgid-es (foretack-pull csoport), így a lehúzó olvashatja.
+[Unit]
+Description=Foretack éjszakai mentés
+After=foretack-archive.service
+
+[Service]
+Type=oneshot
+User=foretack
+Group=foretack
+UMask=0027
+ExecStart=/usr/local/sbin/foretack-backup
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/foretack /var/backups/foretack
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes

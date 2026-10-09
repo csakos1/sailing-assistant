@@ -1,0 +1,12 @@
+# Minden hónap 4-én hajnalban (ADR 0052 D8): a DB-IP havi fájlja a hónap
+# elején jelenik meg.
+[Unit]
+Description=Foretack GeoIP-frissítés időzítője
+
+[Timer]
+OnCalendar=*-*-04 04:15:00 Europe/Budapest
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target
