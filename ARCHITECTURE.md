@@ -5012,7 +5012,8 @@ jobs:
 
 ### 16.2 `.github/workflows/build.yml`
 
-Main push-on APK build. **Még nincs implementálva** — Phase 5+ után jön,
+Main push-on APK build. **Még nincs implementálva** (a legénységi APK
+ma a fejlesztői gépen készül, ADR 0053) — Phase 5+ után jön,
 amikor van mit build-elni release-ként. A tervezett tartalom:
 
 ```yaml
@@ -5658,6 +5659,12 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     `deploy/check_secrets.sh` (gitleaks + tiltott fájltípusok) fut;
   - a telepítés, az adatok összefésülése és a visszaállítás lépései a
     `deploy/README.md`-ben;
+  - a telefonos app a legénységnek (ADR 0053): egy build mindenkinek, a
+    release APK a fejlesztői gépen, a mostani (debug-)keystore-ral
+    aláírva, hogy a meglévő telepítések adatvesztés nélkül frissüljenek;
+    a `versionCode` kiadásonként nő; a
+    `https://lola.foretack.hu/app/foretack.apk` linkről tölthető le, a
+    szerver-kiadástól független könyvtárból;
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek
