@@ -906,6 +906,158 @@ void main() {
       expect(snapshots.single.twdQuality, TwdQuality.unavailable);
     });
   });
+
+  group('scheduled start (ADR 0055 D6, D7)', () {
+    const startPoint = StartPoint(
+      name: 'Rajtvonal',
+      position: Coordinate(latitude: 46.92, longitude: 18.02),
+    );
+    final scheduledStartAt = tickTime.add(const Duration(seconds: 10));
+    final scheduledRace = Race.create(
+      id: 'scheduled',
+      name: 'Tervezett',
+      marks: race.marks,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
+    );
+
+    // The position goes in after engine.start (the engine only listens
+    // from then on, and start resets the boat state), then the tick.
+    Future<void> tickAt(DateTime at) async {
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('leads to the start point and records nothing before it', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      source.emitRaw('before-start');
+      await pumpEventQueue();
+
+      // ACT
+      await tickAt(scheduledStartAt.subtract(const Duration(seconds: 1)));
+
+      // ASSERT
+      final snapshot = snapshots.single;
+      expect(snapshot.raceStatus, RaceStatus.notStarted);
+      expect(snapshot.raceStartedAt, isNull);
+      expect(snapshot.prediction?.mark, startPoint.asGuidanceMark());
+      expect(logger.records, isEmpty);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('starts on its own at the scheduled time', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+      source.emitRaw('after-start');
+      await pumpEventQueue();
+
+      // ASSERT: the start time is the scheduled one, the guidance moves
+      // to the first mark, and the recording starts.
+      final snapshot = snapshots.single;
+      expect(snapshot.raceStatus, RaceStatus.active);
+      expect(snapshot.raceStartedAt, scheduledStartAt);
+      expect(snapshot.prediction?.mark, race.marks.first);
+      expect(snapshotLogger.entries.single.raceId, 'scheduled');
+      expect(logger.records.single.rawSentence, 'after-start');
+    });
+
+    test('a late tick starts it with the scheduled time', () async {
+      // ARRANGE: the engine gets the race an hour after the start.
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt.add(const Duration(hours: 1)));
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshots.single.raceStartedAt, scheduledStartAt);
+    });
+
+    test('just inside the late start window it still starts', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      final lastMoment = scheduledStartAt
+          .add(SelectInstrumentsRace.defaultLateStartWindow)
+          .subtract(const Duration(seconds: 1));
+
+      // ACT
+      await tickAt(lastMoment);
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+    });
+
+    test('beyond the late start window it stays before the start', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(
+        scheduledStartAt.add(SelectInstrumentsRace.defaultLateStartWindow),
+      );
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+      expect(snapshots.single.raceStartedAt, isNull);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('a race without a scheduled start never starts on its own', () async {
+      // ARRANGE
+      await engine.start(race: race);
+
+      // ACT
+      await tickAt(tickTime.add(const Duration(hours: 1)));
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+    });
+
+    test('a manual start before the schedule keeps its own time', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      engine.applyStartCommand(tickTime);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshots.single.raceStartedAt, tickTime);
+    });
+
+    test('a race command with a scheduled race starts it on time', () async {
+      // ARRANGE: free mode first, then the day's race arrives.
+      await engine.start();
+      await tickAt(tickTime);
+      engine.applyRaceCommand(scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+
+      // ASSERT
+      expect(snapshots.first.raceStatus, isNull);
+      expect(snapshots.last.raceStatus, RaceStatus.active);
+      expect(snapshots.last.raceStartedAt, scheduledStartAt);
+    });
+
+    test('without a start point it leads to the first mark', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace.copyWith(clearStartPoint: true));
+
+      // ACT
+      await tickAt(tickTime);
+
+      // ASSERT
+      expect(snapshots.single.prediction?.mark, race.marks.first);
+    });
+  });
 }
 
 // Vezérelhető fake NMEA-forrás, ami nyers sorokat is ad (RawNmeaLineSource).

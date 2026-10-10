@@ -24,6 +24,7 @@ class RaceSnapshot {
     required this.tickTime,
     this.raceStatus,
     this.raceId,
+    this.raceStartedAt,
     this.raceFinishedAt,
     this.wind,
     this.prediction,
@@ -51,6 +52,7 @@ class RaceSnapshot {
       tickTime: _dateTime(json['tickTime'] as num),
       raceStatus: _raceStatusFromName(json['raceStatus'] as String?),
       raceId: json['raceId'] as String?,
+      raceStartedAt: _mapOrNull(json['raceStartedAt'] as num?, _dateTime),
       raceFinishedAt: _mapOrNull(json['raceFinishedAt'] as num?, _dateTime),
       wind: _mapOrNull(
         json['wind'] as Map<String, dynamic>?,
@@ -95,6 +97,12 @@ class RaceSnapshot {
   /// versenyt futtatja az engine (átvételkor, restore-kor, a saját
   /// lezárásnál); régi JSON-ban hiányzik, ilyenkor `null`.
   final String? raceId;
+
+  /// Az engine versenyének rajtideje, ha már elindult (ADR 0055 D6); egy
+  /// tervezett rajtnál ez a tervezett időpont, nem a tick ideje. Ebből veszi
+  /// át a UI az engine által indított rajtot a DB-be. Régi JSON-ban hiányzik,
+  /// ilyenkor `null`.
+  final DateTime? raceStartedAt;
 
   /// Az engine versenyének célideje, ha már lezárult (ADR 0054 E3); a UI
   /// ezzel persistálja az engine saját lezárását, akkor is, ha a
@@ -167,6 +175,7 @@ class RaceSnapshot {
       'connectionStatus': _connectionStatusToJson(connectionStatus),
       'raceStatus': raceStatus?.name,
       'raceId': raceId,
+      'raceStartedAt': raceStartedAt?.millisecondsSinceEpoch,
       'raceFinishedAt': raceFinishedAt?.millisecondsSinceEpoch,
       'tickTime': tickTime.millisecondsSinceEpoch,
       'wind': _mapOrNull(wind, _windDataToJson),

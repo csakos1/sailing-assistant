@@ -272,18 +272,21 @@ class RaceEngine {
     if (_snapshots.isClosed) {
       return;
     }
-    // A predikció előtt léptetjük az aktív bóját, ha a hajó körözte (csak
+    // Előbb a tervezett rajt (ADR 0055 D6), utána a bója-léptetés (csak
     // active alatt, ADR 0017 A11) — a léptetett race-re prediktálunk.
     final race = _race;
-    final steppedRace = race == null ? null : _maybeRoundMark(race, tick);
+    final steppedRace = race == null
+        ? null
+        : _maybeRoundMark(_maybeAutoStart(race, tick), tick);
     _race = steppedRace;
 
     final trend = _trend(history: _windHistory, window: _windWindow, now: tick);
     final prediction = steppedRace == null
         ? null
         : _predict(
-            activeMark: steppedRace.activeMarkOrNull,
-            nextMark: steppedRace.nextMarkOrNull,
+            // Rajt előtt a rajthelyre vezet (ADR 0055 D2), utána a bójákra.
+            activeMark: steppedRace.guidanceTargetOrNull,
+            nextMark: steppedRace.guidanceNextOrNull,
             boatState: _boatState,
             trend: trend,
             now: tick,
@@ -312,6 +315,7 @@ class RaceEngine {
       connectionStatus: connectionStatus,
       raceStatus: steppedRace?.status,
       raceId: steppedRace?.id,
+      raceStartedAt: steppedRace?.startedAt,
       raceFinishedAt: steppedRace?.finishedAt,
       tickTime: tick,
       wind: _wind,
@@ -423,6 +427,27 @@ class RaceEngine {
       currentTwa: twa,
       optimumTwaMagnitude: targetVmg.optimumTwaDegrees,
     );
+  }
+
+  // A tervezett rajt az engine-ben (ADR 0055 D6, D7). Ha a verseny még nem
+  // indult, van tervezett rajtideje, és a tick elérte, a verseny a tervezett
+  // időponttal indul (nem a tick idejével), visszamenőleg is. Csak a
+  // visszamenőleges ablakon belül: egy ablakon túli, el nem indult verseny
+  // rajt előtti marad, és csak kézzel indul. A DB-be a UI veszi át a
+  // snapshot `raceStartedAt`-jéből (ADR 0055 D6).
+  Race _maybeAutoStart(Race race, DateTime tick) {
+    final scheduledStartAt = race.scheduledStartAt;
+    if (race.status != RaceStatus.notStarted || scheduledStartAt == null) {
+      return race;
+    }
+    final windowEnd = scheduledStartAt.add(
+      SelectInstrumentsRace.defaultLateStartWindow,
+    );
+    if (tick.isBefore(scheduledStartAt) || !tick.isBefore(windowEnd)) {
+      return race;
+    }
+    _markRoundingDetector.reset();
+    return race.start(at: scheduledStartAt);
   }
 
   // A mark-rounding detektor egy tickje (ADR 0017 A11). Csak active

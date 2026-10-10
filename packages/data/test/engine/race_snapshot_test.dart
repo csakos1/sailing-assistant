@@ -10,6 +10,7 @@ void main() {
     final boatTime = DateTime.utc(2026, 6, 4, 12, 30, 14);
     final windTime = DateTime.utc(2026, 6, 4, 12, 30, 13);
     final instrumentTime = DateTime.utc(2026, 6, 4, 12, 30, 10);
+    final startTime = DateTime.utc(2026, 6, 4, 11);
     final calcTime = DateTime.utc(2026, 6, 4, 12, 30, 15);
 
     const mark = Mark(
@@ -43,6 +44,7 @@ void main() {
       connectionStatus: const Connected(),
       raceStatus: RaceStatus.active,
       raceId: 'race-1',
+      raceStartedAt: startTime,
       raceFinishedAt: tickTime,
       tickTime: tickTime,
       wind: WindData(
@@ -103,6 +105,7 @@ void main() {
       expect(restored.connectionStatus, isA<Connected>());
       expect(restored.raceStatus, original.raceStatus);
       expect(restored.raceId, 'race-1');
+      expect(restored.raceStartedAt, startTime);
       expect(restored.raceFinishedAt, tickTime);
       expect(restored.wind, original.wind);
       expect(restored.prediction, original.prediction);
@@ -267,20 +270,26 @@ void main() {
         expect(json.containsKey('raceId'), isTrue);
         expect(RaceSnapshot.fromJson(json).raceId, isNull);
         expect(RaceSnapshot.fromJson(json).raceFinishedAt, isNull);
+        expect(RaceSnapshot.fromJson(json).raceStartedAt, isNull);
       });
 
       test('an older snapshot without the key decodes to null', () {
         // ARRANGE
-        final json = RaceSnapshot(
-          eventCount: 1,
-          boatState: BoatState(lastUpdate: boatTime),
-          connectionStatus: const Connected(),
-          tickTime: tickTime,
-          raceId: 'race-1',
-        ).toJson()..remove('raceId');
+        final json =
+            RaceSnapshot(
+                eventCount: 1,
+                boatState: BoatState(lastUpdate: boatTime),
+                connectionStatus: const Connected(),
+                tickTime: tickTime,
+                raceId: 'race-1',
+                raceStartedAt: tickTime,
+              ).toJson()
+              ..remove('raceId')
+              ..remove('raceStartedAt');
 
         // ACT + ASSERT
         expect(RaceSnapshot.fromJson(json).raceId, isNull);
+        expect(RaceSnapshot.fromJson(json).raceStartedAt, isNull);
       });
     });
 
