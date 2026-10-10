@@ -3593,7 +3593,10 @@ megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként.
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
 `active` = verseny. A nyers telemetria és a snapshot-log **csak `active`
-alatt** íródik. Az app előtérben egy `GatewayProbe` TCP-próbával keresi a
+alatt** íródik. **Kész (E1):** `RaceEngine.start({Race? race, Polar?
+polar})`, a tick verseny nélkül is snapshotot ad (`prediction: null`), a
+`RaceSnapshot.raceStatus` nullable (`null` = szabad mód). Az app
+előtérben egy `GatewayProbe` TCP-próbával keresi a
 gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
 után az engine szabad módban fut tovább. Új UI→task parancs:
 `{type: 'race', race: … | null}`, csak nem aktív versenyre.

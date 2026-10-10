@@ -773,7 +773,7 @@ kerülnek ide.)_
   két ADR, öt új widget, három törölt, négy új teszt-fájl, egy on-device
   javítókör.
 
-### A UI-oldali második TCP-kliens és a kettős telemetria-írás
+### A UI-oldali második TCP-kliens és a kettős telemetria-írás — `dfedfa5`
 - **Mi**: a `telemetryLoggerProvider` törölve. Az ADR 0017 D8 óta a
   telemetriát az engine írja; a provider a UI-izolátumban egy második
   gateway-kapcsolaton át minden nyers sort másodszor is beírt. A

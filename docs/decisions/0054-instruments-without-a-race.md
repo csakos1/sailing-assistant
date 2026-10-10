@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Még nem implementálva; a „Szeletek" sorrendjében
-követi, docs-first.
+Elfogadva — 2026-10-10. Implementálás alatt: az E1 kész (2026-10-10), az
+E2–E4 hátravan; a „Szeletek" sorrendjében követi, docs-first.
 
 A döntések egy része felhasználói döntés (a 2026-10-09-i kérdéskörök), más
 része Claude javaslata. A javaslatok „(javaslat)" jelzést kapnak, és a
@@ -243,3 +243,33 @@ Az E1–E3 a navigációs sáv (ADR 0056) előtt is tesztelhető: a mai
 - A UI-oldali második TCP-kliens megszüntetését (`nmeaStreamProvider`,
   `telemetryLoggerProvider`): ha az E1 ellenőrzése kettős naplózást
   mutat, külön `fix` szelet.
+
+## Pontosítás a kód után (E1, 2026-10-10)
+
+- **A második TCP-kliens:** az E1 előtti ellenőrzés igazolta a kettős
+  naplózást. A 2026-09-30-i DB 14 versenyében a `telemetry_records`
+  sorainak ~30%-a duplikátum volt. A `telemetryLoggerProvider` a
+  `dfedfa5` `fix(phone)`-ban megszűnt; a nyers telemetriát azóta csak az
+  engine írja. A már rögzített duplikátumok maradnak.
+- **A rögzítés kapuja (D3):** a nyers sor a beérkezéskor érvényes
+  státusz szerint, a snapshot-log a tick bója-léptetése **utáni** státusz
+  szerint íródik. Az a tick, amelyben az utolsó bója auto-körözése a
+  versenyt lezárja, már `finished`, ezért nem kerül a logba; a cél
+  előtti tickek igen. Egy teszt rögzíti.
+- **A codec (D2):** a `RaceSnapshot` konstruktorának `raceStatus`
+  alapértéke `null` (eddig `notStarted`). A `fromJson` a hiányzó **és az
+  ismeretlen** nevet is `null`-ra olvassa; a `toJson` a `null`-t explicit
+  `null` kulcsként írja.
+- **A task handler már az E1-ben:** a `RaceEngine.start` nevesített
+  paraméterre váltott (`start({Race? race, Polar? polar})`), ezért a
+  hívóhely és az `EvaluateWarnings` `null → notStarted` leképezése (D2)
+  az E1 commitjába került, hogy az önmagában forduljon. Az E2-re a
+  `race` parancs, a payload-pipeline óra-tesztje és a módfüggő értesítés
+  marad.
+- **A `RoundingSampleReader`:** a `null` státuszt `notStarted`-ként adja
+  tovább (a `race_analyzer` olvasójával egyezően). A snapshot-log a D3
+  óta csak versenyen íródik, így ez az ág a gyakorlatban nem fut.
+- **Javítva mellékesen:** a `race_engine.dart` `applyRoundMarkCommand`
+  doc-kommentje sérült kódolású volt (U+FFFD karakterek); helyreállítva.
+  Ugyanez a hiba a `race_engine_host.dart`-ban is megvan; az E2 javítja,
+  mert az a fájlt amúgy is érinti.
