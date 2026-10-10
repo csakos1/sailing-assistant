@@ -22,7 +22,7 @@ class RaceSnapshot {
     required this.boatState,
     required this.connectionStatus,
     required this.tickTime,
-    this.raceStatus = RaceStatus.notStarted,
+    this.raceStatus,
     this.wind,
     this.prediction,
     this.windShiftTrend,
@@ -82,8 +82,9 @@ class RaceSnapshot {
   /// A pillanatnyi kapcsolat-állapot (status-bar + warning-suppression).
   final ConnectionStatus connectionStatus;
 
-  /// A verseny állapota a tick pillanatában (a warning-gatinghez, A14).
-  final RaceStatus raceStatus;
+  /// A verseny állapota a tick pillanatában (a warning-gatinghez, A14), vagy
+  /// `null` szabad módban, amikor az engine verseny nélkül fut (ADR 0054 D2).
+  final RaceStatus? raceStatus;
 
   /// A legfrissebb szél-snapshot, vagy `null`, ha még nem érkezett.
   final WindData? wind;
@@ -149,7 +150,7 @@ class RaceSnapshot {
       'eventCount': eventCount,
       'boatState': _boatStateToJson(boatState),
       'connectionStatus': _connectionStatusToJson(connectionStatus),
-      'raceStatus': raceStatus.name,
+      'raceStatus': raceStatus?.name,
       'tickTime': tickTime.millisecondsSinceEpoch,
       'wind': _mapOrNull(wind, _windDataToJson),
       'prediction': _mapOrNull(prediction, _markPredictionToJson),
@@ -373,10 +374,13 @@ ConnectionStatus _connectionStatusFromJson(Map<String, dynamic> m) =>
 
 // --- Enum-név dekódolók (defenzív default) ---
 
-RaceStatus _raceStatusFromName(String? name) => switch (name) {
+// A hiányzó vagy ismeretlen név szabad módot jelent (ADR 0054 D2). A régi
+// snapshot-logokban a kulcs mindig megvan, így azokat ez nem érinti.
+RaceStatus? _raceStatusFromName(String? name) => switch (name) {
+  'notStarted' => RaceStatus.notStarted,
   'active' => RaceStatus.active,
   'finished' => RaceStatus.finished,
-  _ => RaceStatus.notStarted,
+  _ => null,
 };
 
 TwdQuality _twdQualityFromName(String? name) => switch (name) {

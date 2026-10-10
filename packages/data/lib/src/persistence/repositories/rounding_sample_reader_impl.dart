@@ -45,7 +45,10 @@ RoundingSample _toRoundingSample(String snapshotJson) {
   final prediction = snapshot.prediction;
   return RoundingSample(
     tickTime: snapshot.tickTime,
-    raceStatus: snapshot.raceStatus.name,
+    // A snapshot-log csak verseny alatt íródik (ADR 0054 D3), így a `null`
+    // (szabad mód) itt nem fordul elő; a race_analyzer olvasójával egyezően
+    // `notStarted`-ra esünk vissza.
+    raceStatus: (snapshot.raceStatus ?? RaceStatus.notStarted).name,
     twdQuality: snapshot.twdQuality.name,
     markName: prediction?.mark.name,
     predictedTwaAtMarkDeg: prediction?.predictedTwaAtMark?.degrees,

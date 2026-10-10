@@ -187,6 +187,65 @@ void main() {
       expect(restored.connectionStatus, isA<Disconnected>());
     });
 
+    group('raceStatus (ADR 0054 D2)', () {
+      RaceSnapshot snapshotWith(RaceStatus? status) => RaceSnapshot(
+        eventCount: 1,
+        boatState: BoatState(lastUpdate: boatTime),
+        connectionStatus: const Connected(),
+        tickTime: tickTime,
+        raceStatus: status,
+      );
+
+      test('defaults to null, which means free mode', () {
+        // ARRANGE + ACT
+        final snapshot = RaceSnapshot(
+          eventCount: 0,
+          boatState: BoatState(lastUpdate: boatTime),
+          connectionStatus: const Disconnected(),
+          tickTime: tickTime,
+        );
+
+        // ASSERT
+        expect(snapshot.raceStatus, isNull);
+      });
+
+      test('a free-mode snapshot round-trips as null', () {
+        // ARRANGE
+        final original = snapshotWith(null);
+
+        // ACT
+        final json = original.toJson();
+        final restored = RaceSnapshot.fromJson(json);
+
+        // ASSERT: the key is written as an explicit null.
+        expect(json.containsKey('raceStatus'), isTrue);
+        expect(json['raceStatus'], isNull);
+        expect(restored.raceStatus, isNull);
+      });
+
+      test('every race status round-trips unchanged', () {
+        for (final status in RaceStatus.values) {
+          // ACT
+          final restored = RaceSnapshot.fromJson(snapshotWith(status).toJson());
+
+          // ASSERT
+          expect(restored.raceStatus, status, reason: status.name);
+        }
+      });
+
+      test('a missing or unknown key decodes to null', () {
+        // ARRANGE
+        final missing = snapshotWith(RaceStatus.active).toJson()
+          ..remove('raceStatus');
+        final unknown = snapshotWith(RaceStatus.active).toJson()
+          ..['raceStatus'] = 'paused';
+
+        // ACT + ASSERT
+        expect(RaceSnapshot.fromJson(missing).raceStatus, isNull);
+        expect(RaceSnapshot.fromJson(unknown).raceStatus, isNull);
+      });
+    });
+
     test('a ConnectionStatus minden variánsa round-trip-el', () {
       ConnectionStatus roundTrip(ConnectionStatus s) {
         final snap = RaceSnapshot(

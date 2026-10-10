@@ -14,6 +14,11 @@ import 'package:domain/domain.dart';
 /// [RaceSnapshot]-ot emittál. A nyers mondatokat — ha a forrás egyúttal
 /// [RawNmeaLineSource] — az injektált [TelemetryLogger]-nek adja át.
 ///
+/// A verseny opcionális (ADR 0054 D1); a mód a `_race`-ből adódik: `null` =
+/// szabad, `notStarted` = rajt előtti, `active` = verseny. A snapshot minden
+/// módban kimegy, a nyers telemetria és a snapshot-log viszont **csak
+/// `active` alatt** íródik (ADR 0054 D3).
+///
 /// A `domain` + `data` rétegre épül, a hoszt (foreground service / izolátum)
 /// nem szivárog ide (ADR 0016 D7) — ezért közvetlenül, `ProviderContainer`
 /// nélkül replay-tesztelhető.
@@ -92,11 +97,11 @@ class RaceEngine {
   /// A tick-enkénti pillanatképek folyama (a hoszt / UI-tükör fogyasztja).
   Stream<RaceSnapshot> get snapshots => _snapshots.stream;
 
-  /// Elindítja az adatfolyamot a `race`-hez: feliratkozik az eseményekre
-  /// (fold) és — ha a forrás [RawNmeaLineSource] — a nyers sorokra
-  /// (telemetria), elindítja a tick-et, majd csatlakozik a forráshoz. A
-  /// [BoatState] az app-órából seedel.
-  Future<void> start(Race race, {Polar? polar}) async {
+  /// Elindítja az adatfolyamot: feliratkozik az eseményekre (fold) és — ha a
+  /// forrás [RawNmeaLineSource] — a nyers sorokra (telemetria), elindítja a
+  /// tick-et, majd csatlakozik a forráshoz. A [BoatState] az app-órából
+  /// seedel. `race` nélkül az engine szabad módban fut (ADR 0054 D1).
+  Future<void> start({Race? race, Polar? polar}) async {
     _race = race;
     _polar = polar;
     _boatState = BoatState(lastUpdate: _now());
@@ -160,15 +165,15 @@ class RaceEngine {
     _race = race.finish(at: at);
   }
 
-  /// A UI-t�l �rkez? manu�lis b�ja-megker�l�s parancs alkalmaz�sa: a
-  /// haj�s k�zzel jelzi, hogy vette a b�j�t. Az�rt kell, mert pontatlan
-  /// boja-koordin�t�n�l a haj� sosem �ri el a detektor 50 m-es k�sz�b�t,
-  /// �gy az auto-rounding nem l�ptetne (az eg�sz versenyen az els? b�j�ra
-  /// vinne). Az `at` az engine saj�t �r�ja (`_now`), egyezve a tick-alap�
-  /// auto-�ttal. No-op, ha nincs race vagy nem `active` ? a
-  /// `Race.roundCurrentMark` assertje csak activere enged, az utols� b�j�n
-  /// a domain auto-finish-el. A detektort resetelj�k, hogy a k�zi l�ptet�s
-  /// ut�n az �j b�j�hoz tiszta minimum-profilb�l induljon (mint a
+  /// A UI-tól érkező manuális bója-megkerülés parancs alkalmazása: a
+  /// hajós kézzel jelzi, hogy vette a bóját. Azért kell, mert pontatlan
+  /// bója-koordinátánál a hajó sosem éri el a detektor 50 m-es küszöbét,
+  /// így az auto-rounding nem léptetne (az egész versenyen az első bójára
+  /// vinne). Az `at` az engine saját órája (`_now`), egyezve a tick-alapú
+  /// auto-úttal. No-op, ha nincs race vagy nem `active` — a
+  /// `Race.roundCurrentMark` assertje csak activere enged, az utolsó bóján
+  /// a domain auto-finish-el. A detektort reseteljük, hogy a kézi léptetés
+  /// után az új bójához tiszta minimum-profilból induljon (mint a
   /// `_maybeRoundMark`).
   ///
   /// Bója nélküli versenyben (ADR 0046 D2) szintén no-op: üres pályán
@@ -228,11 +233,12 @@ class RaceEngine {
     }
   }
 
-  // Egy nyers sor telemetria-rekordként. Az üres sort kihagyjuk (a
-  // TelemetryRecord nem enged üres rawSentence-t).
+  // Egy nyers sor telemetria-rekordként, csak verseny alatt (ADR 0054 D3):
+  // szabad és rajt előtti módban semmi nem kerül a DB-be. Az üres sort
+  // kihagyjuk (a TelemetryRecord nem enged üres rawSentence-t).
   void _onRawLine(String line) {
     final race = _race;
-    if (race == null || line.isEmpty) {
+    if (race == null || race.status != RaceStatus.active || line.isEmpty) {
       return;
     }
     unawaited(
@@ -242,25 +248,28 @@ class RaceEngine {
     );
   }
 
-  // 1 Hz recompute: trend → prediction → snapshot emit.
+  // 1 Hz recompute: trend → prediction → snapshot emit. Verseny nélkül is
+  // lefut (szabad mód, ADR 0054 D1), csak predikció nincs.
   void _onTick(DateTime tick) {
-    final race = _race;
-    if (race == null || _snapshots.isClosed) {
+    if (_snapshots.isClosed) {
       return;
     }
     // A predikció előtt léptetjük az aktív bóját, ha a hajó körözte (csak
     // active alatt, ADR 0017 A11) — a léptetett race-re prediktálunk.
-    final steppedRace = _maybeRoundMark(race, tick);
+    final race = _race;
+    final steppedRace = race == null ? null : _maybeRoundMark(race, tick);
     _race = steppedRace;
 
     final trend = _trend(history: _windHistory, window: _windWindow, now: tick);
-    final prediction = _predict(
-      activeMark: steppedRace.activeMarkOrNull,
-      nextMark: steppedRace.nextMarkOrNull,
-      boatState: _boatState,
-      trend: trend,
-      now: tick,
-    );
+    final prediction = steppedRace == null
+        ? null
+        : _predict(
+            activeMark: steppedRace.activeMarkOrNull,
+            nextMark: steppedRace.nextMarkOrNull,
+            boatState: _boatState,
+            trend: trend,
+            now: tick,
+          );
     // A kapcsolat-állapotot egyszer olvassuk ki: a tick-en belül a
     // riasztás-elnyomás és a snapshot ugyanazt az értéket lássa.
     final connectionStatus = _nmeaStream.currentStatus;
@@ -283,7 +292,7 @@ class RaceEngine {
       eventCount: _eventCount,
       boatState: _boatState,
       connectionStatus: connectionStatus,
-      raceStatus: steppedRace.status,
+      raceStatus: steppedRace?.status,
       tickTime: tick,
       wind: _wind,
       prediction: prediction,
@@ -297,9 +306,14 @@ class RaceEngine {
       depthBuzzCounter: _depthAlert.buzzCounter,
     );
     _snapshots.add(snapshot);
-    // unawaited + a logger internál try/catch: egy DB-hiba sem
-    // szakíthatja meg a snapshot-streamet (defenzív elv).
-    unawaited(_snapshotLogger.log(steppedRace.id, snapshot));
+    // A snapshot-log is csak verseny alatt (ADR 0054 D3). A léptetés utáni
+    // státusz dönt: az a tick, amelyben az utolsó bója auto-körözése a
+    // versenyt lezárja, már `finished`, ezért nem kerül a logba.
+    if (steppedRace != null && steppedRace.status == RaceStatus.active) {
+      // unawaited + a logger internál try/catch: egy DB-hiba sem
+      // szakíthatja meg a snapshot-streamet (defenzív elv).
+      unawaited(_snapshotLogger.log(steppedRace.id, snapshot));
+    }
   }
 
   /// A polár-alapú cél-sebesség (kn) az élő szélből, vagy `null`, ha nincs

@@ -46,7 +46,7 @@ void main() {
     double? sogMps,
     Coordinate? position,
     double bearingDeg = 90,
-    RaceStatus raceStatus = RaceStatus.active,
+    RaceStatus? raceStatus = RaceStatus.active,
     TwdQuality twdQuality = TwdQuality.live,
   }) {
     return RaceSnapshot(
@@ -180,6 +180,19 @@ void main() {
       expect(sample.currentTwaDeg, -100);
       expect(sample.latDeg, isNull);
       expect(sample.lonDeg, isNull);
+    });
+
+    test('maps a free-mode (null) status to notStarted', () async {
+      // ARRANGE: the snapshot log is written only while active (ADR 0054
+      // D3), but the reader must not fail on a null status either.
+      await insertRace('race-1');
+      await logger.log('race-1', snapshot(tick: base, raceStatus: null));
+
+      // ACT
+      final samples = await reader('race-1');
+
+      // ASSERT
+      expect(samples.single.raceStatus, 'notStarted');
     });
 
     test('ismeretlen race-re ures lista', () async {

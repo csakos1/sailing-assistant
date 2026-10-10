@@ -151,7 +151,7 @@ class RaceEngineTaskHandler extends TaskHandler {
         _isPolarMissing = polar == null;
         final engine = _engine;
         if (engine != null) {
-          unawaited(engine.start(race, polar: polar));
+          unawaited(engine.start(race: race, polar: polar));
         }
       case 'start':
         _engine?.applyStartCommand(_atFromMillis(map['at'] as int));
@@ -216,7 +216,9 @@ class RaceEngineTaskHandler extends TaskHandler {
       connectionStatus: snapshot.connectionStatus,
       boatState: snapshot.boatState,
       windShiftTrend: snapshot.windShiftTrend,
-      raceStatus: snapshot.raceStatus,
+      // Szabad módban (null, ADR 0054 D2) a versenyhez kötött warning nem
+      // jön: az EvaluateWarnings a notStarted-et kapja.
+      raceStatus: snapshot.raceStatus ?? RaceStatus.notStarted,
       isTimeUnsynced: trueTime.source == TrueTimeSource.wallClockUnsynced,
       timeStreamDrift: _timeStreamDrift(trueTime, snapshot.boatState),
       isPolarMissing: _isPolarMissing,
