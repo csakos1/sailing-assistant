@@ -52,6 +52,32 @@ class ActiveRaceNotifier extends Notifier<Race?> {
     state = rounded;
   }
 
+  /// Az engine által magától lezárt verseny ([raceId]) perzisztálása (az
+  /// utolsó bója auto-finish-e, ADR 0054 E3): az engine nem ír vissza a
+  /// DB-be (ADR 0016 D6), ezért a UI zárja le az [at] időponttal (a lezárás
+  /// pillanatképének ideje, nem a mostani óra: a UI késve is kaphatja). A
+  /// kiválasztott versenyt az élő állapotából, mást a DB friss példányából
+  /// zárja. No-op, ha a verseny ismeretlen vagy már nem `active`.
+  Future<void> finishFromEngine(String raceId, {required DateTime at}) async {
+    final repository = ref.read(raceRepositoryProvider);
+    final selected = state;
+    final isSelected = selected?.id == raceId;
+    final race = selected != null && isSelected
+        ? selected
+        : await repository.getRace(raceId);
+    if (race == null || race.status != RaceStatus.active) return;
+    final startedAt = race.startedAt;
+    // Óraeltérés ellen: a cél nem lehet a rajt előtt.
+    final finishAt = startedAt != null && at.isBefore(startedAt)
+        ? startedAt
+        : at;
+    final finished = race.finish(at: finishAt);
+    // A kiválasztást a mentés előtt frissítjük, hogy egy közben jövő kézi
+    // „Cél" már lezárt versenyt lásson.
+    if (isSelected) state = finished;
+    await repository.save(finished);
+  }
+
   /// active → finished (DNF/abort), majd perzisztálás. No-op, ha nincs aktív
   /// race.
   Future<void> finish() async {

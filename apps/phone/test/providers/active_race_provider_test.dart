@@ -126,4 +126,79 @@ void main() {
     expect(container.read(activeRaceProvider), isNull);
     expect(repository.store, isEmpty);
   });
+
+  group('finishFromEngine', () {
+    final engineFinish = fixedNow.add(const Duration(hours: 2));
+
+    test('the selected race finishes at the engine time', () async {
+      // Arrange
+      notifier().activeRace = race;
+      await notifier().start();
+
+      // Act
+      await notifier().finishFromEngine('race-1', at: engineFinish);
+
+      // Assert
+      final state = container.read(activeRaceProvider)!;
+      expect(state.status, RaceStatus.finished);
+      expect(state.finishedAt, engineFinish);
+      expect(repository.store['race-1'], state);
+    });
+
+    test('a race not selected is finished from the database', () async {
+      // Arrange
+      repository.store['race-1'] = race.start(at: fixedNow);
+      final other = Race.create(
+        id: 'race-2',
+        name: 'Masik',
+        marks: const [markA],
+      );
+      notifier().activeRace = other;
+
+      // Act
+      await notifier().finishFromEngine('race-1', at: engineFinish);
+
+      // Assert
+      expect(repository.store['race-1']?.finishedAt, engineFinish);
+      expect(container.read(activeRaceProvider), other);
+    });
+
+    test('an unknown race is ignored', () async {
+      // Act
+      await notifier().finishFromEngine('race-9', at: engineFinish);
+
+      // Assert
+      expect(repository.store, isEmpty);
+    });
+
+    test('a finish time before the start is clamped to the start', () async {
+      // Arrange
+      notifier().activeRace = race;
+      await notifier().start();
+
+      // Act
+      await notifier().finishFromEngine(
+        'race-1',
+        at: fixedNow.subtract(const Duration(seconds: 2)),
+      );
+
+      // Assert
+      expect(container.read(activeRaceProvider)?.finishedAt, fixedNow);
+    });
+
+    test('a race already finished in the app is left alone', () async {
+      // Arrange
+      notifier().activeRace = race;
+      await notifier().start();
+      await notifier().finish();
+      final finished = container.read(activeRaceProvider)!;
+
+      // Act
+      await notifier().finishFromEngine('race-1', at: engineFinish);
+
+      // Assert
+      expect(container.read(activeRaceProvider), finished);
+      expect(repository.store['race-1'], finished);
+    });
+  });
 }

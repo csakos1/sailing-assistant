@@ -13,6 +13,7 @@ import 'package:phone/app/true_time.dart';
 import 'package:phone/app/true_time_manager.dart';
 import 'package:phone/engine/engine_gateway_host.dart';
 import 'package:phone/engine/engine_notification.dart';
+import 'package:phone/engine/free_mode_idle_watch.dart';
 import 'package:phone/engine/phone_wearable_bridge.dart';
 import 'package:phone/features/live_race/warning_l10n.dart';
 import 'package:phone/features/watch_sync/watch_payload_builder.dart';
@@ -77,6 +78,13 @@ class RaceEngineTaskHandler extends TaskHandler {
   // A critical warningokat itt lokalizáljuk (widget-fa nélkül, ADR 0015 D4);
   // v1 magyar.
   final AppLocalizations _l10n = lookupAppLocalizations(const Locale('hu'));
+
+  // Szabad módban 10 perc kapcsolat nélkül leállítja a service-t
+  // (ADR 0054 D5). Itt fut, nem a UI-ban: kijelző-off mellett is ketyeg.
+  late final FreeModeIdleWatch _idleWatch = FreeModeIdleWatch(
+    timeout: freeModeIdleTimeout,
+    onIdle: _stopAfterIdle,
+  );
 
   // Dup-init guard: az első init-parancs indítja az engine-t, a továbbiakat
   // (pl. egy ismételt ready-kézfogás után) elnyeljük.
@@ -153,6 +161,7 @@ class RaceEngineTaskHandler extends TaskHandler {
         _isPolarMissing = polar == null;
         final engine = _engine;
         if (engine != null) {
+          _idleWatch.begin(isFreeMode: race == null);
           unawaited(engine.start(race: race, polar: polar));
         }
       case 'race':
@@ -194,6 +203,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       'RaceEngine leállt (timeout: $isTimeout)',
       name: 'RaceEngine',
     );
+    _idleWatch.end();
     await _snapshotSub?.cancel();
     await _roundMarkSub?.cancel();
     // Az óra-push leállítása a telemetria-flush ELŐTT: ne épüljön/küldjön
@@ -217,9 +227,23 @@ class RaceEngineTaskHandler extends TaskHandler {
       ),
     );
     FlutterForegroundTask.sendDataToMain(jsonEncode(snapshot.toJson()));
+    _idleWatch.observe(
+      raceStatus: snapshot.raceStatus,
+      connectionStatus: snapshot.connectionStatus,
+    );
 
     _latestSnapshot = snapshot;
     _watchSync?.onTick();
+  }
+
+  // Szabad módban 10 perc kapcsolat nélkül: jelez a UI-nak (ha épp
+  // hallgatja), és leállítja a service-t; a teardown az onDestroy-ban fut.
+  void _stopAfterIdle() {
+    developer.log('idle stop: no gateway for 10 min', name: 'RaceEngine');
+    FlutterForegroundTask.sendDataToMain(
+      jsonEncode(<String, Object>{'type': 'idleStop'}),
+    );
+    unawaited(FlutterForegroundTask.stopService());
   }
 
   // A legutóbbi snapshotból + a service-izolátumbeli true-time-ból építi az

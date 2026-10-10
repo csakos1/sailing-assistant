@@ -37,6 +37,21 @@ abstract interface class RaceEngineHost {
   /// Leállítja a service-t és a háttér-izolátumot.
   Future<void> stop();
 
+  /// Fut-e a háttér-engine service-e (akár egy korábbi app-folyamatból,
+  /// ADR 0054 E3).
+  Future<bool> isRunning();
+
+  /// Csatlakozás egy már futó engine-hez, újraindítás nélkül: a
+  /// pillanatképek és a parancsok onnantól ezen a hoston mennek
+  /// (ADR 0054 E3). A [race] a legvalószínűbb versenye; egy későbbi
+  /// ready-kézfogás (a service Android-oldali újraindulása) ezt viszi.
+  void attach({Race? race});
+
+  /// Jelzés, ha az engine magától leállt: szabad módban 10 percig nem
+  /// volt kapcsolat (ADR 0054 D5). Egy háttérben álló UI-izolátum
+  /// lemaradhat róla; ezért az előtérbe kerüléskor az [isRunning] dönt.
+  Stream<void> get idleStops;
+
   /// Lezárja a hostot és a snapshot-streamet (provider-eldobáskor).
   Future<void> dispose();
 

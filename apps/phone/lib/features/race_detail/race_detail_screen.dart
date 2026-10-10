@@ -10,7 +10,7 @@ import 'package:phone/features/race_detail/widgets/post_race_analysis_section.da
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
-import 'package:phone/providers/race_engine_session_provider.dart';
+import 'package:phone/providers/race_engine_lifecycle_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/section_label.dart';
@@ -62,7 +62,9 @@ class RaceDetailScreen extends ConsumerWidget {
   // start/finish-től (SRP): a start state-et vált, ez navigál.
   void _openLive(BuildContext context, WidgetRef ref, Race target) {
     ref.read(activeRaceProvider.notifier).activeRace = target;
-    ref.read(raceEngineSessionProvider.notifier).start();
+    // A futó (pl. szabad módú) engine-nek átadja a versenyt, különben
+    // elindítja vele (ADR 0054 D5). Az U2-ben a Műszerek fül váltja ki.
+    ref.read(raceEngineLifecycleProvider).handOver(target);
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const LiveRaceScreen()),

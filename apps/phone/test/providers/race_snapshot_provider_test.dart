@@ -94,6 +94,15 @@ class _FakeRaceEngineHost implements RaceEngineHost {
   Future<void> stop() async {}
 
   @override
+  Future<bool> isRunning() async => false;
+
+  @override
+  void attach({Race? race}) {}
+
+  @override
+  Stream<void> get idleStops => const Stream<void>.empty();
+
+  @override
   Future<void> dispose() async {
     await _controller.close();
   }

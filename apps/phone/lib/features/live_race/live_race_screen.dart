@@ -27,10 +27,10 @@ import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
+import 'package:phone/providers/engine_session_provider.dart';
 import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/mark_prediction_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
-import 'package:phone/providers/race_engine_session_provider.dart';
 import 'package:phone/providers/race_snapshot_provider.dart';
 import 'package:phone/providers/screen_wake_lock_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
@@ -79,9 +79,9 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     super.dispose();
   }
 
-  // A „Leállítás" akció: megerősítés után billenti a session-flaget
-  // false-ra (a lifecycle ettől állítja le a háttér-engine-t), majd
-  // visszanavigál.
+  // A „Leállítás" akció: megerősítés után leállítja a sessiont (a lifecycle
+  // ettől állítja le a háttér-engine-t; a próba csak a következő előtérbe
+  // kerüléskor indul újra, ADR 0054 D5), majd visszanavigál.
   Future<void> _confirmStop(BuildContext context, AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -101,7 +101,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       ),
     );
     if (confirmed != true) return;
-    ref.read(raceEngineSessionProvider.notifier).stop();
+    ref.read(engineSessionProvider.notifier).stopManually();
     if (!context.mounted) return;
     Navigator.of(context).pop();
   }

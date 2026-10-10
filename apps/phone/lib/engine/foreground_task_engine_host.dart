@@ -20,6 +20,7 @@ import 'package:phone/engine/race_engine_task_handler.dart';
 class ForegroundTaskEngineHost implements RaceEngineHost {
   final StreamController<RaceSnapshot> _controller =
       StreamController<RaceSnapshot>.broadcast();
+  final StreamController<void> _idleStops = StreamController<void>.broadcast();
 
   // A legutóbbi start()-tal átadott Race; a task ready-jelére ezt küldjük
   // init-ként (A13). null = szabad mód (ADR 0054 D1).
@@ -31,6 +32,9 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
 
   @override
   Stream<RaceSnapshot> get snapshots => _controller.stream;
+
+  @override
+  Stream<void> get idleStops => _idleStops.stream;
 
   @override
   Future<String?> start({Race? race, Polar? polar}) async {
@@ -124,9 +128,22 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
   }
 
   @override
+  Future<bool> isRunning() => FlutterForegroundTask.isRunningService;
+
+  @override
+  void attach({Race? race}) {
+    _pendingRace = race;
+    _initService();
+    // Kétszer ne iratkozzunk fel, ha egy korábbi start() már megtette.
+    FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
+    FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+  }
+
+  @override
   Future<void> dispose() async {
     FlutterForegroundTask.removeTaskDataCallback(_onReceiveTaskData);
     await _controller.close();
+    await _idleStops.close();
   }
 
   // A task→UI üzenetek: a ready-jelre kiküldjük az initet (verseny nélkül
@@ -137,6 +154,10 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
       return;
     }
     final map = jsonDecode(data) as Map<String, dynamic>;
+    if (map['type'] == 'idleStop') {
+      _idleStops.add(null);
+      return;
+    }
     if (map['type'] == 'ready') {
       final race = _pendingRace;
       final polar = _pendingPolar;
