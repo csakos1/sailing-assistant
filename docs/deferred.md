@@ -704,17 +704,6 @@ A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.
   háttér-jogosultság és platformkód kellene hozzá.
 - **Hivatkozás**: ADR 0054 D4.
 
-### A UI-oldali második TCP-kliens felülvizsgálata
-- **Mi**: a `nmeaStreamProvider` (nyers NMEA-néző,
-  `telemetryLoggerProvider`) a UI-izolátumban egy második kapcsolatot
-  nyit a gateway felé; aktív versenyen ez kettős telemetria-írást és a
-  fenti `database is locked` ütközést okozhatja.
-- **Mikor**: az ADR 0054 E1 szelete előtt ellenőrizni; ha igazolódik,
-  önálló `fix(phone)` szelet.
-- **Miért halasztva**: nem a szabad mód része, de vele derült ki.
-- **Hivatkozás**: ADR 0054 „Verifikált tények";
-  `apps/phone/lib/providers/telemetry_logger_provider.dart`.
-
 ### GPS-idő ritkítása szabad módban
 - **Mi**: szabad módban a service GPS-ideje ritkábban vagy egyáltalán
   nem fut.
@@ -783,3 +772,12 @@ kerülnek ide.)_
 - **Hol**: a `feature/ui-redesign` branch commitjai, `6cdc657` … `87428ac`;
   két ADR, öt új widget, három törölt, négy új teszt-fájl, egy on-device
   javítókör.
+
+### A UI-oldali második TCP-kliens és a kettős telemetria-írás
+- **Mi**: a `telemetryLoggerProvider` törölve. Az ADR 0017 D8 óta a
+  telemetriát az engine írja; a provider a UI-izolátumban egy második
+  gateway-kapcsolaton át minden nyers sort másodszor is beírt. A
+  2026-09-30-i DB-ben a 14 versenyből a sorok ~30%-a duplikátum.
+- **Hol**: `fix(phone): stop double-logging telemetry from the UI isolate`.
+  A már rögzített duplikátumok maradnak; a `database is locked`
+  elkapatlan kivétele (Adatréteg) külön tétel marad.

@@ -11,7 +11,7 @@ import 'package:shared/shared.dart';
 
 /// A háttér-engine életciklusát a session-flaghez és a verseny státusz-
 /// átmeneteihez köti (ADR 0017 A12/A13). Mellékhatás-provider (`Provider<void>`):
-/// az app-gyökér eager-watch-olja (a `telemetryLoggerProvider` mintája).
+/// az app-gyökér eager-watch-olja.
 ///
 /// (1) A session-flag billenésére indít/állít: `host.start(activeRace)` a
 /// `ServiceRequestFailure`-t az `engineServiceErrorProvider`-be teszi;

@@ -2120,7 +2120,7 @@ Gyökerek (keep-alive)
 Mellék-ágak (a főképernyő külön watch-olja, §8.3 / §8.5):
   nmeaStream.statusChanges → connectionStatusProvider (seedelt badge)
   nmeaStream.rawLines      → rawNmeaLinesProvider (debug ring-buffer)
-  activeRace + rawLines    → telemetryLoggerProvider (csak status == active)
+  (a nyers telemetriát a háttér-engine írja, ADR 0017 D8; UI-oldali logger nincs)
 ```
 
 ### 8.3 Fázis 3 provider-példák (ADR 0006)
@@ -2211,7 +2211,8 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
   **landolt** Fázis 5 / 5b (§8.6, ADR 0010). A `windShiftTrendProvider`,
   `markPredictionProvider`, `tickProvider` → 5c; a 8.4
   `markRoundingMonitorProvider` → 5e.
-- `telemetryLoggerProvider` → **Fázis 4** (Drift) — **landolt** (§8.5, ADR 0009).
+- `telemetryLoggerProvider` → **Fázis 4** (Drift) — landolt (§8.5, ADR 0009),
+  majd **kivezetve** (2026-10): a telemetriát az engine írja (ADR 0017 D8).
 - Eager-connect-at-boot felülvizsgálata → **Fázis 5** (mindig-fent főképernyő);
   Fázis 3-ban a kapcsolat lazy-on-first-screen.
 
@@ -2325,8 +2326,14 @@ class ActiveRaceNotifier extends Notifier<Race?> {
 }
 ```
 
+> **Kivezetve (2026-10):** az ADR 0017 D8 óta a telemetriát kizárólag a
+> háttér-engine írja. Ez a provider ennek ellenére megmaradt, és aktív
+> versenyen egy második TCP-kapcsolaton át minden nyers sort másodszor is
+> beírt a `telemetry_records`-ba (a rögzített versenyek sorainak ~30%-a
+> duplikátum). A provider törölve; az alábbi kód csak történeti.
+
 ```dart
-// apps/phone/lib/providers/telemetry_logger_provider.dart
+// apps/phone/lib/providers/telemetry_logger_provider.dart (TÖRÖLVE)
 // Selector-alapú életciklus: csak a (versenyzik?, raceId) pár változására épül
 // újra, NEM minden bója-körözésnél. Csak status == active alatt logol; fake/
 // replay forrás (nem RawNmeaLineSource) → graceful no-op. Eagerly életre kell
@@ -2372,7 +2379,7 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 // apps/phone/lib/providers/active_race_persistence_provider.dart
 // Restart-túlélés az aktív race-re (Fázis 5f, ADR 0011). Külön mellékhatás-
 // provider, hogy a tesztelt ActiveRaceNotifier byte-azonos maradjon (OCP); a
-// ForetackApp eager-watch-olja (mint a telemetryLoggert). (a) induláskor
+// ForetackApp eager-watch-olja. (a) induláskor
 // EGYSZER restore: id → getRace → activeRace (no-clobber, ha a user közben
 // választott); (b) ref.listen-nel a kiválasztás-változáskor perzisztál;
 // finished/null → id törlése (nem támasztunk fel befejezett race-t).
@@ -2900,8 +2907,8 @@ override-olhasson (a plugin tesztben `MissingPluginException`-t dobna).
 clobbereljük az élő állapotot), majd `Navigator.push` a `LiveRaceScreen`-re.
 A start/finish gomb változatlan és ortogonális (SRP: a start state-et vált,
 az „Élő nézet" navigál). Pre-start alatt is elérhető — ez állítja be az
-`activeRace`-t a pre-start prediction-höz. A `telemetryLogger` már az
-app-gyökéren eager-watch-olt (ADR 0009 D6) → a live screenen nem kell újra.
+`activeRace`-t a pre-start prediction-höz. A telemetriát a háttér-engine
+írja (ADR 0017 D8) → a live screennek nincs vele dolga.
 
 **Provider-fogyasztás és lifetime.** A `LiveRaceScreen` gyökerén eager-watch:
 `activeRaceProvider`, `markPredictionProvider`, `windDataProvider`,
@@ -3112,7 +3119,7 @@ belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished
 boot-restore-t okozna. Ezért külön explicit session-állapot vezérli: egy
 `raceEngineSessionProvider` flag (az „Élő nézet” megnyitása `true`-ra, egy
 „Leállítás” akció `false`-ra állítja). Egy `raceEngineLifecycleProvider`
-(`Provider<void>`, app-gyökéren eager-watch a `telemetryLoggerProvider`
+(`Provider<void>`, app-gyökéren eager-watch az `activeRacePersistenceProvider`
 mintájára) ezt a flaget listen-eli: `true` → `host.start()` + a Race init-
 küldés; `false` → `host.stop()`. A restore az `activeRace`-t visszatölti, de a
 session-flag `false` marad → boot-kor nincs auto-indítás. A

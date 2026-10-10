@@ -10,7 +10,7 @@ import 'package:phone/providers/settings_repository_provider.dart';
 ///
 /// Külön mellékhatás-provider (`Provider<void>`), hogy a tesztelt
 /// ActiveRaceNotifier byte-azonos maradjon (OCP); a ForetackApp eager-watch-ol
-/// rá (a telemetryLoggerProvider mintája). Induláskor EGYSZER restore-ol: a
+/// rá. Induláskor EGYSZER restore-ol: a
 /// tárolt id → RaceRepository.getRace → activeRace, no-clobber guarddal (ha a
 /// user az async rés alatt már választott, nem írjuk felül). A kiválasztás
 /// változásakor perzisztálja az id-t; finished vagy null race esetén TÖRLI
