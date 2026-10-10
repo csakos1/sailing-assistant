@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: a T1 és a T2 kész
-(2026-10-10); a T3–T6 hátravan.
+Elfogadva — 2026-10-10. Implementálva: a T1–T3 kész (2026-10-10); a
+T4–T6 hátravan.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -351,3 +351,39 @@ A kódban eldőlt részletek (Claude javaslata):
 - **A webes archívum** sémája a szerver következő kiadásával (T6) lesz v6;
   a feltöltött v5-ös telefon-DB-t a szerver továbbra is migrálja. A
   `race_archive_api` kodekje v1-ben nem viszi a két mezőt (D4).
+
+## Pontosítás a kód után (T3, 2026-10-10)
+
+- **Az engine csak a visszamenőleges ablakon belül indít** (felhasználói
+  döntés, 2026-10-10): a `_maybeAutoStart` akkor indítja a versenyt, ha
+  `notStarted`, van `scheduledStartAt`-je, és a tick
+  `[scheduledStartAt, scheduledStartAt + 3 óra)` között van; ugyanazzal a
+  `SelectInstrumentsRace.defaultLateStartWindow` konstanssal, mint a
+  kiválasztás. Ok: ha egy régi, el nem indult versenyt valami (pl. a
+  mostani „Élő nézet" `handOver`-je) mégis az engine-be ad, az ne induljon
+  el csendben, órákkal korábbi rajtidővel; kézzel ugyanúgy indítható.
+- **A sorrend a tickben:** előbb a tervezett rajt, utána a bója-léptetés,
+  utána a predikció. A rajt tickje már `active`, ezért a snapshot-logba
+  kerül, és az utána érkező nyers sorok is rögzülnek. A tervezett időpont
+  és az első tick közé eső (legfeljebb kb. 1 mp) nyers sorok nem.
+- **A rajtidő a tervezett, nem a tick ideje** (D6, D7); visszamenőleges
+  rajtnál a kieső szakasz hiányzik a felvételből.
+- **Egy kézi rajt a tervezett időpont előtt** a saját idejével marad (a
+  `start` parancs után a verseny már nem `notStarted`).
+- **A predikció** a `guidanceTargetOrNull` / `guidanceNextOrNull`
+  getterekkel számol; a bója-léptetés (`_maybeRoundMark`) továbbra is az
+  `activeMarkOrNull`-on, így a rajthely sosem „kerülhető meg". Rajt előtt
+  a predikció bójája a rajthely (`sequence` 1, a T1 szerint); az óra csak
+  a nevét mutatja.
+- **`RaceSnapshot.raceStartedAt`:** az engine versenyének `startedAt`-je
+  (ms epoch a JSON-ban, a hiányzó kulcs `null`). Ebből veszi át a T4 a
+  rajtot a DB-be.
+- **Óra:** az engine tickje ma a telefon rendszerórájából jön
+  (`RaceEngine` alapértelmezett `now`-ja), nem a GNSS true time-ból
+  (ADR 0012). NTP-szinkronizált telefonon az eltérés másodperc alatti; a
+  T4 dönti el, kell-e a true time-ot az engine-be injektálni.
+- **A phone és az óra** ebben a szeletben nem változott: az engine által
+  indított rajt a T4-ig csak az engine-ben él, a DB-ben `notStarted`
+  marad (a mostani „Élő nézet" mellett a telemetria már a verseny
+  azonosítójával rögzül). A rajt előtti mai bójanév-tartalék
+  (`live_race_screen.dart`) az U4-ben kerül a rajthelyre.

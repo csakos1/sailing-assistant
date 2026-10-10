@@ -3622,7 +3622,9 @@ különben a legkorábbi > szabad mód). **Kész (T1):** a domain része
 (`StartPoint`, a két mező, a getterek, `SelectInstrumentsRace`,
 `InstrumentsRaceChoice`); a „helyi ma" egy injektált
 `LocalWallClock`-ból jön. **Kész (T2):** séma v6, repository, codec
-(§9.2). A rajtidőben az engine indítja a versenyt
+(§9.2). **Kész (T3):** az engine a guidance-getterekkel számol, a
+tervezett rajtot ő indítja (csak a 3 órás ablakon belül), és a snapshot
+`raceStartedAt`-et hordoz. A rajtidőben az engine indítja a versenyt
 (`startedAt = scheduledStartAt`, visszamenőleg is), és a UI a snapshot
 alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
 v6-os kiadása megelőzi a telefonosat.
