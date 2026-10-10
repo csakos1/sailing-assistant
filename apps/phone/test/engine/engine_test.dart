@@ -15,7 +15,7 @@ void main() {
       // Act & Assert
       expect(host.isStarted, isFalse);
       await host.start(
-        Race.create(
+        race: Race.create(
           id: 'r',
           name: 'R',
           marks: const [
@@ -74,10 +74,13 @@ class _FakeRaceEngineHost implements RaceEngineHost {
   void emit(RaceSnapshot snapshot) => _controller.add(snapshot);
 
   @override
-  Future<String?> start(Race race, {Polar? polar}) async {
+  Future<String?> start({Race? race, Polar? polar}) async {
     isStarted = true;
     return null;
   }
+
+  @override
+  void sendRaceCommand(Race? race) {}
 
   @override
   void sendStartCommand(DateTime at) {}

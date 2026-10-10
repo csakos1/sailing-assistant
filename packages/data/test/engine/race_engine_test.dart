@@ -645,6 +645,75 @@ void main() {
     });
   });
 
+  group('race command (ADR 0054 D6)', () {
+    Future<void> positionThenTick(DateTime at) async {
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('switches from free mode to a pre-start race', () async {
+      // ARRANGE
+      await engine.start();
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(race);
+      await positionThenTick(tickTime);
+
+      // ASSERT: the engine now guides to the first mark of the race.
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+      expect(snapshots.single.prediction?.mark, race.marks.first);
+    });
+
+    test('a null race returns the engine to free mode', () async {
+      // ARRANGE
+      await engine.start(race: race);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(null);
+      await positionThenTick(tickTime);
+
+      // ASSERT
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, isNull);
+      expect(snapshots.single.prediction, isNull);
+    });
+
+    test('a finished race also means free mode', () async {
+      // ARRANGE
+      await engine.start();
+      final finished = race.start(at: eventTime).finish(at: tickTime);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(finished);
+      await positionThenTick(tickTime);
+
+      // ASSERT
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, isNull);
+    });
+
+    test('is ignored while a race is active', () async {
+      // ARRANGE
+      final activeRace = race.start(at: eventTime);
+      await engine.start(race: activeRace);
+      final other = Race.create(id: 'r2', name: 'Masik', marks: const []);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(other);
+      source.emitRaw('sentence-1');
+      await positionThenTick(tickTime);
+
+      // ASSERT: the active race keeps running and recording.
+      expect(isApplied, isFalse);
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshotLogger.entries.single.raceId, activeRace.id);
+      expect(logger.records.single.raceId, activeRace.id);
+    });
+  });
+
   group('recording only during an active race (ADR 0054 D3)', () {
     test('records nothing before the start', () async {
       // ARRANGE: a race that has not started yet.

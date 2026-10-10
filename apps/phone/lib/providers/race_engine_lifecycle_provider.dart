@@ -13,7 +13,7 @@ import 'package:shared/shared.dart';
 /// átmeneteihez köti (ADR 0017 A12/A13). Mellékhatás-provider (`Provider<void>`):
 /// az app-gyökér eager-watch-olja.
 ///
-/// (1) A session-flag billenésére indít/állít: `host.start(activeRace)` a
+/// (1) A session-flag billenésére indít/állít: `host.start(race: activeRace)` a
 /// `ServiceRequestFailure`-t az `engineServiceErrorProvider`-be teszi;
 /// `host.stop()` + a hiba nullázása. (2) A verseny in-place státusz-átmeneteire
 /// (notStarted→active, active→finished) minimális parancsot küld az engine-nek,
@@ -29,7 +29,7 @@ final raceEngineLifecycleProvider = Provider<void>((ref) {
         if (race == null) return;
         unawaited(() async {
           final polar = await _loadPolar(ref);
-          final error = await host.start(race, polar: polar);
+          final error = await host.start(race: race, polar: polar);
           ref.read(engineServiceErrorProvider.notifier).state = error;
         }());
       } else {

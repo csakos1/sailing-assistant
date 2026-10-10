@@ -79,7 +79,7 @@ class _EngineDebugScreenState extends ConsumerState<EngineDebugScreen> {
               spacing: 12,
               children: [
                 ElevatedButton(
-                  onPressed: () => host.start(_debugRace()).ignore(),
+                  onPressed: () => host.start(race: _debugRace()).ignore(),
                   child: const Text('Engine indítása'),
                 ),
                 OutlinedButton(

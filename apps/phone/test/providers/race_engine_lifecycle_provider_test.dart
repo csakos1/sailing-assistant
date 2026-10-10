@@ -47,7 +47,7 @@ void main() {
     await pumpEventQueue();
 
     expect(host.startedRaces, hasLength(1));
-    expect(host.startedRaces.single.id, 'race-1');
+    expect(host.startedRaces.single?.id, 'race-1');
   });
 
   test('session false → host.stop', () async {
@@ -134,7 +134,7 @@ void main() {
 
 /// Teszt-fake: rögzíti a hívásokat, és konfigurálható start-hibát ad.
 class _RecordingHost implements RaceEngineHost {
-  final List<Race> startedRaces = [];
+  final List<Race?> startedRaces = [];
   final List<DateTime> startCommands = [];
   final List<DateTime> finishCommands = [];
   int stopCount = 0;
@@ -144,10 +144,13 @@ class _RecordingHost implements RaceEngineHost {
   void sendRoundMarkCommand() {}
 
   @override
-  Future<String?> start(Race race, {Polar? polar}) async {
+  Future<String?> start({Race? race, Polar? polar}) async {
     startedRaces.add(race);
     return startError;
   }
+
+  @override
+  void sendRaceCommand(Race? race) {}
 
   @override
   void sendStartCommand(DateTime at) => startCommands.add(at);

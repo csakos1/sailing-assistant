@@ -12,6 +12,7 @@ import 'package:phone/app/geolocator_gnss_clock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/app/true_time_manager.dart';
 import 'package:phone/engine/engine_gateway_host.dart';
+import 'package:phone/engine/engine_notification.dart';
 import 'package:phone/engine/phone_wearable_bridge.dart';
 import 'package:phone/features/live_race/warning_l10n.dart';
 import 'package:phone/features/watch_sync/watch_payload_builder.dart';
@@ -33,8 +34,9 @@ void startCallback() {
 /// domain-compute + telemetria), de NEM indítja — előbb egy `{type:'ready'}`
 /// jelet küld a hostnak (ready-kézfogás, ADR 0017 A13). A host erre küldi a
 /// teljes [Race] initet (`{type:'init', race:…}`), amire az engine elindul;
-/// futás közben a `{type:'start'|'finish', at}` parancsokat a saját `_race`-én
-/// alkalmazza.
+/// a `race: null` szabad módot jelent (ADR 0054 D1). Futás közben a
+/// `{type:'start'|'finish', at}` parancsokat a saját `_race`-én alkalmazza,
+/// a `{type:'race', race:…}` paranccsal pedig versenyt cserél (D6).
 ///
 /// A telemetria a háttér-engine **saját, WAL-módú** [AppDatabase.secondary]
 /// kapcsolatára íródik (ADR 0017 D6): az izolátum a composition root, ezért itt
@@ -145,7 +147,7 @@ class RaceEngineTaskHandler extends TaskHandler {
           return;
         }
         _started = true;
-        final race = raceFromJson(map['race'] as Map<String, dynamic>);
+        final race = _raceOrNull(map['race'] as Map<String, dynamic>?);
         final polarJson = map['polar'] as Map<String, dynamic>?;
         final polar = polarJson == null ? null : polarFromJson(polarJson);
         _isPolarMissing = polar == null;
@@ -153,12 +155,30 @@ class RaceEngineTaskHandler extends TaskHandler {
         if (engine != null) {
           unawaited(engine.start(race: race, polar: polar));
         }
+      case 'race':
+        _applyRaceCommand(_raceOrNull(map['race'] as Map<String, dynamic>?));
       case 'start':
         _engine?.applyStartCommand(_atFromMillis(map['at'] as int));
       case 'finish':
         _engine?.applyFinishCommand(_atFromMillis(map['at'] as int));
       case 'roundMark':
         _engine?.applyRoundMarkCommand();
+    }
+  }
+
+  // A versenycsere (ADR 0054 D6). Aktív verseny közben az engine eldobja;
+  // ezt naplózzuk, mert a UI-nak ilyenkor nem szabadna küldenie.
+  void _applyRaceCommand(Race? race) {
+    final engine = _engine;
+    if (engine == null) {
+      return;
+    }
+    if (!engine.applyRaceCommand(race)) {
+      developer.log(
+        'race command ignored: a race is active',
+        name: 'RaceEngine',
+        level: 900,
+      );
     }
   }
 
@@ -192,7 +212,7 @@ class RaceEngineTaskHandler extends TaskHandler {
   void _onSnapshot(RaceSnapshot snapshot) {
     unawaited(
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Foretack — verseny aktív',
+        notificationTitle: engineNotificationTitle(snapshot.raceStatus),
         notificationText: 'Események: ${snapshot.eventCount}',
       ),
     );
@@ -252,6 +272,10 @@ class RaceEngineTaskHandler extends TaskHandler {
     }
     return utc.difference(instrumentUtc);
   }
+
+  // A wire-en a verseny opcionális: a `null` szabad módot jelent.
+  Race? _raceOrNull(Map<String, dynamic>? json) =>
+      json == null ? null : raceFromJson(json);
 
   // Epoch-millis (UTC) → DateTime a parancs-időbélyegekhez (A13 wire-konvenció).
   DateTime _atFromMillis(int millis) =>

@@ -139,6 +139,24 @@ class RaceEngine {
     }
   }
 
+  /// A UI-tól érkező versenycsere (ADR 0054 D6): a futó engine versenyét
+  /// lecseréli vagy elveszi (`null` = szabad mód), és a mód ebből adódik
+  /// (D1). Egy `finished` verseny szabad módot jelent: az engine elengedi.
+  ///
+  /// Aktív verseny közben a csere tilos (ADR 0017 A10: a bója-indexet az
+  /// engine lépteti, egy teljes Race-csere visszaállítaná). Ilyenkor a
+  /// parancs hatástalan, és `false` jön vissza, hogy a hoszt naplózhassa;
+  /// sikeres cserénél `true`. A mark-rounding detektort reseteljük, mert az
+  /// új versenyhez tiszta minimum-profil kell.
+  bool applyRaceCommand(Race? race) {
+    if (_race?.status == RaceStatus.active) {
+      return false;
+    }
+    _markRoundingDetector.reset();
+    _race = race?.status == RaceStatus.finished ? null : race;
+    return true;
+  }
+
   /// A UI-tól érkező Start parancs alkalmazása az engine saját `_race`-én
   /// (A10/A13): `notStarted → active` az `at` időbélyeggel. No-op, ha
   /// nincs race vagy már nem `notStarted` — idempotens, a dup-parancs nem

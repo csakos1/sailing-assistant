@@ -5,6 +5,7 @@ import 'package:data/data.dart';
 import 'package:domain/domain.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:phone/engine/engine_notification.dart';
 import 'package:phone/engine/race_engine_host.dart';
 import 'package:phone/engine/race_engine_task_handler.dart';
 
@@ -21,7 +22,7 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
       StreamController<RaceSnapshot>.broadcast();
 
   // A legutóbbi start()-tal átadott Race; a task ready-jelére ezt küldjük
-  // init-ként (A13). null, amíg nem indult session.
+  // init-ként (A13). null = szabad mód (ADR 0054 D1).
   Race? _pendingRace;
 
   // A legutóbbi start()-tal átadott polár (ADR 0028 Add. 3); az init-üzenet
@@ -32,7 +33,7 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
   Stream<RaceSnapshot> get snapshots => _controller.stream;
 
   @override
-  Future<String?> start(Race race, {Polar? polar}) async {
+  Future<String?> start({Race? race, Polar? polar}) async {
     _pendingRace = race;
     _pendingPolar = polar;
     await _requestNotificationPermission();
@@ -63,7 +64,7 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     final result = await FlutterForegroundTask.startService(
       serviceId: 256,
       serviceTypes: serviceTypes,
-      notificationTitle: 'Foretack — verseny aktív',
+      notificationTitle: engineNotificationTitle(race?.status),
       notificationText: 'A háttér-engine indul…',
       callback: startCallback,
     );
@@ -74,6 +75,19 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
       return result.error.toString();
     }
     return null;
+  }
+
+  @override
+  void sendRaceCommand(Race? race) {
+    // Egy későbbi ready-kézfogás (pl. a service újraindulása) már ezt a
+    // versenyt vigye az initben, ne a start()-kori állapotot.
+    _pendingRace = race;
+    FlutterForegroundTask.sendDataToTask(
+      jsonEncode(<String, Object?>{
+        'type': 'race',
+        'race': race == null ? null : raceToJson(race),
+      }),
+    );
   }
 
   @override
@@ -115,7 +129,8 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     await _controller.close();
   }
 
-  // A task→UI üzenetek: a ready-jelre kiküldjük a Race initet, egyébként a
+  // A task→UI üzenetek: a ready-jelre kiküldjük az initet (verseny nélkül
+  // is: a `race: null` szabad módot jelent, ADR 0054 D1), egyébként a
   // snapshotot fejtjük vissza (a snapshot-mapnek nincs `type` kulcsa, A13).
   void _onReceiveTaskData(Object data) {
     if (data is! String) {
@@ -124,16 +139,14 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
     final map = jsonDecode(data) as Map<String, dynamic>;
     if (map['type'] == 'ready') {
       final race = _pendingRace;
-      if (race != null) {
-        final polar = _pendingPolar;
-        FlutterForegroundTask.sendDataToTask(
-          jsonEncode(<String, Object?>{
-            'type': 'init',
-            'race': raceToJson(race),
-            'polar': polar == null ? null : polarToJson(polar),
-          }),
-        );
-      }
+      final polar = _pendingPolar;
+      FlutterForegroundTask.sendDataToTask(
+        jsonEncode(<String, Object?>{
+          'type': 'init',
+          'race': race == null ? null : raceToJson(race),
+          'polar': polar == null ? null : polarToJson(polar),
+        }),
+      );
       return;
     }
     _controller.add(RaceSnapshot.fromJson(map));

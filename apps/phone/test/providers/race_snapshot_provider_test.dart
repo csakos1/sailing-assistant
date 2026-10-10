@@ -79,7 +79,10 @@ class _FakeRaceEngineHost implements RaceEngineHost {
   void emit(RaceSnapshot snapshot) => _controller.add(snapshot);
 
   @override
-  Future<String?> start(Race race, {Polar? polar}) async => null;
+  Future<String?> start({Race? race, Polar? polar}) async => null;
+
+  @override
+  void sendRaceCommand(Race? race) {}
 
   @override
   void sendStartCommand(DateTime at) {}
