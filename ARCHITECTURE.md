@@ -2902,7 +2902,7 @@ van — valós impl `WakelockPlus`-szal és keep-alive
 `screenWakeLockProvider`-rel —, hogy a screen widget-teszt no-op fake-kel
 override-olhasson (a plugin tesztben `MissingPluginException`-t dobna).
 
-**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg `status != finished` (befejezett versenynél nincs élő nézet, mert a `finished` a sessiont is lezárja; ADR 0017 A12). Akció: `ref.read(activeRaceProvider.notifier)
+**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg `status != finished` (befejezett versenynél nincs élő nézet; ADR 0017 A12; az E3 óta `handOver`, §10.6). Akció: `ref.read(activeRaceProvider.notifier)
 .activeRace = current` (a live-or-snapshot race, nem a nyers `race`, hogy ne
 clobbereljük az élő állapotot), majd `Navigator.push` a `LiveRaceScreen`-re.
 A start/finish gomb változatlan és ortogonális (SRP: a start state-et vált,
@@ -3113,7 +3113,10 @@ C-lapján a gomb letiltása sem helyettesíti az őrt: a payload-szerződés
 additív és visszafelé kompatibilis (ADR 0015), tehát egy régi óra-build
 küldhet parancsot új telefonnak.
 
-**Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
+**Engine-lifecycle (iii — belépés indít, explicit leállás).** *(Az ADR
+0054 E3 óta felülírva: a session egy állapotgép, az engine a gateway-próba
+találatára is indul, és a cél után szabad módban fut tovább; lásd §10.6
+„Engine-session". A bekezdés a korábbi alakot őrzi.)* Az engine a
 belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
 `activeRacePersistenceProvider` boot-kor visszatölti, ami akaratlan
 boot-restore-t okozna. Ezért külön explicit session-állapot vezérli: egy
@@ -3598,10 +3601,11 @@ polar})`, a tick verseny nélkül is snapshotot ad (`prediction: null`), a
 `RaceSnapshot.raceStatus` nullable (`null` = szabad mód). **Kész (E2):**
 a `race` parancs (`RaceEngineHost.sendRaceCommand`,
 `RaceEngine.applyRaceCommand`), az init verseny nélkül, a módfüggő
-értesítés (§10.3). Az app
+értesítés (§10.3). **Kész (E3):** az app
 előtérben egy `GatewayProbe` TCP-próbával keresi a
 gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
-után az engine szabad módban fut tovább. Új UI→task parancs:
+után az engine szabad módban fut tovább; szabad módban 10 perc kapcsolat
+nélkül leáll (§10.6 „Engine-session"). Új UI→task parancs:
 `{type: 'race', race: … | null}`, csak nem aktív versenyre.
 
 **Tervezett verseny (ADR 0055).** A `Race` két új, opcionális mezője a
@@ -4053,6 +4057,27 @@ A háttér-futás architektúráját az **ADR 0016** rögzíti; ez a szakasz a d
 v1-core: a telefon a zsebben, **kikapcsolt kijelzővel**, az óra a primary élő kijelző, megszakítás nélkül. Mivel háttérben / kijelző-off az UI-izolátum felfüggesztődik (a `Timer`-ek és a socket-olvasás leáll), a teljes adatfolyam (§6) egy **RaceEngine** háttér-izolátumba kerül, amit egy Android **foreground service** hoszttol (`flutter_foreground_task`, `connectedDevice` FGS-típus). Az engine az **egyedüli tulajdonosa** az NMEA-pipeline-nak, a domain-számításnak, a Drift-telemetriának és az óra-pushnak; a telefon UI-ja **read-only tükör**, ami az engine ~1 Hz-es `RaceSnapshot`-jaira renderel (a snapshotot a plugin saját csatornáján kapja). Az óra-push (Wearable Data Layer) az engine-ből indul, a meglévő `buildWatchPayload`-dal (§10.3). A domain **tiszta marad** (az engine a `domain` + `data` package-eket futtatja, nincs natív újraimplementáció); a `RaceEngineHost` DIP-varrat mögött a plugin cserélhető, és a replay-tesztelhetőség megmarad. A kijelző-wakelock így már csak előtér-UI-kényelem, nem load-bearing.
 
 A konkrét belső felépítést az **ADR 0017** rögzíti (7-bg-c): a compute-orchestráció egy plain-Dart **`RaceEngine`** a `packages/data`-ban (nincs Riverpod az izolátumban; a `domain` + `data`-t komponálja), és a jelenleg `apps/phone`-ban élő pure fold-logika (`_reduce`, wind-history-buffer) a `domain`-be költözik. Az NMEA-forrás a `FORETACK_GATEWAY_HOST` `--dart-define`-ból oldódik fel az izolátumon belül is (ADR 0007), így a Vulcan ↔ `nmea_replay` váltás változatlan. Az aktív `Race` a session-indításkor átadva érkezik (nem DB-olvasás); a Drift-telemetriát az engine **saját, WAL-módú kapcsolaton** írja (`AppDatabase.secondary()`; a séma-migráció a UI-izolátumé). Az 1 Hz recompute-kadenciát az engine belső `Timer.periodic`-ja adja (a Riverpod `tickProvider` helyett), az NMEA-streamtől hajtva; a foreground task `eventAction: nothing()`. A `RaceSnapshot` DTO + a UI-providerek snapshot-streamre átszármaztatása a 7-bg-d.
+
+**Engine-session (ADR 0054 E3).** Az engine indítását és leállítását egy
+tiszta állapotgép vezérli (`engineSessionProvider`: `EngineStopped` →
+`EngineProbing` → `EngineRunning(cause)`), a mellékhatásokat a
+`raceEngineLifecycleProvider` (`RaceEngineLifecycle`) végzi. Az előtérbe
+kerüléskor (`AppForegroundBinding`) a lifecycle előbb egyeztet a valóban
+futó service-szel: egy közben leállt engine-t észrevesz, egy korábbi
+app-folyamatból futót átvesz (`attach`; 5 mp pillanatkép nélkül
+újraindítja). Utána a `gatewayProbeLoopProvider` egy TCP-próbát nyit a
+gatewayre (3 mp timeout, a `data` `NmeaConnection` seamjén), és az előző
+eredménye után 5 mp-et vár a következőig; találatra az engine szabad módban
+indul. Egy `active` verseny csak friss felvételnél folytatódik
+(`IsRaceResumable`: a legutóbbi pillanatkép vagy a rajt 6 órán belül), így
+egy kétnapos verseny éjfél után is, egy elfelejtett „Cél" másnap nem. A
+„Rajt" és az „Élő nézet" maga is indít. A cél után az engine `race:
+null`-lal szabad módban fut tovább. Szabad módban 10 perc kapcsolat nélkül a
+háttér-engine (`FreeModeIdleWatch` a task handlerben) maga állítja le a
+service-t, és jelez a UI-nak (`idleStops`). Rajt előtt és versenyen nincs
+automatikus leállás. A kézi „Leállítás" után a próba a következő előtérbe
+kerüléskor indul. Induláskor a session leállított, így a boot-restore nem
+indít engine-t (ADR 0017 A12).
 
 ### 10.7 Natív transport: a `wearable_bridge` plugin-csomag (ADR 0018)
 
