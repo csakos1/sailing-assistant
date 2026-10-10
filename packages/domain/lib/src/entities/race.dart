@@ -1,5 +1,6 @@
 import 'package:domain/src/entities/mark.dart';
 import 'package:domain/src/entities/race_status.dart';
+import 'package:domain/src/value_objects/start_point.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
@@ -17,6 +18,10 @@ import 'package:meta/meta.dart';
 /// | notStarted | == 0                     | null      | null       |
 /// | active     | 0 ≤ i < marks.length     | nem null  | null       |
 /// | finished   | == marks.length          | nem null  | nem null   |
+///
+/// A tervezett rajt ([scheduledStartAt]) és a rajthely ([startPoint])
+/// opcionális (ADR 0055 D1), a state-trojkától függetlenek, és minden
+/// state-átmenet változatlanul viszi tovább őket.
 ///
 /// A [marks] lehet **üres** — bója nélküli verseny, ahol nincs
 /// kihirdetett pálya, de a track-rögzítés és a polár-alapú
@@ -41,6 +46,8 @@ class Race extends Equatable {
     required this.activeMarkIndex,
     this.startedAt,
     this.finishedAt,
+    this.scheduledStartAt,
+    this.startPoint,
   }) : marks = List.unmodifiable(marks),
        assert(id != '', 'A race id-je nem lehet üres.'),
        assert(name != '', 'A race neve nem lehet üres.'),
@@ -59,11 +66,13 @@ class Race extends Equatable {
 
   /// Új race létrehozása `notStarted` állapotban. Az `activeMarkIndex`
   /// nullára áll, időbélyegek üresek. Tipikus belépési pont egy új verseny
-  /// felvitelekor.
+  /// felvitelekor. A tervezett rajt és a rajthely opcionális.
   factory Race.create({
     required String id,
     required String name,
     required List<Mark> marks,
+    DateTime? scheduledStartAt,
+    StartPoint? startPoint,
   }) {
     return Race(
       id: id,
@@ -71,6 +80,8 @@ class Race extends Equatable {
       marks: marks,
       status: RaceStatus.notStarted,
       activeMarkIndex: 0,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
     );
   }
 
@@ -81,6 +92,15 @@ class Race extends Equatable {
   final int activeMarkIndex;
   final DateTime? startedAt;
   final DateTime? finishedAt;
+
+  /// A tervezett rajt UTC időpontja, vagy `null`, ha nincs megadva
+  /// (ADR 0055 D1). Nélküle a verseny csak kézzel indul, és magától nem
+  /// választódik ki (ADR 0055 D5).
+  final DateTime? scheduledStartAt;
+
+  /// A rajthely, ahová az app rajt előtt rávezet, vagy `null`
+  /// (ADR 0055 D1). Nélküle rajt előtt az első bója a cél.
+  final StartPoint? startPoint;
 
   /// Az aktuálisan célzott bóya, vagy `null`, ha a race befejeződött.
   ///
@@ -103,6 +123,29 @@ class Race extends Equatable {
   Mark? get nextMarkOrNull =>
       activeMarkIndex + 1 < marks.length ? marks[activeMarkIndex + 1] : null;
 
+  /// A rávezetés célja (ADR 0055 D2), vagy `null`, ha nincs mire vezetni.
+  ///
+  /// `notStarted` → a rajthely, ha van, különben az első bója; `active` →
+  /// az aktív bója (mint az [activeMarkOrNull]); `finished` → `null`. A
+  /// rajthely egy csak memóriában élő [Mark] ([StartPoint.asGuidanceMark]).
+  Mark? get guidanceTargetOrNull => switch (status) {
+    RaceStatus.notStarted => startPoint?.asGuidanceMark() ?? activeMarkOrNull,
+    RaceStatus.active => activeMarkOrNull,
+    RaceStatus.finished => null,
+  };
+
+  /// A rávezetési cél utáni bója, a köv. szár irányához (ADR 0055 D2).
+  ///
+  /// `notStarted` → rajthellyel az első bója, rajthely nélkül a második;
+  /// `active` → a következő bója (mint a [nextMarkOrNull]); `finished` →
+  /// `null`. Bója nélküli versenyen (ADR 0046) mindig `null`.
+  Mark? get guidanceNextOrNull => switch (status) {
+    RaceStatus.notStarted =>
+      startPoint != null ? activeMarkOrNull : nextMarkOrNull,
+    RaceStatus.active => nextMarkOrNull,
+    RaceStatus.finished => null,
+  };
+
   /// State-átmenet: [RaceStatus.notStarted] → [RaceStatus.active].
   ///
   /// Csak `notStarted` állapotból hívható. Az `activeMarkIndex` 0 marad
@@ -120,6 +163,8 @@ class Race extends Equatable {
       activeMarkIndex: activeMarkIndex,
       startedAt: at,
       finishedAt: finishedAt,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
     );
   }
 
@@ -159,6 +204,8 @@ class Race extends Equatable {
       activeMarkIndex: activeMarkIndex + 1,
       startedAt: startedAt,
       finishedAt: wasLast ? at : finishedAt,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
     );
   }
 
@@ -180,10 +227,16 @@ class Race extends Equatable {
       activeMarkIndex: marks.length,
       startedAt: startedAt,
       finishedAt: at,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
     );
   }
 
   /// Immutable update. Simple-form: `null` = ne változtass az adott mezőn.
+  ///
+  /// A [scheduledStartAt] és a [startPoint] a `clear…` jelzőkkel
+  /// törölhető (pl. „Nincs rajtidő"); a jelző elsőbbséget élvez az
+  /// ugyanabban a hívásban megadott új értékkel szemben.
   ///
   /// State-átmenetekhez NE ezt használjuk — azokra ott vannak a named
   /// factory-k (`start`, `roundCurrentMark`, `finish`). A copyWith
@@ -196,6 +249,10 @@ class Race extends Equatable {
     int? activeMarkIndex,
     DateTime? startedAt,
     DateTime? finishedAt,
+    DateTime? scheduledStartAt,
+    StartPoint? startPoint,
+    bool clearScheduledStartAt = false,
+    bool clearStartPoint = false,
   }) {
     return Race(
       id: id ?? this.id,
@@ -205,6 +262,10 @@ class Race extends Equatable {
       activeMarkIndex: activeMarkIndex ?? this.activeMarkIndex,
       startedAt: startedAt ?? this.startedAt,
       finishedAt: finishedAt ?? this.finishedAt,
+      scheduledStartAt: clearScheduledStartAt
+          ? null
+          : scheduledStartAt ?? this.scheduledStartAt,
+      startPoint: clearStartPoint ? null : startPoint ?? this.startPoint,
     );
   }
 
@@ -245,6 +306,8 @@ class Race extends Equatable {
     activeMarkIndex,
     startedAt,
     finishedAt,
+    scheduledStartAt,
+    startPoint,
   ];
 
   @override
