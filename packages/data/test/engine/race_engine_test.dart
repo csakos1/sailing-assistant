@@ -256,6 +256,7 @@ void main() {
     expect(snap.boatState.position, boatPosition);
     expect(snap.tickTime, tickTime);
     expect(snap.raceStatus, RaceStatus.notStarted);
+    expect(snap.raceId, race.id);
     // Aktív bója + pozíció van → a prediction nem null, az aktív bójára szól.
     expect(snap.prediction?.mark, race.marks.first);
     expect(snap.prediction?.distanceToMark, isNotNull);
@@ -571,6 +572,7 @@ void main() {
       // ASSERT: the live state is there, the race-bound parts are not.
       final snap = snapshots.single;
       expect(snap.raceStatus, isNull);
+      expect(snap.raceId, isNull);
       expect(snap.prediction, isNull);
       expect(snap.eventCount, 1);
       expect(snap.boatState.position, boatPosition);

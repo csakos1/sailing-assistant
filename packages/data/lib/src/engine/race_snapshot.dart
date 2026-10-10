@@ -23,6 +23,8 @@ class RaceSnapshot {
     required this.connectionStatus,
     required this.tickTime,
     this.raceStatus,
+    this.raceId,
+    this.raceFinishedAt,
     this.wind,
     this.prediction,
     this.windShiftTrend,
@@ -48,6 +50,8 @@ class RaceSnapshot {
       ),
       tickTime: _dateTime(json['tickTime'] as num),
       raceStatus: _raceStatusFromName(json['raceStatus'] as String?),
+      raceId: json['raceId'] as String?,
+      raceFinishedAt: _mapOrNull(json['raceFinishedAt'] as num?, _dateTime),
       wind: _mapOrNull(
         json['wind'] as Map<String, dynamic>?,
         _windDataFromJson,
@@ -85,6 +89,17 @@ class RaceSnapshot {
   /// A verseny állapota a tick pillanatában (a warning-gatinghez, A14), vagy
   /// `null` szabad módban, amikor az engine verseny nélkül fut (ADR 0054 D2).
   final RaceStatus? raceStatus;
+
+  /// Az engine-ben lévő verseny azonosítója a tick pillanatában, vagy
+  /// `null` szabad módban (ADR 0054 E3). Ebből tudja a UI pontosan, melyik
+  /// versenyt futtatja az engine (átvételkor, restore-kor, a saját
+  /// lezárásnál); régi JSON-ban hiányzik, ilyenkor `null`.
+  final String? raceId;
+
+  /// Az engine versenyének célideje, ha már lezárult (ADR 0054 E3); a UI
+  /// ezzel persistálja az engine saját lezárását, akkor is, ha a
+  /// pillanatképet csak órákkal később dolgozza fel. Egyébként `null`.
+  final DateTime? raceFinishedAt;
 
   /// A legfrissebb szél-snapshot, vagy `null`, ha még nem érkezett.
   final WindData? wind;
@@ -151,6 +166,8 @@ class RaceSnapshot {
       'boatState': _boatStateToJson(boatState),
       'connectionStatus': _connectionStatusToJson(connectionStatus),
       'raceStatus': raceStatus?.name,
+      'raceId': raceId,
+      'raceFinishedAt': raceFinishedAt?.millisecondsSinceEpoch,
       'tickTime': tickTime.millisecondsSinceEpoch,
       'wind': _mapOrNull(wind, _windDataToJson),
       'prediction': _mapOrNull(prediction, _markPredictionToJson),

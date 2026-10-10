@@ -8,6 +8,10 @@ import 'package:data/src/nmea/client/socket_nmea_connection.dart';
 import 'package:data/src/nmea/pipeline/nmea_event_pipeline.dart';
 import 'package:domain/domain.dart';
 
+/// A Vulcan / YDWG NMEA 0183 TCP-szerverének alapportja. Publikus, mert a
+/// telefon gateway-próbája ugyanezt a portot nézi (ADR 0054 D4).
+const int defaultNmeaGatewayPort = 10110;
+
 /// A domain `NmeaStream` TCP-implementációja: a Vulcan 0183-over-WiFi
 /// kimenetéhez (`192.168.76.1:10110`) csatlakozik, a socket nyers byte-jait a
 /// stateful [NmeaEventPipeline]-on át domain-eseményekké alakítja, és kiadja az
@@ -41,7 +45,7 @@ class Nmea0183TcpClient implements NmeaStream, RawNmeaLineSource {
        _reconnectDelay = reconnectDelay;
 
   static const String _defaultHost = '192.168.76.1';
-  static const int _defaultPort = 10110;
+  static const int _defaultPort = defaultNmeaGatewayPort;
   static const Duration _defaultConnectTimeout = Duration(seconds: 6);
   static const Duration _defaultReconnectDelay = Duration(seconds: 2);
 

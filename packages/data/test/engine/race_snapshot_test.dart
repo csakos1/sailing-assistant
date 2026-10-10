@@ -42,6 +42,8 @@ void main() {
       ),
       connectionStatus: const Connected(),
       raceStatus: RaceStatus.active,
+      raceId: 'race-1',
+      raceFinishedAt: tickTime,
       tickTime: tickTime,
       wind: WindData(
         apparentAngle: const Angle(degrees: 35),
@@ -100,6 +102,8 @@ void main() {
       expect(restored.boatState, original.boatState);
       expect(restored.connectionStatus, isA<Connected>());
       expect(restored.raceStatus, original.raceStatus);
+      expect(restored.raceId, 'race-1');
+      expect(restored.raceFinishedAt, tickTime);
       expect(restored.wind, original.wind);
       expect(restored.prediction, original.prediction);
       expect(restored.windShiftTrend, original.windShiftTrend);
@@ -243,6 +247,40 @@ void main() {
         // ACT + ASSERT
         expect(RaceSnapshot.fromJson(missing).raceStatus, isNull);
         expect(RaceSnapshot.fromJson(unknown).raceStatus, isNull);
+      });
+    });
+
+    group('raceId (ADR 0054 E3)', () {
+      test('a free-mode snapshot writes an explicit null', () {
+        // ARRANGE
+        final original = RaceSnapshot(
+          eventCount: 1,
+          boatState: BoatState(lastUpdate: boatTime),
+          connectionStatus: const Connected(),
+          tickTime: tickTime,
+        );
+
+        // ACT
+        final json = original.toJson();
+
+        // ASSERT
+        expect(json.containsKey('raceId'), isTrue);
+        expect(RaceSnapshot.fromJson(json).raceId, isNull);
+        expect(RaceSnapshot.fromJson(json).raceFinishedAt, isNull);
+      });
+
+      test('an older snapshot without the key decodes to null', () {
+        // ARRANGE
+        final json = RaceSnapshot(
+          eventCount: 1,
+          boatState: BoatState(lastUpdate: boatTime),
+          connectionStatus: const Connected(),
+          tickTime: tickTime,
+          raceId: 'race-1',
+        ).toJson()..remove('raceId');
+
+        // ACT + ASSERT
+        expect(RaceSnapshot.fromJson(json).raceId, isNull);
       });
     });
 

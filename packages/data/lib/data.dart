@@ -1,8 +1,10 @@
 /// A `data` package publikus API-ja.
 ///
 /// A kifelé látható felület két csoport:
-///  - NMEA: a `Nmea0183TcpClient` (a `NmeaStream` domain-implementációja) és a
-///    `RawNmeaLineSource` (debug raw-tap, ADR 0006);
+///  - NMEA: a `Nmea0183TcpClient` (a `NmeaStream` domain-implementációja), a
+///    `RawNmeaLineSource` (debug raw-tap, ADR 0006), és a kapcsolat-seam
+///    (`NmeaConnection`, `connectTcpSocket`), amire a telefon gateway-próbája
+///    épül (ADR 0054 D4);
 ///  - perzisztencia (Fázis 4, ADR 0008/0009): `AppDatabase`,
 ///    `RaceRepositoryImpl`, `TelemetryLoggerImpl` — az application-réteg
 ///    providerei számára.
@@ -22,8 +24,11 @@ export 'package:data/src/engine/race_engine.dart';
 export 'package:data/src/engine/race_snapshot.dart';
 export 'package:data/src/engine/snapshot_logger.dart';
 export 'package:data/src/nmea/client/nmea0183_tcp_client.dart';
+export 'package:data/src/nmea/client/nmea_connection.dart';
 export 'package:data/src/nmea/client/raw_nmea_line_source.dart';
+export 'package:data/src/nmea/client/socket_nmea_connection.dart';
 export 'package:data/src/persistence/app_database.dart';
+export 'package:data/src/persistence/repositories/last_recording_reader_impl.dart';
 export 'package:data/src/persistence/repositories/mark_library_repository_impl.dart';
 export 'package:data/src/persistence/repositories/polar_sample_reader_impl.dart';
 export 'package:data/src/persistence/repositories/race_repository_impl.dart';

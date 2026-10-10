@@ -311,6 +311,8 @@ class RaceEngine {
       boatState: _boatState,
       connectionStatus: connectionStatus,
       raceStatus: steppedRace?.status,
+      raceId: steppedRace?.id,
+      raceFinishedAt: steppedRace?.finishedAt,
       tickTime: tick,
       wind: _wind,
       prediction: prediction,
