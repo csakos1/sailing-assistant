@@ -2,8 +2,10 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálás alatt: az E1, az E2 és az E3 kész
-(2026-10-10), az E4 hátravan; a „Szeletek" sorrendjében követi.
+Elfogadva — 2026-10-10. Implementálva: az E1–E4 kész (2026-10-10). Az
+E4 on-device próbája a felhasználónál fut
+(`docs/testing/engine-session-on-device.md`); az eredménye legkésőbb az
+R1 előtt kerül ide.
 
 A döntések egy része felhasználói döntés (a 2026-10-09-i kérdéskörök), más
 része Claude javaslata. A javaslatok „(javaslat)" jelzést kapnak, és a
@@ -215,7 +217,7 @@ nem jön létre.
 | E1 | `feat(data)` | `RaceEngine` opcionális versennyel; `_onTick` verseny nélkül; rögzítés csak `active` alatt; `RaceSnapshot.raceStatus` nullable + codec; engine- és codec-tesztek, köztük a „rajt előtt nincs rögzítés" teszt |
 | E2 | `feat(phone)` | a `race` parancs a hoston és a task handlerben; a payload-pipeline verseny nélkül; óra-widget-teszt `null` bója-mezőkkel; módfüggő értesítés |
 | E3 | `feat(phone)` | `GatewayProbe` (seam + teszt), `EngineSessionState`, életciklus a D5 szerint (cél után szabad mód, 10 perces leállás, kézi leállítás) |
-| E4 | `test(phone)` | replay-próba: szabad mód (`nmea_replay`), majd egy rajt előtti → aktív → cél → szabad kör; on-device próba a Pixelen és az órán, az akkumulátor-mérés előkészítése |
+| E4 | `test(data)` + `docs` | replay-próba: szabad mód (`nmea_replay`), majd egy rajt előtti → aktív → cél → szabad kör; on-device próba a Pixelen és az órán, az akkumulátor-mérés előkészítése |
 
 Az E1–E3 a navigációs sáv (ADR 0056) előtt is tesztelhető: a mai
 `LiveRaceScreen` verseny nélkül is megkapja a snapshotot.
@@ -465,3 +467,30 @@ Az E1–E3 a navigációs sáv (ADR 0056) előtt is tesztelhető: a mai
   kikapcsolt kijelzővel; az átvétel a feladatkezelőből lesöpört app után
   (jön-e pillanatkép 5 mp-en belül); a folytatás egy app-újraindítás
   után verseny közben.
+
+## Pontosítás a kód után (E4, 2026-10-10)
+
+- **A replay-teszt a `data`-ban van** (`test(data)`, nem `test(phone)`):
+  az engine plain Dart, a `data`-ban él, így Flutter és
+  `ProviderContainer` nélkül, a valódi `NmeaEventPipeline`-nal tesztelhető
+  (`packages/data/test/engine/race_engine_replay_test.dart`). Bemenete a
+  `tools/sample_logs/moving_mark_rounding.nmea`; a log minden
+  másodpercét a pipeline-on át az engine-be tölti, utána jön egy tick,
+  ahogy a hajón.
+- **Egybójás kör:** 0–9 mp szabad mód; 10 mp `race` parancs (rajt előtt,
+  az M1-re vezet, nincs rögzítés); 20 mp rajt; a 63. mp körül az engine az
+  M1-en maga zárja a versenyt (`raceFinishedAt` = a tick ideje); 3 mp-cel
+  később `race: null`, onnan újra szabad mód.
+- **Kétbójás kör:** ugyanott egy tiszta léptetés M1 → M2, a verseny
+  aktív marad, és minden aktív tick rögzül.
+- **A rögzítés határa, pontosan:** a telemetria a rajt másodpercétől a
+  célba érés másodpercéig tart, azt is beleértve. Annak a másodpercnek a
+  mondatai még a záró tick előtt, aktív versenyben érkeznek; ezek
+  váltják ki a célt. A snapshot-log a záró ticket már nem tartalmazza
+  (D3, E1).
+- **On-device:** az útmutató a `docs/testing/engine-session-on-device.md`
+  (szabad mód, rajt előtt, rajt, automatikus cél, 10 perces leállás
+  kikapcsolt kijelzővel, átvétel, folytatás, kézi leállítás,
+  akkumulátor-mérés). A telefon `adb reverse`-szel és
+  `FORETACK_GATEWAY_HOST=127.0.0.1`-gyel ér a replayhez, így IP-cím
+  sehova nem kerül.

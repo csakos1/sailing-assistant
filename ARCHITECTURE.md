@@ -3606,7 +3606,10 @@ előtérben egy `GatewayProbe` TCP-próbával keresi a
 gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
 után az engine szabad módban fut tovább; szabad módban 10 perc kapcsolat
 nélkül leáll (§10.6 „Engine-session"). Új UI→task parancs:
-`{type: 'race', race: … | null}`, csak nem aktív versenyre.
+`{type: 'race', race: … | null}`, csak nem aktív versenyre. **Kész (E4):** replay-teszt
+a teljes körre (szabad → rajt előtt → aktív → automatikus cél → szabad) a
+`moving_mark_rounding.nmea`-val (`packages/data/test/engine/`), és egy
+on-device útmutató (`docs/testing/engine-session-on-device.md`).
 
 **Tervezett verseny (ADR 0055).** A `Race` két új, opcionális mezője a
 `scheduledStartAt` (UTC) és a `startPoint` (`StartPoint`: név +
