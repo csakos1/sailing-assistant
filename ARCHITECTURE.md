@@ -3616,12 +3616,15 @@ on-device útmutató (`docs/testing/engine-session-on-device.md`).
 koordináta, nem `Mark`). A rajt előtti rávezetés célja a rajthely (ha
 nincs, az első bója) a `guidanceTargetOrNull` / `guidanceNextOrNull`
 gettereken át. A nap versenyét a `SelectInstrumentsRace` tiszta függvény
-választja (aktív verseny > a mai, legkorábbi, még nem indult, a 3 órás
-visszamenőleges ablakon belül > szabad mód). A rajtidőben az engine
-indítja a versenyt (`startedAt = scheduledStartAt`, visszamenőleg is),
-és a UI a snapshot alapján veszi át a DB-be. A séma v6 (ADR 0055 D3; a
-§9.2 a T2 szelettel frissül); a szerver v6-os kiadása megelőzi a
-telefonosat.
+választja (folytatható aktív verseny > a mai, még nem indult, a 3 órás
+visszamenőleges ablakon belüli versenyek közül a mai kézi választás,
+különben a legkorábbi > szabad mód). **Kész (T1):** a domain része
+(`StartPoint`, a két mező, a getterek, `SelectInstrumentsRace`,
+`InstrumentsRaceChoice`); a „helyi ma" egy injektált
+`LocalWallClock`-ból jön. A rajtidőben az engine indítja a versenyt
+(`startedAt = scheduledStartAt`, visszamenőleg is), és a UI a snapshot
+alapján veszi át a DB-be. A séma v6 (ADR 0055 D3; a §9.2 a T2 szelettel
+frissül); a szerver v6-os kiadása megelőzi a telefonosat.
 
 ## 9. Perzisztencia (Drift / SQLite)
 

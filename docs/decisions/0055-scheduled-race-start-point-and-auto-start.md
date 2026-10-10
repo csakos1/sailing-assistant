@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Még nem implementálva; az ADR 0054 E1–E3
-szeletei után következik, docs-first.
+Elfogadva — 2026-10-10. Implementálva: a T1 kész (2026-10-10); a
+T2–T6 hátravan.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -89,7 +89,8 @@ Claude három részletet maga döntött el, a felhasználó nem kifogásolta
     rajthely nélkül a második; `active` alatt a következő bója.
 - A predikció (`ComputeMarkPrediction`) `Mark`-ot vár. A rajthelyből egy
   **csak memóriában élő** `Mark` lesz (`StartPoint.asGuidanceMark()`,
-  `sequence: 0`), amit sem DB, sem codec nem lát (javaslat).
+  `sequence: 0`; a kódban 1, lásd a T1 pontosítását), amit sem DB, sem
+  codec nem lát (javaslat).
 - Az engine a `_onTick`-ben ezekkel a getterekkel számol, így rajt előtt
   a TWA KÖV. a rajthely → első bója szakaszra szól, a táv és az ETA a
   rajthelyre (34b-1), és az óra a rajthely nevét kapja bójanévként.
@@ -242,3 +243,73 @@ készül; a T1–T5 addig a mai képernyőkkel és tesztekkel ellenőrizhető.
 - Rajtidő-javítás aktív versenyen: a backlogban.
 - A tervezett rajt és a rajthely megjelenítése a weben.
 - Az ADR 0045 (engine → DB visszaírás).
+
+## Pontosítás a kód után (T1, 2026-10-10)
+
+A felhasználó négy döntése a T1 előtt (2026-10-10), mind az ajánlott
+változat:
+
+- **Az aktív verseny csak folytathatóan nyer (D5 1. lépése).** Az ADR
+  az E3 előtt készült; az E3 óta egy `active` verseny csak friss
+  felvételnél folytatódik magától (`IsRaceResumable`, 6 óra; ADR 0054
+  „Pontosítás (E3)"). A `SelectInstrumentsRace` ezért ugyanezt a
+  szabályt alkalmazza: egy régóta nem rögzítő aktív verseny (elfelejtett
+  „Cél") nem nyer, utána a mai tervezett verseny jön, különben szabad
+  mód. A szabály így egy helyen, a domainben él. Bemenet ehhez:
+  `activeRaceLastRecordedAt` (a T4-ben a `LastRecordingReader`-ből). Ha
+  egyszerre több aktív verseny van (normálisan nem fordul elő), a
+  legkésőbb indult számít; ezt a szabályt a nyilvános
+  `SelectInstrumentsRace.latestActiveRace` adja, hogy a T4 ugyanannak a
+  versenynek a felvételét olvassa, amelyikről a függvény dönt.
+- **A rajthely `Mark`-ja `sequence: 1` (D2).** A `Mark` invariánsa
+  `sequence >= 1`, ezért a `sequence: 0` debugban assertbe futna. A
+  `StartPoint.asGuidanceMark()` a `StartPoint.guidanceMarkSequence`-t
+  (1) használja; a rávezetett „bója" sosem kerül a bóják közé, sem a
+  DB-be. Ha az óra vagy a snapshot a sorszámot kiírja (`'seq'`), rajt
+  előtt 1-et mutat; ezt a T3 nézi meg.
+- **A „helyi ma" injektált (D5).** A `SelectInstrumentsRace` egy
+  `LocalWallClock` függvényt kap (`DateTime Function(DateTime)`): élesben
+  `(instant) => instant.toLocal()`, tesztben egy rögzített Budapest-
+  szabály, így az éjfél- és DST-tesztek nem függenek a gép időzónájától.
+  A visszaadott értékből csak az év, a hónap és a nap számít.
+- **Törlés a `copyWith`-tel (D1).** `clearScheduledStartAt` és
+  `clearStartPoint` jelzők; a mai „`null` = ne változtass" szemantika
+  marad, és a jelző elsőbbséget élvez egy ugyanabban a hívásban megadott
+  új értékkel szemben.
+
+A kódban eldőlt részletek (Claude javaslata):
+
+- **A kézi választás:** `InstrumentsRaceChoice(raceId, chosenOnLocalDay)`
+  value object; az egyenlőségben csak a nap számít. Csak a mai helyi
+  napon és csak egy jelölt versenyre érvényes; különben a legkorábbi
+  jelölt nyer.
+- **A „ma" a rajtidő helyi napja:** egy 23:30-as rajt éjfél után már
+  nem választódik ki magától, akkor sem, ha a 3 órás ablakon belül van
+  (a Balatonon nincs éjféli rajt; ha mégis, kézzel indítható).
+- **Az ablak:** `SelectInstrumentsRace.defaultLateStartWindow` (3 óra),
+  a konstruktorban felülírható. A jelölt feltétele
+  `now < scheduledStartAt + ablak`, tehát pont a 3. órában már nem.
+- **Egyező rajtidőnél** a lista sorrendje dönt.
+- **A state-átmenetek** (`start`, `roundCurrentMark`, `finish`) a két
+  mezőt változatlanul viszik; az egyenlőség (Equatable) mindkettőt nézi.
+- **A meglévő `activeMarkOrNull` / `nextMarkOrNull`** nem változott; a
+  rajthelyet csak az új guidance-getterek látják.
+- **Tesztek:** `race_scheduled_start_test.dart`, `start_point_test.dart`,
+  `instruments_race_choice_test.dart`, `select_instruments_race_test.dart`
+  (időzóna-határ, éjfél, az őszi és a tavaszi óraátállítás napja, a két
+  pillanat saját eltolással, több mai verseny, lejárt ablak, kézi
+  választás tegnapról és egy lejárt versenyre, a kézi választás egy
+  folytatható aktív verseny mellett, folytatható és elfelejtett aktív
+  verseny, egy mai, de régóta nem rögzítő aktív verseny).
+- **A T2–T4 figyelmeztetése:** a két új mezőt ma több hely csendben
+  elhagyja; ezeket a következő szeletek kötik be:
+  - T2: `race_repository_impl.dart` (írás és `_toRace`), `race_codec.dart`
+    (az izolátum-határ);
+  - T3: `race_engine.dart` (a predikció a guidance-getterekre vált, a
+    `_maybeRoundMark` marad az `activeMarkOrNull`-on), `race_snapshot.dart`
+    (`'seq'` rajt előtt 1);
+  - T4 / U7: `race_edit_screen.dart` (ma `Race.create`-tel menti a
+    szerkesztést, ami a rajtidőt és a rajthelyet törölné), a
+    `race_setup_screen.dart`, a `race_engine_lifecycle.dart`
+    `_resumableSelection`-je és a `live_race_screen.dart` bójanév-tartaléka;
+  - a webes `archived_race_codec.dart` v1-ben nem viszi őket (D4).
