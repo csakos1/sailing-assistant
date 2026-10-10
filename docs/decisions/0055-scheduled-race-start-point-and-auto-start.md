@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: a T1 kész (2026-10-10); a
-T2–T6 hátravan.
+Elfogadva — 2026-10-10. Implementálva: a T1 és a T2 kész
+(2026-10-10); a T3–T6 hátravan.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -313,3 +313,41 @@ A kódban eldőlt részletek (Claude javaslata):
     `race_setup_screen.dart`, a `race_engine_lifecycle.dart`
     `_resumableSelection`-je és a `live_race_screen.dart` bójanév-tartaléka;
   - a webes `archived_race_codec.dart` v1-ben nem viszi őket (D4).
+
+## Pontosítás a kód után (T2, 2026-10-10)
+
+A felhasználó három döntése a T2 előtt (2026-10-10), mind az ajánlott
+változat:
+
+- **Hibás rajthely-sor (D3):** `null` rajthely és egy warning-napló
+  (`RaceRepository`, 900-as szint); a verseny és a rajtideje betöltődik.
+  Hibásnak számít a hiányos sor (a három oszlopból nem mind van meg), az
+  üres név és a tartományon kívüli vagy nem véges koordináta
+  (`Coordinate.tryFromDegrees`). Ha mind a három üres, nincs rajthely,
+  napló nélkül.
+- **A rajthely a bójakönyvtárba (D3) az U7-ben kerül:** rajthelyet csak az
+  új setup-képernyő ad meg, ezért ott bővül a közös
+  `persistRaceMarksToLibrary`. A T2 csak az adatréteg.
+- **A régi migrációs tesztek** (data és web_server) a friss DB-ből
+  visszabutított fixture-ükből a négy új oszlopot is eldobják
+  (`ALTER TABLE races DROP COLUMN`), így hű v1–v5 DB-t kapnak; a v6 lépés
+  egyszerű `addColumn` marad, mint az eddigi lépcsők. A web_server
+  tesztjeiben ez a `downgradeToSchemaV4` segéd.
+
+A kódban eldőlt részletek (Claude javaslata):
+
+- **Oszlopok:** `scheduled_start_at` (Drift `dateTime`, a többi
+  időbélyeghez hasonlóan Unix-másodperc, helyi `DateTime`-ként olvasva
+  vissza — ugyanaz a pillanat, mint a domain UTC-értéke, de `isUtc`
+  nélkül, mint a `startedAt`; a codec viszont UTC-t ad, ezért a T4 a
+  DB-ből és a snapshotból jött versenyt ne `==`-vel, hanem id és
+  pillanat szerint vesse össze), `start_point_name`
+  (text), `start_point_latitude`, `start_point_longitude` (real).
+- **Mentés:** az upsert insert- és update-ága is írja a négy oszlopot, így
+  egy `copyWith(clear…)` utáni újramentés törli őket.
+- **Codec (az izolátum-határ):** `scheduledStartAt` epoch-ms (UTC-instant),
+  `startPoint` `{name, pos: {lat, lon}}` vagy `null`; a hiányzó kulcs
+  `null`, így egy régebbi küldő üzenete is olvasható.
+- **A webes archívum** sémája a szerver következő kiadásával (T6) lesz v6;
+  a feltöltött v5-ös telefon-DB-t a szerver továbbra is migrálja. A
+  `race_archive_api` kodekje v1-ben nem viszi a két mezőt (D4).

@@ -3621,10 +3621,11 @@ visszamenőleges ablakon belüli versenyek közül a mai kézi választás,
 különben a legkorábbi > szabad mód). **Kész (T1):** a domain része
 (`StartPoint`, a két mező, a getterek, `SelectInstrumentsRace`,
 `InstrumentsRaceChoice`); a „helyi ma" egy injektált
-`LocalWallClock`-ból jön. A rajtidőben az engine indítja a versenyt
+`LocalWallClock`-ból jön. **Kész (T2):** séma v6, repository, codec
+(§9.2). A rajtidőben az engine indítja a versenyt
 (`startedAt = scheduledStartAt`, visszamenőleg is), és a UI a snapshot
-alapján veszi át a DB-be. A séma v6 (ADR 0055 D3; a §9.2 a T2 szelettel
-frissül); a szerver v6-os kiadása megelőzi a telefonosat.
+alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
+v6-os kiadása megelőzi a telefonosat.
 
 ## 9. Perzisztencia (Drift / SQLite)
 
@@ -3645,6 +3646,11 @@ class Races extends Table {
   DateTimeColumn get finishedAt => dateTime().nullable()();
   IntColumn get activeMarkIndex => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
+  // v6 (ADR 0055 D3): tervezett rajt és rajthely
+  DateTimeColumn get scheduledStartAt => dateTime().nullable()();
+  TextColumn get startPointName => text().nullable()();
+  RealColumn get startPointLatitude => real().nullable()();
+  RealColumn get startPointLongitude => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -3750,6 +3756,16 @@ class RaceTrackStats extends Table {
 > `insertOnConflictUpdate`: a feltöltés a képernyő elhagyásakor bármikor
 > megszakadhat, és a következő megnyitás újraindítja — félkész vagy
 > duplikált sort nem hagyhat.
+
+> **v5 → v6 migráció (ADR 0055 D3)**: a `Races` négy nullable oszlopot kap
+> (`scheduled_start_at`, `start_point_name`, `start_point_latitude`,
+> `start_point_longitude`). `schemaVersion` 5 → 6, `onUpgrade`-ben
+> `if (from < 6)` négy `m.addColumn(races, …)`; a meglévő versenyek
+> `null`-t kapnak. A rajthely három oszlopa vagy mind kitöltött, vagy mind
+> üres: a `RaceRepositoryImpl` egy hiányos vagy érvénytelen sort `null`
+> rajthelyként olvas, warning-naplóval. A webes archívum ugyanezt az
+> `AppDatabase`-t használja, ezért **a szerver v6-os kiadása megelőzi a
+> telefonosat** (ADR 0055 D4).
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
