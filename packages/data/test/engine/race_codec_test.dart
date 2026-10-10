@@ -88,5 +88,41 @@ void main() {
         startTime.millisecondsSinceEpoch,
       );
     });
+
+    test('the scheduled start and the start point survive a round-trip', () {
+      // Arrange
+      final race = Race.create(
+        id: 'r1',
+        name: 'Teszt',
+        marks: const [markA],
+        scheduledStartAt: startTime,
+        startPoint: const StartPoint(
+          name: 'Rajtvonal',
+          position: Coordinate(latitude: 46.95, longitude: 17.9),
+        ),
+      );
+
+      // Act
+      final restored = raceFromJson(raceToJson(race));
+
+      // Assert
+      expect(restored, equals(race));
+      expect(restored.scheduledStartAt?.isUtc, isTrue);
+    });
+
+    test('a message without the schedule keys reads as unscheduled', () {
+      // Arrange: an older sender did not write the two keys.
+      final race = Race.create(id: 'r1', name: 'Teszt', marks: const [markA]);
+      final json = raceToJson(race)
+        ..remove('scheduledStartAt')
+        ..remove('startPoint');
+
+      // Act
+      final restored = raceFromJson(json);
+
+      // Assert
+      expect(restored.scheduledStartAt, isNull);
+      expect(restored.startPoint, isNull);
+    });
   });
 }

@@ -1,6 +1,9 @@
+import 'dart:developer' as developer;
+
 import 'package:data/src/persistence/app_database.dart';
 import 'package:domain/domain.dart';
 import 'package:drift/drift.dart';
+import 'package:shared/shared.dart';
 
 /// A [RaceRepository] Drift-alapú implementációja (ADR 0008 D7).
 ///
@@ -36,6 +39,10 @@ class RaceRepositoryImpl implements RaceRepository {
               finishedAt: Value(race.finishedAt),
               activeMarkIndex: Value(race.activeMarkIndex),
               createdAt: _now(),
+              scheduledStartAt: Value(race.scheduledStartAt),
+              startPointName: Value(race.startPoint?.name),
+              startPointLatitude: Value(race.startPoint?.position.latitude),
+              startPointLongitude: Value(race.startPoint?.position.longitude),
             ),
             onConflict: DoUpdate(
               (_) => RacesCompanion(
@@ -44,6 +51,10 @@ class RaceRepositoryImpl implements RaceRepository {
                 startedAt: Value(race.startedAt),
                 finishedAt: Value(race.finishedAt),
                 activeMarkIndex: Value(race.activeMarkIndex),
+                scheduledStartAt: Value(race.scheduledStartAt),
+                startPointName: Value(race.startPoint?.name),
+                startPointLatitude: Value(race.startPoint?.position.latitude),
+                startPointLongitude: Value(race.startPoint?.position.longitude),
               ),
             ),
           );
@@ -120,6 +131,46 @@ class RaceRepositoryImpl implements RaceRepository {
       activeMarkIndex: raceRow.activeMarkIndex,
       startedAt: raceRow.startedAt,
       finishedAt: raceRow.finishedAt,
+      scheduledStartAt: raceRow.scheduledStartAt,
+      startPoint: _toStartPoint(raceRow),
+    );
+  }
+
+  /// A rajthely három oszlopa → [StartPoint], vagy `null`.
+  ///
+  /// Ha mind a három üres, nincs rajthely. Egy hiányos vagy érvénytelen sor
+  /// (pl. név koordináta nélkül, üres név, tartományon kívüli koordináta)
+  /// defenzíven `null` rajthelyet ad egy figyelmeztetéssel (ADR 0055 D3):
+  /// egy sérült sor miatt ne essen szét a versenylista, rajt előtt pedig az
+  /// első bója marad a cél.
+  StartPoint? _toStartPoint(RaceRow raceRow) {
+    final name = raceRow.startPointName;
+    final latitude = raceRow.startPointLatitude;
+    final longitude = raceRow.startPointLongitude;
+    if (name == null && latitude == null && longitude == null) return null;
+    if (name == null || name.isEmpty || latitude == null || longitude == null) {
+      _warnInvalidStartPoint(raceRow.id, 'incomplete row');
+      return null;
+    }
+    final position = Coordinate.tryFromDegrees(
+      latitude: latitude,
+      longitude: longitude,
+    );
+    switch (position) {
+      case Ok(value: final coordinate):
+        return StartPoint(name: name, position: coordinate);
+      case Err(error: final error):
+        _warnInvalidStartPoint(raceRow.id, '$error');
+        return null;
+    }
+  }
+
+  /// Naplóz egy eldobott, érvénytelen rajthelyet (warning szint).
+  static void _warnInvalidStartPoint(String raceId, String reason) {
+    developer.log(
+      'Invalid start point dropped for race $raceId: $reason',
+      name: 'RaceRepository',
+      level: 900,
     );
   }
 

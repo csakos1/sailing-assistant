@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _assumeMigrated;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +84,14 @@ class AppDatabase extends _$AppDatabase {
       // gyorsítótár táblája. CSAK az új tábla.
       if (from < 5) {
         await m.createTable(raceTrackStats);
+      }
+      // v5 → v6 (ADR 0055 D3): a tervezett rajt és a rajthely négy
+      // nullable oszlopa a races táblán. A meglévő versenyek null-t kapnak.
+      if (from < 6) {
+        await m.addColumn(races, races.scheduledStartAt);
+        await m.addColumn(races, races.startPointName);
+        await m.addColumn(races, races.startPointLatitude);
+        await m.addColumn(races, races.startPointLongitude);
       }
     },
     beforeOpen: (_) async {

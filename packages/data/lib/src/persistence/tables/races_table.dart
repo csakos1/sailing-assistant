@@ -14,6 +14,14 @@ class Races extends Table {
   IntColumn get activeMarkIndex => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
 
+  // A tervezett rajt és a rajthely (ADR 0055 D3, séma v6). A rajthely három
+  // oszlopa vagy mind kitöltött, vagy mind üres; a repository olvasáskor
+  // ellenőrzi.
+  DateTimeColumn get scheduledStartAt => dateTime().nullable()();
+  TextColumn get startPointName => text().nullable()();
+  RealColumn get startPointLatitude => real().nullable()();
+  RealColumn get startPointLongitude => real().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

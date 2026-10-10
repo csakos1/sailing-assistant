@@ -4,7 +4,9 @@
 // (UTC-instant) int, num-on át dekódolva; enum → .name; Coordinate → {lat,lon}.
 // A teljes state-trojkát (status, activeMarkIndex, startedAt, finishedAt) a
 // direkt Race(...) ctor építi vissza — NEM Race.create (az mindig notStarted).
-// A Mark.roundedAt is átkel (teljesség + post-race re-derive).
+// A Mark.roundedAt is átkel (teljesség + post-race re-derive). A tervezett
+// rajt és a rajthely (ADR 0055 D3) opcionális kulcs: a hiányzó kulcs null,
+// így egy régebbi oldal üzenete is olvasható.
 //
 // Külön a race_snapshot.dart-tól: annak privát Mark-helpere roundedAt nélküli
 // (a prediction aktív bójája) és privát — a working snapshot-kódot nem
@@ -20,6 +22,8 @@ Map<String, dynamic> raceToJson(Race race) => <String, dynamic>{
   'startedAt': race.startedAt?.millisecondsSinceEpoch,
   'finishedAt': race.finishedAt?.millisecondsSinceEpoch,
   'marks': race.marks.map(markToJson).toList(),
+  'scheduledStartAt': race.scheduledStartAt?.millisecondsSinceEpoch,
+  'startPoint': _startPointToJson(race.startPoint),
 };
 
 /// JSON-Mapből visszaépíti a `Race`-t a direkt ctor-ral (teljes state-trojka).
@@ -33,6 +37,8 @@ Race raceFromJson(Map<String, dynamic> json) => Race(
   marks: (json['marks'] as List<dynamic>)
       .map((e) => markFromJson(e as Map<String, dynamic>))
       .toList(),
+  scheduledStartAt: _dateTimeOrNull(json['scheduledStartAt'] as num?),
+  startPoint: _startPointOrNull(json['startPoint'] as Map<String, dynamic>?),
 );
 
 /// Egy `Mark`-ot JSON-Map-pé alakít (a `roundedAt`-tal együtt).
@@ -62,6 +68,20 @@ Coordinate _coordFromJson(Map<String, dynamic> m) => Coordinate(
   latitude: (m['lat'] as num).toDouble(),
   longitude: (m['lon'] as num).toDouble(),
 );
+
+Map<String, dynamic>? _startPointToJson(StartPoint? point) => point == null
+    ? null
+    : <String, dynamic>{
+        'name': point.name,
+        'pos': _coordToJson(point.position),
+      };
+
+StartPoint? _startPointOrNull(Map<String, dynamic>? json) => json == null
+    ? null
+    : StartPoint(
+        name: json['name'] as String,
+        position: _coordFromJson(json['pos'] as Map<String, dynamic>),
+      );
 
 DateTime? _dateTimeOrNull(num? millis) => millis == null
     ? null

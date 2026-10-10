@@ -80,6 +80,51 @@ class $RacesTable extends Races with TableInfo<$RacesTable, RaceRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _scheduledStartAtMeta = const VerificationMeta(
+    'scheduledStartAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scheduledStartAt =
+      GeneratedColumn<DateTime>(
+        'scheduled_start_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _startPointNameMeta = const VerificationMeta(
+    'startPointName',
+  );
+  @override
+  late final GeneratedColumn<String> startPointName = GeneratedColumn<String>(
+    'start_point_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startPointLatitudeMeta =
+      const VerificationMeta('startPointLatitude');
+  @override
+  late final GeneratedColumn<double> startPointLatitude =
+      GeneratedColumn<double>(
+        'start_point_latitude',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _startPointLongitudeMeta =
+      const VerificationMeta('startPointLongitude');
+  @override
+  late final GeneratedColumn<double> startPointLongitude =
+      GeneratedColumn<double>(
+        'start_point_longitude',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -89,6 +134,10 @@ class $RacesTable extends Races with TableInfo<$RacesTable, RaceRow> {
     finishedAt,
     activeMarkIndex,
     createdAt,
+    scheduledStartAt,
+    startPointName,
+    startPointLatitude,
+    startPointLongitude,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -144,6 +193,42 @@ class $RacesTable extends Races with TableInfo<$RacesTable, RaceRow> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('scheduled_start_at')) {
+      context.handle(
+        _scheduledStartAtMeta,
+        scheduledStartAt.isAcceptableOrUnknown(
+          data['scheduled_start_at']!,
+          _scheduledStartAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_point_name')) {
+      context.handle(
+        _startPointNameMeta,
+        startPointName.isAcceptableOrUnknown(
+          data['start_point_name']!,
+          _startPointNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_point_latitude')) {
+      context.handle(
+        _startPointLatitudeMeta,
+        startPointLatitude.isAcceptableOrUnknown(
+          data['start_point_latitude']!,
+          _startPointLatitudeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_point_longitude')) {
+      context.handle(
+        _startPointLongitudeMeta,
+        startPointLongitude.isAcceptableOrUnknown(
+          data['start_point_longitude']!,
+          _startPointLongitudeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -183,6 +268,22 @@ class $RacesTable extends Races with TableInfo<$RacesTable, RaceRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      scheduledStartAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scheduled_start_at'],
+      ),
+      startPointName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_point_name'],
+      ),
+      startPointLatitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}start_point_latitude'],
+      ),
+      startPointLongitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}start_point_longitude'],
+      ),
     );
   }
 
@@ -203,6 +304,10 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
   final DateTime? finishedAt;
   final int activeMarkIndex;
   final DateTime createdAt;
+  final DateTime? scheduledStartAt;
+  final String? startPointName;
+  final double? startPointLatitude;
+  final double? startPointLongitude;
   const RaceRow({
     required this.id,
     required this.name,
@@ -211,6 +316,10 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
     this.finishedAt,
     required this.activeMarkIndex,
     required this.createdAt,
+    this.scheduledStartAt,
+    this.startPointName,
+    this.startPointLatitude,
+    this.startPointLongitude,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -230,6 +339,18 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
     }
     map['active_mark_index'] = Variable<int>(activeMarkIndex);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || scheduledStartAt != null) {
+      map['scheduled_start_at'] = Variable<DateTime>(scheduledStartAt);
+    }
+    if (!nullToAbsent || startPointName != null) {
+      map['start_point_name'] = Variable<String>(startPointName);
+    }
+    if (!nullToAbsent || startPointLatitude != null) {
+      map['start_point_latitude'] = Variable<double>(startPointLatitude);
+    }
+    if (!nullToAbsent || startPointLongitude != null) {
+      map['start_point_longitude'] = Variable<double>(startPointLongitude);
+    }
     return map;
   }
 
@@ -246,6 +367,18 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
           : Value(finishedAt),
       activeMarkIndex: Value(activeMarkIndex),
       createdAt: Value(createdAt),
+      scheduledStartAt: scheduledStartAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledStartAt),
+      startPointName: startPointName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startPointName),
+      startPointLatitude: startPointLatitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startPointLatitude),
+      startPointLongitude: startPointLongitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startPointLongitude),
     );
   }
 
@@ -264,6 +397,16 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
       finishedAt: serializer.fromJson<DateTime?>(json['finishedAt']),
       activeMarkIndex: serializer.fromJson<int>(json['activeMarkIndex']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      scheduledStartAt: serializer.fromJson<DateTime?>(
+        json['scheduledStartAt'],
+      ),
+      startPointName: serializer.fromJson<String?>(json['startPointName']),
+      startPointLatitude: serializer.fromJson<double?>(
+        json['startPointLatitude'],
+      ),
+      startPointLongitude: serializer.fromJson<double?>(
+        json['startPointLongitude'],
+      ),
     );
   }
   @override
@@ -279,6 +422,10 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
       'finishedAt': serializer.toJson<DateTime?>(finishedAt),
       'activeMarkIndex': serializer.toJson<int>(activeMarkIndex),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'scheduledStartAt': serializer.toJson<DateTime?>(scheduledStartAt),
+      'startPointName': serializer.toJson<String?>(startPointName),
+      'startPointLatitude': serializer.toJson<double?>(startPointLatitude),
+      'startPointLongitude': serializer.toJson<double?>(startPointLongitude),
     };
   }
 
@@ -290,6 +437,10 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
     Value<DateTime?> finishedAt = const Value.absent(),
     int? activeMarkIndex,
     DateTime? createdAt,
+    Value<DateTime?> scheduledStartAt = const Value.absent(),
+    Value<String?> startPointName = const Value.absent(),
+    Value<double?> startPointLatitude = const Value.absent(),
+    Value<double?> startPointLongitude = const Value.absent(),
   }) => RaceRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -298,6 +449,18 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
     finishedAt: finishedAt.present ? finishedAt.value : this.finishedAt,
     activeMarkIndex: activeMarkIndex ?? this.activeMarkIndex,
     createdAt: createdAt ?? this.createdAt,
+    scheduledStartAt: scheduledStartAt.present
+        ? scheduledStartAt.value
+        : this.scheduledStartAt,
+    startPointName: startPointName.present
+        ? startPointName.value
+        : this.startPointName,
+    startPointLatitude: startPointLatitude.present
+        ? startPointLatitude.value
+        : this.startPointLatitude,
+    startPointLongitude: startPointLongitude.present
+        ? startPointLongitude.value
+        : this.startPointLongitude,
   );
   RaceRow copyWithCompanion(RacesCompanion data) {
     return RaceRow(
@@ -314,6 +477,18 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
           ? data.activeMarkIndex.value
           : this.activeMarkIndex,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      scheduledStartAt: data.scheduledStartAt.present
+          ? data.scheduledStartAt.value
+          : this.scheduledStartAt,
+      startPointName: data.startPointName.present
+          ? data.startPointName.value
+          : this.startPointName,
+      startPointLatitude: data.startPointLatitude.present
+          ? data.startPointLatitude.value
+          : this.startPointLatitude,
+      startPointLongitude: data.startPointLongitude.present
+          ? data.startPointLongitude.value
+          : this.startPointLongitude,
     );
   }
 
@@ -326,7 +501,11 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
           ..write('startedAt: $startedAt, ')
           ..write('finishedAt: $finishedAt, ')
           ..write('activeMarkIndex: $activeMarkIndex, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('scheduledStartAt: $scheduledStartAt, ')
+          ..write('startPointName: $startPointName, ')
+          ..write('startPointLatitude: $startPointLatitude, ')
+          ..write('startPointLongitude: $startPointLongitude')
           ..write(')'))
         .toString();
   }
@@ -340,6 +519,10 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
     finishedAt,
     activeMarkIndex,
     createdAt,
+    scheduledStartAt,
+    startPointName,
+    startPointLatitude,
+    startPointLongitude,
   );
   @override
   bool operator ==(Object other) =>
@@ -351,7 +534,11 @@ class RaceRow extends DataClass implements Insertable<RaceRow> {
           other.startedAt == this.startedAt &&
           other.finishedAt == this.finishedAt &&
           other.activeMarkIndex == this.activeMarkIndex &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.scheduledStartAt == this.scheduledStartAt &&
+          other.startPointName == this.startPointName &&
+          other.startPointLatitude == this.startPointLatitude &&
+          other.startPointLongitude == this.startPointLongitude);
 }
 
 class RacesCompanion extends UpdateCompanion<RaceRow> {
@@ -362,6 +549,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
   final Value<DateTime?> finishedAt;
   final Value<int> activeMarkIndex;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> scheduledStartAt;
+  final Value<String?> startPointName;
+  final Value<double?> startPointLatitude;
+  final Value<double?> startPointLongitude;
   final Value<int> rowid;
   const RacesCompanion({
     this.id = const Value.absent(),
@@ -371,6 +562,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
     this.finishedAt = const Value.absent(),
     this.activeMarkIndex = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.scheduledStartAt = const Value.absent(),
+    this.startPointName = const Value.absent(),
+    this.startPointLatitude = const Value.absent(),
+    this.startPointLongitude = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RacesCompanion.insert({
@@ -381,6 +576,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
     this.finishedAt = const Value.absent(),
     this.activeMarkIndex = const Value.absent(),
     required DateTime createdAt,
+    this.scheduledStartAt = const Value.absent(),
+    this.startPointName = const Value.absent(),
+    this.startPointLatitude = const Value.absent(),
+    this.startPointLongitude = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -394,6 +593,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
     Expression<DateTime>? finishedAt,
     Expression<int>? activeMarkIndex,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? scheduledStartAt,
+    Expression<String>? startPointName,
+    Expression<double>? startPointLatitude,
+    Expression<double>? startPointLongitude,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -404,6 +607,12 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
       if (finishedAt != null) 'finished_at': finishedAt,
       if (activeMarkIndex != null) 'active_mark_index': activeMarkIndex,
       if (createdAt != null) 'created_at': createdAt,
+      if (scheduledStartAt != null) 'scheduled_start_at': scheduledStartAt,
+      if (startPointName != null) 'start_point_name': startPointName,
+      if (startPointLatitude != null)
+        'start_point_latitude': startPointLatitude,
+      if (startPointLongitude != null)
+        'start_point_longitude': startPointLongitude,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -416,6 +625,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
     Value<DateTime?>? finishedAt,
     Value<int>? activeMarkIndex,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? scheduledStartAt,
+    Value<String?>? startPointName,
+    Value<double?>? startPointLatitude,
+    Value<double?>? startPointLongitude,
     Value<int>? rowid,
   }) {
     return RacesCompanion(
@@ -426,6 +639,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
       finishedAt: finishedAt ?? this.finishedAt,
       activeMarkIndex: activeMarkIndex ?? this.activeMarkIndex,
       createdAt: createdAt ?? this.createdAt,
+      scheduledStartAt: scheduledStartAt ?? this.scheduledStartAt,
+      startPointName: startPointName ?? this.startPointName,
+      startPointLatitude: startPointLatitude ?? this.startPointLatitude,
+      startPointLongitude: startPointLongitude ?? this.startPointLongitude,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -456,6 +673,20 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (scheduledStartAt.present) {
+      map['scheduled_start_at'] = Variable<DateTime>(scheduledStartAt.value);
+    }
+    if (startPointName.present) {
+      map['start_point_name'] = Variable<String>(startPointName.value);
+    }
+    if (startPointLatitude.present) {
+      map['start_point_latitude'] = Variable<double>(startPointLatitude.value);
+    }
+    if (startPointLongitude.present) {
+      map['start_point_longitude'] = Variable<double>(
+        startPointLongitude.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -472,6 +703,10 @@ class RacesCompanion extends UpdateCompanion<RaceRow> {
           ..write('finishedAt: $finishedAt, ')
           ..write('activeMarkIndex: $activeMarkIndex, ')
           ..write('createdAt: $createdAt, ')
+          ..write('scheduledStartAt: $scheduledStartAt, ')
+          ..write('startPointName: $startPointName, ')
+          ..write('startPointLatitude: $startPointLatitude, ')
+          ..write('startPointLongitude: $startPointLongitude, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2681,6 +2916,10 @@ typedef $$RacesTableCreateCompanionBuilder =
       Value<DateTime?> finishedAt,
       Value<int> activeMarkIndex,
       required DateTime createdAt,
+      Value<DateTime?> scheduledStartAt,
+      Value<String?> startPointName,
+      Value<double?> startPointLatitude,
+      Value<double?> startPointLongitude,
       Value<int> rowid,
     });
 typedef $$RacesTableUpdateCompanionBuilder =
@@ -2692,6 +2931,10 @@ typedef $$RacesTableUpdateCompanionBuilder =
       Value<DateTime?> finishedAt,
       Value<int> activeMarkIndex,
       Value<DateTime> createdAt,
+      Value<DateTime?> scheduledStartAt,
+      Value<String?> startPointName,
+      Value<double?> startPointLatitude,
+      Value<double?> startPointLongitude,
       Value<int> rowid,
     });
 
@@ -2816,6 +3059,26 @@ class $$RacesTableFilterComposer extends Composer<_$AppDatabase, $RacesTable> {
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scheduledStartAt => $composableBuilder(
+    column: $table.scheduledStartAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startPointName => $composableBuilder(
+    column: $table.startPointName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get startPointLatitude => $composableBuilder(
+    column: $table.startPointLatitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get startPointLongitude => $composableBuilder(
+    column: $table.startPointLongitude,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2963,6 +3226,26 @@ class $$RacesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get scheduledStartAt => $composableBuilder(
+    column: $table.scheduledStartAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startPointName => $composableBuilder(
+    column: $table.startPointName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get startPointLatitude => $composableBuilder(
+    column: $table.startPointLatitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get startPointLongitude => $composableBuilder(
+    column: $table.startPointLongitude,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RacesTableAnnotationComposer
@@ -3001,6 +3284,26 @@ class $$RacesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scheduledStartAt => $composableBuilder(
+    column: $table.scheduledStartAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get startPointName => $composableBuilder(
+    column: $table.startPointName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get startPointLatitude => $composableBuilder(
+    column: $table.startPointLatitude,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get startPointLongitude => $composableBuilder(
+    column: $table.startPointLongitude,
+    builder: (column) => column,
+  );
 
   Expression<T> marksRefs<T extends Object>(
     Expression<T> Function($$MarksTableAnnotationComposer a) f,
@@ -3143,6 +3446,10 @@ class $$RacesTableTableManager
                 Value<DateTime?> finishedAt = const Value.absent(),
                 Value<int> activeMarkIndex = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> scheduledStartAt = const Value.absent(),
+                Value<String?> startPointName = const Value.absent(),
+                Value<double?> startPointLatitude = const Value.absent(),
+                Value<double?> startPointLongitude = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RacesCompanion(
                 id: id,
@@ -3152,6 +3459,10 @@ class $$RacesTableTableManager
                 finishedAt: finishedAt,
                 activeMarkIndex: activeMarkIndex,
                 createdAt: createdAt,
+                scheduledStartAt: scheduledStartAt,
+                startPointName: startPointName,
+                startPointLatitude: startPointLatitude,
+                startPointLongitude: startPointLongitude,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3163,6 +3474,10 @@ class $$RacesTableTableManager
                 Value<DateTime?> finishedAt = const Value.absent(),
                 Value<int> activeMarkIndex = const Value.absent(),
                 required DateTime createdAt,
+                Value<DateTime?> scheduledStartAt = const Value.absent(),
+                Value<String?> startPointName = const Value.absent(),
+                Value<double?> startPointLatitude = const Value.absent(),
+                Value<double?> startPointLongitude = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RacesCompanion.insert(
                 id: id,
@@ -3172,6 +3487,10 @@ class $$RacesTableTableManager
                 finishedAt: finishedAt,
                 activeMarkIndex: activeMarkIndex,
                 createdAt: createdAt,
+                scheduledStartAt: scheduledStartAt,
+                startPointName: startPointName,
+                startPointLatitude: startPointLatitude,
+                startPointLongitude: startPointLongitude,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

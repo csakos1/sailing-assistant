@@ -127,13 +127,11 @@ void main() {
     });
 
     test('an older schema after migrating the staged copy', () async {
-      // ARRANGE: v4-es telefon-DB szimulacioja, mint a data migracios
-      // tesztjeiben: a v5-os tabla eldobva, user_version = 4.
+      // ARRANGE: v4-es telefon-DB szimulacioja (downgradeToSchemaV4).
       final phone = phoneFile('phone-v4');
       final database = AppDatabase(NativeDatabase(phone));
       await seedRaces(database, [finishedFixtureRace('r1')]);
-      await database.customStatement('DROP TABLE race_track_stats');
-      await database.customStatement('PRAGMA user_version = 4');
+      await downgradeToSchemaV4(database);
       await database.close();
 
       // ACT
@@ -274,8 +272,7 @@ void main() {
       final phone = phoneFile('phone-v4');
       final database = AppDatabase(NativeDatabase(phone));
       await seedRaces(database, [finishedFixtureRace('r1')]);
-      await database.customStatement('DROP TABLE race_track_stats');
-      await database.customStatement('PRAGMA user_version = 4');
+      await downgradeToSchemaV4(database);
       await database.close();
       final before = await phone.readAsBytes();
 
