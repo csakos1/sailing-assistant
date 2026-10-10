@@ -3595,7 +3595,10 @@ megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként.
 `active` = verseny. A nyers telemetria és a snapshot-log **csak `active`
 alatt** íródik. **Kész (E1):** `RaceEngine.start({Race? race, Polar?
 polar})`, a tick verseny nélkül is snapshotot ad (`prediction: null`), a
-`RaceSnapshot.raceStatus` nullable (`null` = szabad mód). Az app
+`RaceSnapshot.raceStatus` nullable (`null` = szabad mód). **Kész (E2):**
+a `race` parancs (`RaceEngineHost.sendRaceCommand`,
+`RaceEngine.applyRaceCommand`), az init verseny nélkül, a módfüggő
+értesítés (§10.3). Az app
 előtérben egy `GatewayProbe` TCP-próbával keresi a
 gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
 után az engine szabad módban fut tovább. Új UI→task parancs:
@@ -3911,6 +3914,14 @@ JSON-ben szerializálva, a Wearable Data Layer-en küldve mint `DataItem` egy fi
 Az óra-push az **engine-ből** indul (ADR 0016 D6): mivel kijelző-off mellett az UI-izolátum felfüggesztődik, a payload-építés a service-izolátumban, a `RaceEngineTaskHandler`-ben fut, és az engine **1 Hz-es `RaceSnapshot`-emitjére fűződik** — nincs külön 500 ms-os timer (a `WatchPayload` egyenlősége a `gpsTimeUtc`-t úgyis kihagyja, a másodperceket az óra lokálisan extrapolálja, így az 1 Hz elég). Ez leváltja a régi UI-izolátumbeli keep-alive provider modellt.
 
 A pipeline a meglévő, már tesztelt egységeket komponálja a task handlerben (ez `apps/phone`, tehát importálhatja a phone-kódot): a `buildWatchPayload` a snapshot `boatState`/`wind`/`prediction`-jéből + a service-izolátumbeli `TrueTimeReading`-ből + az `EvaluateWarnings` kimenetéből építi a `WatchPayload`-ot; a `WatchSyncController.onTick` `==`-szal change-detectel, és csak változásra küld a `WatchTransport`-on. A critical-warningokat a service-izolátum lokalizálja (`lookupAppLocalizations(Locale('hu'))` — tiszta generált Dart, widget-fa nélkül, ADR 0015 D4). A warning-gatinghez a `RaceSnapshot` egy `raceStatus` mezővel bővül. A sekély-víz riasztáshoz (ADR 0031) a `RaceSnapshot` és a `WatchPayload` további két mezőt kap — `depthAlertMeters` (a live mélység, amíg az epizód aktív, különben null) és `depthBuzzCounter` (monoton; az óra a felfutó élén rezeg) —, az állapotgép (`EvaluateDepthAlert`) pedig a `RaceEngine` reducerében fut, nem a task handlerben (stateful, 1 Hz, kijelző-off mellett is — ADR 0031 D4).
+
+**Verseny nélkül (ADR 0054, E2).** A pipeline szabad módban is fut: a
+snapshot `prediction`-je `null`, ezért a payload bója-mezői is `null`-ok,
+és az óra a meglévő „—" helyőrzőket rajzolja (az óra-UI nem változik). Az
+`EvaluateWarnings` a `null` státuszt `notStarted`-ként kapja, így a
+versenyhez kötött warning szabad módban nem jön. Az értesítés címe a
+módtól függ: „Foretack — verseny" `active` alatt, egyébként „Foretack —
+műszerek" (`engineNotificationTitle`).
 
 A GPS-idő forrása a **service-izolátumban futó** true-time (GNSS-anchor + monoton extrapoláció, ADR 0012): a `geolocator` itt fut (az FGS-típus `location`-nel bővül + `ACCESS_FINE_LOCATION`), így kijelző-off mellett is van pontos `gpsTimeUtc`. A telefon saját GPS-idő-cellája a meglévő UI-oldali `trueTimeProvider`-t használja (kijelző-on), az engine-étől függetlenül. Másodpercre szinkron: a chartplotter, a telefon és az óra ugyanazt a GPS-UTC instantot mutatja — a stale stream-időt (`instrumentTimeUtc`, 4–6 mp késés) sehol nem jelenítjük meg.
 

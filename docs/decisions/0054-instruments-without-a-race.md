@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálás alatt: az E1 kész (2026-10-10), az
-E2–E4 hátravan; a „Szeletek" sorrendjében követi, docs-first.
+Elfogadva — 2026-10-10. Implementálás alatt: az E1 és az E2 kész
+(2026-10-10), az E3–E4 hátravan; a „Szeletek" sorrendjében követi.
 
 A döntések egy része felhasználói döntés (a 2026-10-09-i kérdéskörök), más
 része Claude javaslata. A javaslatok „(javaslat)" jelzést kapnak, és a
@@ -273,3 +273,37 @@ Az E1–E3 a navigációs sáv (ADR 0056) előtt is tesztelhető: a mai
   doc-kommentje sérült kódolású volt (U+FFFD karakterek); helyreállítva.
   Ugyanez a hiba a `race_engine_host.dart`-ban is megvan; az E2 javítja,
   mert az a fájlt amúgy is érinti.
+
+## Pontosítás a kód után (E2, 2026-10-10)
+
+- **A `race` parancs az engine-ben:** `RaceEngine.applyRaceCommand(Race?)`
+  `bool`-t ad vissza: `false`, ha aktív verseny közben jött (D6), és ezt a
+  task handler naplózza. Egy `finished` verseny is szabad módot jelent:
+  az engine elengedi (a D1 táblázata szerint). Csere után a
+  mark-rounding detektor resetel.
+- **Bejövő `active` verseny:** a parancs elfogadja, ha az engine épp nem
+  versenyez. Ez a folytatás útja: ha az app verseny közben újraindul, és
+  az engine előbb szabad módban indul, a nap versenye (ADR 0055 D5) az
+  aktív versenyt küldi, és a rögzítés ugyanazzal az azonosítóval
+  folytatódik. A bója-index ilyenkor a DB-ből jön, tehát a legutóbb
+  mentett állapot (ADR 0016 D6); ez ugyanaz a korlát, mint a mai
+  `start`-os folytatásnál.
+- **A host** a `sendRaceCommand`-ban a függő versenyt is frissíti, így
+  egy későbbi ready-kézfogás már a legutóbb küldött versenyt viszi.
+- **A host API:** a `RaceEngineHost.start` nevesített, opcionális
+  versenyre váltott (`start({Race? race, Polar? polar})`), az engine
+  mintájára; mellé jött a `sendRaceCommand(Race?)`. A ready-kézfogás
+  verseny nélkül is kiküldi az initet (`race: null`). A `race` parancsot
+  az E2-ben még semmi nem küldi: az E3 (életciklus) és a T4 (a nap
+  versenye) köti be.
+- **Az értesítés címe** a snapshot státuszából jön, minden ticknél
+  (`engineNotificationTitle`): „Foretack — verseny" `active` alatt,
+  minden más módban „Foretack — műszerek". A cím a service-izolátumban
+  készül, ezért nem az ARB-ből jön, a korábbi rögzített cím mintájára. A
+  csatorna neve („Verseny aktív") ebben a szeletben nem változott; az
+  átnevezés (ugyanazzal az azonosítóval) az U4-gyel vagy a „Leállítás"
+  szeletével jöhet.
+- **Az óra:** a `NextMarkView` a `null` bója-mezőket már eddig is „—"
+  helyőrzővel rajzolta; egy widget-teszt rögzíti a szabad módú payloadot.
+- **Javítva mellékesen:** a `race_engine_host.dart` sérült kódolású
+  doc-kommentje (az E1 pontosításában jelzett hiba).
