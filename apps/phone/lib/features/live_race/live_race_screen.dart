@@ -83,22 +83,18 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
   // ettől állítja le a háttér-engine-t; a próba csak a következő előtérbe
   // kerüléskor indul újra, ADR 0054 D5), majd visszanavigál.
   Future<void> _confirmStop(BuildContext context, AppLocalizations l10n) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showForetackDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.liveStopTitle),
-        content: Text(l10n.liveStopMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.liveStopCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.liveStopConfirm),
-          ),
-        ],
-      ),
+      title: l10n.liveStopTitle,
+      message: l10n.liveStopMessage,
+      actions: [
+        ForetackDialogAction(label: l10n.liveStopCancel, value: false),
+        ForetackDialogAction(
+          label: l10n.liveStopConfirm,
+          value: true,
+          isDestructive: true,
+        ),
+      ],
     );
     if (confirmed != true) return;
     ref.read(engineSessionProvider.notifier).stopManually();
@@ -110,32 +106,28 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
   // engine-nek, ami lépteti az aktív bóját (a `_maybeRoundMark` kézi párja).
   // Pontatlan boja-koordinátánál ez a gyors megoldás, amikor az auto-
   // detektor 50 m-es küszöbét sosem éri el. A célbója nevét csak akkor
-  // mutatjuk, ha ismert (nincs GPS-pozíciónál a generikus szöveg megy).
+  // mutatjuk (sorszámmal, a 35d adatcellájában), ha ismert; nincs
+  // GPS-pozíciónál csak a generikus szöveg megy.
   Future<void> _confirmRoundMark(
     BuildContext context,
     AppLocalizations l10n,
-    String? markName,
+    Mark? mark,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showForetackDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.liveRoundMarkTitle),
-        content: Text(
-          markName == null
-              ? l10n.liveRoundMarkMessageGeneric
-              : l10n.liveRoundMarkMessage(markName),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.liveRoundMarkCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.liveRoundMarkConfirm),
-          ),
-        ],
-      ),
+      title: l10n.liveRoundMarkTitle,
+      message: l10n.liveRoundMarkMessageGeneric,
+      subject: mark == null
+          ? null
+          : (
+              leading: mark.sequence.toString().padLeft(2, '0'),
+              name: mark.name,
+              trailing: null,
+            ),
+      actions: [
+        ForetackDialogAction(label: l10n.liveRoundMarkCancel, value: false),
+        ForetackDialogAction(label: l10n.liveRoundMarkConfirm, value: true),
+      ],
     );
     if (confirmed != true) return;
     ref.read(raceEngineHostProvider).sendRoundMarkCommand();
@@ -258,7 +250,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
             // KÍVÜL, hogy kritikus warning mellett (tompított rács) is
             // léptethess.
             if (race.status == RaceStatus.active)
-              _roundMarkButton(context, l10n, prediction?.mark.name),
+              _roundMarkButton(context, l10n, prediction?.mark),
           ],
         ),
       ),
@@ -391,7 +383,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
   Widget _roundMarkButton(
     BuildContext context,
     AppLocalizations l10n,
-    String? markName,
+    Mark? mark,
   ) => DecoratedBox(
     decoration: BoxDecoration(
       border: Border(
@@ -415,8 +407,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
             ),
             shape: const RoundedRectangleBorder(),
           ),
-          onPressed: () =>
-              unawaited(_confirmRoundMark(context, l10n, markName)),
+          onPressed: () => unawaited(_confirmRoundMark(context, l10n, mark)),
           child: Text(l10n.liveRoundMark),
         ),
       ),

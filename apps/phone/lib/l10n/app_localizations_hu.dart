@@ -61,11 +61,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveRoundMarkTitle => 'Bója megkerülve?';
 
   @override
-  String liveRoundMarkMessage(String mark) {
-    return 'Megjelölöd a(z) $mark át megkerültnek?';
-  }
-
-  @override
   String get liveRoundMarkMessageGeneric =>
       'Megjelölöd a jelenlegi bóját megkerültnek?';
 

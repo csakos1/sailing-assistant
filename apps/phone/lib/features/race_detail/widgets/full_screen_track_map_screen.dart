@@ -79,7 +79,11 @@ class _FullScreenTrackMapScreenState extends State<FullScreenTrackMapScreen> {
 
   /// Rövid visszajelzés a képernyő alján — a hibaüzenetek egyetlen csatornája.
   void _showMessage(String message) {
-    final snackBar = SnackBar(content: Text(message));
+    final snackBar = foretackSnackBar(
+      context,
+      message: message,
+      markColor: Theme.of(context).colorScheme.error,
+    );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
@@ -88,22 +92,20 @@ class _FullScreenTrackMapScreenState extends State<FullScreenTrackMapScreen> {
   /// A néma szürke folt nem elfogadható kimenet, a megszakítás nélküli
   /// figyelmeztetés pedig későn érkezne: a kép addigra már elment.
   Future<bool> _confirmIncompleteTiles(AppLocalizations l10n) async {
-    final answer = await showDialog<bool>(
+    final answer = await showForetackDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.trackExportTileWarningTitle),
-        content: Text(l10n.trackExportTileWarningBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.trackExportTileWarningCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.trackExportTileWarningConfirm),
-          ),
-        ],
-      ),
+      title: l10n.trackExportTileWarningTitle,
+      message: l10n.trackExportTileWarningBody,
+      actions: [
+        ForetackDialogAction(
+          label: l10n.trackExportTileWarningCancel,
+          value: false,
+        ),
+        ForetackDialogAction(
+          label: l10n.trackExportTileWarningConfirm,
+          value: true,
+        ),
+      ],
     );
     // A dialógus a hátterére koppintva is eltűnhet: az nem beleegyezés.
     return answer ?? false;

@@ -196,13 +196,7 @@ abstract class AppLocalizations {
   /// **'Bója megkerülve?'**
   String get liveRoundMarkTitle;
 
-  /// A kézi boja-megkerulés dialogus szovege a célboja nevevel.
-  ///
-  /// In hu, this message translates to:
-  /// **'Megjelölöd a(z) {mark} át megkerültnek?'**
-  String liveRoundMarkMessage(String mark);
-
-  /// A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio).
+  /// A kézi bója-megkerülés dialógusának szövege; a bója sorszáma és neve, ha ismert, az adatcellában áll.
   ///
   /// In hu, this message translates to:
   /// **'Megjelölöd a jelenlegi bóját megkerültnek?'**

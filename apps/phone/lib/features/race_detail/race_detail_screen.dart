@@ -83,24 +83,31 @@ class RaceDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+  // A `target` a képernyő friss (reaktív) példánya: egy szerkesztés után
+  // a dialógus adatcellája így a mostani nevet és bójaszámot mutatja.
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    Race target,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showForetackDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.detailDeleteTitle),
-        content: Text(l10n.detailDeleteMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.detailDeleteCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.detailDeleteConfirm),
-          ),
-        ],
+      title: l10n.detailDeleteTitle,
+      message: l10n.detailDeleteMessage,
+      subject: (
+        leading: null,
+        name: target.name,
+        trailing: l10n.listMarkCount(target.marks.length).toUpperCase(),
       ),
+      actions: [
+        ForetackDialogAction(label: l10n.detailDeleteCancel, value: false),
+        ForetackDialogAction(
+          label: l10n.detailDeleteConfirm,
+          value: true,
+          isDestructive: true,
+        ),
+      ],
     );
     if (confirmed != true) return;
 
@@ -140,7 +147,7 @@ class RaceDetailScreen extends ConsumerWidget {
               tooltip: l10n.detailEdit,
             ),
           IconButton(
-            onPressed: () => _delete(context, ref),
+            onPressed: () => _delete(context, ref, current),
             icon: const Icon(Icons.delete_outline),
             tooltip: l10n.detailDelete,
           ),

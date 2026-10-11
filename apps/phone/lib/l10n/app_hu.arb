@@ -68,18 +68,9 @@
   "@liveRoundMarkTitle": {
     "description": "A kézi boja-megkerulés megerosito dialogus cime."
   },
-  "liveRoundMarkMessage": "Megjelölöd a(z) {mark} át megkerültnek?",
-  "@liveRoundMarkMessage": {
-    "description": "A kézi boja-megkerulés dialogus szovege a célboja nevevel.",
-    "placeholders": {
-      "mark": {
-        "type": "String"
-      }
-    }
-  },
   "liveRoundMarkMessageGeneric": "Megjelölöd a jelenlegi bóját megkerültnek?",
   "@liveRoundMarkMessageGeneric": {
-    "description": "A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio)."
+    "description": "A kézi bója-megkerülés dialógusának szövege; a bója sorszáma és neve, ha ismert, az adatcellában áll."
   },
   "liveRoundMarkCancel": "Mégse",
   "@liveRoundMarkCancel": {

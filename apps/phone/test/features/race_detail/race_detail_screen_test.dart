@@ -221,14 +221,75 @@ void main() {
     // ACT — törlés ikon → megerősítés.
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
+    // A 35d adatcellaja a verseny nevet es a bojak szamat mutatja.
+    final subject = find.byType(ForetackDialogSubjectCell);
+    expect(
+      find.descendant(of: subject, matching: find.text('Kedd esti')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: subject, matching: find.text('1 BÓJA')),
+      findsOneWidget,
+    );
     await tester.tap(
-      find.widgetWithText(FilledButton, l10n.detailDeleteConfirm),
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteConfirm),
+      ),
     );
     await tester.pumpAndSettle();
 
     // ASSERT
     expect(repository.deleted, ['r1']);
     expect(find.byType(RaceDetailScreen), findsNothing);
+  });
+
+  testWidgets('a torles Megse-re semmit nem torol, a reszlet marad', (
+    tester,
+  ) async {
+    // ARRANGE — detail egy home-route fölött, hogy a pop tiszta legyen.
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
+          localizationsDelegates: phoneLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => RaceDetailScreen(race: race),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT — törlés ikon → megerősítés.
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteCancel),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(repository.deleted, isEmpty);
+    expect(find.byType(RaceDetailScreen), findsOneWidget);
   });
 
   testWidgets('SafeArea: az alsó akció-sáv a nav-inset fölött marad', (
