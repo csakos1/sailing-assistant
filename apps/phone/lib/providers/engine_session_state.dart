@@ -33,7 +33,7 @@ enum EngineStartCause {
   /// (`IsRaceResumable`); az app-újraindítás után folytatódik.
   gatewayFound,
 
-  /// A felhasználó indította („Élő nézet" vagy „Rajt"): a kiválasztott
+  /// A felhasználó indította (a „Rajt"): a kiválasztott
   /// verseny megy át.
   user,
 

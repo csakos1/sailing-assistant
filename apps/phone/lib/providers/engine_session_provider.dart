@@ -47,7 +47,7 @@ class EngineSessionNotifier extends Notifier<EngineSessionState> {
     }
   }
 
-  /// Kézi indítás („Élő nézet", „Rajt"); egy futó engine-t nem indít újra.
+  /// Kézi indítás (a „Rajt"); egy futó engine-t nem indít újra.
   void startManually() {
     if (state is! EngineRunning) {
       state = const EngineRunning(cause: EngineStartCause.user);

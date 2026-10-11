@@ -158,16 +158,18 @@ void main() {
       expect(host.startedRaces, [null]);
     });
 
-    test('a race handed over while loading starts the host', () async {
-      // Act: the hand-over arrives before the polar is loaded.
+    test('a manual start while loading starts the host with it', () async {
+      // Act: the start arrives before the polar is loaded.
       session()
         ..appResumed()
         ..gatewayFound();
-      container.read(raceEngineLifecycleProvider).handOver(race);
+      select(race);
+      select(race.start(at: startTime));
       await pumpEventQueue();
 
       // Assert
       expect(host.startedRaces.single?.id, 'race-1');
+      expect(host.startedRaces.single?.status, RaceStatus.active);
     });
 
     test('a stop during the host start stops the service again', () async {
@@ -410,57 +412,6 @@ void main() {
     });
   });
 
-  group('handOver', () {
-    test('a running engine gets the race command', () async {
-      // Arrange
-      await runFromProbe();
-
-      // Act
-      container.read(raceEngineLifecycleProvider).handOver(race);
-
-      // Assert
-      expect(host.raceCommands.single?.id, 'race-1');
-      expect(host.startedRaces, hasLength(1));
-    });
-
-    test('a stopped engine starts with the selected race', () async {
-      // Arrange
-      select(race);
-
-      // Act
-      container.read(raceEngineLifecycleProvider).handOver(race);
-      await pumpEventQueue();
-
-      // Assert
-      expect(host.startedRaces.single?.id, 'race-1');
-    });
-
-    test('the race in progress is not sent again', () async {
-      // Arrange
-      final started = race.start(at: startTime);
-      select(started);
-      await runFromProbe();
-
-      // Act
-      container.read(raceEngineLifecycleProvider).handOver(started);
-
-      // Assert
-      expect(host.raceCommands, isEmpty);
-    });
-
-    test('another race in progress is not replaced', () async {
-      // Arrange
-      select(race.start(at: startTime));
-      await runFromProbe();
-
-      // Act
-      container.read(raceEngineLifecycleProvider).handOver(otherRace);
-
-      // Assert
-      expect(host.raceCommands, isEmpty);
-    });
-  });
-
   group('resuming an active race', () {
     test('a stale active race is not resumed by the probe', () async {
       // Arrange: the finish was forgotten; the last recording is old.
@@ -512,12 +463,13 @@ void main() {
       expect(repository.saved.single.finishedAt, realFinish);
     });
 
-    test('an engine finish keeps a race handed over meanwhile', () async {
-      // Arrange: an adopted engine, race-2 handed over before its first
+    test('an engine finish keeps a race started meanwhile', () async {
+      // Arrange: an adopted engine, race-2 started by hand before its first
       // snapshot, which still shows the closed race-1.
       host.isServiceRunning = true;
       await container.read(raceEngineLifecycleProvider).onAppResumed();
-      container.read(raceEngineLifecycleProvider).handOver(otherRace);
+      select(otherRace);
+      select(otherRace.start(at: startTime));
 
       // Act
       host.emit(
@@ -770,6 +722,54 @@ void main() {
       expect(host.startedRaces.single?.id, 'race-4');
     });
 
+    test('a new manual choice switches the engine at once', () async {
+      // Arrange: the engine leads to the earliest race of the day.
+      repository
+        ..put(scheduledRace)
+        ..put(laterRace);
+      await runFromProbe();
+
+      // Act: the switcher stores the later race and tells the lifecycle.
+      settings.choice = InstrumentsRaceChoice(
+        raceId: 'race-4',
+        chosenOnLocalDay: setUpNow,
+      );
+      container.read(raceEngineLifecycleProvider).onInstrumentsChoiceChanged();
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.startedRaces.single?.id, 'race-3');
+      expect(host.raceCommands.map((race) => race?.id), ['race-4']);
+    });
+
+    test('a manual choice does not replace a race in progress', () async {
+      // Arrange: the engine runs the day's earliest race, then reports a
+      // race in progress (e.g. started on its own).
+      repository
+        ..put(scheduledRace)
+        ..put(laterRace);
+      await runFromProbe();
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.active,
+          connectionStatus: const Connected(),
+          raceId: 'race-3',
+        ),
+      );
+      await pumpEventQueue();
+
+      // Act: the rule alone would now send race-4.
+      settings.choice = InstrumentsRaceChoice(
+        raceId: 'race-4',
+        chosenOnLocalDay: setUpNow,
+      );
+      container.read(raceEngineLifecycleProvider).onInstrumentsChoiceChanged();
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, isEmpty);
+    });
+
     test('a race scheduled later is sent to a free-mode engine', () async {
       // Arrange
       await runFromProbe();
@@ -796,51 +796,6 @@ void main() {
 
       // Assert
       expect(host.raceCommands, [postponed]);
-    });
-
-    test('a race handed over is not replaced by the rule', () async {
-      // Arrange: Elo nezet hands over a race without a start time.
-      await runFromProbe();
-      container.read(raceEngineLifecycleProvider).handOver(race);
-
-      // Act
-      repository.put(scheduledRace);
-      await pumpEventQueue();
-
-      // Assert
-      expect(host.raceCommands.map((race) => race?.id), ['race-1']);
-    });
-
-    test('a free-mode snapshot does not undo a hand-over', () async {
-      // Arrange: the snapshot after the hand-over was made before the
-      // engine took the race, so it still shows free mode.
-      await runFromProbe();
-      container.read(raceEngineLifecycleProvider).handOver(race);
-      host.emit(
-        snapshot(raceStatus: null, connectionStatus: const Connected()),
-      );
-      await pumpEventQueue();
-
-      // Act
-      repository.put(scheduledRace);
-      await pumpEventQueue();
-
-      // Assert
-      expect(host.raceCommands.map((race) => race?.id), ['race-1']);
-    });
-
-    test('a race handed over and then deleted is kept', () async {
-      // Arrange
-      repository.put(race);
-      await runFromProbe();
-      container.read(raceEngineLifecycleProvider).handOver(race);
-
-      // Act
-      await repository.delete('race-1');
-      await pumpEventQueue();
-
-      // Assert
-      expect(host.raceCommands, [race]);
     });
 
     test('an expired start window frees the engine on resume', () async {
@@ -878,11 +833,14 @@ void main() {
       expect(host.raceCommands.map((race) => race?.id), ['race-3']);
     });
 
-    test('a hand-over before the first adopted snapshot is kept', () async {
-      // Arrange: the first snapshot was made before the hand-over.
+    test('a manual start before the first adopted snapshot is kept', () async {
+      // Arrange: the first snapshot was made before the manual start.
       host.isServiceRunning = true;
       await container.read(raceEngineLifecycleProvider).onAppResumed();
-      container.read(raceEngineLifecycleProvider).handOver(otherRace);
+      // A stale start: the rule alone would not resume race-2, it would
+      // send the day's race-3.
+      select(otherRace);
+      select(otherRace.start(at: startTime.subtract(const Duration(hours: 6))));
       host.emit(
         snapshot(raceStatus: null, connectionStatus: const Connected()),
       );
@@ -896,13 +854,65 @@ void main() {
       expect(host.raceCommands.map((race) => race?.id), ['race-2']);
     });
 
-    test('an adopted race unknown to the app is kept', () async {
-      // Arrange: the engine runs a race handed over before a restart.
+    test('an adopted race not yet started belongs to the rule', () async {
+      // Arrange: after an app restart the engine still leads to a race the
+      // rule chose earlier (since deleted); only the rule puts a race not
+      // yet started into the engine.
       host.isServiceRunning = true;
       await container.read(raceEngineLifecycleProvider).onAppResumed();
       host.emit(
         snapshot(
           raceStatus: RaceStatus.notStarted,
+          connectionStatus: const Connected(),
+          raceId: 'race-9',
+        ),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-3']);
+    });
+
+    test('a manual choice switches an adopted pre-start engine', () async {
+      // Arrange: the restarted app adopts an engine leading to race-3.
+      repository
+        ..put(scheduledRace)
+        ..put(laterRace);
+      host.isServiceRunning = true;
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.notStarted,
+          connectionStatus: const Connected(),
+          raceId: 'race-3',
+        ),
+      );
+      await pumpEventQueue();
+      host.raceCommands.clear();
+
+      // Act
+      settings.choice = InstrumentsRaceChoice(
+        raceId: 'race-4',
+        chosenOnLocalDay: setUpNow,
+      );
+      container.read(raceEngineLifecycleProvider).onInstrumentsChoiceChanged();
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-4']);
+    });
+
+    test('an adopted race in progress unknown to the app is kept', () async {
+      // Arrange: a race started by hand in an earlier app process.
+      host.isServiceRunning = true;
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.active,
           connectionStatus: const Connected(),
           raceId: 'race-9',
         ),
@@ -928,20 +938,6 @@ void main() {
 
       // Assert
       expect(host.startedRaces, [null]);
-    });
-
-    test('a race handed over and edited is sent again', () async {
-      // Arrange
-      await runFromProbe();
-      container.read(raceEngineLifecycleProvider).handOver(race);
-      final renamed = race.copyWith(name: 'Uj nev');
-
-      // Act
-      repository.put(renamed);
-      await pumpEventQueue();
-
-      // Assert
-      expect(host.raceCommands, [race, renamed]);
     });
 
     test('a race in progress is not replaced', () async {

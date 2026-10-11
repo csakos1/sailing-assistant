@@ -22,9 +22,10 @@ import 'package:phone/providers/instruments_race_selector.dart';
 ///
 /// A „nap versenye" (ADR 0055 D5, T4) a próba találatakor és a versenyek
 /// vagy az előtér változásakor dönt az engine versenyéről, amíg az engine
-/// nem versenyez, és a versenyét nem a felhasználó adta át („Élő nézet",
-/// kézi „Rajt"): az erősebb. Az engine által indított rajtot a DB-be
-/// átveteti (ADR 0055 D6).
+/// nem versenyez, és a versenyét nem a felhasználó adta (kézi „Rajt",
+/// visszatöltés): az erősebb. A Műszerek váltója a kézi választást írja,
+/// és [onInstrumentsChoiceChanged]-del azonnal újradöntet (ADR 0056 U4).
+/// Az engine által indított rajtot a DB-be átveteti (ADR 0055 D6).
 class RaceEngineLifecycle {
   /// Életciklus a [host]-hoz és a [session] állapotgéphez. A
   /// [selectInstrumentsRace] adja a nap versenyét; a [readLastRecordingAt]
@@ -91,10 +92,11 @@ class RaceEngineLifecycle {
   // közben kiküldött parancs versenyét.
   int _engineRaceVersion = 0;
   // Az engine versenyét a nap versenyének szabálya választotta (vagy
-  // szabad mód); a felhasználó átadását a szabály nem írja felül.
+  // szabad mód); a felhasználó versenyét (kézi „Rajt", visszatöltés) a
+  // szabály nem írja felül.
   bool _isEngineRaceFromRule = false;
-  // Egy átvett engine versenye, amit a UI nem ismer (az előző
-  // app-folyamatban adták át): a szabály ezt sem írja felül.
+  // Egy átvett engine már futó versenye, amit a UI nem ismer (az előző
+  // app-folyamatban indították kézzel): a szabály ezt sem írja felül.
   String? _adoptedRaceId;
   // Az átvételkori verzió: az első pillanatkép csak akkor dönt a verseny
   // gazdájáról, ha azóta nem ment parancs (az a pillanatkép előtti).
@@ -149,6 +151,10 @@ class RaceEngineLifecycle {
   /// a nap versenye újra dönt (ADR 0055 D5, D8).
   void onRacesChanged() => unawaited(_reevaluateInstrumentsRace());
 
+  /// A Műszerek váltója új kézi választást írt (ADR 0056 U4): a nap
+  /// versenye azonnal újra dönt, nem csak a következő előtérbe kerüléskor.
+  void onInstrumentsChoiceChanged() => unawaited(_reevaluateInstrumentsRace());
+
   /// Az app háttérbe került: a próba szünetel. Az átvétel figyelése is: a
   /// háttérben álló UI nem kap pillanatképet, így egy lejárt időzítő egy
   /// egészséges engine-t indítana újra.
@@ -160,8 +166,9 @@ class RaceEngineLifecycle {
   }
 
   /// A kiválasztott verseny változása. Csak ugyanannak a versenynek a
-  /// státusz-átmenete számít; a kiválasztás cseréje nem parancs (azt a
-  /// [handOver] adja át). Kivétel a `null` → `active` (pl. boot-restore).
+  /// státusz-átmenete számít; a kiválasztás cseréje nem parancs (a nap
+  /// versenyét a szabály adja). Kivétel a `null` → `active` (pl.
+  /// boot-restore).
   void onActiveRaceChanged(Race? previous, Race? next) {
     if (next == null) return;
     if (previous == null) {
@@ -177,23 +184,6 @@ class RaceEngineLifecycle {
       case RaceStatus.notStarted:
         break;
     }
-  }
-
-  /// Az „Élő nézet": a [race] átadása az engine-nek. Futó engine-nek
-  /// `race` parancs megy (ADR 0054 D6), különben az engine elindul. A
-  /// hívó előbb kiválasztja a [race]-t (`activeRaceProvider`): álló
-  /// engine a kiválasztottal indul. Egy folyamatban lévő versenyt nem
-  /// cserél le, és nem is küldi újra (az engine eldobná, ADR 0017 A10).
-  /// Az átadott versenyt a nap versenyének szabálya nem írja felül (ADR
-  /// 0055 „Pontosítás (T4)"). Az U2 óta nincs UI-hívója (az „Élő nézet"
-  /// megszűnt); a gazda-szabállyal együtt az U4 váltója szünteti meg.
-  void handOver(Race race) {
-    if (!_isRunning) {
-      _session.startManually();
-      return;
-    }
-    if (_isEngineRacing) return;
-    _sendRace(race.status == RaceStatus.finished ? null : race);
   }
 
   /// A feliratkozások és az időzítő lezárása.
@@ -260,7 +250,8 @@ class RaceEngineLifecycle {
     final version = _engineRaceVersion;
     final selection = await _selectSafely();
     if (generation != _generation) return;
-    // Egy közben jött parancs („Élő nézet", „Rajt") erősebb a döntésnél.
+    // Egy közben jött parancs (kézi „Rajt", visszatöltés) erősebb a
+    // döntésnél.
     if (version == _engineRaceVersion) {
       _setEngineRace(selection?.dayRace, isFromRule: true);
     }
@@ -282,7 +273,7 @@ class RaceEngineLifecycle {
 
   // A nap versenyének újradöntése egy futó, nem versenyző engine-en. A
   // szabály által választott (vagy szabad módú) engine a nap versenyét
-  // kapja; egy felhasználó által átadott verseny csak a friss
+  // kapja; a felhasználó versenye (ma mindig már futó verseny) csak a friss
   // (szerkesztett) példányát, amíg el nem indult (ADR 0055 D8).
   Future<void> _reevaluateInstrumentsRace() async {
     if (!_canReevaluate) return;
@@ -311,8 +302,8 @@ class RaceEngineLifecycle {
 
   // A szabályé az engine versenye, ha ő választotta, vagy ha a lifecycle
   // szerint nincs verseny az engine-ben. A pillanatképet szándékosan nem
-  // nézzük: egy átadás előtt készült, `raceId` nélküli pillanatkép egy
-  // másodpercig szabad módot mutatna, és a szabály felülírná az átadott
+  // nézzük: egy kézi „Rajt" előtt készült, `raceId` nélküli pillanatkép egy
+  // másodpercig szabad módot mutatna, és a szabály felülírná a küldött
   // versenyt.
   bool get _isRuleOwned =>
       _isEngineRaceFromRule || (_engineRace == null && _adoptedRaceId == null);
@@ -481,7 +472,7 @@ class RaceEngineLifecycle {
     _snapshotRaceId = snapshot.raceId;
     _hasSnapshotSinceCommand = true;
     if (isFirstAdoptedSnapshot && _engineRaceVersion == _adoptedVersion) {
-      _alignAdoptedRace(snapshot.raceId);
+      _alignAdoptedRace(snapshot.raceId, snapshot.raceStatus);
     }
     final raceId = snapshot.raceId;
     final raceStartedAt = snapshot.raceStartedAt;
@@ -508,7 +499,7 @@ class RaceEngineLifecycle {
   // folytatás a kikötőben újraindítaná; az engine-t pedig szabad módba
   // engedjük, hogy a 10 perces leállás működjön.
   void _onEngineFinishedRace(String raceId, DateTime at) {
-    // Ha közben egy másik verseny ment át (pl. „Élő nézet" egy átvett
+    // Ha közben egy másik verseny ment át (pl. egy kézi „Rajt" egy átvett
     // engine-re), azt nem vesszük ki; a persist ettől még fut.
     final sent = _engineRace;
     if (sent == null || sent.id == raceId) _sendRace(null, isFromRule: true);
@@ -535,12 +526,16 @@ class RaceEngineLifecycle {
 
   // Az átvételkor a lifecycle csak tippel (a kiválasztott aktív verseny
   // vagy semmi); az első pillanatkép mondja meg, mi fut valójában, és így
-  // azt is, kié a verseny: szabad módban a szabályé, egy ismeretlen
-  // versennyel a felhasználóé (egy korábbi átadásból). A pillanatkép
+  // azt is, kié a verseny. Szabad módban és egy el nem indult versennyel a
+  // szabályé: rajt előtti versenyt csak a szabály tehetett az engine-be (a
+  // kézi átadás az U4-gyel megszűnt), így a Műszerek váltója egy
+  // újraindított app után is hat. Egy ismeretlen, már futó verseny a
+  // felhasználóé (kézi „Rajt" egy korábbi app-folyamatban); ez ma csak
+  // védelem, mert versenyző engine-en a szabály úgysem dönt. A pillanatkép
   // státuszát nem bántjuk, ezért nem a `_setEngineRace`-szel. Csak akkor
   // fut, ha az átvétel óta nem ment parancs.
-  void _alignAdoptedRace(String? raceId) {
-    if (raceId == null) {
+  void _alignAdoptedRace(String? raceId, RaceStatus? status) {
+    if (raceId == null || status == RaceStatus.notStarted) {
       _engineRace = null;
       _isEngineRaceFromRule = true;
       _adoptedRaceId = null;
