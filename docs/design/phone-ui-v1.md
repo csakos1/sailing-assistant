@@ -119,8 +119,11 @@ időben, `HH:MM`.
 
 **Fül-váltás kívülről.** Kapcsolódáskor nincs automatikus fül-váltás
 (felhasználói döntés). Rajtkor (kézi vagy automatikus, ADR 0055 D6) az
-app a Műszerek fülre vált, ha előtérben van; a push-olt képernyők ekkor
-bezáródnak (`popUntil` a héjig).
+app a Műszerek fülre vált; ha előtérben van, a push-olt képernyők
+bezáródnak (`popUntil` a héjig, a `PopScope`-pal védett képernyők
+kivételével). Egy már futó verseny kiválasztása vagy induláskori
+visszatöltése nem rajt, nem vált (ADR 0056 „Pontosítás a kód után
+(U2)").
 
 ## 3. Versenyek fül (31a, 31b)
 

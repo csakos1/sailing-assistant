@@ -2,8 +2,9 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1 kész (2026-10-11); a többi
-szelet a „Szeletek" sorrendjében követi, docs-first.
+Elfogadva — 2026-10-10. Implementálva: az U1 és az U2 kész
+(2026-10-11); a többi szelet a „Szeletek" sorrendjében követi,
+docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -258,3 +259,74 @@ képernyők (U3, U4) replay-próbát is kapnak.
   35e szerint w500 (eddig w600).
 - **A snackbar helye a navigációs sáv fölött** az U2-ben dől el: a héj
   `Scaffold`-ja egy `bottomNavigationBar` fölé teszi a lebegő snackbart.
+
+## Pontosítás a kód után (U2, 2026-10-11)
+
+- **A felhasználó döntései** (az összevetés után): a Műszerek fül az
+  U3-ig a mai élő képernyő; az „Élő nézet" már az U2-ben kikerül (a
+  dátum nélküli verseny rajt előtti rávezetése így az U4 váltójáig nem
+  érhető el; rajt után a Műszerek minden versenyt mutat); a vissza-gomb
+  a Versenyekre lép, onnan kilép.
+- **`PhoneShell`** (`features/shell/`) az app `home`-ja: `Scaffold` a
+  `ShellNavigationBar`-ral és egy `IndexedStack`-kel. A Versenyek végig,
+  a napló az első megnyitásától él (görgetés, év; a napló stat-csíkja egy
+  hideg indításnál lassú DB-olvasást indít, ezért nem induláskor épül);
+  **a Műszerek csak kiválasztva épül fel**,
+  mert a `LiveRaceScreen` mountkor kapcsolja be a kijelző-wakelockot és a
+  portrait-zárat, így ezek csak a látható fülön élnek. A kiválasztott fül
+  a `shellTabProvider` (kívülről is vált).
+- **Fül-váltás kívülről, csak rajtkor**, explicit jelzésre: az
+  `ActiveRaceNotifier` a kézi „Rajt" (`start`) és az engine rajtjának
+  átvétele (`adoptEngineStart`, ha a verseny lesz a kiválasztott) után a
+  `raceStartSignalProvider`-en jelez (verseny-id + sorszám), a héj erre
+  vált. Nem a kiválasztott verseny változásából következtet: az átvétel a
+  tervezett rajtidőt írja, ami egy késő auto-startnál órákkal korábbi is
+  lehet, így egy időablakos heurisztika épp ezt a rajtot hagyná ki. Egy
+  már futó verseny kiválasztása (a Cél előtti kiválasztás), a futó verseny
+  induláskori visszatöltése (`activeRacePersistenceProvider`) és a Cél nem
+  vált. Előtérben
+  (`lifecycleState` `resumed` vagy még `null`) a héj a push-olt
+  képernyőket bezárja, de csak amíg engedik (`popDisposition`): egy
+  `PopScope`-pal védett képernyő (pl. a helyreállító kódok) a helyén
+  marad.
+- **Kapcsolat leállás után:** a `connectionStatusProvider` snapshot nélkül
+  álló engine mellett `Disconnected`-et ad (a Műszerek státusz-sávja „Nincs
+  kapcsolat", nem „Csatlakozás…"); próba vagy futó engine mellett, az első
+  pillanatképig marad a `Connecting`.
+- **A sáv állapota** a `instrumentsTabStatusOf` tiszta függvényből: álló
+  engine → nincs kapcsolat (a kézi „Leállítás" után is), próba → keresés, futó
+  engine → a pillanatkép kapcsolata (`Connecting` → keresés, `Disconnected` és
+  `ConnectionError` → nincs kapcsolat). Az „ÉLŐ" a kiválasztott verseny
+  `active` státuszából, a rajtidő-címke a `dayRaceProvider`-ből
+  (`SelectInstrumentsRace`, a kézi választással; az aktív versenyeket
+  kihagyva, csak `notStarted`), helyi időre váltva a
+  `localWallClockProvider`-rel. A `dayRaceProvider` nem időzít: a versenyek
+  változásakor és előtérbe kerüléskor számol újra (a kézi választást is
+  újraolvassa).
+- **A pillanatkép-tükör** (`raceSnapshotProvider`) az engine-session
+  leállásakor `null`-ra vált: a héj sávja végig életben tartja, így egy
+  kézi „Leállítás" után különben a régi kapcsolat és a régi számok
+  látszanának a Műszereken.
+- **A sáv rajza:** 1 dp hairline + 64 dp, cellák 10 : 13 : 10; a
+  vonalikonok a makett rajzai `CustomPainter`-rel; a középső cella éle a
+  hairline-t takarja (`top: -1`), a keresés szaggatott (6 / 5 dp). A
+  szövegnagyítás a sávon legfeljebb 1,3 (a cellák fix magasak).
+- **⋮ menü:** a webes menüből `HomeMenu` lett (`features/race_list/
+  widgets/`), két csoporttal: webes hozzáférés (fiók nélkül és
+  visszavont telefonon rejtve, mint eddig) és debug-buildben
+  „FEJLESZTÉS": Nyers NMEA, Engine debug. Ha egyik csoport sem látszik,
+  a ⋮ sem; release-ben fiók nélkül tehát továbbra sincs menü.
+- **Versenyek:** az alsó sávból kikerült a napló-fél; az „Új verseny"
+  teljes szélességű (a 31a végleges kinézete az U5-é).
+- **Versenyrészlet:** az alsó sávban csak a Rajt / Cél sor maradt (a
+  Rajt kitöltött, a Cél semleges); a 32a–c sáv az U6-é.
+- **Műszerek:** a „Leállítás" nem navigál vissza (a képernyő fül).
+- **Versenynapló:** fülként üres naplóval is elérhető, ezért egy
+  egyszerű üres sort kapott („Még nincs befejezett verseny."); a
+  végleges állapotok az U8-é.
+- **A lifecycle `handOver`-je** UI-hívó nélkül marad: a gazda-szabály
+  („a felhasználó átadott versenyét a szabály nem írja felül") az átvett,
+  ismeretlen versenyre még érvényes, és a tesztjei is erre épülnek; a
+  metódust és a hozzá tartozó teszteket az U4 váltója szünteti meg, ahol
+  a kézi választás amúgy is átírja ezt a részt.
+- **ARB:** új `nav*`, `homeMenu*`, `logEmpty`; a `liveOpen` megszűnt.

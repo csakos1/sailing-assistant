@@ -3591,7 +3591,14 @@ szakasz csak a szerkezetet rögzíti, és az implementáció során bővül.
 (Versenyek · Műszerek · Versenynapló) `IndexedStack`-kel. A részlet, a
 setup / szerkesztés, a térképek és a webes képernyők a gyökér-`Navigator`-ra
 kerülnek, a héj fölé, navigációs sáv nélkül. Az „Élő nézet" gomb
-megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként.
+megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként. **Kész (U2):**
+`PhoneShell` (`features/shell/`) a `ShellNavigationBar`-ral; a
+Versenyek és a napló az `IndexedStack`-ben él, a Műszerek csak
+kiválasztva épül fel (wakelock). A kiválasztott fül a
+`shellTabProvider`; aktívvá váló versenynél a héj a Műszerekre vált. A
+sáv állapota az `instrumentsTabStatusOf` (engine-session, kapcsolat,
+kiválasztott verseny, a nap versenye). A debug-képernyők a ⋮ menüben
+(`HomeMenu`), csak debug-buildben.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
