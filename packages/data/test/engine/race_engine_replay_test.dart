@@ -1,12 +1,9 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:data/data.dart';
-import 'package:data/src/nmea/pipeline/nmea_event_pipeline.dart';
 import 'package:domain/domain.dart';
 import 'package:test/test.dart';
+
+import 'replay_rig.dart';
 
 // Replay test of the whole engine life cycle (ADR 0054 E4) on the recorded
 // synthetic fixture tools/sample_logs/moving_mark_rounding.nmea: the boat
@@ -15,20 +12,6 @@ import 'package:test/test.dart';
 // the engine, then one tick follows - the tick sees the whole second, as
 // on the boat.
 
-const _fixtureName = 'moving_mark_rounding.nmea';
-
-// The mark coordinates the fixture was generated for (sample_logs/README).
-const _markOne = Mark(
-  sequence: 1,
-  name: 'M1',
-  position: Coordinate(latitude: 47.5850, longitude: 18.8550),
-);
-const _markTwo = Mark(
-  sequence: 2,
-  name: 'M2',
-  position: Coordinate(latitude: 47.5869, longitude: 18.8578),
-);
-
 // The seconds of the replay at which the "host" sends its commands.
 const _raceCommandSecond = 10;
 const _startCommandSecond = 20;
@@ -36,21 +19,21 @@ const _startCommandSecond = 20;
 void main() {
   final logStart = DateTime.utc(2026, 6, 4, 10);
   late List<List<String>> secondsOfLog;
-  late _ReplayRig rig;
+  late ReplayRig rig;
 
   DateTime at(int second) => logStart.add(Duration(seconds: second));
 
   setUpAll(() {
-    secondsOfLog = _groupBySecond(_readFixtureLines(_fixtureName));
+    secondsOfLog = groupBySecond(readFixtureLines(movingMarkRoundingFixture));
     // The scenario needs the whole log, with data in every second.
     if (secondsOfLog.length <= 100 ||
         secondsOfLog.any((sentences) => sentences.isEmpty)) {
-      throw StateError('$_fixtureName no longer fits this test');
+      throw StateError('$movingMarkRoundingFixture no longer fits this test');
     }
   });
 
   setUp(() async {
-    rig = _ReplayRig(logStart: logStart);
+    rig = ReplayRig(logStart: logStart);
     await rig.start();
   });
 
@@ -62,7 +45,7 @@ void main() {
     final race = Race.create(
       id: 'replay-single',
       name: 'Replay egy bója',
-      marks: const [_markOne],
+      marks: const [fixtureMarkOne],
     );
 
     // Replays the full log: race command at 10 s, start at 20 s, and the
@@ -128,7 +111,7 @@ void main() {
       }
       final closestApproach = snapshots
           .sublist(_startCommandSecond, finishedSecond)
-          .map(_distanceToMarkMeters)
+          .map(distanceToMarkMeters)
           .reduce(math.min);
       expect(closestApproach, lessThan(50));
 
@@ -193,7 +176,7 @@ void main() {
     final race = Race.create(
       id: 'replay-two',
       name: 'Replay két bója',
-      marks: const [_markOne, _markTwo],
+      marks: const [fixtureMarkOne, fixtureMarkTwo],
     );
 
     Future<void> replayWithoutFinish() async {
@@ -235,8 +218,8 @@ void main() {
 
       // The fixture bears away towards M2: the distance shrinks.
       expect(
-        _distanceToMarkMeters(activeSnapshots.last),
-        lessThan(_distanceToMarkMeters(activeSnapshots[stepIndex])),
+        distanceToMarkMeters(activeSnapshots.last),
+        lessThan(distanceToMarkMeters(activeSnapshots[stepIndex])),
       );
     });
 
@@ -250,164 +233,4 @@ void main() {
       expect(entries.map((entry) => entry.raceId), everyElement(race.id));
     });
   });
-}
-
-// Wires the engine to a fake source that the real pipeline feeds, a shared
-// clock and recording loggers.
-class _ReplayRig {
-  _ReplayRig({required DateTime logStart}) : _clock = logStart;
-
-  final _ReplaySource _source = _ReplaySource();
-  final _RecordingTelemetryLogger telemetryLogger = _RecordingTelemetryLogger();
-  final _RecordingSnapshotLogger snapshotLogger = _RecordingSnapshotLogger();
-  final StreamController<DateTime> _ticks = StreamController<DateTime>();
-  final List<RaceSnapshot> snapshots = [];
-  late final RaceEngine engine = RaceEngine(
-    nmeaStream: _source,
-    telemetryLogger: telemetryLogger,
-    snapshotLogger: snapshotLogger,
-    tickSource: _ticks.stream,
-    now: () => _clock,
-  );
-  // One pipeline for the whole replay: its wind state carries across
-  // seconds, like the single pipeline of a live connection.
-  late final NmeaEventPipeline _pipeline = NmeaEventPipeline(
-    now: () => _clock,
-  );
-  DateTime _clock;
-  StreamSubscription<RaceSnapshot>? _snapshotSubscription;
-
-  Future<void> start() async {
-    _snapshotSubscription = engine.snapshots.listen(snapshots.add);
-    await engine.start();
-  }
-
-  // One second of the log: the decoded events, the raw sentences, then the
-  // tick at the same instant.
-  Future<void> playSecond(DateTime instant, List<String> sentences) async {
-    _clock = instant;
-    final payload = utf8.encode('${sentences.join('\n')}\n');
-    final events = await _pipeline
-        .transform(Stream<List<int>>.value(payload))
-        .toList();
-    events.forEach(_source.emitEvent);
-    sentences.forEach(_source.emitRaw);
-    await pumpEventQueue();
-    _ticks.add(instant);
-    await pumpEventQueue();
-  }
-
-  Future<void> dispose() async {
-    await engine.dispose();
-    await _snapshotSubscription?.cancel();
-    await _source.close();
-    await _ticks.close();
-  }
-}
-
-// The distance to the guided mark; infinite without a prediction, so a
-// missing prediction fails the distance assertions instead of passing.
-double _distanceToMarkMeters(RaceSnapshot snapshot) =>
-    snapshot.prediction?.distanceToMark.meters ?? double.infinity;
-
-// The bare sentences of the fixture, without the "HH:MM:SS.mmm " prefix,
-// grouped by the second they were logged in (index 0 = the first second).
-List<List<String>> _groupBySecond(List<String> lines) {
-  final prefixed = RegExp(r'^(\d{2}):(\d{2}):(\d{2})\.\d{3} (\$.+)$');
-  final bySecond = <List<String>>[];
-  int? firstSecond;
-  for (final line in lines) {
-    final match = prefixed.firstMatch(line.trim());
-    if (match == null) {
-      continue;
-    }
-    // The groups are not optional in the pattern: a match has all four.
-    final secondOfDay =
-        int.parse(match.group(1)!) * 3600 +
-        int.parse(match.group(2)!) * 60 +
-        int.parse(match.group(3)!);
-    final offset = secondOfDay - (firstSecond ??= secondOfDay);
-    if (offset < 0) {
-      throw StateError('the log goes back in time or past midnight: $line');
-    }
-    while (bySecond.length <= offset) {
-      bySecond.add(<String>[]);
-    }
-    bySecond[offset].add(match.group(4)!);
-  }
-  return bySecond;
-}
-
-// The fixture lives in tools/sample_logs at the repository root; the test
-// runs from the package directory, so it is looked up upwards.
-List<String> _readFixtureLines(String name) {
-  var directory = Directory.current.absolute;
-  while (true) {
-    final file = File('${directory.path}/tools/sample_logs/$name');
-    if (file.existsSync()) {
-      return file.readAsLinesSync();
-    }
-    final parent = directory.parent;
-    if (parent.path == directory.path) {
-      throw StateError('tools/sample_logs/$name not found');
-    }
-    directory = parent;
-  }
-}
-
-// A source the rig feeds by hand; always connected.
-class _ReplaySource implements NmeaStream, RawNmeaLineSource {
-  final StreamController<DomainEvent> _events =
-      StreamController<DomainEvent>.broadcast();
-  final StreamController<String> _raw = StreamController<String>.broadcast();
-  final StreamController<ConnectionStatus> _status =
-      StreamController<ConnectionStatus>.broadcast();
-
-  void emitEvent(DomainEvent event) => _events.add(event);
-  void emitRaw(String line) => _raw.add(line);
-
-  Future<void> close() async {
-    await _events.close();
-    await _raw.close();
-    await _status.close();
-  }
-
-  @override
-  Stream<DomainEvent> get events => _events.stream;
-
-  @override
-  Stream<String> get rawLines => _raw.stream;
-
-  @override
-  Stream<ConnectionStatus> get statusChanges => _status.stream;
-
-  @override
-  ConnectionStatus get currentStatus => const Connected();
-
-  @override
-  Future<void> connect() async {}
-
-  @override
-  Future<void> disconnect() async {}
-}
-
-class _RecordingTelemetryLogger implements TelemetryLogger {
-  final List<TelemetryRecord> records = [];
-
-  @override
-  Future<void> log(TelemetryRecord record) async => records.add(record);
-
-  @override
-  Future<void> dispose() async {}
-}
-
-class _RecordingSnapshotLogger implements SnapshotLogger {
-  final List<({String raceId, RaceSnapshot snapshot})> entries = [];
-
-  @override
-  Future<void> log(String raceId, RaceSnapshot snapshot) async =>
-      entries.add((raceId: raceId, snapshot: snapshot));
-
-  @override
-  Future<void> dispose() async {}
 }
