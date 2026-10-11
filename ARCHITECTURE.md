@@ -3631,7 +3631,9 @@ az engine által indított rajtot átveszi a DB-be
 (`ActiveRaceNotifier.adoptEngineStart`); a kézi választás a
 `SettingsRepository`-ben. **Kész (T5):** replay-teszt a rávezetésre, az
 időben és a visszamenőleg indított, valamint az ablakon túli rajtra
-(`race_engine_scheduled_start_replay_test.dart`). A rajtidőben az engine
+(`race_engine_scheduled_start_replay_test.dart`). **Kész (T6):** a
+szerver kódja v6-os, egy import-teszt igazolja a két mező átvitelét; a
+kiadás a feature ág mergelése után megy ki. A rajtidőben az engine
 indítja a versenyt (`startedAt = scheduledStartAt`, visszamenőleg is), és
 a UI a snapshot alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
 v6-os kiadása megelőzi a telefonosat.

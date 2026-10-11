@@ -2,8 +2,9 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: a T1–T5 kész (2026-10-10/11); a
-T6 hátravan, a T5 on-device próbája az U7 után.
+Elfogadva — 2026-10-10. Implementálva: a T1–T6 kész (2026-10-10/11); a
+v6-os szerver kiadása a feature ág mergelése után, a telefonos kiadás
+előtt; a T5 on-device próbája az U7 után.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -479,3 +480,18 @@ A kódban eldőlt részletek (Claude javaslata):
   létre (a bevitel az U7 RaceSetupjában jön), ezért a
   `docs/testing/engine-session-on-device.md` tervezett-rajt pontja akkor
   készül, az R1 előtt.
+
+## Pontosítás a kód után (T6, 2026-10-11)
+
+- **Nincs szerverkód:** a szerver a közös `data` `AppDatabase`-szel már a
+  T2 óta v6-os, az `ArchiveMerger` a tábla minden oszlopát generikusan
+  másolja (`table.$columns`), így a négy új oszlop magától átjön. A T6 egy
+  `test(web-server)`: egy v6-os telefon-DB befejezett versenyének
+  rajtideje és rajthelye az import után az archívumban is megvan.
+- **A kiadás a merge után** (felhasználói döntés, 2026-10-11): a
+  `deploy.sh` a HEAD-et adja ki, élesbe pedig nem megy feature ág. A
+  sorrend (D4) marad: a `feature/phone-ui-refresh` mergelése után előbb a
+  szerver (`deploy/deploy.sh`), utána a telefonos APK. Az első induláskor
+  az `archive.sqlite` v5 → v6 migrál; ezután a régi kiadásra visszaállás a
+  migráció előtti mentés visszatöltését is kéri (`deploy/README.md` 12.
+  pont).
