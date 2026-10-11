@@ -4,6 +4,7 @@ import 'package:foretack_ui/src/dialog/foretack_dialog_action_bar.dart';
 import 'package:foretack_ui/src/dialog/foretack_dialog_action_cell.dart';
 import 'package:foretack_ui/src/dialog/foretack_dialog_detail_cell.dart';
 import 'package:foretack_ui/src/dialog/foretack_dialog_frame.dart';
+import 'package:foretack_ui/src/dialog/foretack_dialog_subject_cell.dart';
 import 'package:foretack_ui/src/theme/foretack_typography.dart';
 
 /// A Foretack közös dialógus-doboza (ADR 0047 E6, ADR 0048 Addendum 4
@@ -24,6 +25,7 @@ class ForetackDialog<T> extends StatelessWidget {
     required this.message,
     required this.actions,
     this.details = const [],
+    this.subject,
     this.maxWidth = defaultMaxWidth,
     super.key,
   });
@@ -39,6 +41,10 @@ class ForetackDialog<T> extends StatelessWidget {
 
   /// Az érintett elem adatai; üresen az adatcella elmarad.
   final List<ForetackDialogDetail> details;
+
+  /// Az érintett elem egy sorban (makett 35d); `null`-nál elmarad. A
+  /// [details] cellája fölött áll, ha mindkettő van.
+  final ForetackDialogSubject? subject;
 
   /// Az akciók balról jobbra; a destruktív a végén áll (E6).
   final List<ForetackDialogAction<T>> actions;
@@ -69,16 +75,23 @@ class ForetackDialog<T> extends StatelessWidget {
                   style: supportTextStyle.copyWith(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
+                    height: 1.25,
                     color: scheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   message,
                   style: supportTextStyle.copyWith(
+                    fontSize: 13.5,
+                    height: 1.45,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
+                if (subject case final subject?) ...[
+                  const SizedBox(height: 16),
+                  ForetackDialogSubjectCell(subject: subject),
+                ],
                 if (details.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   ForetackDialogDetailCell(details: details),
@@ -112,6 +125,7 @@ Future<T?> showForetackDialog<T>({
   required String message,
   required List<ForetackDialogAction<T>> actions,
   List<ForetackDialogDetail> details = const [],
+  ForetackDialogSubject? subject,
   double maxWidth = ForetackDialog.defaultMaxWidth,
 }) {
   return showForetackDialogFrame<T>(
@@ -120,6 +134,7 @@ Future<T?> showForetackDialog<T>({
       title: title,
       message: message,
       details: details,
+      subject: subject,
       actions: actions,
       maxWidth: maxWidth,
     ),
