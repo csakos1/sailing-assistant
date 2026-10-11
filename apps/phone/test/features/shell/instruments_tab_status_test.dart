@@ -56,6 +56,19 @@ void main() {
         InstrumentsLink.disconnected,
       );
     });
+
+    test('reconnecting after data is no link, not a search', () {
+      final status = instrumentsTabStatusOf(
+        session: running,
+        connection: const Connecting(),
+        selectedRace: null,
+        dayRace: null,
+        toLocal: toUtc,
+        hasSessionData: true,
+      );
+
+      expect(status.link, InstrumentsLink.disconnected);
+    });
   });
 
   group('the badge', () {

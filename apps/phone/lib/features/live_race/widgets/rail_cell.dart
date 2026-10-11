@@ -20,18 +20,32 @@ class RailCell extends StatelessWidget {
   /// Egy sín-cella.
   const RailCell({
     required this.label,
-    required this.value,
+    required String this.value,
     this.support,
     this.supportArrow,
     this.hasDivider = true,
     super.key,
-  });
+  }) : valueChild = null;
+
+  /// Egy sín-cella saját érték-widgettel (például a TWA oldal-jellel,
+  /// ADR 0056 U3); a [valueChild] stílusát és színét a hívó adja.
+  const RailCell.child({
+    required this.label,
+    required Widget this.valueChild,
+    this.hasDivider = true,
+    super.key,
+  }) : value = null,
+       support = null,
+       supportArrow = null;
 
   /// A cella verzál felirata (például `BEARING`).
   final String label;
 
-  /// A már formázott érték.
-  final String value;
+  /// A már formázott érték; `null`, ha a cella [valueChild]-ot mutat.
+  final String? value;
+
+  /// Saját érték-widget a [value] szövege helyett, vagy `null`.
+  final Widget? valueChild;
 
   /// Kísérő sor az érték alatt (például `cél 6,2`), vagy null.
   final String? support;
@@ -73,13 +87,17 @@ class RailCell extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: numeralSmallStyle.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
+              // A fő konstruktor a [value]-t kötelezően adja, a `.child` a
+              // [valueChild]-ot: a kettő közül pontosan egy nem `null`.
+              child:
+                  valueChild ??
+                  Text(
+                    value ?? '',
+                    maxLines: 1,
+                    style: numeralSmallStyle.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
             ),
             if (support != null) ...[
               const SizedBox(height: 3),

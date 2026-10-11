@@ -119,4 +119,53 @@ void main() {
       expect(formatVmgTarget(null), isNull);
     });
   });
+
+  group('formatSpeedLive', () {
+    test('knots with one decimal and a decimal comma', () {
+      // 3,3 m/s = 6,41 csomo.
+      expect(formatSpeedLive(const Speed(metersPerSecond: 3.3)), '6,4');
+    });
+
+    test('null -> placeholder', () {
+      expect(formatSpeedLive(null), missingValue);
+    });
+  });
+
+  group('formatDataAge', () {
+    test('under an hour -> minutes and seconds', () {
+      expect(formatDataAge(const Duration(minutes: 1, seconds: 12)), (
+        value: '1:12',
+        isHours: false,
+      ));
+      expect(formatDataAge(const Duration(seconds: 7)), (
+        value: '0:07',
+        isHours: false,
+      ));
+    });
+
+    test('truncates instead of rounding up', () {
+      expect(
+        formatDataAge(const Duration(seconds: 72, milliseconds: 900)).value,
+        '1:12',
+      );
+    });
+
+    test('from an hour on -> hours and minutes', () {
+      expect(formatDataAge(const Duration(hours: 1)), (
+        value: '1:00',
+        isHours: true,
+      ));
+      expect(formatDataAge(const Duration(hours: 2, minutes: 5)), (
+        value: '2:05',
+        isHours: true,
+      ));
+    });
+
+    test('just under an hour stays in minutes', () {
+      expect(formatDataAge(const Duration(minutes: 59, seconds: 59)), (
+        value: '59:59',
+        isHours: false,
+      ));
+    });
+  });
 }

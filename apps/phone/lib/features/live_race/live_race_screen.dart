@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart' hide formatDistance;
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
+import 'package:phone/features/live_race/free_mode/free_mode_view.dart';
+import 'package:phone/features/live_race/instruments_race_provider.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/features/live_race/target_speed.dart';
 import 'package:phone/features/live_race/widgets/correction_value.dart';
@@ -22,7 +24,6 @@ import 'package:phone/features/live_race/widgets/twa_value.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
-import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
 import 'package:phone/providers/boat_state_provider.dart';
 import 'package:phone/providers/connection_status_provider.dart';
@@ -48,7 +49,9 @@ import 'package:phone/providers/wind_data_provider.dart';
 /// `ConsumerStatefulWidget`, mert a kijelző-wakelockot és a portrait-lockot a
 /// mount/unmount életciklushoz kötjük: `initState`-ben be, `dispose`-ban ki.
 /// A héj Műszerek füle (ADR 0056 D2), és a héj csak látható fülként építi
-/// fel, így a wakelock is csak akkor él, amikor a fül látszik.
+/// fel, így a wakelock is csak akkor él, amikor a fül látszik. Verseny
+/// nélkül, vagy amíg az engine nem versenyez, a szabad módot
+/// ([FreeModeView], 34a) mutatja; a wakelock ott is él.
 class LiveRaceScreen extends ConsumerStatefulWidget {
   /// Az élő verseny-képernyő.
   const LiveRaceScreen({super.key});
@@ -86,6 +89,10 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
   // kerüléskor indul újra, ADR 0054 D5). A képernyő a héj Műszerek füle
   // (ADR 0056 D2), ezért nem navigál vissza.
   Future<void> _confirmStop(BuildContext context, AppLocalizations l10n) async {
+    // A notifiert a dialógus előtt fogjuk el: közben a fül tartalma a
+    // szabad módra válthat (az engine lezárja a versenyt), és akkor ez a
+    // `State` már nincs a fában. A provider keep-alive.
+    final session = ref.read(engineSessionProvider.notifier);
     final confirmed = await showForetackDialog<bool>(
       context: context,
       title: l10n.liveStopTitle,
@@ -100,7 +107,7 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
       ],
     );
     if (confirmed != true) return;
-    ref.read(engineSessionProvider.notifier).stopManually();
+    session.stopManually();
   }
 
   // A „Bója megvan" akció: megerősítés után roundMark parancsot küld az
@@ -136,8 +143,12 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Az engine állapota dönt (ADR 0056 U3): versenyt csak akkor mutatunk,
+    // ha az engine épp ezt futtatja aktívként; különben a szabad mód. A
+    // szabad mód előbb tér vissza, hogy a verseny-láncot ne tartsa életben.
+    final race = ref.watch(instrumentsRaceProvider);
+    if (race == null) return const FreeModeView();
     final l10n = AppLocalizations.of(context)!;
-    final race = ref.watch(activeRaceProvider);
     final prediction = ref.watch(markPredictionProvider);
     final twdQuality = ref.watch(twdQualityProvider);
     final wind = ref.watch(windDataProvider);
@@ -165,13 +176,6 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     // Critical warningnál a rács 40%-ra tompul (nem rejtve) — a fókusz a
     // banneren maradjon (ADR 0014 D6).
     final gridOpacity = hasCriticalWarning ? 0.4 : 1.0;
-
-    if (race == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: Center(child: Text(l10n.liveNoActiveRace)),
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(

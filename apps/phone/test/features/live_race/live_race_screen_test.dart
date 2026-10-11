@@ -6,6 +6,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/app/screen_wake_lock.dart';
 import 'package:phone/app/true_time.dart';
+import 'package:phone/features/live_race/instruments_race_provider.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/features/live_race/widgets/data_rail.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -144,6 +145,9 @@ Future<void> _pump(
     ProviderScope(
       overrides: [
         activeRaceProvider.overrideWith(() => _FixedActiveRace(race)),
+        // A tartalmat az engine allapota valasztja (ADR 0056 U3); a 1c
+        // tesztjei a versenyt kozvetlenul adjak, a szabad mod a `null`.
+        instrumentsRaceProvider.overrideWithValue(race),
         boatStateProvider.overrideWith(() => _FixedBoatState(boat)),
         windDataProvider.overrideWith(() => _FixedWindData(wind)),
         connectionStatusProvider.overrideWith(() => _FixedConnection(status)),
@@ -279,7 +283,7 @@ void main() {
       expect(find.text('1. bója'), findsNothing);
     });
 
-    testWidgets('shows the empty state when there is no active race', (
+    testWidgets('shows the free mode while the engine does not race', (
       tester,
     ) async {
       await _pump(
@@ -291,7 +295,11 @@ void main() {
         status: const Disconnected(),
       );
 
-      expect(find.text('Nincs aktív verseny'), findsOneWidget);
+      // Allo engine mellett a szabad mod 'Leallitva' allapota (34a).
+      expect(find.text('Leállítva'), findsOneWidget);
+      expect(find.text('STW'), findsOneWidget);
+      expect(find.text('Nincs aktív verseny'), findsNothing);
+      expect(find.byType(DataRail), findsOneWidget);
     });
 
     testWidgets('degrades nav-dependent cells to placeholders without a '

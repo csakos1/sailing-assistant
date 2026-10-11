@@ -9,9 +9,6 @@ class AppLocalizationsHu extends AppLocalizations {
   AppLocalizationsHu([String locale = 'hu']) : super(locale);
 
   @override
-  String get liveNoActiveRace => 'Nincs aktív verseny';
-
-  @override
   String get liveStale => 'ELAVULT';
 
   @override
@@ -1013,4 +1010,45 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get webPromptCodesTitle => 'Új helyreállító kódok';
+
+  @override
+  String get liveStw => 'STW';
+
+  @override
+  String get liveSog => 'SOG';
+
+  @override
+  String get liveTwa => 'TWA';
+
+  @override
+  String get liveTws => 'TWS';
+
+  @override
+  String get instrumentsSearching => 'Hajó keresése…';
+
+  @override
+  String get instrumentsStopped => 'Leállítva';
+
+  @override
+  String get instrumentsDataLabel => 'ADAT';
+
+  @override
+  String instrumentsDataAgeMinutes(String age) {
+    return '$age perce';
+  }
+
+  @override
+  String instrumentsDataAgeHours(String age) {
+    return '$age órája';
+  }
+
+  @override
+  String get instrumentsMenuTooltip => 'Menü';
+
+  @override
+  String get instrumentsStopTitle => 'Műszerek leállítása';
+
+  @override
+  String get instrumentsStopMessage =>
+      'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.';
 }

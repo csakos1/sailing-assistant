@@ -94,12 +94,6 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('hu')];
 
-  /// Az élő képernyő üres állapota: nincs aktív verseny.
-  ///
-  /// In hu, this message translates to:
-  /// **'Nincs aktív verseny'**
-  String get liveNoActiveRace;
-
   /// Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül).
   ///
   /// In hu, this message translates to:
@@ -1875,6 +1869,78 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Új helyreállító kódok'**
   String get webPromptCodesTitle;
+
+  /// Szabad mód (34a) sebesség-cellája: víz szerinti sebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'STW'**
+  String get liveStw;
+
+  /// Szabad mód (34a) sebesség-cellája STW hiányában: föld szerinti sebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'SOG'**
+  String get liveSog;
+
+  /// Szabad mód (34a) sín-cellája: a vízhez mért szélirány-szög, oldal-jellel.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWA'**
+  String get liveTwa;
+
+  /// Szabad mód (34a) sín-cellája: a vízhez mért szélsebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWS'**
+  String get liveTws;
+
+  /// Műszerek csík (34a-1): a próba keresi a hajót, vagy az engine még kapcsolódik.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hajó keresése…'**
+  String get instrumentsSearching;
+
+  /// Műszerek csík: az engine áll (kézi leállítás után); a keresés a következő megnyitáskor indul.
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítva'**
+  String get instrumentsStopped;
+
+  /// Műszerek csík (34a-3): az utolsó adat korának felirata megszakadt kapcsolatnál.
+  ///
+  /// In hu, this message translates to:
+  /// **'ADAT'**
+  String get instrumentsDataLabel;
+
+  /// Az utolsó adat kora egy óra alatt; az age perc:mp alakú (1:12).
+  ///
+  /// In hu, this message translates to:
+  /// **'{age} perce'**
+  String instrumentsDataAgeMinutes(String age);
+
+  /// Az utolsó adat kora egy óra felett; az age óra:perc alakú (1:05).
+  ///
+  /// In hu, this message translates to:
+  /// **'{age} órája'**
+  String instrumentsDataAgeHours(String age);
+
+  /// A Műszerek csík ⋮ menüjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Menü'**
+  String get instrumentsMenuTooltip;
+
+  /// A szabad mód Leállítás-dialógusának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Műszerek leállítása'**
+  String get instrumentsStopTitle;
+
+  /// A szabad mód Leállítás-dialógusának szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.'**
+  String get instrumentsStopMessage;
 }
 
 class _AppLocalizationsDelegate

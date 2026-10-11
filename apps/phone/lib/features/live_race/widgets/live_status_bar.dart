@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/live_formatters.dart';
+import 'package:phone/features/live_race/widgets/stale_chip.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// Az élő képernyő státuszsora (§8.7, ADR 0042 D10): kapcsolat-jelző, aktív
@@ -78,7 +79,7 @@ class LiveStatusBar extends StatelessWidget {
             ),
           ),
           if (isStale) ...[
-            _StaleChip(label: l10n.liveStale, color: warningColors.warning),
+            StaleChip(label: l10n.liveStale, color: warningColors.warning),
             const SizedBox(width: 10),
           ],
           Text(
@@ -117,33 +118,4 @@ class LiveStatusBar extends StatelessWidget {
       warningColors.critical,
     ),
   };
-}
-
-/// Az „elavult adat" chip a státuszsorban (ADR 0042 D12).
-///
-/// Kontúros pill, nem tömör doboz: az elavulás **nem** riasztás — az értékek
-/// megmaradnak a képernyőn, csak a koruk kérdéses —, ezért a jelzés a
-/// warning-tokent viszi, de nem foglal el hátteret a státuszsorban.
-class _StaleChip extends StatelessWidget {
-  const _StaleChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      border: Border.all(color: color),
-      borderRadius: BorderRadius.circular(99),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.schedule, size: 11, color: color),
-        const SizedBox(width: 4),
-        Text(label, style: sectionLabelStyle.copyWith(color: color)),
-      ],
-    ),
-  );
 }

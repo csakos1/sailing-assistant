@@ -1,9 +1,5 @@
 {
   "@@locale": "hu",
-  "liveNoActiveRace": "Nincs aktív verseny",
-  "@liveNoActiveRace": {
-    "description": "Az élő képernyő üres állapota: nincs aktív verseny."
-  },
   "liveStale": "ELAVULT",
   "@liveStale": {
     "description": "Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül)."
@@ -1412,5 +1408,63 @@
   "webPromptCodesTitle": "Új helyreállító kódok",
   "@webPromptCodesTitle": {
     "description": "Ujjlenyomat-ablak: kódok (Z13)."
+  },
+  "liveStw": "STW",
+  "@liveStw": {
+    "description": "Szabad mód (34a) sebesség-cellája: víz szerinti sebesség csomóban."
+  },
+  "liveSog": "SOG",
+  "@liveSog": {
+    "description": "Szabad mód (34a) sebesség-cellája STW hiányában: föld szerinti sebesség csomóban."
+  },
+  "liveTwa": "TWA",
+  "@liveTwa": {
+    "description": "Szabad mód (34a) sín-cellája: a vízhez mért szélirány-szög, oldal-jellel."
+  },
+  "liveTws": "TWS",
+  "@liveTws": {
+    "description": "Szabad mód (34a) sín-cellája: a vízhez mért szélsebesség csomóban."
+  },
+  "instrumentsSearching": "Hajó keresése…",
+  "@instrumentsSearching": {
+    "description": "Műszerek csík (34a-1): a próba keresi a hajót, vagy az engine még kapcsolódik."
+  },
+  "instrumentsStopped": "Leállítva",
+  "@instrumentsStopped": {
+    "description": "Műszerek csík: az engine áll (kézi leállítás után); a keresés a következő megnyitáskor indul."
+  },
+  "instrumentsDataLabel": "ADAT",
+  "@instrumentsDataLabel": {
+    "description": "Műszerek csík (34a-3): az utolsó adat korának felirata megszakadt kapcsolatnál."
+  },
+  "instrumentsDataAgeMinutes": "{age} perce",
+  "@instrumentsDataAgeMinutes": {
+    "description": "Az utolsó adat kora egy óra alatt; az age perc:mp alakú (1:12).",
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "instrumentsDataAgeHours": "{age} órája",
+  "@instrumentsDataAgeHours": {
+    "description": "Az utolsó adat kora egy óra felett; az age óra:perc alakú (1:05).",
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "instrumentsMenuTooltip": "Menü",
+  "@instrumentsMenuTooltip": {
+    "description": "A Műszerek csík ⋮ menüjének tooltipje."
+  },
+  "instrumentsStopTitle": "Műszerek leállítása",
+  "@instrumentsStopTitle": {
+    "description": "A szabad mód Leállítás-dialógusának címe."
+  },
+  "instrumentsStopMessage": "Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.",
+  "@instrumentsStopMessage": {
+    "description": "A szabad mód Leállítás-dialógusának szövege."
   }
 }

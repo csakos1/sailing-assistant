@@ -58,20 +58,29 @@ class InstrumentsTabStatus {
 /// engine-nél a pillanatkép kapcsolata dönt (hiba = nincs kapcsolat), az
 /// első pillanatképig „keresés". Aktív versenyen a rajtidő-címke helyett
 /// az „ÉLŐ" áll. A [toLocal] a rajtidőt a sáv helyi órájára váltja.
+///
+/// A [hasSessionData] igaz, ha a futó engine a session alatt már kapott
+/// adatot: újrakapcsolódás közben a kapcsolat `Connecting` és
+/// `ConnectionError` között vált, és ilyenkor a `Connecting` is „nincs
+/// kapcsolat", hogy az él ne villogjon (a szabad mód csíkjával egyezően,
+/// ADR 0056 U3).
 InstrumentsTabStatus instrumentsTabStatusOf({
   required EngineSessionState session,
   required ConnectionStatus connection,
   required Race? selectedRace,
   required Race? dayRace,
   required LocalWallClock toLocal,
+  bool hasSessionData = false,
 }) {
   final link = switch (session) {
     EngineStopped() => InstrumentsLink.disconnected,
     EngineProbing() => InstrumentsLink.searching,
     EngineRunning() => switch (connection) {
       Connected() => InstrumentsLink.connected,
-      Connecting() => InstrumentsLink.searching,
-      Disconnected() || ConnectionError() => InstrumentsLink.disconnected,
+      Connecting() when !hasSessionData => InstrumentsLink.searching,
+      Connecting() ||
+      Disconnected() ||
+      ConnectionError() => InstrumentsLink.disconnected,
     },
   };
   final isLive = selectedRace?.status == RaceStatus.active;
