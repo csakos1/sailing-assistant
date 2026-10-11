@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/clock_provider.dart';
@@ -50,6 +52,52 @@ class ActiveRaceNotifier extends Notifier<Race?> {
     final rounded = race.roundCurrentMark(at: ref.read(clockProvider)());
     await ref.read(raceRepositoryProvider).save(rounded);
     state = rounded;
+  }
+
+  /// Az engine által magától elindított verseny ([raceId]) átvétele a
+  /// DB-be (ADR 0055 D6, T4): az engine a tervezett rajtidővel ([at]) indít,
+  /// de a DB-t nem írja (ADR 0016 D6). Idempotens: ha a verseny már nem
+  /// `notStarted` (egy kézi „Rajt" vagy egy korábbi átvétel már mentette),
+  /// az első mentés marad, és egy eltérő rajtidő csak naplósor. Az átvett
+  /// verseny lesz a kiválasztott is (ez az, ami rögzül), kivéve, ha közben
+  /// egy másik verseny aktív a UI-ban.
+  Future<void> adoptEngineStart(String raceId, {required DateTime at}) async {
+    final repository = ref.read(raceRepositoryProvider);
+    final selected = state;
+    final isSelected = selected?.id == raceId;
+    final race = selected != null && isSelected
+        ? selected
+        : await repository.getRace(raceId);
+    if (race == null) return;
+    // A DB-olvasás alatt egy kézi „Rajt" már menthetett: az első mentés
+    // nyer, ezért a kiválasztott friss állapotát is nézzük.
+    final current = state;
+    final latest = current != null && current.id == raceId ? current : race;
+    if (latest.status != RaceStatus.notStarted) {
+      _logDifferentStart(latest, at);
+      return;
+    }
+    final started = latest.start(at: at);
+    // A kiválasztást a mentés előtt frissítjük, mint a finishFromEngine-nél.
+    if (current == null ||
+        current.id == raceId ||
+        current.status != RaceStatus.active) {
+      state = started;
+    }
+    await repository.save(started);
+  }
+
+  void _logDifferentStart(Race race, DateTime engineStartedAt) {
+    final savedStartedAt = race.startedAt;
+    if (race.status != RaceStatus.active ||
+        savedStartedAt == null ||
+        savedStartedAt.isAtSameMomentAs(engineStartedAt)) {
+      return;
+    }
+    developer.log(
+      'engine start $engineStartedAt kept saved start $savedStartedAt',
+      name: 'ActiveRace',
+    );
   }
 
   /// Az engine által magától lezárt verseny ([raceId]) perzisztálása (az

@@ -7,9 +7,12 @@ import 'package:phone/providers/engine_session_provider.dart';
 import 'package:phone/providers/engine_session_state.dart';
 import 'package:phone/providers/last_recording_reader_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
+import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/settings_repository_provider.dart';
 import 'package:phone/providers/timer_factory_provider.dart';
 
 import '../engine/fake_timers.dart';
+import '../providers/in_memory_repositories.dart';
 import '../providers/recording_engine_host.dart';
 
 void main() {
@@ -34,12 +37,19 @@ void main() {
   Future<ProviderContainer> pumpBinding(WidgetTester tester) async {
     host = RecordingEngineHost();
     addTearDown(host.close);
+    final races = InMemoryRaceRepository();
+    addTearDown(races.close);
     final container = ProviderContainer(
       overrides: [
         raceEngineHostProvider.overrideWithValue(host),
         lastRecordingReaderProvider.overrideWithValue((_) async => null),
         // The adoption watchdog must not leave a real timer behind.
         timerFactoryProvider.overrideWithValue(FakeTimers().create),
+        // The day's race is read from these, not from the real database.
+        raceRepositoryProvider.overrideWithValue(races),
+        settingsRepositoryProvider.overrideWithValue(
+          InMemorySettingsRepository(),
+        ),
       ],
     );
     addTearDown(container.dispose);

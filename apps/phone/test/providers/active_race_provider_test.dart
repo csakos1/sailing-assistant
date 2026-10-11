@@ -201,4 +201,78 @@ void main() {
       expect(repository.store['race-1'], finished);
     });
   });
+
+  group('adoptEngineStart', () {
+    final scheduled = fixedNow.add(const Duration(minutes: 30));
+    final other = Race.create(
+      id: 'race-2',
+      name: 'Masik',
+      marks: const [markA],
+    );
+
+    test('a race started by the engine is saved and selected', () async {
+      // Arrange: the rule picked race-1, the UI has race-2 selected.
+      repository.store['race-1'] = race;
+      notifier().activeRace = other;
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: scheduled);
+
+      // Assert
+      final state = container.read(activeRaceProvider)!;
+      expect(state.id, 'race-1');
+      expect(state.status, RaceStatus.active);
+      expect(state.startedAt, scheduled);
+      expect(repository.store['race-1'], state);
+    });
+
+    test('the selected race is started from its live state', () async {
+      // Arrange
+      notifier().activeRace = race;
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: scheduled);
+
+      // Assert
+      expect(container.read(activeRaceProvider)?.startedAt, scheduled);
+      expect(repository.store['race-1']?.startedAt, scheduled);
+    });
+
+    test('the first saved start is kept', () async {
+      // Arrange: a manual Rajt was saved before the engine snapshot.
+      notifier().activeRace = race;
+      await notifier().start();
+      final started = container.read(activeRaceProvider)!;
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: scheduled);
+
+      // Assert
+      expect(container.read(activeRaceProvider), started);
+      expect(repository.store['race-1']?.startedAt, fixedNow);
+    });
+
+    test('another active race keeps the selection', () async {
+      // Arrange
+      repository.store['race-1'] = race;
+      final otherActive = other.start(at: fixedNow);
+      notifier().activeRace = otherActive;
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: scheduled);
+
+      // Assert
+      expect(container.read(activeRaceProvider), otherActive);
+      expect(repository.store['race-1']?.status, RaceStatus.active);
+    });
+
+    test('an unknown race is ignored', () async {
+      // Act
+      await notifier().adoptEngineStart('race-9', at: scheduled);
+
+      // Assert
+      expect(repository.store, isEmpty);
+      expect(container.read(activeRaceProvider), isNull);
+    });
+  });
 }

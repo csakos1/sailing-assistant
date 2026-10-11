@@ -10,12 +10,15 @@ import 'package:phone/providers/engine_service_error_provider.dart';
 import 'package:phone/providers/engine_session_provider.dart';
 import 'package:phone/providers/engine_session_state.dart';
 import 'package:phone/providers/last_recording_reader_provider.dart';
+import 'package:phone/providers/local_wall_clock_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 import 'package:phone/providers/race_engine_lifecycle_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/settings_repository_provider.dart';
 import 'package:phone/providers/timer_factory_provider.dart';
 
 import '../engine/fake_timers.dart';
+import 'in_memory_repositories.dart';
 import 'recording_engine_host.dart';
 
 void main() {
@@ -36,7 +39,8 @@ void main() {
   late RecordingEngineHost host;
   late FakeTimers timers;
   late Map<String, DateTime> lastRecordings;
-  late _SavingRaceRepository repository;
+  late InMemoryRaceRepository repository;
+  late InMemorySettingsRepository settings;
   late DateTime now;
   late ProviderContainer container;
 
@@ -51,6 +55,7 @@ void main() {
     String? raceId,
     DateTime? tickTime,
     DateTime? raceFinishedAt,
+    DateTime? raceStartedAt,
   }) => RaceSnapshot(
     eventCount: 0,
     boatState: BoatState(lastUpdate: tickTime ?? startTime),
@@ -58,6 +63,7 @@ void main() {
     raceStatus: raceStatus,
     raceId: raceId,
     raceFinishedAt: raceFinishedAt,
+    raceStartedAt: raceStartedAt,
     tickTime: tickTime ?? startTime,
   );
 
@@ -73,7 +79,8 @@ void main() {
     host = RecordingEngineHost();
     timers = FakeTimers();
     lastRecordings = {};
-    repository = _SavingRaceRepository();
+    repository = InMemoryRaceRepository();
+    settings = InMemorySettingsRepository();
     // An hour after the start: a race started at startTime is recent.
     now = startTime.add(const Duration(hours: 1));
     container = ProviderContainer(
@@ -85,9 +92,13 @@ void main() {
         ),
         clockProvider.overrideWithValue(() => now),
         raceRepositoryProvider.overrideWithValue(repository),
+        settingsRepositoryProvider.overrideWithValue(settings),
+        // A UTC wall clock: the local day does not depend on the machine.
+        localWallClockProvider.overrideWithValue((instant) => instant.toUtc()),
       ],
     );
     addTearDown(host.close);
+    addTearDown(repository.close);
     addTearDown(container.dispose);
     container.listen(raceEngineLifecycleProvider, (_, _) {});
   });
@@ -715,21 +726,295 @@ void main() {
       expect(host.raceCommands, [null]);
     });
   });
-}
 
-/// Records the saved races.
-class _SavingRaceRepository implements RaceRepository {
-  final List<Race> saved = [];
+  group("the day's race (ADR 0055 T4)", () {
+    // The clock of setUp: an hour after startTime, the same local day.
+    final setUpNow = startTime.add(const Duration(hours: 1));
+    final scheduledStart = setUpNow.add(const Duration(hours: 2));
+    final scheduledRace = Race.create(
+      id: 'race-3',
+      name: 'Tervezett',
+      marks: const [markA],
+    ).copyWith(scheduledStartAt: scheduledStart);
+    final laterRace = Race.create(
+      id: 'race-4',
+      name: 'Kesobbi',
+      marks: const [markA],
+    ).copyWith(scheduledStartAt: scheduledStart.add(const Duration(hours: 1)));
 
-  @override
-  Future<void> save(Race race) async => saved.add(race);
+    test("a probe hit starts with today's scheduled race", () async {
+      // Arrange
+      repository.put(scheduledRace);
 
-  @override
-  Future<Race?> getRace(String id) async => null;
+      // Act
+      await runFromProbe();
 
-  @override
-  Stream<List<Race>> watchRaces() => const Stream<List<Race>>.empty();
+      // Assert
+      expect(host.startedRaces.single?.id, 'race-3');
+    });
 
-  @override
-  Future<void> delete(String id) async {}
+    test("today's manual choice wins over the earliest race", () async {
+      // Arrange
+      repository
+        ..put(scheduledRace)
+        ..put(laterRace);
+      settings.choice = InstrumentsRaceChoice(
+        raceId: 'race-4',
+        chosenOnLocalDay: setUpNow,
+      );
+
+      // Act
+      await runFromProbe();
+
+      // Assert
+      expect(host.startedRaces.single?.id, 'race-4');
+    });
+
+    test('a race scheduled later is sent to a free-mode engine', () async {
+      // Arrange
+      await runFromProbe();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-3']);
+    });
+
+    test('an edited start time sends the fresh race again', () async {
+      // Arrange
+      repository.put(scheduledRace);
+      await runFromProbe();
+      final postponed = scheduledRace.copyWith(
+        scheduledStartAt: scheduledStart.add(const Duration(minutes: 30)),
+      );
+
+      // Act
+      repository.put(postponed);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, [postponed]);
+    });
+
+    test('a race handed over is not replaced by the rule', () async {
+      // Arrange: Elo nezet hands over a race without a start time.
+      await runFromProbe();
+      container.read(raceEngineLifecycleProvider).handOver(race);
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-1']);
+    });
+
+    test('a free-mode snapshot does not undo a hand-over', () async {
+      // Arrange: the snapshot after the hand-over was made before the
+      // engine took the race, so it still shows free mode.
+      await runFromProbe();
+      container.read(raceEngineLifecycleProvider).handOver(race);
+      host.emit(
+        snapshot(raceStatus: null, connectionStatus: const Connected()),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-1']);
+    });
+
+    test('a race handed over and then deleted is kept', () async {
+      // Arrange
+      repository.put(race);
+      await runFromProbe();
+      container.read(raceEngineLifecycleProvider).handOver(race);
+
+      // Act
+      await repository.delete('race-1');
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, [race]);
+    });
+
+    test('an expired start window frees the engine on resume', () async {
+      // Arrange
+      repository.put(scheduledRace);
+      await runFromProbe();
+      host.isServiceRunning = true;
+      // The window end is exclusive: at exactly 3 hours it is closed.
+      now = scheduledStart.add(const Duration(hours: 3));
+
+      // Act
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+
+      // Assert
+      expect(host.raceCommands, [null]);
+    });
+
+    test('an adopted free engine is given the day race', () async {
+      // Arrange: a forgotten active race is selected, but the adopted
+      // engine reports free mode.
+      final stale = race.start(at: startTime.subtract(const Duration(days: 1)));
+      select(stale);
+      host.isServiceRunning = true;
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+      host.emit(
+        snapshot(raceStatus: null, connectionStatus: const Connected()),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-3']);
+    });
+
+    test('a hand-over before the first adopted snapshot is kept', () async {
+      // Arrange: the first snapshot was made before the hand-over.
+      host.isServiceRunning = true;
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+      container.read(raceEngineLifecycleProvider).handOver(otherRace);
+      host.emit(
+        snapshot(raceStatus: null, connectionStatus: const Connected()),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands.map((race) => race?.id), ['race-2']);
+    });
+
+    test('an adopted race unknown to the app is kept', () async {
+      // Arrange: the engine runs a race handed over before a restart.
+      host.isServiceRunning = true;
+      await container.read(raceEngineLifecycleProvider).onAppResumed();
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.notStarted,
+          connectionStatus: const Connected(),
+          raceId: 'race-9',
+        ),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, isEmpty);
+    });
+
+    test('a failed race read starts in free mode', () async {
+      // Arrange
+      repository
+        ..put(scheduledRace)
+        ..isReadFailing = true;
+
+      // Act
+      await runFromProbe();
+
+      // Assert
+      expect(host.startedRaces, [null]);
+    });
+
+    test('a race handed over and edited is sent again', () async {
+      // Arrange
+      await runFromProbe();
+      container.read(raceEngineLifecycleProvider).handOver(race);
+      final renamed = race.copyWith(name: 'Uj nev');
+
+      // Act
+      repository.put(renamed);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, [race, renamed]);
+    });
+
+    test('a race in progress is not replaced', () async {
+      // Arrange
+      final started = race.start(at: startTime);
+      select(started);
+      await runFromProbe();
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.active,
+          connectionStatus: const Connected(),
+          raceId: 'race-1',
+        ),
+      );
+      await pumpEventQueue();
+
+      // Act
+      repository.put(scheduledRace);
+      await pumpEventQueue();
+
+      // Assert
+      expect(host.raceCommands, isEmpty);
+    });
+
+    test("the engine's own start is saved and selected", () async {
+      // Arrange
+      repository.put(scheduledRace);
+      await runFromProbe();
+
+      // Act: the engine started the race at its scheduled time.
+      for (var i = 0; i < 2; i++) {
+        host.emit(
+          snapshot(
+            raceStatus: RaceStatus.active,
+            connectionStatus: const Connected(),
+            raceId: 'race-3',
+            raceStartedAt: scheduledStart,
+          ),
+        );
+      }
+      await pumpEventQueue();
+
+      // Assert: saved once, with the scheduled time.
+      expect(repository.saved, hasLength(1));
+      expect(repository.saved.single.startedAt, scheduledStart);
+      final selected = container.read(activeRaceProvider);
+      expect(selected?.id, 'race-3');
+      expect(selected?.status, RaceStatus.active);
+      // The engine already runs the race: no command goes out for it.
+      expect(host.raceCommands, isEmpty);
+    });
+
+    test('a manual start is not overwritten by the engine', () async {
+      // Arrange
+      final started = race.start(at: startTime);
+      repository.put(started);
+      select(started);
+      await runFromProbe();
+
+      // Act
+      host.emit(
+        snapshot(
+          raceStatus: RaceStatus.active,
+          connectionStatus: const Connected(),
+          raceId: 'race-1',
+          raceStartedAt: startTime.add(const Duration(seconds: 1)),
+        ),
+      );
+      await pumpEventQueue();
+
+      // Assert
+      expect(repository.saved, isEmpty);
+      expect(container.read(activeRaceProvider), started);
+    });
+  });
 }
