@@ -169,6 +169,14 @@ nincs verseny" (18 / w600), alatta a magyarázat (13.5 / 1.5,
 rajt, bóják. A tervezett és a futó versenyek itt sorakoznak." A blokk
 alatt hairline. Az „Új verseny" gomb ugyanott, mint kitöltve.
 
+**A kód szerint (U5):** a sorszám-oszlop elmarad (felhasználói döntés:
+a versenynek nincs sorszáma); a sorrend a fenti javaslat szerint, azzal,
+hogy a korábbi napra tervezett, de el nem indult versenyek a mai és a
+későbbi versenyek után, a rajtidő nélküliek előtt állnak; a
+folyamatban lévő sor kiemelt, meta-sora a célzott bója („2 / 4 ·
+Tihany"); bója nélkül a meta-sor „bója nélkül"; más évben a nap az évvel
+(„2027. JAN. 3."). A „NEM INDULT" címke és jelölője `onSurfaceVariant`.
+
 ## 4. Versenyrészlet (32a, 32b, 32c) — push, sáv nélkül
 
 **Fejrész.** 58 dp, alul hairline: 48 dp-s vissza-nyíl, a versenynév

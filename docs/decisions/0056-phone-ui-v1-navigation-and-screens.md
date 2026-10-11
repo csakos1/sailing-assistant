@@ -2,7 +2,7 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1–U4 kész (2026-10-11); a
+Elfogadva — 2026-10-10. Implementálva: az U1–U5 kész (2026-10-11/12); a
 többi szelet a „Szeletek" sorrendjében követi, docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
@@ -464,3 +464,52 @@ képernyők (U3, U4) replay-próbát is kapnak.
   ID-vel (`foretack_race`), így a meglévő csatorna átnevezve frissül.
 - **Ami nem változott:** a hiányjel, a GPS-idő fontja és a ⋮ helye az U3
   szerint; az ETA formája a mai (`perc:mp`).
+
+## Pontosítás a kód után (U5, 2026-10-12)
+
+- **A felhasználó döntései** (az összevetés és a review után): a makett
+  sorszám-oszlopa elmarad (a versenynek nincs sorszáma, és egy
+  listapozíció semmit nem mondana róla); a sorrend a `phone-ui-v1.md` §3 javaslata szerint; a
+  folyamatban lévő sor meta-sora az aktív bóját mutatja; a „NEM INDULT"
+  címke a makett szerint `onSurfaceVariant`, a részlet státuszcsíkjában is
+  (a `StatusBadge` közös; a webes részletező csíkja is így változik).
+- **A sorrend** a tiszta `raceListEntriesOf`-é
+  (`features/race_list/race_list_entries.dart`): elöl a folyamatban lévők,
+  utána az el nem indult, mai vagy későbbi napra tervezett versenyek a
+  rajt szerint növekvőben (egyező rajtnál a bemenet sorrendje marad),
+  utána a korábbi napra tervezett, de el nem indult (elmaradt) versenyek
+  ugyanígy, végül a rajtidő nélküliek a bemenet (felvételi) sorrendjében;
+  a befejezettek kimaradnak. Az elmaradt versenyek hátrasorolása
+  felhasználói döntés (a review után feltett kérdésre: egy tegnapi, el nem
+  indított verseny ne kerüljön a mai elé); a spec sima „rajt szerint
+  növekvő" szabályát pontosítja. A
+  „ma" a rajtidő helyi napja (ADR 0055 D5, `localWallClockProvider`). A
+  `raceListEntriesProvider` nem időzít: a versenyek változásakor és
+  előtérbe kerüléskor (a héj érvényteleníti) számol újra, és a sorokkal
+  együtt a pillanatot is adja, amihez számolt, így a sorrend, a kiemelés
+  és a meta-sor nap-felirata egy órából jön.
+- **A meta-sor** a tiszta `raceListMetaOf`-é: folyamatban lévő versenyen
+  „2 / 4 · Tihany" (a célzott bója sorszáma, a bóják száma, a neve), bója
+  nélküli futó versenyen a többi sor szabálya; tervezett rajtnál „MA ·
+  09:00 · 4 bója", más napon „OKT. 11. · …", más évben „2027. JAN. 3. ·
+  …"; rajtidő nélkül „3 bója", bója nélkül „bója nélkül". A hónap a
+  meglévő `webMonthsShort` ARB-listából, nagybetűsítve (`intl` nélkül);
+  a `monthShortName` és a `formatClock` a közös `lib/format/`-ba
+  költözött (a webes időpontok, a sáv és a mai versenyek váltója is
+  ezeket használja).
+- **A sor** (makett 31a): 2 dp-s sín, 16 / 20 / 16 / 18 dp padding, a név
+  alatt 5 dp-vel a meta-sor (`listMetaStyle`, Martian Mono 11,5 / w500),
+  jobbra a `StatusBadge`. Kiemelt a folyamatban lévő és a mai verseny:
+  `primary` sín, `surfaceContainer` háttér, `onSecondaryContainer`
+  meta-sor; a többi sor meta-sora `TextTones.low`.
+- **A fejrész:** 64 dp, alul hairline, „Versenyek" az új `tabTitleStyle`-lal
+  (24 / w700, a `foretack_ui`-ban). A `homeTitleStyle` marad: a webes
+  belépő képernyő és a telefon webes képernyői tartalom-címként
+  használják. A napló fülét az U8 állítja át.
+- **Az alsó gomb** 56 dp, 15 / w700, 15 dp-s „+", felső vonal nélkül.
+- **Az üres állapot** (31b) a lista helyén, görgethetően: tompa „0", „Még
+  nincs verseny", a magyarázat a félkövér „Új verseny"-jel, alul
+  hairline. A `listEmpty` ARB-kulcs megszűnt.
+- **Ami nem változott:** a webes szalagok, a QR-belépés snackbarja, a
+  betöltés és a hiba-sor; a `WebAccessRefresher` a héjban bármelyik fül
+  mellett frissít előtérbe kerüléskor, push-olt képernyő alatt nem.

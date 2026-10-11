@@ -3611,7 +3611,13 @@ csík mindhárom tartalomban az `InstrumentsStrip` ugyanazzal a
 kapcsolat-szabállyal. „Rajt most" és „Bója megvan" megerősítéssel; a
 mai versenyek váltója a kézi választást írja, és a lifecycle azonnal
 újradönt (a `handOver` megszűnt). A kijelző csak rajt előtt és versenyen
-marad ébren.
+marad ébren. **Kész (U5):** a Versenyek fül a 31a / 31b szerint: a
+sorrendet és a „ma"-t a tiszta `raceListEntriesOf` adja (folyamatban
+lévő, mai és későbbi rajt szerint, elmaradt, rajtidő nélküliek), a
+meta-sort a
+`raceListMetaOf`; a mai és a futó verseny sora kiemelt; 64 dp-s fejrész
+a `tabTitleStyle`-lal, 56 dp-s „Új verseny", üres állapot a lista
+helyén.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
