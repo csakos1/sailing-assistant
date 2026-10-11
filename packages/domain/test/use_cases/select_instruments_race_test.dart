@@ -426,4 +426,91 @@ void main() {
       expect(result, isNull);
     });
   });
+
+  group("today's candidates", () {
+    List<Race> candidatesOf(List<Race> races, {required DateTime now}) =>
+        select.scheduledCandidates(
+          races: races,
+          now: now,
+          toLocal: budapestWallClock,
+        );
+
+    test('are sorted by the scheduled start', () {
+      // Arrange
+      final evening = scheduled(
+        'evening',
+        nineLocal.add(const Duration(hours: 5)),
+      );
+      final early = scheduled('early', nineLocal);
+
+      // Act
+      final result = candidatesOf([evening, early], now: morning);
+
+      // Assert
+      expect(result.map((race) => race.id), ['early', 'evening']);
+    });
+
+    test('keep the list order for the same start time', () {
+      // Arrange
+      final first = scheduled('first', nineLocal);
+      final second = scheduled('second', nineLocal);
+
+      // Act
+      final result = candidatesOf([first, second], now: morning);
+
+      // Assert
+      expect(result.map((race) => race.id), ['first', 'second']);
+    });
+
+    test('leave out started, undated, other-day and expired races', () {
+      // Arrange: 13:00 local, so the 09:00 start is past its window.
+      final now = nineLocal.add(const Duration(hours: 4));
+      final races = [
+        scheduled('expired', nineLocal),
+        scheduled('undated', null),
+        scheduled('tomorrow', nineLocal.add(const Duration(days: 1))),
+        scheduled(
+          'started',
+          nineLocal.add(const Duration(hours: 5)),
+        ).start(at: now),
+        scheduled('evening', nineLocal.add(const Duration(hours: 5))),
+      ];
+
+      // Act
+      final result = candidatesOf(races, now: now);
+
+      // Assert
+      expect(result.map((race) => race.id), ['evening']);
+    });
+
+    test('ignore an active race the selection would prefer', () {
+      // Arrange: a fresh active race wins the selection, but the switcher
+      // only lists races still to start.
+      final active = scheduled('active', nineLocal).start(at: nineLocal);
+      final later = scheduled('later', nineLocal.add(const Duration(hours: 2)));
+      final now = nineLocal.add(const Duration(minutes: 30));
+
+      // Act
+      final result = candidatesOf([active, later], now: now);
+
+      // Assert
+      expect(result.map((race) => race.id), ['later']);
+      expect(run([active, later], now: now), active);
+    });
+
+    test('the earliest candidate is the default selection', () {
+      // Arrange
+      final races = [
+        scheduled('b', nineLocal.add(const Duration(hours: 1))),
+        scheduled('a', nineLocal),
+      ];
+
+      // Act & Assert
+      expect(run(races, now: morning), candidatesOf(races, now: morning).first);
+    });
+
+    test('are empty without a candidate', () {
+      expect(candidatesOf(const [], now: morning), isEmpty);
+    });
+  });
 }

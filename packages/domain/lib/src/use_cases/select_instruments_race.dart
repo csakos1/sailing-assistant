@@ -21,8 +21,9 @@ typedef LocalWallClock = DateTime Function(DateTime instant);
 ///    rögzítő aktív verseny (pl. elfelejtett „Cél") nem nyer;
 /// 2. a helyi idő szerint **mai**, `notStarted`, tervezett rajtidős
 ///    versenyek közül, amelyek a visszamenőleges ablakon belül vannak
-///    (`now < scheduledStartAt + lateStartWindow`): a mai kézi választás,
-///    különben a legkorábbi rajtidejű (egyezésnél a lista sorrendje);
+///    (`now < scheduledStartAt + lateStartWindow`, [scheduledCandidates]):
+///    a mai kézi választás, különben a legkorábbi rajtidejű (egyezésnél a
+///    lista sorrendje);
 /// 3. különben `null`: szabad mód.
 ///
 /// Dátum nélküli versenyt sosem választ. A „mai" a rajtidő helyi napja: egy
@@ -69,13 +70,49 @@ class SelectInstrumentsRace {
         )) {
       return active;
     }
-    final today = toLocal(now);
-    bool isCandidate(Race race) =>
-        _isScheduledCandidate(race, now: now, today: today, toLocal: toLocal);
-    final candidates = races.where(isCandidate).toList();
+    final candidates = scheduledCandidates(
+      races: races,
+      now: now,
+      toLocal: toLocal,
+    );
     if (candidates.isEmpty) return null;
-    return _manuallyChosen(candidates, manualChoice, today) ??
-        _earliestScheduled(candidates);
+    return _manuallyChosen(candidates, manualChoice, toLocal(now)) ??
+        candidates.first;
+  }
+
+  /// A mai jelöltek a kézi választáshoz (a Műszerek váltója, ADR 0056
+  /// D3): a helyi idő szerint mai, `notStarted`, tervezett rajtidős
+  /// versenyek a visszamenőleges ablakon belül, rajtidő szerint növekvő
+  /// sorrendben; egyező rajtidőnél a [races] sorrendje marad.
+  List<Race> scheduledCandidates({
+    required List<Race> races,
+    required DateTime now,
+    required LocalWallClock toLocal,
+  }) {
+    final today = toLocal(now);
+    final candidates = <Race>[];
+    for (final race in races) {
+      if (!_isScheduledCandidate(
+        race,
+        now: now,
+        today: today,
+        toLocal: toLocal,
+      )) {
+        continue;
+      }
+      // Beszúrásos rendezés: stabil, így egyező rajtidőnél a lista
+      // sorrendje dönt. A jelöltek mind rajtidősek, ezért a `!` itt nem
+      // dobhat.
+      var index = candidates.length;
+      while (index > 0 &&
+          race.scheduledStartAt!.isBefore(
+            candidates[index - 1].scheduledStartAt!,
+          )) {
+        index--;
+      }
+      candidates.insert(index, race);
+    }
+    return candidates;
   }
 
   bool _isScheduledCandidate(
@@ -128,18 +165,6 @@ class SelectInstrumentsRace {
       if (race.id == choice.raceId) return race;
     }
     return null;
-  }
-
-  static Race _earliestScheduled(List<Race> candidates) {
-    var earliest = candidates.first;
-    for (final race in candidates.skip(1)) {
-      // A jelöltek mind rajtidősek (_isScheduledCandidate), ezért a `!`
-      // itt nem dobhat.
-      if (race.scheduledStartAt!.isBefore(earliest.scheduledStartAt!)) {
-        earliest = race;
-      }
-    }
-    return earliest;
   }
 
   static bool _isSameDay(DateTime a, DateTime b) =>
