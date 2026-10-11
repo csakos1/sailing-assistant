@@ -22,6 +22,14 @@ class _FakeSettingsRepository implements SettingsRepository {
     writes.add(id);
     storedId = id;
   }
+
+  @override
+  Future<InstrumentsRaceChoice?> readInstrumentsRaceChoice() async => null;
+
+  @override
+  Future<void> writeInstrumentsRaceChoice(
+    InstrumentsRaceChoice? choice,
+  ) async {}
 }
 
 /// Fake race-repo: a getRace a beállított `race`-t adja (a restore-hoz).
