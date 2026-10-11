@@ -7,23 +7,23 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/features/live_race/free_mode/free_mode_grid.dart';
 import 'package:phone/features/live_race/free_mode/free_mode_link.dart';
-import 'package:phone/features/live_race/free_mode/free_mode_strip.dart';
+import 'package:phone/features/live_race/instruments_link_provider.dart';
+import 'package:phone/features/live_race/widgets/instruments_strip.dart';
 import 'package:phone/features/live_race/widgets/warning_banner.dart';
 import 'package:phone/features/safety_map/safety_map_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_warnings_provider.dart';
-import 'package:phone/providers/connection_status_provider.dart';
 import 'package:phone/providers/engine_service_error_provider.dart';
 import 'package:phone/providers/engine_session_provider.dart';
 import 'package:phone/providers/engine_session_state.dart';
 import 'package:phone/providers/gps_time_reading_provider.dart';
 import 'package:phone/providers/race_snapshot_provider.dart';
-import 'package:phone/providers/tick_provider.dart';
 
 /// A Műszerek fül szabad módja (34a, ADR 0056 D3, U3): verseny nélkül, vagy
-/// amíg az engine nem versenyez (Cél után, rajt előtt az U4-ig, leállítva).
+/// amíg az engine nem vezet versenyt (Cél után, leállítva).
 ///
-/// Az engine pillanatképéből olvas; az állapotot a [freeModeLinkOf] adja.
+/// Az engine pillanatképéből olvas; az állapotot a közös
+/// [instrumentsLinkProvider] adja ([freeModeLinkOf]).
 /// A mai 1c elemei közül a szolgáltatás-hibasor, a warning-szalag (benne a
 /// sekély-víz riasztás), a kritikus warning miatti tompítás, az ELAVULT
 /// chip és a nem szinkronizált idő jele itt is megmarad (`phone-ui-v1.md`
@@ -38,16 +38,12 @@ class FreeModeView extends ConsumerWidget {
   // Kritikus warningnál a rács tompítása, mint az 1c-n (ADR 0014 D6).
   static const double _criticalOpacity = 0.4;
 
-  // Ennél régebbi adat kapcsolódva is elavult (ADR 0042 D12, mint az 1c).
-  static const Duration _staleAfter = Duration(seconds: 5);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Az `AppLocalizations` a `MaterialApp` alatt mindig jelen van.
     final l10n = AppLocalizations.of(context)!;
     final session = ref.watch(engineSessionProvider);
     final snapshot = ref.watch(raceSnapshotProvider);
-    final tick = ref.watch(tickProvider).valueOrNull;
     final gpsTime =
         ref.watch(gpsTimeReadingProvider).valueOrNull ??
         const TrueTimeReading(utc: null, source: TrueTimeSource.none);
@@ -60,23 +56,8 @@ class FreeModeView extends ConsumerWidget {
     final serviceError = ref.watch(engineServiceErrorProvider);
 
     final boat = snapshot?.boatState;
-    // Esemény nélküli pillanatkép a seedelt hajó-állapotot hordozza, aminek
-    // az ideje az engine indulása, nem egy valódi adaté.
-    final lastDataAt = (snapshot == null || snapshot.eventCount == 0)
-        ? null
-        : snapshot.boatState.lastUpdate;
-    final link = freeModeLinkOf(
-      session: session,
-      connection: ref.watch(connectionStatusProvider),
-      lastDataAt: lastDataAt,
-      now: tick,
-    );
+    final (:link, :isStale) = ref.watch(instrumentsLinkProvider);
     final hasValues = link is FreeModeLive || link is FreeModeLost;
-    final isStale =
-        link is FreeModeLive &&
-        lastDataAt != null &&
-        tick != null &&
-        tick.difference(lastDataAt) > _staleAfter;
     final hasCriticalWarning = warnings.any(
       (warning) => warning.severity == WarningSeverity.critical,
     );
@@ -92,7 +73,7 @@ class FreeModeView extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            FreeModeStrip(
+            InstrumentsStrip(
               link: link,
               trueTime: gpsTime,
               isStale: isStale,

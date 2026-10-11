@@ -118,12 +118,6 @@ abstract class AppLocalizations {
   /// **'TARTOTT'**
   String get liveTwdHeld;
 
-  /// Cella-címke: irány a bójához (abszolút bearing).
-  ///
-  /// In hu, this message translates to:
-  /// **'BEARING'**
-  String get liveBearing;
-
   /// Cella-címke: kormányzási korrekció a bójához.
   ///
   /// In hu, this message translates to:
@@ -1941,6 +1935,48 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.'**
   String get instrumentsStopMessage;
+
+  /// A Műszerek rajt előtti nézetének (34b) alsó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most'**
+  String get instrumentsStartNow;
+
+  /// A „Rajt most” megerősítő dialógusának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most?'**
+  String get instrumentsStartTitle;
+
+  /// A „Rajt most” megerősítő dialógusának szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.'**
+  String get instrumentsStartMessage;
+
+  /// A „Rajt most” dialógusának elvetése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get instrumentsStartCancel;
+
+  /// A „Rajt most” dialógusának megerősítése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt'**
+  String get instrumentsStartConfirm;
+
+  /// A Műszerek váltójának (34b-2a) fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'MAI VERSENYEK'**
+  String get instrumentsTodayRaces;
+
+  /// A Műszerek csíkjában a versenynév-váltó képernyőolvasó-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny váltása'**
+  String get instrumentsSwitchRace;
 }
 
 class _AppLocalizationsDelegate

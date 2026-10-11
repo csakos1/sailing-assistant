@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 
-/// Az „elavult adat" chip: az 1c státuszsorában és a szabad mód csíkján
-/// (ADR 0042 D12, ADR 0056 U3).
+/// Az „elavult adat" chip a Műszerek csíkján (ADR 0042 D12, ADR 0056 U3,
+/// U4).
 ///
 /// Kontúros pill, nem tömör doboz: az elavulás **nem** riasztás — az értékek
 /// megmaradnak a képernyőn, csak a koruk kérdéses —, ezért a jelzés a
-/// warning-tokent viszi, de nem foglal el hátteret a státuszsorban.
+/// warning-tokent viszi, de nem foglal el hátteret a csíkban.
 class StaleChip extends StatelessWidget {
   /// Chip a [label] felirattal és a [color] (warning) színnel.
   const StaleChip({required this.label, required this.color, super.key});

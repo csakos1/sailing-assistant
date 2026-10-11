@@ -21,9 +21,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveTwdHeld => 'TARTOTT';
 
   @override
-  String get liveBearing => 'BEARING';
-
-  @override
   String get liveCorrection => 'KORREKCIÓ';
 
   @override
@@ -1051,4 +1048,26 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get instrumentsStopMessage =>
       'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.';
+
+  @override
+  String get instrumentsStartNow => 'Rajt most';
+
+  @override
+  String get instrumentsStartTitle => 'Rajt most?';
+
+  @override
+  String get instrumentsStartMessage =>
+      'A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.';
+
+  @override
+  String get instrumentsStartCancel => 'Mégse';
+
+  @override
+  String get instrumentsStartConfirm => 'Rajt';
+
+  @override
+  String get instrumentsTodayRaces => 'MAI VERSENYEK';
+
+  @override
+  String get instrumentsSwitchRace => 'Verseny váltása';
 }

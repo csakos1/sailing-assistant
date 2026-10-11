@@ -5,8 +5,9 @@ import 'package:phone/providers/local_wall_clock_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/settings_repository_provider.dart';
 
-/// A beállításokban tárolt kézi Műszerek-választás (ADR 0055 D5). Ma csak
-/// olvasott; aki írja (az U4 váltója), érvénytelenítse ezt is.
+/// A beállításokban tárolt kézi Műszerek-választás (ADR 0055 D5). A
+/// Műszerek váltója írja, és utána érvényteleníti
+/// (`instrumentsRaceChooserProvider`, ADR 0056 U4).
 final AutoDisposeFutureProvider<InstrumentsRaceChoice?>
 instrumentsRaceChoiceProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(settingsRepositoryProvider).readInstrumentsRaceChoice(),

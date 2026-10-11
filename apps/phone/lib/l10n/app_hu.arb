@@ -16,10 +16,6 @@
   "@liveTwdHeld": {
     "description": "Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7)."
   },
-  "liveBearing": "BEARING",
-  "@liveBearing": {
-    "description": "Cella-címke: irány a bójához (abszolút bearing)."
-  },
   "liveCorrection": "KORREKCIÓ",
   "@liveCorrection": {
     "description": "Cella-címke: kormányzási korrekció a bójához."
@@ -1466,5 +1462,33 @@
   "instrumentsStopMessage": "Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.",
   "@instrumentsStopMessage": {
     "description": "A szabad mód Leállítás-dialógusának szövege."
+  },
+  "instrumentsStartNow": "Rajt most",
+  "@instrumentsStartNow": {
+    "description": "A Műszerek rajt előtti nézetének (34b) alsó gombja."
+  },
+  "instrumentsStartTitle": "Rajt most?",
+  "@instrumentsStartTitle": {
+    "description": "A „Rajt most” megerősítő dialógusának címe."
+  },
+  "instrumentsStartMessage": "A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.",
+  "@instrumentsStartMessage": {
+    "description": "A „Rajt most” megerősítő dialógusának szövege."
+  },
+  "instrumentsStartCancel": "Mégse",
+  "@instrumentsStartCancel": {
+    "description": "A „Rajt most” dialógusának elvetése."
+  },
+  "instrumentsStartConfirm": "Rajt",
+  "@instrumentsStartConfirm": {
+    "description": "A „Rajt most” dialógusának megerősítése."
+  },
+  "instrumentsTodayRaces": "MAI VERSENYEK",
+  "@instrumentsTodayRaces": {
+    "description": "A Műszerek váltójának (34b-2a) fejléce."
+  },
+  "instrumentsSwitchRace": "Verseny váltása",
+  "@instrumentsSwitchRace": {
+    "description": "A Műszerek csíkjában a versenynév-váltó képernyőolvasó-címkéje."
   }
 }

@@ -195,10 +195,14 @@ class ForegroundTaskEngineHost implements RaceEngineHost {
   void _initService() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
+        // Az ID marad (ADR 0056 U4): a meglévő csatorna így átnevezve
+        // frissül, és a felhasználó beállításai megmaradnak. A név már a
+        // verseny nélküli (műszer) futást is fedi (ADR 0054).
         channelId: 'foretack_race',
-        channelName: 'Verseny aktív',
+        channelName: 'Műszerek és verseny',
         channelDescription:
-            'Akkor jelenik meg, amikor a verseny-engine a háttérben fut.',
+            'Akkor jelenik meg, amikor a háttér-engine fut: a hajó műszerei '
+            'verseny nélkül is, és a verseny rögzítése.',
         onlyAlertOnce: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(),

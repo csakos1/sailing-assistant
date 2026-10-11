@@ -7,25 +7,30 @@ import 'package:phone/features/live_race/live_formatters.dart';
 import 'package:phone/features/live_race/widgets/stale_chip.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
-/// A szabad mód (34a) egysoros felső csíkja (`phone-ui-v1.md` §6).
+/// A Műszerek fül egysoros felső csíkja mindhárom tartalomhoz (34a, 34b,
+/// 34c; `phone-ui-v1.md` §6, ADR 0056 U4).
 ///
-/// Balról: a kapcsolat-pont, a kapcsolat szövege, ha kell az ELAVULT chip,
+/// Balról: a kapcsolat-pont, a [title] (verseny nélkül a kapcsolat
+/// szövege; rajt előtt a versenynév vagy a váltó, versenyen a név és a
+/// cél-bója), ha kell az ELAVULT chip,
 /// a GPS-idő (megszakadt kapcsolatnál helyette az adat kora), a ⋮ menü a
 /// „Leállítás"-sal, és jobb szélen a térkép-gomb. A térkép-gomb a jobb
 /// szélen van, így a ⋮ megjelenése vagy eltűnése sem mozdítja (a kéz vakon
 /// is ott keresi, felhasználói kérés).
 ///
 /// „Dumb" widget: a kész állapotot kapja, a műveleteket visszahívja.
-class FreeModeStrip extends StatelessWidget {
+class InstrumentsStrip extends StatelessWidget {
   /// A csík a [link] állapottal, a [trueTime] GPS-idővel és az
   /// [isStale] jelzővel; az [onStop] `null`, ha nincs mit leállítani (ilyenkor
-  /// a ⋮ menü sem látszik).
-  const FreeModeStrip({
+  /// a ⋮ menü sem látszik). A [title] `null`-nál a kapcsolat szövege áll a
+  /// helyén (szabad mód).
+  const InstrumentsStrip({
     required this.link,
     required this.trueTime,
     required this.isStale,
     required this.onOpenMap,
     this.onStop,
+    this.title,
     super.key,
   });
 
@@ -46,6 +51,9 @@ class FreeModeStrip extends StatelessWidget {
 
   /// A „Leállítás" menüpont, vagy `null`.
   final VoidCallback? onStop;
+
+  /// A csík címe (versenynév, váltó), vagy `null` a kapcsolat szövegéhez.
+  final Widget? title;
 
   @override
   Widget build(BuildContext context) {
@@ -68,12 +76,16 @@ class FreeModeStrip extends StatelessWidget {
           _LinkDot(link: link, scheme: scheme, tones: tones),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              _label(l10n),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: supportTextStyle.copyWith(color: scheme.onSurfaceVariant),
-            ),
+            child:
+                title ??
+                Text(
+                  _label(l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: supportTextStyle.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
           ),
           if (isStale) ...[
             StaleChip(label: l10n.liveStale, color: warningColors.warning),
@@ -146,7 +158,7 @@ class FreeModeStrip extends StatelessWidget {
         );
       case FreeModeLive():
         // A nem szinkronizált idő `~` előtagot és tompított színt kap
-        // (ADR 0012 D6), mint az 1c státuszsorán.
+        // (ADR 0012 D6).
         final isUnsynced = trueTime.source == TrueTimeSource.wallClockUnsynced;
         final text = formatInstrumentTime(trueTime.utc);
         return Text(
