@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: a T1–T4 kész (2026-10-10/11); a
-T5–T6 hátravan.
+Elfogadva — 2026-10-10. Implementálva: a T1–T5 kész (2026-10-10/11); a
+T6 hátravan, a T5 on-device próbája az U7 után.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -453,3 +453,29 @@ A kódban eldőlt részletek (Claude javaslata):
 - **Az összevetés a DB-ből jött példányok között `==`** (azonos útról, helyi
   `DateTime`-mal); a snapshotból csak az azonosító és a rajtidő pillanata
   számít (T2 megjegyzés).
+
+## Pontosítás a kód után (T5, 2026-10-11)
+
+- **A replay a `data` csomagban** (`test(data)`, nem `test(phone)`): az
+  engine és a replay-rig ott él; a phone oldali döntéseket (a nap
+  versenye, a rajt átvétele) a T4 provider-tesztjei fedik. A rig közös
+  teszt-helperbe került (`test/engine/replay_rig.dart`), a meglévő E4
+  replay változatlan viselkedéssel használja.
+- **A forgatókönyvek** a `moving_mark_rounding.nmea` fixture-ön, a
+  pályára tett rajthellyel (`47.5845, 18.8551`, az első fixtől ~94 m):
+  - tervezett rajt a lejátszás közben (25 s): rávezetés a rajthelyre
+    (közeledik, nincs rögzítés), rajt a tervezett tickben a tervezett
+    idővel, utána M1, majd egy tiszta lépés M2-re ~63 s-nál;
+  - visszamenőleges rajt (30 perccel korábbi rajtidő): az első tickben
+    indul a tervezett idővel, rajthelyre nem vezet, az egybójás verseny a
+    megkerüléskor magától lezárul;
+  - ablakon túli rajtidő (az első tick, ami a versenyt látja, pontosan
+    az ablak vége, ami kizáró): sosem indul, a rajthelyre vezet, M1
+    mellett elhaladva sem léptet, nem rögzít.
+- **A rajt másodpercének nyers sorai nem rögzülnek**: a tickben induló
+  versenynél a telemetria a következő másodperccel kezdődik (a T3
+  megjegyzése: legfeljebb kb. 1 mp); a snapshot-log a rajt tickjével.
+- **Az on-device próba az U7 után**: rajtidős versenyt ma csak teszt hoz
+  létre (a bevitel az U7 RaceSetupjában jön), ezért a
+  `docs/testing/engine-session-on-device.md` tervezett-rajt pontja akkor
+  készül, az R1 előtt.
