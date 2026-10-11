@@ -3,6 +3,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/shell/instruments_tab_status.dart';
 import 'package:phone/features/shell/shell_tab.dart';
 import 'package:phone/features/shell/widgets/shell_tab_icon.dart';
+import 'package:phone/format/clock_format.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// A héj alsó navigációs sávja (ADR 0056 D2, makett 30a,
@@ -305,11 +306,6 @@ class _InstrumentsCell extends StatelessWidget {
     return null;
   }
 }
-
-/// Egy (már helyi) idő `ÓÓ:PP` alakban (a sáv rajtidő-címkéje).
-String formatClock(DateTime moment) =>
-    '${moment.hour.toString().padLeft(2, '0')}:'
-    '${moment.minute.toString().padLeft(2, '0')}';
 
 // A cella felső éle: keresésnél szaggatott, kapcsolódva teli `primary`,
 // kapcsolat nélkül `outline`.

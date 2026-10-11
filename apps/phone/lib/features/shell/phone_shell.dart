@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/features/live_race/live_race_screen.dart';
+import 'package:phone/features/race_list/race_list_entries_provider.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/shell/day_race_provider.dart';
@@ -59,12 +60,14 @@ class _PhoneShellState extends ConsumerState<PhoneShell> {
   @override
   void initState() {
     super.initState();
-    // A nap versenye nem időzít; előtérbe kerüléskor számol újra (a
-    // rajtidő-címke egy lejárt ablak vagy egy új nap után itt frissül).
+    // A nap versenye és a lajstrom „ma"-ja nem időzít; előtérbe
+    // kerüléskor számol újra (a rajtidő-címke és a mai kiemelés egy
+    // lejárt ablak vagy egy új nap után itt frissül).
     _lifecycle = AppLifecycleListener(
       onResume: () => ref
         ..invalidate(instrumentsRaceChoiceProvider)
-        ..invalidate(dayRaceProvider),
+        ..invalidate(dayRaceProvider)
+        ..invalidate(raceListEntriesProvider),
     );
   }
 

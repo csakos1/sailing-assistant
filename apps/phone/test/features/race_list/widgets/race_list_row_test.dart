@@ -7,28 +7,24 @@ import 'package:phone/features/race_list/widgets/race_list_row.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 void main() {
-  const first = Mark(
+  const mark = Mark(
     sequence: 1,
     name: 'Z1',
     position: Coordinate(latitude: 46.9, longitude: 18.05),
   );
-  const second = Mark(
-    sequence: 2,
-    name: 'Szemes',
-    position: Coordinate(latitude: 46.8, longitude: 17.9),
-  );
   final clock = DateTime.utc(2025, 6, 1, 12);
+  final scheme = foretackTheme.colorScheme;
+  // A foretackTheme regisztralja a TextTones-t, tehat sosem null.
+  final tones = foretackTheme.extension<TextTones>()!;
 
-  // Ket bojaval, hogy a szamlalo assertje tudjon bukni: egy bojanal az
-  // "1 BOJA" veletlenul is kijonne.
   Race notStartedRace() =>
-      Race.create(id: 'r1', name: 'Alfa', marks: const [first, second]);
-
-  Race activeRace() => notStartedRace().start(at: clock);
+      Race.create(id: 'r1', name: 'Alfa', marks: const [mark]);
 
   Future<void> pumpRow(
     WidgetTester tester,
     Race race, {
+    String meta = '3 bója',
+    bool isHighlighted = false,
     VoidCallback? onTap,
   }) {
     return tester.pumpWidget(
@@ -38,80 +34,101 @@ void main() {
         localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: RaceListRow(race: race, onTap: onTap),
+          body: RaceListRow(
+            race: race,
+            meta: meta,
+            isHighlighted: isHighlighted,
+            onTap: onTap,
+          ),
         ),
       ),
     );
   }
 
-  ForetackUiLocalizations l10nOf(WidgetTester tester) =>
-      ForetackUiLocalizations.of(tester.element(find.byType(RaceListRow)))!;
-
   Finder coloredBoxWith(Color color) => find.byWidgetPredicate(
     (widget) => widget is ColoredBox && widget.color == color,
   );
 
-  testWidgets('starts the row content at the left edge, unnumbered', (
+  Color? colorOf(WidgetTester tester, String text) =>
+      tester.widget<Text>(find.text(text)).style?.color;
+
+  testWidgets('starts the name after the rail and the padding, unnumbered', (
     tester,
   ) async {
     // ARRANGE & ACT
     await pumpRow(tester, notStartedRace());
 
-    // ASSERT - nincs sorszam-oszlop, es a nev a sor bal elenel kezdodik:
-    // 4 dp el-sav + 16 dp padding.
+    // ASSERT - nincs sorszam-oszlop: 2 dp sin + 18 dp padding.
     expect(find.text('01'), findsNothing);
     expect(tester.getTopLeft(find.text('Alfa')).dx, 20);
   });
 
-  testWidgets('shows the mark count of the race', (tester) async {
+  testWidgets('shows the meta line under the name', (tester) async {
     // ARRANGE & ACT
-    await pumpRow(tester, notStartedRace());
-    final l10n = l10nOf(tester);
+    await pumpRow(tester, notStartedRace(), meta: 'MA · 09:00 · 1 bója');
 
     // ASSERT
-    expect(find.text(l10n.listMarkCountCaps(2)), findsOneWidget);
+    final nameBottom = tester.getBottomLeft(find.text('Alfa')).dy;
+    final metaTop = tester.getTopLeft(find.text('MA · 09:00 · 1 bója')).dy;
+    expect(metaTop - nameBottom, 5);
   });
 
-  testWidgets('names the targeted mark only while the race runs', (
+  testWidgets('puts the status label at the right end', (tester) async {
+    // ARRANGE & ACT
+    await pumpRow(tester, notStartedRace());
+
+    // ASSERT - a cimke jobb ele a 20 dp-s jobb padding elott all.
+    final rowRight = tester.getTopRight(find.byType(RaceListRow)).dx;
+    final badgeRight = tester.getTopRight(find.byType(StatusBadge)).dx;
+    expect(badgeRight, rowRight - 20);
+    expect(
+      tester.getTopLeft(find.byType(StatusBadge)).dx,
+      greaterThan(tester.getTopRight(find.text('Alfa')).dx),
+    );
+  });
+
+  testWidgets('highlights a row with the rail, background and meta tone', (
     tester,
   ) async {
     // ARRANGE & ACT
-    await pumpRow(tester, activeRace());
-
-    // ASSERT - az aktiv bojara tartunk, tehat az elso boja neve all itt.
-    expect(find.text('· Z1'), findsOneWidget);
-
-    // ACT - ugyanaz a verseny, meg nem inditva.
-    await pumpRow(tester, notStartedRace());
+    await pumpRow(tester, notStartedRace(), isHighlighted: true);
 
     // ASSERT
-    expect(find.text('· Z1'), findsNothing);
+    expect(coloredBoxWith(scheme.primary), findsOneWidget);
+    expect(colorOf(tester, '3 bója'), scheme.onSecondaryContainer);
+    final material = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byType(RaceListRow),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(material.color, scheme.surfaceContainer);
   });
 
-  testWidgets('keeps the mark name in the casing it was typed in', (
+  testWidgets('leaves a plain row unaccented but keeps the rail space', (
     tester,
   ) async {
     // ARRANGE & ACT
-    await pumpRow(tester, activeRace());
-
-    // ASSERT - a boja-nev adat, nem UI-string: nem verzalozzuk.
-    expect(find.text('· Z1'), findsOneWidget);
-    expect(find.text('· z1'), findsNothing);
-  });
-
-  testWidgets('marks the running race with an accent bar', (tester) async {
-    // ARRANGE & ACT
-    await pumpRow(tester, activeRace());
-
-    // ASSERT
-    expect(coloredBoxWith(foretackTheme.colorScheme.primary), findsOneWidget);
-
-    // ACT
     await pumpRow(tester, notStartedRace());
 
-    // ASSERT - nincs kiemeles, de a hely megmarad.
-    expect(coloredBoxWith(foretackTheme.colorScheme.primary), findsNothing);
-    expect(find.text('Alfa'), findsOneWidget);
+    // ASSERT
+    expect(coloredBoxWith(scheme.primary), findsNothing);
+    expect(colorOf(tester, '3 bója'), tones.low);
+    expect(tester.getTopLeft(find.text('Alfa')).dx, 20);
+  });
+
+  testWidgets('shows the running state on the label', (tester) async {
+    // ARRANGE & ACT
+    await pumpRow(
+      tester,
+      notStartedRace().start(at: clock),
+      isHighlighted: true,
+    );
+
+    // ASSERT
+    expect(find.text('FOLYAMATBAN'), findsOneWidget);
   });
 
   testWidgets('does not dim the name of a race that has not started', (
@@ -120,9 +137,8 @@ void main() {
     // ARRANGE & ACT
     await pumpRow(tester, notStartedRace());
 
-    // ASSERT - kimondott elteres a maketttol: minden nev onSurface.
-    final name = tester.widget<Text>(find.text('Alfa'));
-    expect(name.style?.color, foretackTheme.colorScheme.onSurface);
+    // ASSERT
+    expect(colorOf(tester, 'Alfa'), scheme.onSurface);
   });
 
   testWidgets('reports a tap on the whole row', (tester) async {
@@ -138,31 +154,13 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('names the markless mode instead of a zero count', (
-    tester,
-  ) async {
+  testWidgets('cuts a long meta line instead of wrapping it', (tester) async {
     // ARRANGE & ACT
-    await pumpRow(
-      tester,
-      Race.create(id: 'r2', name: 'Tura', marks: const []),
-    );
-    final l10n = l10nOf(tester);
-
-    // ASSERT - a nulla nem darabszam, hanem uzemmod.
-    expect(find.text(l10n.listNoMarksCaps), findsOneWidget);
-    expect(find.text(l10n.listMarkCountCaps(0)), findsNothing);
-  });
-
-  testWidgets('names no targeted mark without marks', (tester) async {
-    // ARRANGE & ACT - elinditva sincs mire tartani.
-    final markless = Race.create(
-      id: 'r2',
-      name: 'Tura',
-      marks: const [],
-    ).start(at: clock);
-    await pumpRow(tester, markless);
+    await pumpRow(tester, notStartedRace(), meta: 'NOV. 3. · 10:30 · ' * 6);
 
     // ASSERT
-    expect(find.textContaining('· '), findsNothing);
+    final meta = tester.widget<Text>(find.textContaining('NOV. 3.'));
+    expect(meta.maxLines, 1);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:phone/features/web_access/presentation/join_formatters.dart';
+import 'package:phone/format/month_format.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 // A kezelőképernyők idő-, hely- és böngésző-szövegei (ADR 0051 Addendum
@@ -56,10 +57,6 @@ String formatExpiresIn(
   if (left.inHours >= 1) return l10n.webCrewExpiresHours(left.inHours);
   return l10n.webCrewExpiresMinutes(left.inMinutes < 1 ? 1 : left.inMinutes);
 }
-
-/// A [month] (1–12) rövid neve az ARB listájából.
-String monthShortName(AppLocalizations l10n, int month) =>
-    l10n.webMonthsShort.split('|')[month - 1];
 
 /// A hely: „Budapest, HU", csak ország „HU", semmi esetén `null`.
 String? placeOf({String? city, String? country}) {

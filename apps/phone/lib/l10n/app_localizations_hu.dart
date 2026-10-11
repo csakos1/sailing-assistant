@@ -241,11 +241,36 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailDeleteConfirm => 'Törlés';
 
   @override
-  String get listTitle => 'VERSENYEK';
+  String get listTitle => 'Versenyek';
 
   @override
-  String get listEmpty =>
-      'Még nincs verseny. Indíts egyet az Új verseny gombbal.';
+  String get listEmptyTitle => 'Még nincs verseny';
+
+  @override
+  String listEmptyMessage(String action) {
+    return 'Hozz létre egyet az $action gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.';
+  }
+
+  @override
+  String get listMetaToday => 'MA';
+
+  @override
+  String listMetaDay(String month, int day) {
+    return '$month $day.';
+  }
+
+  @override
+  String listMetaDayWithYear(int year, String month, int day) {
+    return '$year. $month $day.';
+  }
+
+  @override
+  String get listMetaNoMarks => 'bója nélkül';
+
+  @override
+  String listMetaActiveMark(int index, int total, String mark) {
+    return '$index / $total · $mark';
+  }
 
   @override
   String get listError => 'Nem sikerült betölteni a versenyeket.';

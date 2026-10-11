@@ -532,17 +532,53 @@ abstract class AppLocalizations {
   /// **'Törlés'**
   String get detailDeleteConfirm;
 
-  /// A versenylista (home) képernyő címsora.
+  /// A Versenyek fül címsora (makett 31a).
   ///
   /// In hu, this message translates to:
-  /// **'VERSENYEK'**
+  /// **'Versenyek'**
   String get listTitle;
 
-  /// A lista üres állapotának üzenete.
+  /// Az üres lista címe (makett 31b).
   ///
   /// In hu, this message translates to:
-  /// **'Még nincs verseny. Indíts egyet az Új verseny gombbal.'**
-  String get listEmpty;
+  /// **'Még nincs verseny'**
+  String get listEmptyTitle;
+
+  /// Az üres lista magyarázata (makett 31b); az {action} a gomb felirata, félkövéren.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hozz létre egyet az {action} gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.'**
+  String listEmptyMessage(String action);
+
+  /// A lista-sor meta-sora: a ma tervezett rajt napja.
+  ///
+  /// In hu, this message translates to:
+  /// **'MA'**
+  String get listMetaToday;
+
+  /// A lista-sor meta-sora: a rajt napja az idei évben, pl. OKT. 11.
+  ///
+  /// In hu, this message translates to:
+  /// **'{month} {day}.'**
+  String listMetaDay(String month, int day);
+
+  /// A lista-sor meta-sora: a rajt napja más évben, pl. 2027. JAN. 3.
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month} {day}.'**
+  String listMetaDayWithYear(int year, String month, int day);
+
+  /// A lista-sor meta-sora bója nélküli versenyen.
+  ///
+  /// In hu, this message translates to:
+  /// **'bója nélkül'**
+  String get listMetaNoMarks;
+
+  /// A folyamatban lévő verseny meta-sora: hányadik bójára tart, és a neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'{index} / {total} · {mark}'**
+  String listMetaActiveMark(int index, int total, String mark);
 
   /// A lista hiba-állapotának üzenete.
   ///

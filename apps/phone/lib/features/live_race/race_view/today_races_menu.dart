@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/live_race/live_formatters.dart'
     show missingValue;
-import 'package:phone/features/shell/widgets/shell_navigation_bar.dart';
+import 'package:phone/format/clock_format.dart';
 
 /// A Műszerek váltójának lenyíló listája (34b-2a-2, `phone-ui-v1.md` §6):
 /// a csík alól nyílik, alatta scrim; fejléce „MAI VERSENYEK" a

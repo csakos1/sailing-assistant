@@ -307,13 +307,72 @@
   "@detailDeleteConfirm": {
     "description": "A törlés-dialógus megerősítő gombja."
   },
-  "listTitle": "VERSENYEK",
+  "listTitle": "Versenyek",
   "@listTitle": {
-    "description": "A versenylista (home) képernyő címsora."
+    "description": "A Versenyek fül címsora (makett 31a)."
   },
-  "listEmpty": "Még nincs verseny. Indíts egyet az Új verseny gombbal.",
-  "@listEmpty": {
-    "description": "A lista üres állapotának üzenete."
+  "listEmptyTitle": "Még nincs verseny",
+  "@listEmptyTitle": {
+    "description": "Az üres lista címe (makett 31b)."
+  },
+  "listEmptyMessage": "Hozz létre egyet az {action} gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.",
+  "@listEmptyMessage": {
+    "description": "Az üres lista magyarázata (makett 31b); az {action} a gomb felirata, félkövéren.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "listMetaToday": "MA",
+  "@listMetaToday": {
+    "description": "A lista-sor meta-sora: a ma tervezett rajt napja."
+  },
+  "listMetaDay": "{month} {day}.",
+  "@listMetaDay": {
+    "description": "A lista-sor meta-sora: a rajt napja az idei évben, pl. OKT. 11.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "listMetaDayWithYear": "{year}. {month} {day}.",
+  "@listMetaDayWithYear": {
+    "description": "A lista-sor meta-sora: a rajt napja más évben, pl. 2027. JAN. 3.",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "listMetaNoMarks": "bója nélkül",
+  "@listMetaNoMarks": {
+    "description": "A lista-sor meta-sora bója nélküli versenyen."
+  },
+  "listMetaActiveMark": "{index} / {total} · {mark}",
+  "@listMetaActiveMark": {
+    "description": "A folyamatban lévő verseny meta-sora: hányadik bójára tart, és a neve.",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "mark": {
+        "type": "String"
+      }
+    }
   },
   "listError": "Nem sikerült betölteni a versenyeket.",
   "@listError": {

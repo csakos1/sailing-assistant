@@ -55,11 +55,24 @@ void main() {
     );
   });
 
-  testWidgets('keeps the bar sixty logical pixels tall', (tester) async {
+  testWidgets('keeps the bar 56 logical pixels tall', (tester) async {
     // ARRANGE & ACT
     await pumpBar(tester, onNewRace: () {});
 
+    // ASSERT - makett 31a.
+    expect(tester.getSize(find.byType(ListActionBar)).height, 56);
+  });
+
+  testWidgets('labels the button at 15 / w700', (tester) async {
+    // ARRANGE & ACT
+    await pumpBar(tester, onNewRace: () {});
+    final l10n = l10nOf(tester);
+
     // ASSERT
-    expect(tester.getSize(find.byType(ListActionBar)).height, 60);
+    final style = DefaultTextStyle.of(
+      tester.element(find.text(l10n.listAddRace)),
+    ).style;
+    expect(style.fontSize, 15);
+    expect(style.fontWeight, FontWeight.w700);
   });
 }

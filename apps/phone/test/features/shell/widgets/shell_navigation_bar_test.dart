@@ -169,11 +169,6 @@ void main() {
     expect(iconColorOf(tester, ShellTab.instruments), tones.low);
   });
 
-  test('formats a clock time with two digits', () {
-    expect(formatClock(DateTime(2026, 7, 30, 7, 3)), '07:03');
-    expect(formatClock(DateTime(2026, 7, 30, 23, 45)), '23:45');
-  });
-
   testWidgets('stays within the bar at a large text scale', (tester) async {
     // ARRANGE
     tester.platformDispatcher.textScaleFactorTestValue = 2;
