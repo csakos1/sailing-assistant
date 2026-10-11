@@ -185,7 +185,8 @@ class RaceEngineLifecycle {
   /// engine a kiválasztottal indul. Egy folyamatban lévő versenyt nem
   /// cserél le, és nem is küldi újra (az engine eldobná, ADR 0017 A10).
   /// Az átadott versenyt a nap versenyének szabálya nem írja felül (ADR
-  /// 0055 „Pontosítás (T4)"); az U2-ig él.
+  /// 0055 „Pontosítás (T4)"). Az U2 óta nincs UI-hívója (az „Élő nézet"
+  /// megszűnt); a gazda-szabállyal együtt az U4 váltója szünteti meg.
   void handOver(Race race) {
     if (!_isRunning) {
       _session.startManually();

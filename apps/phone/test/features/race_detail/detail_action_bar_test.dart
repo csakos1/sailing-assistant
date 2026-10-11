@@ -10,7 +10,6 @@ void main() {
   Future<void> pumpBar(
     WidgetTester tester,
     RaceStatus status, {
-    VoidCallback? onOpenLive,
     VoidCallback? onStatusAction,
   }) {
     return tester.pumpWidget(
@@ -24,7 +23,6 @@ void main() {
             alignment: Alignment.bottomCenter,
             child: DetailActionBar(
               status: status,
-              onOpenLive: onOpenLive ?? () {},
               onStatusAction: onStatusAction ?? () {},
             ),
           ),
@@ -45,41 +43,30 @@ void main() {
     return tester.widget<Material>(row.first).color!;
   }
 
-  testWidgets('emphasises the start row before the race', (tester) async {
+  testWidgets('fills the start row before the race', (tester) async {
     // ARRANGE & ACT
     await pumpBar(tester, RaceStatus.notStarted);
 
     // ASSERT
     final l10n = l10nOf(tester);
-    final scheme = foretackTheme.colorScheme;
-    expect(backgroundOf(tester, l10n.detailStart), scheme.primary);
-    expect(backgroundOf(tester, l10n.liveOpen), scheme.surfaceContainer);
+    expect(
+      backgroundOf(tester, l10n.detailStart),
+      foretackTheme.colorScheme.primary,
+    );
   });
 
-  testWidgets('emphasises the live row while the race runs', (tester) async {
+  testWidgets('keeps the finish row neutral while the race runs', (
+    tester,
+  ) async {
     // ARRANGE & ACT
     await pumpBar(tester, RaceStatus.active);
 
-    // ASSERT - futas kozben a visszaugras az elo nezetre a gyakori akcio.
+    // ASSERT
     final l10n = l10nOf(tester);
-    final scheme = foretackTheme.colorScheme;
-    expect(backgroundOf(tester, l10n.liveOpen), scheme.primary);
-    expect(backgroundOf(tester, l10n.detailFinish), scheme.surfaceContainer);
-  });
-
-  testWidgets('fills exactly one row in either state', (tester) async {
-    // ARRANGE & ACT & ASSERT - ez a sav lenyege: ket teal sav nem
-    // rangsorolna, ket semleges pedig semmit nem ajanlana.
-    final scheme = foretackTheme.colorScheme;
-    final filled = find.byWidgetPredicate(
-      (widget) => widget is Material && widget.color == scheme.primary,
+    expect(
+      backgroundOf(tester, l10n.detailFinish),
+      foretackTheme.colorScheme.surfaceContainer,
     );
-
-    await pumpBar(tester, RaceStatus.notStarted);
-    expect(filled, findsOneWidget);
-
-    await pumpBar(tester, RaceStatus.active);
-    expect(filled, findsOneWidget);
   });
 
   testWidgets('swaps the status label with the status', (tester) async {
@@ -99,41 +86,23 @@ void main() {
     expect(find.text(l10n.detailStart), findsNothing);
   });
 
-  testWidgets('stands 121 dp tall with 60 dp rows', (tester) async {
+  testWidgets('stands one 60 dp row tall', (tester) async {
     // ARRANGE & ACT
     await pumpBar(tester, RaceStatus.notStarted);
 
-    // ASSERT - 60 + 1 valaszto + 60; felso hairline nincs, azt a fenti
-    // boja-sor sajat vonala adja.
-    expect(tester.getSize(find.byType(DetailActionBar)).height, 121);
-    for (final label in [l10nOf(tester).liveOpen, l10nOf(tester).detailStart]) {
-      final box = find.ancestor(
-        of: find.text(label),
-        matching: find.byType(SizedBox),
-      );
-      expect(tester.getSize(box.first).height, 60, reason: label);
-    }
+    // ASSERT - az Elo nezet sora megszunt (ADR 0056 D2).
+    expect(tester.getSize(find.byType(DetailActionBar)).height, 60);
   });
 
-  testWidgets('routes each row to its own callback', (tester) async {
+  testWidgets('routes a tap to the status action', (tester) async {
     // ARRANGE
-    var liveTaps = 0;
     var actionTaps = 0;
     await pumpBar(
       tester,
       RaceStatus.active,
-      onOpenLive: () => liveTaps++,
       onStatusAction: () => actionTaps++,
     );
     final l10n = l10nOf(tester);
-
-    // ACT
-    await tester.tap(find.text(l10n.liveOpen));
-    await tester.pump();
-
-    // ASSERT
-    expect(liveTaps, 1);
-    expect(actionTaps, 0);
 
     // ACT
     await tester.tap(find.text(l10n.detailFinish));
@@ -141,7 +110,6 @@ void main() {
 
     // ASSERT
     expect(actionTaps, 1);
-    expect(liveTaps, 1);
   });
 
   testWidgets('refuses to render for a finished race', (tester) async {

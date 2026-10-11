@@ -94,12 +94,6 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('hu')];
 
-  /// Gomb a race-detailen: az élő verseny-képernyő megnyitása.
-  ///
-  /// In hu, this message translates to:
-  /// **'Élő nézet'**
-  String get liveOpen;
-
   /// Az élő képernyő üres állapota: nincs aktív verseny.
   ///
   /// In hu, this message translates to:
@@ -153,6 +147,60 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'ETA'**
   String get liveEta;
+
+  /// A navigációs sáv bal fülének felirata (ADR 0056 D2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenyek'**
+  String get navRaces;
+
+  /// A navigációs sáv középső fülének felirata: az élő adatok.
+  ///
+  /// In hu, this message translates to:
+  /// **'Műszerek'**
+  String get navInstruments;
+
+  /// A navigációs sáv jobb fülének felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenynapló'**
+  String get navLog;
+
+  /// Címke a Műszerek fülön, ha aktív verseny fut (mono verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉLŐ'**
+  String get navLive;
+
+  /// A Versenyek fül ⋮ menüjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Menü'**
+  String get homeMenuTooltip;
+
+  /// A ⋮ menü debug-csoportjának címkéje (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'FEJLESZTÉS'**
+  String get homeMenuDebugSection;
+
+  /// A ⋮ menü sora: a nyers NMEA-néző (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nyers NMEA'**
+  String get homeMenuRawNmea;
+
+  /// A ⋮ menü sora: az engine-debug képernyő (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'Engine debug'**
+  String get homeMenuEngineDebug;
+
+  /// A Versenynapló fül üres állapota.
+  ///
+  /// In hu, this message translates to:
+  /// **'Még nincs befejezett verseny.'**
+  String get logEmpty;
 
   /// Tooltip: az élő követés leállítása (AppBar ikon).
   ///
@@ -1233,12 +1281,6 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?'**
   String webReplaceForeignMessage(String current, String next);
-
-  /// A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6).
-  ///
-  /// In hu, this message translates to:
-  /// **'Webes hozzáférés'**
-  String get webMenuTooltip;
 
   /// A ⋮ menü szekció-címkéje, verzál (makett 18a-2).
   ///

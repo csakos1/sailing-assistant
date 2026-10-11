@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -5,8 +6,8 @@ import 'package:phone/features/web_access/application/web_access_providers.dart'
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
-/// A ⋮ menü sorai.
-enum WebAccessMenuItem {
+/// A Versenyek ⋮ menüjének sorai.
+enum HomeMenuItem {
   /// „Webes belépések" (18i/18j).
   sessions,
 
@@ -15,21 +16,37 @@ enum WebAccessMenuItem {
 
   /// „Fiók és biztonság", a `crew`-nál „Fiók" (18l/18l-2).
   account,
+
+  /// A nyers NMEA-néző (csak debug-buildben, ADR 0056 D7).
+  rawNmea,
+
+  /// Az engine-debug képernyő (csak debug-buildben, ADR 0056 D7).
+  engineDebug,
 }
 
-/// A főképernyő ⋮ menüje a webes hozzáféréshez (ADR 0051 Addendum 1 H1,
-/// Addendum 10 Z6, makett 18a-2).
+/// A Versenyek fül ⋮ menüje (ADR 0051 Addendum 1 H1, Addendum 10 Z6, ADR
+/// 0056 D7, makett 18a-2 és 31a).
 ///
-/// Fiók nélkül és visszavont telefonon rejtve van (H1, Z4).
-class WebAccessMenu extends ConsumerWidget {
-  /// Menü; az [onSelected] kapja a választott sort.
-  const WebAccessMenu({required this.onSelected, super.key});
+/// Két csoport: a webes hozzáférés (fiók nélkül és visszavont telefonon
+/// rejtve, H1, Z4) és debug-buildben a fejlesztői képernyők. Ha egyik sem
+/// látszik, a ⋮ gomb sem.
+class HomeMenu extends ConsumerWidget {
+  /// Menü; az [onSelected] kapja a választott sort. A [showsDebugItems]
+  /// élesben a `kDebugMode`; a tesztek kikapcsolhatják.
+  const HomeMenu({
+    required this.onSelected,
+    this.showsDebugItems = kDebugMode,
+    super.key,
+  });
 
   /// A menü panelének szélessége a makett szerint.
   static const double width = 242;
 
   /// A választott sor kezelője.
-  final ValueChanged<WebAccessMenuItem> onSelected;
+  final ValueChanged<HomeMenuItem> onSelected;
+
+  /// Látszanak-e a debug-sorok.
+  final bool showsDebugItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,8 +59,9 @@ class WebAccessMenu extends ConsumerWidget {
         (status) => status.banner?.pendingJoinRequests ?? 0,
       ),
     );
-    if (account == null || isRevoked) return const SizedBox.shrink();
-    final isOwner = account.account.role == UserRole.owner;
+    final hasWebAccess = account != null && !isRevoked;
+    if (!hasWebAccess && !showsDebugItems) return const SizedBox.shrink();
+    final isOwner = account?.account.role == UserRole.owner;
     // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
@@ -51,8 +69,8 @@ class WebAccessMenu extends ConsumerWidget {
       fontSize: 15,
       color: scheme.onSurface,
     );
-    return PopupMenuButton<WebAccessMenuItem>(
-      tooltip: l10n.webMenuTooltip,
+    return PopupMenuButton<HomeMenuItem>(
+      tooltip: l10n.homeMenuTooltip,
       icon: Icon(Icons.more_vert, color: scheme.onSurface),
       position: PopupMenuPosition.under,
       color: scheme.surfaceContainerHigh,
@@ -62,20 +80,27 @@ class WebAccessMenu extends ConsumerWidget {
       constraints: const BoxConstraints.tightFor(width: width),
       onSelected: onSelected,
       itemBuilder: (context) => [
-        _MenuSectionLabel(text: l10n.webMenuSection),
-        _item(WebAccessMenuItem.sessions, l10n.webMenuSessions, itemStyle),
-        if (isOwner)
+        if (hasWebAccess) ...[
+          _MenuSectionLabel(text: l10n.webMenuSection),
+          _item(HomeMenuItem.sessions, l10n.webMenuSessions, itemStyle),
+          if (isOwner)
+            _item(
+              HomeMenuItem.crew,
+              l10n.webMenuCrew,
+              itemStyle,
+              badge: pendingJoinRequests,
+            ),
           _item(
-            WebAccessMenuItem.crew,
-            l10n.webMenuCrew,
+            HomeMenuItem.account,
+            isOwner ? l10n.webMenuAccountOwner : l10n.webMenuAccountCrew,
             itemStyle,
-            badge: pendingJoinRequests,
           ),
-        _item(
-          WebAccessMenuItem.account,
-          isOwner ? l10n.webMenuAccountOwner : l10n.webMenuAccountCrew,
-          itemStyle,
-        ),
+        ],
+        if (showsDebugItems) ...[
+          _MenuSectionLabel(text: l10n.homeMenuDebugSection),
+          _item(HomeMenuItem.rawNmea, l10n.homeMenuRawNmea, itemStyle),
+          _item(HomeMenuItem.engineDebug, l10n.homeMenuEngineDebug, itemStyle),
+        ],
       ],
     );
   }
@@ -83,8 +108,8 @@ class WebAccessMenu extends ConsumerWidget {
 
 // Egy menüsor; a [badge] a függő kérelmek száma, 0-nál nincs jelvény
 // (Z6).
-PopupMenuItem<WebAccessMenuItem> _item(
-  WebAccessMenuItem value,
+PopupMenuItem<HomeMenuItem> _item(
+  HomeMenuItem value,
   String label,
   TextStyle style, {
   int badge = 0,
@@ -133,9 +158,9 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// A menü szekció-címkéje (makett 18a-2: „WEBES HOZZÁFÉRÉS"); nem
-/// választható.
-class _MenuSectionLabel extends PopupMenuEntry<WebAccessMenuItem> {
+/// A menü szekció-címkéje (makett 18a-2: „WEBES HOZZÁFÉRÉS", és a
+/// debug-csoport); nem választható.
+class _MenuSectionLabel extends PopupMenuEntry<HomeMenuItem> {
   const _MenuSectionLabel({required this.text});
 
   final String text;
@@ -144,7 +169,7 @@ class _MenuSectionLabel extends PopupMenuEntry<WebAccessMenuItem> {
   double get height => 31;
 
   @override
-  bool represents(WebAccessMenuItem? value) => false;
+  bool represents(HomeMenuItem? value) => false;
 
   @override
   State<_MenuSectionLabel> createState() => _MenuSectionLabelState();

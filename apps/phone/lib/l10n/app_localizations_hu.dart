@@ -9,9 +9,6 @@ class AppLocalizationsHu extends AppLocalizations {
   AppLocalizationsHu([String locale = 'hu']) : super(locale);
 
   @override
-  String get liveOpen => 'Élő nézet';
-
-  @override
   String get liveNoActiveRace => 'Nincs aktív verseny';
 
   @override
@@ -37,6 +34,33 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get liveEta => 'ETA';
+
+  @override
+  String get navRaces => 'Versenyek';
+
+  @override
+  String get navInstruments => 'Műszerek';
+
+  @override
+  String get navLog => 'Versenynapló';
+
+  @override
+  String get navLive => 'ÉLŐ';
+
+  @override
+  String get homeMenuTooltip => 'Menü';
+
+  @override
+  String get homeMenuDebugSection => 'FEJLESZTÉS';
+
+  @override
+  String get homeMenuRawNmea => 'Nyers NMEA';
+
+  @override
+  String get homeMenuEngineDebug => 'Engine debug';
+
+  @override
+  String get logEmpty => 'Még nincs befejezett verseny.';
 
   @override
   String get liveStop => 'Leállítás';
@@ -631,9 +655,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String webReplaceForeignMessage(String current, String next) {
     return 'Ez a telefon a(z) $current szerveren van regisztrálva. Lecseréled erre: $next?';
   }
-
-  @override
-  String get webMenuTooltip => 'Webes hozzáférés';
 
   @override
   String get webMenuSection => 'WEBES HOZZÁFÉRÉS';

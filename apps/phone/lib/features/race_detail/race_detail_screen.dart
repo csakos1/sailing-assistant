@@ -4,20 +4,19 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
-import 'package:phone/features/live_race/live_race_screen.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
-import 'package:phone/providers/race_engine_lifecycle_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/section_label.dart';
 
 /// Egy verseny részletei: státusz-csík, pálya-lista, és státuszfüggő akciók
 /// (start/finish, törlés, valamint `notStarted` versenynél szerkesztés),
-/// továbbá az élő képernyő megnyitása (ADR 0044 3a).
+/// ADR 0044 3a. Az élő adatok a héj Műszerek fülén vannak (ADR 0056 D2): a
+/// rajt után a héj oda vált, és ezt a képernyőt bezárja.
 ///
 /// **Egy képernyő, három állapot** (D19). A `RaceStatus` négy helyen kapuz:
 /// az AppBar-akcióknál, a státusz-csík meta-mezőjében, az aktív bója
@@ -55,21 +54,6 @@ class RaceDetailScreen extends ConsumerWidget {
   Future<void> _finish(WidgetRef ref, Race target) async {
     ref.read(activeRaceProvider.notifier).activeRace = target;
     await ref.read(activeRaceProvider.notifier).finish();
-  }
-
-  // Az aktív race holderbe teszi a versenyt (a pre-start prediction is innen
-  // él, ADR 0010), majd az élő képernyőre navigál. Ortogonális a
-  // start/finish-től (SRP): a start state-et vált, ez navigál.
-  void _openLive(BuildContext context, WidgetRef ref, Race target) {
-    ref.read(activeRaceProvider.notifier).activeRace = target;
-    // A futó (pl. szabad módú) engine-nek átadja a versenyt, különben
-    // elindítja vele (ADR 0054 D5). Az U2-ben a Műszerek fül váltja ki.
-    ref.read(raceEngineLifecycleProvider).handOver(target);
-    unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const LiveRaceScreen()),
-      ),
-    );
   }
 
   // A szerkesztő-képernyőre navigál (csak notStarted versenynél hívjuk).
@@ -189,7 +173,6 @@ class RaceDetailScreen extends ConsumerWidget {
             if (!isFinished)
               DetailActionBar(
                 status: current.status,
-                onOpenLive: () => _openLive(context, ref, current),
                 onStatusAction: () =>
                     isActive ? _finish(ref, current) : _start(ref, current),
               ),

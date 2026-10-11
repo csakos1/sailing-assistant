@@ -47,6 +47,8 @@ import 'package:phone/providers/wind_data_provider.dart';
 ///
 /// `ConsumerStatefulWidget`, mert a kijelző-wakelockot és a portrait-lockot a
 /// mount/unmount életciklushoz kötjük: `initState`-ben be, `dispose`-ban ki.
+/// A héj Műszerek füle (ADR 0056 D2), és a héj csak látható fülként építi
+/// fel, így a wakelock is csak akkor él, amikor a fül látszik.
 class LiveRaceScreen extends ConsumerStatefulWidget {
   /// Az élő verseny-képernyő.
   const LiveRaceScreen({super.key});
@@ -81,7 +83,8 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
 
   // A „Leállítás" akció: megerősítés után leállítja a sessiont (a lifecycle
   // ettől állítja le a háttér-engine-t; a próba csak a következő előtérbe
-  // kerüléskor indul újra, ADR 0054 D5), majd visszanavigál.
+  // kerüléskor indul újra, ADR 0054 D5). A képernyő a héj Műszerek füle
+  // (ADR 0056 D2), ezért nem navigál vissza.
   Future<void> _confirmStop(BuildContext context, AppLocalizations l10n) async {
     final confirmed = await showForetackDialog<bool>(
       context: context,
@@ -98,8 +101,6 @@ class _LiveRaceScreenState extends ConsumerState<LiveRaceScreen> {
     );
     if (confirmed != true) return;
     ref.read(engineSessionProvider.notifier).stopManually();
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
   }
 
   // A „Bója megvan" akció: megerősítés után roundMark parancsot küld az

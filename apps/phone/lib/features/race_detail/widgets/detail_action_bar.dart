@@ -3,16 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
-/// A detail-képernyő alsó akció-sávja (ADR 0044 D30).
+/// A detail-képernyő alsó akció-sávja (ADR 0044 D30, ADR 0056 D2).
 ///
-/// Két 60 dp-s, éltől élig érő sor, radius nélkül — a `ListActionBar`
-/// geometriája —, közöttük 1 px hairline. Felül mindig az élő nézet, alul a
-/// státusz-akció (indítás vagy befejezés).
-///
-/// **Képernyőnként pontosan egy sor kitöltött.** Nem indult versenyen az
-/// indítás, futó versenyen az élő nézet: a hangsúly azon áll, amit abban az
-/// állapotban tényleg megnyomunk. Két teal sáv egymás alatt nem rangsorolna,
-/// két semleges pedig semmit nem ajánlana.
+/// Egy 60 dp-s, éltől élig érő sor, radius nélkül — a `ListActionBar`
+/// geometriája — a státusz-akcióval: nem indult versenyen a kitöltött
+/// indítás, futó versenyen a semleges befejezés. Az „Élő nézet" sor
+/// megszűnt, a helye a héj Műszerek füle; a végleges 32a–c sáv az U6-tal
+/// jön.
 ///
 /// Befejezett versenyen **nincs sáv** — ezt a hívó dönti el, a widget ilyen
 /// státuszt nem fogad. Az assert a `build`-ben áll, nem a konstruktorban,
@@ -24,16 +21,12 @@ class DetailActionBar extends StatelessWidget {
   /// Egy alsó akció-sáv.
   const DetailActionBar({
     required this.status,
-    required this.onOpenLive,
     required this.onStatusAction,
     super.key,
   });
 
-  /// A verseny státusza; `finished` nem érvényes (ott nincs sáv).
+  /// A verseny státusza; befejezett nem lehet.
   final RaceStatus status;
-
-  /// Az élő képernyő megnyitása.
-  final VoidCallback onOpenLive;
 
   /// Az indítás vagy a befejezés.
   final VoidCallback onStatusAction;
@@ -45,38 +38,16 @@ class DetailActionBar extends StatelessWidget {
       'Befejezett versenyen nincs also akcio-sav (ADR 0044 D30).',
     );
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final isActive = status == RaceStatus.active;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _ActionRow(
-          label: l10n.liveOpen,
-          onTap: onOpenLive,
-          isEmphasised: isActive,
-        ),
-        SizedBox(
-          height: 1,
-          child: ColoredBox(color: scheme.outlineVariant),
-        ),
-        _ActionRow(
-          label: isActive ? l10n.detailFinish : l10n.detailStart,
-          onTap: onStatusAction,
-          isEmphasised: !isActive,
-        ),
-      ],
+    return _ActionRow(
+      label: isActive ? l10n.detailFinish : l10n.detailStart,
+      onTap: onStatusAction,
+      isEmphasised: !isActive,
     );
   }
 }
 
-/// A sáv egyik 60 dp-s sora: középre zárt felirat, kitöltve vagy
-/// semlegesen. Ikon szándékosan nincs — a két sor felirata elég rövid
-/// ahhoz, hogy a hangsúlyt a kitöltés hordozza.
-///
-/// A háttér `Material`-ből jön, nem `ColoredBox`-ból: az elnyelné az
-/// `InkWell` ripple-jét.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.label,

@@ -7,7 +7,6 @@ import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_list/race_list_screen.dart';
 import 'package:phone/features/race_list/widgets/race_list_row.dart';
-import 'package:phone/features/race_log/race_log_screen.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/features/web_access/application/web_access_providers.dart';
 import 'package:phone/l10n/app_localizations.dart';
@@ -142,53 +141,28 @@ void main() {
     expect(activeY, lessThan(notStartedY));
   });
 
-  testWidgets('a befejezett-gomb aktív, ha van befejezett', (
+  testWidgets('a befejezettek nem latszanak, es nincs naplo-gomb', (
     tester,
   ) async {
-    // ARRANGE — csak befejezett -> a fő lista üres.
+    // ARRANGE — csak befejezett -> a fo lista ures.
     await pumpList(tester, [finishedRace('r1', 'Charlie')]);
     await tester.pumpAndSettle();
     final l10n = l10nOf(tester);
 
-    // ASSERT - az ures fo lista mellett a befejezett-gomb kattinthato.
+    // ASSERT — a naplo a hej sajat fule (ADR 0056 D2), itt nincs gombja.
     expect(find.text(l10n.listEmpty), findsOneWidget);
-    final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.logTitle),
-    );
-    expect(button.onPressed, isNotNull);
+    expect(find.text('Charlie'), findsNothing);
+    expect(find.byIcon(Icons.history), findsNothing);
   });
 
-  testWidgets('a befejezett-gomb letiltva marad befejezett nélkül', (
-    tester,
-  ) async {
-    // ARRANGE - csak notStarted.
-    final race = Race.create(id: 'r1', name: 'Alfa', marks: const [mark]);
-    await pumpList(tester, [race]);
-    await tester.pumpAndSettle();
-    final l10n = l10nOf(tester);
-
-    // ASSERT - a gomb ott van, de nem kattinthato: az akcio-sav
-    // felezese nem ugralhat attol, hogy van-e befejezett verseny.
-    final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.logTitle),
-    );
-    expect(button.onPressed, isNull);
-  });
-
-  testWidgets('a befejezett-gombra koppintva a napló nyílik', (
-    tester,
-  ) async {
-    // ARRANGE
-    await pumpList(tester, [finishedRace('r1', 'Charlie')]);
+  testWidgets('nincs kulon debug-ikon az AppBar-on', (tester) async {
+    // ARRANGE & ACT
+    await pumpList(tester, const []);
     await tester.pumpAndSettle();
 
-    // ACT — a befejezett-gombra koppintunk.
-    await tester.tap(find.byIcon(Icons.history));
-    await tester.pumpAndSettle();
-
-    // ASSERT — a napló-képernyő nyílt meg, benne a verseny neve.
-    expect(find.byType(RaceLogScreen), findsOneWidget);
-    expect(find.text('Charlie'), findsOneWidget);
+    // ASSERT — a ket debug-kepernyo a ⋮ menube kerult (ADR 0056 D7).
+    expect(find.byIcon(Icons.bug_report_outlined), findsNothing);
+    expect(find.byIcon(Icons.memory_outlined), findsNothing);
   });
 }
 

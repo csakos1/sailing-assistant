@@ -94,12 +94,17 @@ void main() {
       expect(find.byType(RaceLogYearBar), findsNothing);
     });
 
-    testWidgets('draws nothing for an empty log', (tester) async {
+    testWidgets('says so for an empty log', (tester) async {
       await pumpScreen(
         tester,
         log: const AsyncValue<List<RaceLogYear>>.data(<RaceLogYear>[]),
       );
 
+      // Fulkent ures naploval is elerheto (ADR 0056 D2).
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RaceLogScreen)),
+      )!;
+      expect(find.text(l10n.logEmpty), findsOneWidget);
       expect(find.byType(RaceLogYearBar), findsNothing);
       expect(find.byType(RaceLogStatsStrip), findsNothing);
       expect(find.byType(RaceLogRow), findsNothing);

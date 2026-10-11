@@ -5,6 +5,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/engine/race_engine_host.dart';
+import 'package:phone/providers/engine_session_provider.dart';
 import 'package:phone/providers/race_engine_host_provider.dart';
 import 'package:phone/providers/race_snapshot_provider.dart';
 
@@ -61,6 +62,20 @@ void main() {
 
       // Assert
       expect(container.read(raceSnapshotProvider)?.eventCount, 2);
+    });
+
+    test('az engine leallasakor elengedi az utolso snapshotot', () async {
+      // Arrange — futo engine, egy kapcsolodott snapshot.
+      final container = makeContainer();
+      container.read(engineSessionProvider.notifier).startManually();
+      host.emit(snapshotWith(3));
+      await pumpEventQueue();
+
+      // Act — kezi Leallitas.
+      container.read(engineSessionProvider.notifier).stopManually();
+
+      // Assert — a tukor nem mutat tovabb regi kapcsolatot.
+      expect(container.read(raceSnapshotProvider), isNull);
     });
   });
 }

@@ -14,8 +14,8 @@ import 'package:phone/providers/race_log_year_provider.dart';
 
 /// A befejezett versenyek naplója (ADR 0044 4d).
 ///
-/// Önálló képernyő, nem modal (D31): az alsó akció-sáv bal feléről nyílik,
-/// `MaterialPageRoute`-tal. A fejléc 64 dp-s, mint a detail-képernyőé, alatta
+/// A héj Versenynapló füle (ADR 0056 D2; korábban önálló, push-olt
+/// képernyő, D31). A fejléc 64 dp-s, mint a detail-képernyőé, alatta
 /// a 44 dp-s év-sáv — a két mély képernyő felső harmada így egymásra fed
 /// (D20/D21).
 ///
@@ -107,9 +107,18 @@ class RaceLogScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => Center(child: Text(l10n.listError)),
           data: (years) {
-            // Üres naplóval a képernyő el sem érhető (a belépő gomb
-            // letiltva), ezért itt nem üzenünk, csak nem rajzolunk.
-            if (selected == null) return const SizedBox.shrink();
+            // Fülként üres naplóval is elérhető (ADR 0056 D2); a végleges
+            // üres állapot az U8-cal jön.
+            if (selected == null) {
+              return Center(
+                child: Text(
+                  l10n.logEmpty,
+                  style: supportTextStyle.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

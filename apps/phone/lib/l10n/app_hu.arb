@@ -1,9 +1,5 @@
 {
   "@@locale": "hu",
-  "liveOpen": "Élő nézet",
-  "@liveOpen": {
-    "description": "Gomb a race-detailen: az élő verseny-képernyő megnyitása."
-  },
   "liveNoActiveRace": "Nincs aktív verseny",
   "@liveNoActiveRace": {
     "description": "Az élő képernyő üres állapota: nincs aktív verseny."
@@ -39,6 +35,42 @@
   "liveEta": "ETA",
   "@liveEta": {
     "description": "Cella-címke: becsült érkezés a bójához (ETA)."
+  },
+  "navRaces": "Versenyek",
+  "@navRaces": {
+    "description": "A navigációs sáv bal fülének felirata (ADR 0056 D2)."
+  },
+  "navInstruments": "Műszerek",
+  "@navInstruments": {
+    "description": "A navigációs sáv középső fülének felirata: az élő adatok."
+  },
+  "navLog": "Versenynapló",
+  "@navLog": {
+    "description": "A navigációs sáv jobb fülének felirata."
+  },
+  "navLive": "ÉLŐ",
+  "@navLive": {
+    "description": "Címke a Műszerek fülön, ha aktív verseny fut (mono verzál)."
+  },
+  "homeMenuTooltip": "Menü",
+  "@homeMenuTooltip": {
+    "description": "A Versenyek fül ⋮ menüjének tooltipje."
+  },
+  "homeMenuDebugSection": "FEJLESZTÉS",
+  "@homeMenuDebugSection": {
+    "description": "A ⋮ menü debug-csoportjának címkéje (csak debug-buildben)."
+  },
+  "homeMenuRawNmea": "Nyers NMEA",
+  "@homeMenuRawNmea": {
+    "description": "A ⋮ menü sora: a nyers NMEA-néző (csak debug-buildben)."
+  },
+  "homeMenuEngineDebug": "Engine debug",
+  "@homeMenuEngineDebug": {
+    "description": "A ⋮ menü sora: az engine-debug képernyő (csak debug-buildben)."
+  },
+  "logEmpty": "Még nincs befejezett verseny.",
+  "@logEmpty": {
+    "description": "A Versenynapló fül üres állapota."
   },
   "liveStop": "Leállítás",
   "@liveStop": {
@@ -824,10 +856,6 @@
         "type": "String"
       }
     }
-  },
-  "webMenuTooltip": "Webes hozzáférés",
-  "@webMenuTooltip": {
-    "description": "A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6)."
   },
   "webMenuSection": "WEBES HOZZÁFÉRÉS",
   "@webMenuSection": {

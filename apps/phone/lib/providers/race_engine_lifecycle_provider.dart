@@ -21,8 +21,7 @@ import 'package:shared/shared.dart';
 /// A háttér-engine életciklusa (ADR 0054 D5): a [RaceEngineLifecycle]-t a
 /// session-állapothoz, a kiválasztott versenyhez és a versenyek listájához
 /// (a nap versenye, ADR 0055 D5) köti. Az app-gyökér eager-watch-olja; az
-/// „Élő nézet" a `handOver`-t, az `AppForegroundBinding` az
-/// `onAppResumed` / `onAppPaused`-t hívja rajta.
+/// `AppForegroundBinding` az `onAppResumed` / `onAppPaused`-t hívja rajta.
 final raceEngineLifecycleProvider = Provider<RaceEngineLifecycle>((ref) {
   final lifecycle = RaceEngineLifecycle(
     host: ref.watch(raceEngineHostProvider),

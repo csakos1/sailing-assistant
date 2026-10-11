@@ -4,6 +4,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_start_signal_provider.dart';
 
 /// A folyamatban lévő race egyetlen írható, in-memory tartója (ADR 0009 D5).
 ///
@@ -33,13 +34,15 @@ class ActiveRaceNotifier extends Notifier<Race?> {
   /// a telemetria-logger lifecycle erre a state-változásra tear-down-ol.
   set activeRace(Race? race) => state = race;
 
-  /// notStarted → active, majd perzisztálás. No-op, ha nincs aktív race.
+  /// notStarted → active, majd perzisztálás és a rajt jelzése
+  /// ([raceStartSignalProvider]). No-op, ha nincs aktív race.
   Future<void> start() async {
     final race = state;
     if (race == null) return;
     final started = race.start(at: ref.read(clockProvider)());
     await ref.read(raceRepositoryProvider).save(started);
     state = started;
+    ref.read(raceStartSignalProvider.notifier).signal(started.id);
   }
 
   /// Az aktív bója megkerülése: a következő bójára lép (az utolsón a domain
@@ -60,7 +63,8 @@ class ActiveRaceNotifier extends Notifier<Race?> {
   /// `notStarted` (egy kézi „Rajt" vagy egy korábbi átvétel már mentette),
   /// az első mentés marad, és egy eltérő rajtidő csak naplósor. Az átvett
   /// verseny lesz a kiválasztott is (ez az, ami rögzül), kivéve, ha közben
-  /// egy másik verseny aktív a UI-ban.
+  /// egy másik verseny aktív a UI-ban. Rajtot csak akkor jelez
+  /// ([raceStartSignalProvider]), ha az átvett verseny lett a kiválasztott.
   Future<void> adoptEngineStart(String raceId, {required DateTime at}) async {
     final repository = ref.read(raceRepositoryProvider);
     final selected = state;
@@ -83,6 +87,7 @@ class ActiveRaceNotifier extends Notifier<Race?> {
         current.id == raceId ||
         current.status != RaceStatus.active) {
       state = started;
+      ref.read(raceStartSignalProvider.notifier).signal(raceId);
     }
     await repository.save(started);
   }

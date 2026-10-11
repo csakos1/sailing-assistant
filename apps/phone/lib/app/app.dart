@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/app_foreground_binding.dart';
 import 'package:phone/app/localization_delegates.dart';
-import 'package:phone/features/race_list/race_list_screen.dart';
+import 'package:phone/features/shell/phone_shell.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_persistence_provider.dart';
 import 'package:phone/providers/gateway_probe_loop_provider.dart';
@@ -13,7 +13,7 @@ import 'package:phone/providers/race_engine_lifecycle_provider.dart';
 ///
 /// A Riverpod `ProviderScope` kívülről jön (a `main`-ből), itt a
 /// `MaterialApp`, a téma és a lokalizációs delegátorok élnek. A `home` a
-/// versenylista (§14 Fázis 4).
+/// háromfüles héj (ADR 0056 D2).
 ///
 /// Itt élnek eagerly a mellékhatás-providerek (`Provider<void>`), amiket
 /// `watch` nélkül semmi nem építene fel:
@@ -47,7 +47,7 @@ class ForetackApp extends ConsumerWidget {
         theme: foretackTheme,
         localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const RaceListScreen(),
+        home: const PhoneShell(),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_start_signal_provider.dart';
 
 /// Minimál in-memory repo — a state-átmenetek perzisztálását igazoljuk a
 /// `store`-on át (watchRaces itt nem releváns).
@@ -59,6 +60,8 @@ void main() {
 
   ActiveRaceNotifier notifier() => container.read(activeRaceProvider.notifier);
 
+  RaceStartSignal? startSignal() => container.read(raceStartSignalProvider);
+
   test('kezdő állapot null', () {
     expect(container.read(activeRaceProvider), isNull);
   });
@@ -90,6 +93,81 @@ void main() {
     expect(state!.status, equals(RaceStatus.finished));
     expect(state.finishedAt, equals(fixedNow));
     expect(repository.store['race-1'], equals(state));
+  });
+
+  group('start signal', () {
+    test('a manual start signals the started race', () async {
+      // Arrange
+      notifier().activeRace = race;
+
+      // Act
+      await notifier().start();
+
+      // Assert
+      expect(startSignal()?.raceId, 'race-1');
+    });
+
+    test('selecting or finishing a race does not signal', () async {
+      // Arrange
+      notifier().activeRace = race.start(at: fixedNow);
+
+      // Act
+      await notifier().finish();
+
+      // Assert
+      expect(startSignal(), isNull);
+    });
+
+    test('an adopted engine start signals once it is selected', () async {
+      // Arrange: késő átvétel, órákkal a tervezett rajt után.
+      repository.store['race-1'] = race;
+      final scheduledLongAgo = fixedNow.subtract(const Duration(hours: 3));
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: scheduledLongAgo);
+
+      // Assert
+      expect(startSignal()?.raceId, 'race-1');
+    });
+
+    test('an adoption behind another active race does not signal', () async {
+      // Arrange
+      repository.store['race-1'] = race;
+      notifier().activeRace = Race.create(
+        id: 'race-2',
+        name: 'Masik',
+        marks: const [markA],
+      ).start(at: fixedNow);
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: fixedNow);
+
+      // Assert
+      expect(startSignal(), isNull);
+    });
+
+    test('an adoption of an already saved start does not signal', () async {
+      // Arrange: a kézi „Rajt" jelzett előbb.
+      notifier().activeRace = race;
+      await notifier().start();
+      final first = startSignal();
+
+      // Act
+      await notifier().adoptEngineStart('race-1', at: fixedNow);
+
+      // Assert
+      expect(startSignal(), first);
+    });
+
+    test('each start gets a new serial', () {
+      // Act
+      container.read(raceStartSignalProvider.notifier)
+        ..signal('race-1')
+        ..signal('race-1');
+
+      // Assert
+      expect(startSignal(), (raceId: 'race-1', serial: 2));
+    });
   });
 
   test('start no-op, ha nincs aktív race', () async {

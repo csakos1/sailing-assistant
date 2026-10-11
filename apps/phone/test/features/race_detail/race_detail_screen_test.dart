@@ -81,14 +81,14 @@ void main() {
     await tester.tap(find.text(l10n.detailStart));
     await tester.pumpAndSettle();
 
-    // ASSERT — aktívként mentve, a felirat Befejezésre vált, és a kitöltés
-    // átvándorol az élő nézet sorára.
+    // ASSERT — aktívként mentve, a felirat Befejezésre vált, és a sor
+    // semlegesre vált (az élő adatok a héj Műszerek fülén vannak).
     expect(repository.saved, hasLength(1));
     expect(repository.saved.single.status, RaceStatus.active);
     expect(find.text(l10n.detailFinish), findsOneWidget);
     expect(
-      rowBackgroundOf(tester, l10n.liveOpen),
-      foretackTheme.colorScheme.primary,
+      rowBackgroundOf(tester, l10n.detailFinish),
+      foretackTheme.colorScheme.surfaceContainer,
     );
   });
 

@@ -3,6 +3,8 @@ import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/connection_status_provider.dart';
+import 'package:phone/providers/engine_session_provider.dart';
+import 'package:phone/providers/engine_session_state.dart';
 import 'package:phone/providers/race_snapshot_provider.dart';
 
 void main() {
@@ -15,10 +17,16 @@ void main() {
     tickTime: clock,
   );
 
-  ProviderContainer makeContainer(RaceSnapshot? snapshot) {
+  ProviderContainer makeContainer(
+    RaceSnapshot? snapshot, {
+    EngineSessionState session = const EngineRunning(
+      cause: EngineStartCause.user,
+    ),
+  }) {
     final container = ProviderContainer(
       overrides: [
         raceSnapshotProvider.overrideWith(() => _FixedSnapshot(snapshot)),
+        engineSessionProvider.overrideWith(() => _FixedSession(session)),
       ],
     );
     addTearDown(container.dispose);
@@ -30,6 +38,27 @@ void main() {
       expect(
         makeContainer(null).read(connectionStatusProvider),
         const Connecting(),
+      );
+    });
+
+    test('próba közben, snapshot nélkül → Connecting', () {
+      expect(
+        makeContainer(
+          null,
+          session: const EngineProbing(),
+        ).read(connectionStatusProvider),
+        const Connecting(),
+      );
+    });
+
+    test('álló engine, snapshot nélkül → Disconnected (nincs mire várni)', () {
+      // A kézi „Leállítás" után a pillanatkép-tükör null-ra vált.
+      expect(
+        makeContainer(
+          null,
+          session: const EngineStopped(),
+        ).read(connectionStatusProvider),
+        const Disconnected(),
       );
     });
 
@@ -59,4 +88,13 @@ class _FixedSnapshot extends RaceSnapshotNotifier {
 
   @override
   RaceSnapshot? build() => _snapshot;
+}
+
+class _FixedSession extends EngineSessionNotifier {
+  _FixedSession(this._session);
+
+  final EngineSessionState _session;
+
+  @override
+  EngineSessionState build() => _session;
 }
