@@ -3604,6 +3604,14 @@ módja (34a, `features/live_race/free_mode/`); a tartalmat az engine
 versenyén), a 34a állapota a `freeModeLinkOf` (keresés, élő, megszakadt
 az adat korával, leállítva); a „Leállítás" a csík ⋮ menüjében, a
 térkép-gomb mellett. Egy futó verseny visszatöltése a Műszerekre vált.
+**Kész (U4):** a Műszerek fül rajt előtti (34b) és versenyes (34c)
+tartalma; a tartalmat az `instrumentsContentOf` választja (szabad / rajt
+előtt / verseny), a 34b és a 34c közös nézete a `RaceInstrumentsView`, a
+csík mindhárom tartalomban az `InstrumentsStrip` ugyanazzal a
+kapcsolat-szabállyal. „Rajt most" és „Bója megvan" megerősítéssel; a
+mai versenyek váltója a kézi választást írja, és a lifecycle azonnal
+újradönt (a `handOver` megszűnt). A kijelző csak rajt előtt és versenyen
+marad ébren.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

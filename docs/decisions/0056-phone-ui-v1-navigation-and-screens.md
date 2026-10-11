@@ -2,9 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1, az U2 és az U3 kész
-(2026-10-11); a többi szelet a „Szeletek" sorrendjében követi,
-docs-first.
+Elfogadva — 2026-10-10. Implementálva: az U1–U4 kész (2026-10-11); a
+többi szelet a „Szeletek" sorrendjében követi, docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -408,3 +407,60 @@ képernyők (U3, U4) replay-próbát is kapnak.
   leállítás dialógusa); a `liveNoActiveRace` megszűnt. A szabad mód
   dialógusa „Műszerek leállítása", nem a verseny-képernyő „Verseny
   leállítása"-ja.
+
+## Pontosítás a kód után (U4, 2026-10-11)
+
+- **A felhasználó döntései** (az összevetés után): a `handOver` megszűnik,
+  a váltó a kézi választást írja; az `activeRaceId` boot-restore és a kézi
+  választás külön marad (két különböző dolog: a futó verseny
+  visszatöltése, illetve a mai, el nem indult jelöltek közti választás);
+  a gateway-kapcsolat piros warningja versenyen és rajt előtt megmarad
+  (csak a szabad mód rejti); a kijelző ébren tartása csak rajt előtt és
+  versenyen él, szabad módban a rendszer szerint alszik el (az óra-adatot
+  ettől függetlenül a háttér-engine küldi).
+- **Melyik tartalom:** a sealed `InstrumentsContent` (szabad / rajt előtt
+  / verseny) az `instrumentsContentOf`-ból (`features/live_race/`), az
+  engine pillanatképe szerint. *Verseny*, ha a kiválasztott verseny aktív,
+  és a pillanatkép ugyanezt az id-t hordozza aktívként vagy még rajt
+  előttiként (egy „Rajt most" után nincs villanás); *verseny* akkor is, ha
+  az engine egy, a versenylistában meglévő versenyt futtat aktívként, de a
+  kiválasztás más (az engine magától rajtolt, és a DB-be vétel még tart;
+  vagy egy elfelejtett aktív verseny maradt kiválasztva). *Rajt előtt*, ha
+  a pillanatkép egy el nem indult versenyt hordoz, és a listában is el nem
+  indult (a friss, szerkesztett példány megy tovább). Minden más szabad
+  mód. Az U3 `instrumentsRaceOf`-ja megszűnt.
+- **A nézet:** a `LiveRaceScreen` csak választ (a portrait-lock és a
+  wakelock is itt él, a tartalom típusa szerint; egy nézethez kötött
+  wakelock két verseny-nézet cseréjekor kikapcsolva maradt volna, mert az
+  új `initState` a régi `dispose` előtt fut). A 34b és a 34c közös
+  `RaceInstrumentsView` (`race_view/`), a verseny id-jével mint kulccsal:
+  a rajt (34b → 34c) nem építi újra, egy váltás igen. A csík a 34a csíkja
+  (`InstrumentsStrip`, `widgets/`, egy `title` hellyel), ugyanazzal a
+  kapcsolat-szabállyal (`instrumentsLinkProvider`): az 1c státuszsorának
+  villogása megszűnt, a `LiveStatusBar` törölve. Megszakadt kapcsolatnál a
+  rács versenyen is 42%-ra tompul, mint a 34a-n. A BEARING cella helyén
+  STW/SOG áll; a `liveBearing` ARB-kulcs megszűnt.
+- **Az alsó gomb** 56 dp (a 60 helyett), él-től él-ig, szögletes: rajt
+  előtt „Rajt most" lejátszás-ikonnal, versenyen „Bója megvan". Mindkettő
+  megerősítést kér. A „Rajt most" a rajt előtti versenyt kiválasztja, és
+  a részlet Rajtjával azonos úton indít (`ActiveRaceNotifier.start`);
+  ha a dialógus alatt az engine magától rajtolt, a kézi rajt elmarad (a
+  tervezett rajtidő nem íródik felül). A részlet Rajt / Cél gombja az U6-é.
+- **A váltó** (34b-2a): ha a mai jelöltek
+  (`SelectInstrumentsRace.scheduledCandidates`, rajtidő szerint, a
+  tick-kel újraszámolva) közül több van, és az engine versenye köztük
+  van, a csík neve érinthető; a lenyíló lista a rács fölött, scrimmel. A
+  választás az `InstrumentsRaceChooser`-é: a kézi választást a mai napra
+  menti, utána érvényteleníti a tárolt választást (a sáv címkéje), és a
+  lifecycle `onInstrumentsChoiceChanged`-jével azonnal újradönt. Egy
+  tár-hiba csak naplósor.
+- **A lifecycle gazda-szabálya:** a `handOver` megszűnt; egy átvett engine
+  el nem indult versenye a szabályé (azt csak a szabály tehette az
+  engine-be), így a váltó egy újraindított app után is hat. Egy átvett,
+  ismeretlen, már futó verseny a felhasználóé (csak védelem).
+- **„Leállítás"** a csík ⋮ menüjében: versenyen „Verseny leállítása", rajt
+  előtt (a verseny még nem indult) „Műszerek leállítása".
+- **Az értesítési csatorna** neve „Műszerek és verseny", ugyanazzal az
+  ID-vel (`foretack_race`), így a meglévő csatorna átnevezve frissül.
+- **Ami nem változott:** a hiányjel, a GPS-idő fontja és a ⋮ helye az U3
+  szerint; az ETA formája a mai (`perc:mp`).

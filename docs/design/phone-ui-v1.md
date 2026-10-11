@@ -370,6 +370,14 @@ megerősítéssel (ADR 0024).
 a warning-szalag, az engine-szolgáltatás hibasora, a TARTOTT / ELAVULT
 pillek, a konfidencia-pöttyök színei, a predikció hiányának állapotai.
 
+**A kód szerint (U4):** a 34b és a 34c csíkja a 34a csíkja (kapcsolat-pont,
+ELAVULT chip, GPS-idő vagy „ADAT" + kor, ⋮ „Leállítás", térkép-gomb a jobb
+szélen), ugyanazzal a kapcsolat-szabállyal; megszakadt kapcsolatnál a rács
+42%-ra tompul. A gateway-kapcsolat piros warningja itt megmarad. A kijelző
+rajt előtt és versenyen ébren marad, szabad módban nem. Ha a „Rajt most"
+dialógusa alatt az engine magától rajtolt, a kézi rajt elmarad (ADR 0056
+„Pontosítás a kód után (U4)").
+
 ## 7. Versenynapló fül (35a, 35f)
 
 A mai Versenynapló (ADR 0044 + a webes 7c évsáv, ADR 0048 Addendum 7)
@@ -433,8 +441,8 @@ megvan, leállítás, elvetés):
   böngésző-sora) a magasságot növeli (ADR 0056 „Pontosítás a kód után
   (U1)").
 
-A Rajt és a Cél ma megerősítés nélkül fut; hogy kapjon-e, az U4 / U6
-dönti el.
+A Műszerek „Rajt most"-ja és „Bója megvan"-ja megerősítést kér (U4); a
+részlet Rajt és Cél gombjáról az U6 dönt.
 
 **Késleltetett törlés** (felhasználói döntés, 2026-10-10): a
 megerősítés után a verseny azonnal eltűnik a listákból, a snackbar

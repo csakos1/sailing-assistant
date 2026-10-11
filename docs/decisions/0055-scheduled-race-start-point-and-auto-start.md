@@ -495,3 +495,13 @@ A kódban eldőlt részletek (Claude javaslata):
   az `archive.sqlite` v5 → v6 migrál; ezután a régi kiadásra visszaállás a
   migráció előtti mentés visszatöltését is kéri (`deploy/README.md` 12.
   pont).
+
+## Pontosítás az U4 után (2026-10-11)
+
+- **A D5 „ebbe olvad bele" pontja nem valósul meg** (felhasználói döntés,
+  ADR 0056 „Pontosítás (U4)"): az `activeRaceId` boot-restore (a futó
+  verseny visszatöltése) és a kézi választás (a mai, el nem indult
+  jelöltek közti választás, napra szólóan) külön kulcs marad.
+- **A kézi választást a Műszerek váltója írja**, és a lifecycle azonnal
+  újradönt; a „felhasználó átadta" ág (az „Élő nézet" `handOver`-je, T4)
+  megszűnt.
