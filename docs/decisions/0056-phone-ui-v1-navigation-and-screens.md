@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Még nem implementálva; a „Szeletek" sorrendjében
-követi, docs-first.
+Elfogadva — 2026-10-10. Implementálva: az U1 kész (2026-10-11); a többi
+szelet a „Szeletek" sorrendjében követi, docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -213,3 +213,48 @@ képernyők (U3, U4) replay-próbát is kapnak.
 - A fok-perces koordináta-bevitelt (`docs/deferred.md`).
 - Az óra egyszerűsített szabad-mód nézetét (`docs/deferred.md`).
 - Fekvő tájolást és tabletet.
+
+## Pontosítás a kód után (U1, 2026-10-11)
+
+- **A felhasználó döntései** (az összevetés után): a snackbar
+  státusznégyzetének színe paraméter (alapból `onSurfaceVariant`, a
+  hibák `error`, a webes sikerek `primary`, mint eddig); a visszaszámláló
+  sáv csak akciós snackbaron jelenik meg; a 35d háromrészes adatcellája
+  most készül, és két helyen használjuk (verseny törlése, Bója megvan); a
+  Rajt és a Cél megerősítéséről az U4/U6 dönt (ma egyiknek sincs
+  megerősítése, a §9 felsorolása addig nem érvényes rájuk).
+- **`foretackSnackBar(context, message:, detail:, markColor:, action:,
+  duration:)`** a `foretack_ui`-ban (`src/snack_bar/`), egy `SnackBar`-t
+  ad, a `ScaffoldMessenger` marad. Lebegő, 20 dp-s oldalsó és 12 dp-s
+  alsó margóval; legalább 52 dp magas, egy opcionális mono második sorral
+  (`detail`, a QR-belépés böngésző-sora) nő. Alapidő 4 mp.
+- **Az akció nem a `SnackBar.action`**, mert az M3 gombja nem rajzolható
+  a makett cellájára, és a Flutter 3.41 az akciós snackbart alapból nem
+  zárja be (`persist`). A saját cella koppintásra
+  `hideCurrentSnackBar(reason: action)`-t hív, utána az akciót; a
+  snackbar akcióval is a `duration` után zárul. A visszaszámláló egy
+  `TweenAnimationBuilder` 1 → 0-ra a `duration` alatt; a messenger
+  időzítője a 250 ms-os belépés után indul, ezért a sáv kb. negyed
+  másodperccel a bezárás előtt ér nullára (elfogadva). Egy második
+  koppintás a bezáró animáció alatt nem futtatja újra az akciót. A keret
+  1 dp-s betétet kap, hogy a sáv ne bújjon alá.
+- **`ForetackDialog.subject`** (`ForetackDialogSubject` rekord: opcionális
+  `leading`, `name`, opcionális `trailing`), a 42 dp-s
+  `ForetackDialogSubjectCell`-lel; a meglévő `details` cella marad (a web
+  használja). A dialógus szövege a 35d szerint 13,5 / 1,45, a cím 1,25-ös
+  sormagasságú, a cím–szöveg köz 10 dp; ez a webet is érinti.
+- **A törlés adatcellája** a képernyő friss (reaktív) példányából
+  olvas, nem a megnyitáskori `race`-ből.
+- **A telefon cseréi:** a négy `AlertDialog` (verseny törlése, Leállítás,
+  Bója megvan, hiányos térképháttér) `showForetackDialog`; a Leállítás és
+  a törlés romboló cellát kap. A Bója megvan szövege a generikus mondat,
+  a bója sorszáma és neve az adatcellában (a `liveRoundMarkMessage`
+  ARB-kulcs megszűnt); a törlés adatcellája a verseny neve és a bóják
+  száma. A törlés szövege („nem vonható vissza") az U8-ig marad.
+- **Snackbarok:** a webes gyárak (`webNoticeSnackBar`, `webDoneSnackBar`,
+  `webJoinSnackBar`, `webLoginSnackBar`) a `foretackSnackBar` vékony
+  burkolói, a hívók nem változtak; a „Kódok másolva" és a track-export
+  hibái is ezt használják (a hibák piros négyzettel). A szöveg súlya a
+  35e szerint w500 (eddig w600).
+- **A snackbar helye a navigációs sáv fölött** az U2-ben dől el: a héj
+  `Scaffold`-ja egy `bottomNavigationBar` fölé teszi a lebegő snackbart.

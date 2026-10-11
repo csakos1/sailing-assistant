@@ -415,7 +415,15 @@ megvan, leállítás, elvetés):
   hairline-nal;
 - alul 2 dp-s visszaszámláló sáv (`outlineVariant` alap,
   `TextTones.low` kitöltés), ami mutatja, mennyi idő van a
-  visszavonásra.
+  visszavonásra — **csak akciós snackbaron** (felhasználói döntés,
+  2026-10-11);
+- a négyzet színe paraméter: semleges alapból, a hibáké `error`, a webes
+  sikereké `primary`; egy opcionális mono második sor (pl. a QR-belépés
+  böngésző-sora) a magasságot növeli (ADR 0056 „Pontosítás a kód után
+  (U1)").
+
+A Rajt és a Cél ma megerősítés nélkül fut; hogy kapjon-e, az U4 / U6
+dönti el.
 
 **Késleltetett törlés** (felhasználói döntés, 2026-10-10): a
 megerősítés után a verseny azonnal eltűnik a listákból, a snackbar

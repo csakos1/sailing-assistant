@@ -3638,6 +3638,13 @@ indítja a versenyt (`startedAt = scheduledStartAt`, visszamenőleg is), és
 a UI a snapshot alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
 v6-os kiadása megelőzi a telefonosat.
 
+**Dialógus és snackbar (ADR 0056 D5).** **Kész (U1):** minden telefonos
+megerősítés a `foretack_ui` `showForetackDialog`-ja (makett 35d), az
+érintett elem a 42 dp-s adatcellában (`ForetackDialog.subject`); minden
+snackbar a `foretackSnackBar` (makett 35e): szögletes, keretes, legalább
+52 dp, színes státusznégyzettel, akciónál mono cellával és
+visszaszámláló sávval.
+
 ## 9. Perzisztencia (Drift / SQLite)
 
 ### 9.1 Drift = típus-biztos SQL Dart-hoz
