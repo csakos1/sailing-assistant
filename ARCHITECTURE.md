@@ -3624,7 +3624,12 @@ különben a legkorábbi > szabad mód). **Kész (T1):** a domain része
 `LocalWallClock`-ból jön. **Kész (T2):** séma v6, repository, codec
 (§9.2). **Kész (T3):** az engine a guidance-getterekkel számol, a
 tervezett rajtot ő indítja (csak a 3 órás ablakon belül), és a snapshot
-`raceStartedAt`-et hordoz. A rajtidőben az engine indítja a versenyt
+`raceStartedAt`-et hordoz. **Kész (T4):** a phone a próba találatakor,
+a versenyek változásakor és az előtérben a nap versenyét adja az
+engine-nek (`InstrumentsRaceSelector`; az „Élő nézet" átadása erősebb), és
+az engine által indított rajtot átveszi a DB-be
+(`ActiveRaceNotifier.adoptEngineStart`); a kézi választás a
+`SettingsRepository`-ben. A rajtidőben az engine indítja a versenyt
 (`startedAt = scheduledStartAt`, visszamenőleg is), és a UI a snapshot
 alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
 v6-os kiadása megelőzi a telefonosat.
@@ -4092,9 +4097,14 @@ app-folyamatból futót átvesz (`attach`; 5 mp pillanatkép nélkül
 újraindítja). Utána a `gatewayProbeLoopProvider` egy TCP-próbát nyit a
 gatewayre (3 mp timeout, a `data` `NmeaConnection` seamjén), és az előző
 eredménye után 5 mp-et vár a következőig; találatra az engine szabad módban
-indul. Egy `active` verseny csak friss felvételnél folytatódik
+indul, a nap versenyével (ADR 0055 D5, T4: a folytatható `active`
+verseny, különben a mai tervezett, különben szabad mód; a versenyek
+változásakor és az előtérben újra dönt, amíg az engine nem versenyez és
+a versenyét nem az „Élő nézet" adta át). Egy `active` verseny csak friss
+felvételnél folytatódik
 (`IsRaceResumable`: a legutóbbi pillanatkép vagy a rajt 6 órán belül), így
-egy kétnapos verseny éjfél után is, egy elfelejtett „Cél" másnap nem. A
+egy kétnapos verseny éjfél után is, egy elfelejtett „Cél" másnap nem. Az
+engine által indított rajtot a lifecycle a snapshotból a DB-be veteti. A
 „Rajt" és az „Élő nézet" maga is indít. A cél után az engine `race:
 null`-lal szabad módban fut tovább. Szabad módban 10 perc kapcsolat nélkül a
 háttér-engine (`FreeModeIdleWatch` a task handlerben) maga állítja le a

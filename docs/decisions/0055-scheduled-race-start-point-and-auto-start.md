@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: a T1–T3 kész (2026-10-10); a
-T4–T6 hátravan.
+Elfogadva — 2026-10-10. Implementálva: a T1–T4 kész (2026-10-10/11); a
+T5–T6 hátravan.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -387,3 +387,69 @@ A kódban eldőlt részletek (Claude javaslata):
   marad (a mostani „Élő nézet" mellett a telemetria már a verseny
   azonosítójával rögzül). A rajt előtti mai bójanév-tartalék
   (`live_race_screen.dart`) az U4-ben kerül a rajthelyre.
+
+## Pontosítás a kód után (T4, 2026-10-11)
+
+- **A kézi választás a `SettingsRepository`-ben** (felhasználói döntés,
+  2026-10-11): két új típusos metódus
+  (`readInstrumentsRaceChoice` / `writeInstrumentsRaceChoice`), a KV-tábla
+  `instruments_race_choice` kulcsa alatt JSON-ként (`raceId` + a helyi nap
+  `ÉÉÉÉ-HH-NN` alakban); olvashatatlan érték → `null` + warning. A T4-ben
+  csak olvasás van; a választást a Műszerek fül váltója (U4) írja.
+- **Az `activeRaceId` boot-restore külön marad az U4-ig** (felhasználói
+  döntés): a D5 „ebbe olvad bele" pontja az U4-re tolódik. Ok: ma minden
+  verseny dátum nélküli (a rajtidő bevitele az U7-ben jön), és a
+  kiválasztás csak mai, rajtidős versenyt választ, így egy összevonás a
+  részleten kiválasztott verseny restore-ját elvenné.
+- **Óra: a telefon rendszerórája** (felhasználói döntés): a kiválasztás
+  „most"-ja a `clockProvider`, a „helyi nap" a `localWallClockProvider`
+  (élesben `toLocal`, tesztben rögzíthető), az engine tickje változatlan
+  (T3). NTP-szinkronizált telefonon az eltérés másodperc alatti. A meglévő
+  `trueTimeProvider` a telefon GNSS-ét olvassa és csak a UI-izolátumban
+  él; a hajó GNSS-idejének injektálása a service-be külön szelet, ha a
+  vízen gond lenne.
+- **Az első DB-mentés nyer** (felhasználói döntés, a D6 szerint):
+  `ActiveRaceNotifier.adoptEngineStart(raceId, at:)` csak `notStarted`
+  versenyt indít; egy már `active` verseny eltérő rajtideje csak naplósor
+  (`ActiveRace`). A DB-olvasás után a kiválasztott friss állapotát is
+  nézi, így egy közben mentett kézi „Rajt" megmarad. Egy kézi „Rajt"
+  mentése és egy egyidejű átvétel mentése között (néhány ms) a kézi
+  mentés felülírhatja az engine idejét; elfogadott.
+- **Az átvétel a kiválasztást is átállítja** az elindult versenyre (ez
+  rögzül, ezt mutatja a „Bója kész" és a mark-rounding monitor), kivéve,
+  ha a UI-ban közben egy másik verseny aktív. Versenyenként egyszer fut
+  (`_handledStartIds`); egy mentési hiba naplósor, újrapróba a következő
+  app-indításkor jön (az új folyamat újra látja a snapshotot). Ha közben
+  az engine a versenyt lezárta, a DB-ben `notStarted` marad, és a
+  `finishFromEngine` nem zárja le (ritka, elfogadott).
+- **Az „Élő nézet" `handOver`-je marad, és erősebb a szabálynál**
+  (felhasználói döntés; Claude eredeti javaslata — kézi választássá tenni
+  — elromlott volna a dátum nélküli versenyeken). A lifecycle számon
+  tartja, ki választotta az engine versenyét: a szabály
+  (próba-találat, cél után, saját lezárás után) vagy a felhasználó
+  („Élő nézet", kézi „Rajt", restore). Egy átvett engine-nél az első
+  pillanatkép dönt: szabad módban a szabályé, egy ismeretlen versennyel
+  (egy előző app-folyamat átadása) a felhasználóé. A szabály
+  csak akkor küld `race` parancsot, ha a lifecycle szerint nincs verseny
+  az engine-ben, vagy a mostanit ő választotta; a pillanatképet itt
+  szándékosan nem nézi, mert egy átadás előtt készült, `raceId` nélküli
+  pillanatkép egy másodpercig szabad módot mutatna. Egy felhasználó által
+  átadott versenynek csak a friss, szerkesztett példányát küldi újra,
+  amíg el nem indult (D8); egy közben törölt átadott verseny az engine-ben
+  marad (a törlés az U8-ban dől el, ADR 0056 D6).
+- **Mikor dönt a szabály:** a próba találatakor (a régi `_resumableSelection`
+  helyett), a versenyek listájának minden változásakor (a
+  `RaceRepository.watchRaces()` streamje → `onRacesChanged`; az autoDispose
+  `raceListProvider` a lista-képernyőé marad) és az előtérbe kerüléskor; csak
+  futó, már elindult hostnál, átvétel közben nem, és soha versenyző engine-en.
+  Időzítő nincs: az éjfél és a lejárt ablak a következő előtérben vagy
+  listaváltozásnál érvényesül (az engine a rajtot amúgy is maga indítja).
+- **A bemenet:** a versenyek a DB-ből (`watchRaces().first`); a UI-ban
+  kiválasztott verseny csak akkor kerül a listába, ha a DB-ben nincs (a
+  DB példánya legalább olyan friss: a notifier minden átmenetet ment, a
+  szerkesztés csak a DB-t írja). Az aktív verseny felvételének ideje és a
+  kézi választás olvasási hibája hiányzó adatként számít; a versenyek
+  olvasási hibája szabad módot ad (naplósor).
+- **Az összevetés a DB-ből jött példányok között `==`** (azonos útról, helyi
+  `DateTime`-mal); a snapshotból csak az azonosító és a rajtidő pillanata
+  számít (T2 megjegyzés).
