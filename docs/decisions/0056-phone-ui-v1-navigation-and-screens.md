@@ -2,7 +2,7 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1 és az U2 kész
+Elfogadva — 2026-10-10. Implementálva: az U1, az U2 és az U3 kész
 (2026-10-11); a többi szelet a „Szeletek" sorrendjében követi,
 docs-first.
 
@@ -330,3 +330,81 @@ képernyők (U3, U4) replay-próbát is kapnak.
   metódust és a hozzá tartozó teszteket az U4 váltója szünteti meg, ahol
   a kézi választás amúgy is átírja ezt a részt.
 - **ARB:** új `nav*`, `homeMenu*`, `logEmpty`; a `liveOpen` megszűnt.
+
+## Pontosítás a kód után (U3, 2026-10-11)
+
+- **A felhasználó döntései** (az összevetés után): a tartalmat az engine
+  állapota választja, nem a UI kiválasztása; az 1c a mai AppBarjával és
+  stop-ikonjával az U4-ig marad (az U4 cseréli a 34c csíkjára); a kézi
+  „Leállítás" után a 34a „Leállítva" állapotot mutat, és a keresés a
+  következő előtérbe kerüléskor indul újra (nincs „Keresés indítása"); egy
+  futó verseny induláskori visszatöltése a Műszerekre vált; a
+  gateway-kapcsolat piros warningját a szabad mód nem mutatja (a csík
+  már jelzi).
+- **Melyik tartalom:** `instrumentsRaceOf` (`features/live_race/`) — az
+  1c csak akkor jár, ha a kiválasztott verseny `active`, és az engine
+  pillanatképe szerint is ezt futtatja aktívként (`raceId`, `raceStatus`).
+  Minden más a 34a: verseny nélkül, a Cél után (a kiválasztás a befejezett
+  versenyen marad, az engine már szabad módban fut), egy rajt előtti
+  engine-verseny alatt (a 34b az U4-é), egy kézi „Rajt" és az engine első
+  aktív pillanatképe között (~1 mp), és álló engine mellett egy futó
+  versenynél is. A `LiveRaceScreen` ezt nézi először, és a szabad módnál
+  visszatér, mielőtt a verseny-láncot figyelné. A „Nincs aktív verseny"
+  üres képernyő (`liveNoActiveRace`) megszűnt.
+- **A 34a állapota:** `freeModeLinkOf` (`features/live_race/free_mode/`):
+  álló engine → *leállítva*; próba, vagy a session első adata előtt
+  kapcsolódó engine → *keresés*; kapcsolódva → *élő*; futó engine
+  megszakadt kapcsolattal → *megszakadt*, az utolsó adat korával. A futó
+  engine kliense újrapróbálkozás közben `Connecting` és `ConnectionError`
+  között vált (sosem `Disconnected`), ezért adat után a `Connecting` is
+  *megszakadt* — különben a csík és a rács ~8 mp-enként villogna. A sáv
+  `instrumentsTabStatusOf`-ja ugyanezt a szabályt kapta
+  (`hasSessionData`), így az él és a csík pontja egyezik; a csík csak a
+  leállított és a megszakadt állapotot bontja szét.
+  Az utolsó adat ideje a pillanatkép `boatState.lastUpdate`-je, de csak
+  ha a session alatt jött esemény (`eventCount > 0`); különben a kor
+  ismeretlen, és a csík a hiányjelet mutatja. A kor egy óra alatt
+  `perc:mp perce`, felette `óra:perc órája`, csonkolva.
+- **A csík** (`FreeModeStrip`, 48 dp): kapcsolat-pont (élő: teli
+  `primary`; keresés: szaggatott `primary` keret; megszakadt és
+  leállítva: `TextTones.low` keret), szöveg, ha kell az ELAVULT chip
+  (kapcsolódva, > 5 mp-es adat, mint az 1c-n), a GPS-idő (a `~` jellel,
+  ha nem szinkronizált; keresésnél és leállítva a hiányjel `outline`
+  színnel; megszakadt kapcsolatnál „ADAT" + a kor `warning` színnel), a
+  ⋮ menü a „Leállítás"-sal (megerősítéssel; álló engine-nél nincs ⋮), és
+  a jobb szélen a térkép-gomb, így a ⋮ megjelenése sem mozdítja. A
+  GPS-idő a meglévő `instrumentClockStyle` (IBM Plex Mono) maradt, nem a
+  makett Martian Mono-ja: az 1c-n szándékosan nem a szám-font, hogy a
+  mért értékekkel ne keveredjen.
+- **A rács** (`FreeModeGrid`): fő oszlop STW/SOG · CÉL-SEB. · VMG (76 /
+  48 / 38), a sínen TWA (a `TwaValue` oldal-jelével) és TWS. A hiányzó
+  érték a mai `—` jel (az 1c, az óra és a napló is ezt használja, a
+  makett „––" helyett) `outline` színnel; keresés és leállítva alatt
+  minden érték hiányzó. A VMG kísérő sora a cél-VMG, mellette — mint az
+  1c sínjén — a VMG-steer nyíl; a makett nem rajzolja, de a meglévő
+  információ nem vész el. Megszakadt kapcsolatnál a rács 42%-ra, kritikus
+  warningnál 40%-ra tompul (a kisebbik nyer). A szolgáltatás-hibasor és a
+  warning-szalag (benne a sekély-víz riasztás) a csík alatt marad, de a
+  `GatewayDisconnected` kimarad belőle (felhasználói döntés): kapcsolat
+  nélkül mindig kritikus, a szabad módban kettőzné a csík jelzését, és a
+  rácsot minden keresésnél tompítaná. Az 1c-n változatlan.
+- **„Leállítás"** a ⋮ menüből, a `ForetackDialog` megerősítésével; a
+  session notifierjét a dialógus előtt fogjuk el, így egy közben az 1c-re
+  váltó fül sem nyeli el a megerősítést (az 1c `_confirmStop`-ja is így).
+- **Nyitott az U4-re:** az 1c státuszsora (`LiveStatusBar`) az
+  újrakapcsolódás alatt továbbra is „Csatlakozás…" és a piros hiba között
+  vált; a 34c csíkja ugyanazt a szabályt kapja, mint a 34a.
+- **`RailCell.child`:** a sín-cella saját érték-widgetet is kaphat (a TWA
+  oldal-jellel); a `StaleChip` az 1c státuszsorából közös widgetté vált.
+- **Visszatöltés:** az `activeRacePersistenceProvider` egy `active`
+  verseny visszatöltésekor a `raceStartSignalProvider`-en jelez, így a
+  héj a Műszerekre vált (az U2 „visszatöltés nem vált" pontja ezzel
+  módosul) — de csak ha a verseny folytatható (`IsRaceResumable`, a
+  legutóbbi felvétel szerint, mint a lifecycle-é): egy napokkal korábban
+  félbehagyott aktív verseny miatt az app nem ugrik minden indításkor a
+  Műszerekre. Egy el nem indult verseny visszatöltése nem jelez.
+- **ARB:** új `liveStw`, `liveSog`, `liveTwa`, `liveTws`, `instruments*`
+  (keresés, leállítva, ADAT, a kor két alakja, a menü tooltipje, a
+  leállítás dialógusa); a `liveNoActiveRace` megszűnt. A szabad mód
+  dialógusa „Műszerek leállítása", nem a verseny-képernyő „Verseny
+  leállítása"-ja.

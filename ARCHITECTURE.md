@@ -3598,7 +3598,12 @@ kiválasztva épül fel (wakelock). A kiválasztott fül a
 `shellTabProvider`; aktívvá váló versenynél a héj a Műszerekre vált. A
 sáv állapota az `instrumentsTabStatusOf` (engine-session, kapcsolat,
 kiválasztott verseny, a nap versenye). A debug-képernyők a ⋮ menüben
-(`HomeMenu`), csak debug-buildben.
+(`HomeMenu`), csak debug-buildben. **Kész (U3):** a Műszerek fül szabad
+módja (34a, `features/live_race/free_mode/`); a tartalmat az engine
+állapota választja (`instrumentsRaceOf`: 1c csak az engine aktív
+versenyén), a 34a állapota a `freeModeLinkOf` (keresés, élő, megszakadt
+az adat korával, leállítva); a „Leállítás" a csík ⋮ menüjében, a
+térkép-gomb mellett. Egy futó verseny visszatöltése a Műszerekre vált.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

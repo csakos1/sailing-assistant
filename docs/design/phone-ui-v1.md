@@ -121,9 +121,9 @@ időben, `HH:MM`.
 (felhasználói döntés). Rajtkor (kézi vagy automatikus, ADR 0055 D6) az
 app a Műszerek fülre vált; ha előtérben van, a push-olt képernyők
 bezáródnak (`popUntil` a héjig, a `PopScope`-pal védett képernyők
-kivételével). Egy már futó verseny kiválasztása vagy induláskori
-visszatöltése nem rajt, nem vált (ADR 0056 „Pontosítás a kód után
-(U2)").
+kivételével). Egy futó verseny induláskori visszatöltése is a Műszerekre
+vált, ha folytatható (ADR 0056 „Pontosítás a kód után (U3)"); egy már
+futó verseny kiválasztása nem rajt, nem vált (U2).
 
 ## 3. Versenyek fül (31a, 31b)
 
@@ -318,6 +318,14 @@ cellája egyenlő magas.
 | 34a-2B élő | lásd fent |
 | 34a-3 megszakadt | a pont `TextTones.low` körvonal; „Nincs kapcsolat"; a GPS-idő helyén „ADAT" (10, `TextTones.low`) + az adat kora („1:12 perce", `WarningColors.warning`); a rács 42%-os átlátszósággal; a sáv éle szürke, áthúzott négyzettel |
 | 34a-4 részleges | nincs STW → a cella „SOG"; nincs polár → CÉL-SEB. „––" `outline`, és a cél-VMG sor elmarad |
+| leállítva (U3) | kézi „Leállítás" után: a pont `TextTones.low` körvonal; „Leállítva"; a GPS-idő hiányjel `outline` színnel; minden érték hiányjel `outline` színnel; nincs ⋮ menü; a keresés a következő előtérbe kerüléskor indul |
+
+A kód a hiányjelnek a mai `—`-t használja (a makett „––"-ja helyett), és
+a GPS-idő a meglévő `instrumentClockStyle`-lal áll; a ⋮ menü a térkép-gomb
+**bal** oldalán van, hogy a térkép-gomb sose mozduljon. A szabad mód
+warning-szalagja a gateway-kapcsolat warningját kihagyja (a csík mutatja),
+és az újrakapcsolódás (`Connecting` adat után) megszakadtnak számít, nem
+keresésnek (ADR 0056 „Pontosítás a kód után (U3)").
 
 ### 34b — rajt napján, rajt előtt
 
