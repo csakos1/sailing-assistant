@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone/providers/active_race_persistence_provider.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/clock_provider.dart';
+import 'package:phone/providers/last_recording_reader_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_start_signal_provider.dart';
 import 'package:phone/providers/settings_repository_provider.dart';
 
 /// Fake settings-tár: a readActiveRaceId a `storedId`-t adja, a
@@ -53,6 +56,10 @@ void main() {
   late ProviderContainer container;
   late _FakeSettingsRepository settings;
   late _FakeRaceRepository repo;
+  // A visszatoltes jelzese a folytathatosagot nezi (6 ora, ADR 0054 E3).
+  final startedAt = DateTime.utc(2026, 7, 30, 9);
+  var now = startedAt.add(const Duration(minutes: 30));
+  DateTime? lastRecordedAt;
 
   const markA = Mark(
     sequence: 1,
@@ -73,12 +80,18 @@ void main() {
   }
 
   setUp(() {
+    now = startedAt.add(const Duration(minutes: 30));
+    lastRecordedAt = null;
     settings = _FakeSettingsRepository();
     repo = _FakeRaceRepository();
     container = ProviderContainer(
       overrides: [
         settingsRepositoryProvider.overrideWithValue(settings),
         raceRepositoryProvider.overrideWithValue(repo),
+        clockProvider.overrideWithValue(() => now),
+        lastRecordingReaderProvider.overrideWithValue(
+          (_) async => lastRecordedAt,
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -107,6 +120,66 @@ void main() {
       expect(container.read(activeRaceProvider), isNull);
     });
 
+    test('futó verseny visszatöltése a Műszerekre váltást jelzi', () async {
+      // ARRANGE
+      settings.storedId = 'race-1';
+      repo.race = makeRace().start(at: startedAt);
+
+      // ACT
+      activatePersistence();
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(
+        container.read(raceStartSignalProvider),
+        (raceId: 'race-1', serial: 1),
+      );
+    });
+
+    test('régóta félbehagyott verseny visszatöltése nem jelez', () async {
+      // ARRANGE — a legutobbi felvetel 7 oraja volt
+      now = startedAt.add(const Duration(hours: 8));
+      lastRecordedAt = startedAt.add(const Duration(hours: 1));
+      settings.storedId = 'race-1';
+      repo.race = makeRace().start(at: startedAt);
+
+      // ACT
+      activatePersistence();
+      await pumpEventQueue();
+
+      // ASSERT — a verseny visszatoltodik, de nincs ful-valtas
+      expect(container.read(activeRaceProvider)?.id, 'race-1');
+      expect(container.read(raceStartSignalProvider), isNull);
+    });
+
+    test('friss felvétel mellett a hosszú verseny is jelez', () async {
+      // ARRANGE — a ketnapos Kekszalag: a rajt regi, a felvetel friss
+      now = startedAt.add(const Duration(hours: 20));
+      lastRecordedAt = now.subtract(const Duration(minutes: 3));
+      settings.storedId = 'race-1';
+      repo.race = makeRace().start(at: startedAt);
+
+      // ACT
+      activatePersistence();
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(container.read(raceStartSignalProvider)?.raceId, 'race-1');
+    });
+
+    test('el nem indult verseny visszatöltése nem jelez', () async {
+      // ARRANGE
+      settings.storedId = 'race-1';
+      repo.race = makeRace();
+
+      // ACT
+      activatePersistence();
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(container.read(raceStartSignalProvider), isNull);
+    });
+
     test('no-clobber: meglévő aktív race-t nem ír felül', () async {
       // ARRANGE — a user már választott egy MÁSIK race-t
       final other = Race.create(
@@ -122,8 +195,9 @@ void main() {
       activatePersistence();
       await pumpEventQueue();
 
-      // ASSERT — a választott race marad
+      // ASSERT — a választott race marad, és nincs fül-váltás
       expect(container.read(activeRaceProvider), equals(other));
+      expect(container.read(raceStartSignalProvider), isNull);
     });
   });
 

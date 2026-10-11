@@ -20,9 +20,10 @@ import 'package:phone/providers/race_start_signal_provider.dart';
 /// fül látszik. A push-olt képernyők a héj fölé, sáv nélkül nyílnak.
 ///
 /// Kívülről csak a rajt vált fület (a [raceStartSignalProvider] jelzése:
-/// kézi rajt, vagy az engine rajtjának átvétele): a héj a Műszerekre vált,
-/// és ha az app előtérben van, a push-olt képernyőket bezárja, kivéve
-/// amelyik nem engedi (`PopScope`). A vissza-gomb a Versenyekre lép, onnan
+/// kézi rajt, az engine rajtjának átvétele, vagy egy futó verseny
+/// induláskori visszatöltése): a héj a Műszerekre vált, és ha az app
+/// előtérben van, a push-olt képernyőket bezárja, kivéve amelyik nem
+/// engedi (`PopScope`). A vissza-gomb a Versenyekre lép, onnan
 /// kilép.
 class PhoneShell extends ConsumerStatefulWidget {
   /// Héj a három fül tartalmával; a tesztek egyszerű helyettesítőket
