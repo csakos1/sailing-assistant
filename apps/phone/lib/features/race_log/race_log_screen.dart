@@ -16,12 +16,13 @@ import 'package:phone/providers/race_log_year_provider.dart';
 /// A befejezett versenyek naplója (ADR 0044 4d), a héj Versenynapló füle
 /// (ADR 0056 D2, D4; makett 35a, 35f).
 ///
-/// A fejrész a Versenyek füléével azonos (64 dp, `tabTitleStyle`, alsó
-/// hairline), jobb oldalán a kiválasztott év versenyszámával (UF). Alatta
-/// az évsáv a webes 7c mintájára: maga az évsor a választó, alatta a
-/// kiválasztott év három statja. A képernyőn nincs év-független szám: amit
-/// a felhasználó lát, az a kiválasztott évhez tartozik (D38). A
-/// hónap-fejlécek és a sorok a mai napló szerint (felhasználói döntés, U8).
+/// A fejrész a Versenyek füléével azonos méretű (64 dp, `tabTitleStyle`), de az
+/// évsáv színét kapja, elválasztó vonal nélkül: a fejrész és a sáv egy blokk
+/// (R1, felhasználói döntés). Jobb oldalán a kiválasztott év versenyszáma (UF).
+/// Alatta az évsáv a webes 7c mintájára: maga az évsor a választó, alatta a
+/// kiválasztott év három statja. A képernyőn nincs év-független szám: amit a
+/// felhasználó lát, az a kiválasztott évhez tartozik (D38). A hónap-fejlécek és
+/// a sorok a mai napló szerint (felhasználói döntés, U8).
 ///
 /// A három stat **nem egyszerre érkezik** (D42). A vízen töltött idő
 /// szinkron, a naplóval együtt már megvan; az össztáv és a rekord a
@@ -107,11 +108,10 @@ class RaceLogScreen extends ConsumerWidget {
       appBar: AppBar(
         toolbarHeight: 64,
         titleSpacing: 20,
-        // Görgetéskor az M3 AppBar `surfaceContainer`-re váltana; a fejrész
-        // színe a listától független marad (UF, felhasználói döntés).
-        backgroundColor: scheme.surface,
+        // A fejrész az évsáv színét kapja, vonal nélkül: a kettő egy blokk
+        // (R1, felhasználói döntés). Görgetéskor sem színeződik át (UF).
+        backgroundColor: scheme.surfaceContainer,
         scrolledUnderElevation: 0,
-        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
         title: Text(l10n.logTitle, style: tabTitleStyle),
         actions: [
           if (countLabel != null)

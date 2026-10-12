@@ -253,7 +253,7 @@ void main() {
       );
     });
 
-    testWidgets('uses the tab header with a hairline', (tester) async {
+    testWidgets('uses the tab header without a hairline', (tester) async {
       await pumpScreen(
         tester,
         log: AsyncValue.data([
@@ -268,16 +268,16 @@ void main() {
 
       final appBar = tester.widget<AppBar>(find.byType(AppBar));
       expect(appBar.toolbarHeight, 64);
-      expect(appBar.shape, isA<Border>());
+      // A fejresz es az evsav egy blokk: nincs koztuk vonal (R1).
+      expect(appBar.shape, isNull);
       final title = tester.widget<Text>(find.text('Versenynapló'));
       expect(title.style?.fontSize, tabTitleStyle.fontSize);
       expect(find.byType(BackButton), findsNothing);
     });
 
-    // A fejresz szine gorgeteskor sem valtozik (UF, felhasznaloi dontes).
-    testWidgets('keeps the header colour when the list scrolls under', (
-      tester,
-    ) async {
+    // A fejresz az evsav szinet kapja (R1), es gorgeteskor sem valtozik
+    // (UF, felhasznaloi dontes).
+    testWidgets('paints the header in the year band colour', (tester) async {
       await pumpScreen(
         tester,
         log: AsyncValue.data([
@@ -291,7 +291,19 @@ void main() {
       );
 
       final appBar = tester.widget<AppBar>(find.byType(AppBar));
-      expect(appBar.backgroundColor, foretackTheme.colorScheme.surface);
+      final band = tester.widget<ColoredBox>(
+        find
+            .descendant(
+              of: find.byType(RaceLogYearBand),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
+      );
+      expect(appBar.backgroundColor, band.color);
+      expect(
+        appBar.backgroundColor,
+        foretackTheme.colorScheme.surfaceContainer,
+      );
       expect(appBar.scrolledUnderElevation, 0);
     });
   });
