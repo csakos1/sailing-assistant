@@ -60,9 +60,17 @@
   "@homeMenuEngineDebug": {
     "description": "A ⋮ menü sora: az engine-debug képernyő (csak debug-buildben)."
   },
-  "logEmpty": "Még nincs befejezett verseny.",
-  "@logEmpty": {
-    "description": "A Versenynapló fül üres állapota."
+  "logEmptyTitle": "Még nincs befejezett verseny",
+  "@logEmptyTitle": {
+    "description": "A Versenynapló fül üres állapotának címe."
+  },
+  "logEmptyMessage": "A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.",
+  "@logEmptyMessage": {
+    "description": "A Versenynapló fül üres állapotának magyarázata."
+  },
+  "logLoadingCaps": "BETÖLTÉS",
+  "@logLoadingCaps": {
+    "description": "A napló betöltés közbeni fejléce (makett 35f)."
   },
   "liveStop": "Leállítás",
   "@liveStop": {
@@ -482,28 +490,28 @@
   },
   "logRaceCountCaps": "{count} VERSENY",
   "@logRaceCountCaps": {
-    "description": "Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).",
+    "description": "Verseny-darabszám a napló évsávján és hónap-fejlécein (verzál).",
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "logYearSheetTitle": "Év",
-  "@logYearSheetTitle": {
-    "description": "Az év-választó lap fejléc-felirata; a widget verzálosítja."
+  "logRaceCountPendingCaps": "–– VERSENY",
+  "@logRaceCountPendingCaps": {
+    "description": "A versenyszám helye az évsávon, amíg a napló töltődik (makett 35f)."
   },
   "logStatTimeCaps": "VÍZEN TÖLTÖTT",
   "@logStatTimeCaps": {
-    "description": "A napló stat-csík első cellája: vízen töltött idő."
+    "description": "Az évsáv első statja: vízen töltött idő."
   },
   "logStatDistanceCaps": "ÖSSZ. TÁV",
   "@logStatDistanceCaps": {
-    "description": "A napló stat-csík második cellája: az év össztávja."
+    "description": "Az évsáv második statja: az év össztávja."
   },
   "logStatRecordCaps": "REKORD",
   "@logStatRecordCaps": {
-    "description": "A napló stat-csík harmadik cellája: sebesség-rekord."
+    "description": "Az évsáv harmadik statja: sebesség-rekord."
   },
   "liveCorrectionRight": "jobbra",
   "@liveCorrectionRight": {

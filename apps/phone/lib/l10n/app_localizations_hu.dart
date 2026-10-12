@@ -54,7 +54,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get homeMenuEngineDebug => 'Engine debug';
 
   @override
-  String get logEmpty => 'Még nincs befejezett verseny.';
+  String get logEmptyTitle => 'Még nincs befejezett verseny';
+
+  @override
+  String get logEmptyMessage =>
+      'A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.';
+
+  @override
+  String get logLoadingCaps => 'BETÖLTÉS';
 
   @override
   String get liveStop => 'Leállítás';
@@ -353,7 +360,7 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String get logYearSheetTitle => 'Év';
+  String get logRaceCountPendingCaps => '–– VERSENY';
 
   @override
   String get logStatTimeCaps => 'VÍZEN TÖLTÖTT';

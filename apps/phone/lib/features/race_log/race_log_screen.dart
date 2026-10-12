@@ -5,66 +5,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
-import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
-import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
+import 'package:phone/features/race_log/widgets/race_log_empty.dart';
+import 'package:phone/features/race_log/widgets/race_log_loading_list.dart';
+import 'package:phone/features/race_log/widgets/race_log_year_band.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
 import 'package:phone/providers/race_log_stats_provider.dart';
 import 'package:phone/providers/race_log_year_provider.dart';
 
-/// A befejezett versenyek naplója (ADR 0044 4d).
+/// A befejezett versenyek naplója (ADR 0044 4d), a héj Versenynapló füle
+/// (ADR 0056 D2, D4; makett 35a, 35f).
 ///
-/// A héj Versenynapló füle (ADR 0056 D2; korábban önálló, push-olt
-/// képernyő, D31). A fejléc 64 dp-s, mint a detail-képernyőé, alatta
-/// a 44 dp-s év-sáv — a két mély képernyő felső harmada így egymásra fed
-/// (D20/D21).
+/// A fejrész a Versenyek füléével azonos (64 dp, `tabTitleStyle`, alsó
+/// hairline). Alatta az évsáv a webes 7c mintájára: maga az évsor a
+/// választó, alatta a kiválasztott év versenyszáma és három statja. A
+/// képernyőn nincs év-független szám: amit a felhasználó lát, az a
+/// kiválasztott évhez tartozik (D38). A hónap-fejlécek és a sorok a mai
+/// napló szerint (felhasználói döntés, U8).
 ///
-/// A tartalom négy rétegű: az AppBar jobb szélén a **kiválasztott év**
-/// verseny-száma, alatta a mindig látható év-sáv, majd az összesítő
-/// stat-csík, végül a hónapokra bontott lista. A képernyőn nincs
-/// év-független szám: amit a felhasználó lát, az a sáv által mutatott évhez
-/// tartozik (D38).
-///
-/// A csík három értéke **nem egyszerre érkezik** (D42). A vízen töltött idő
+/// A három stat **nem egyszerre érkezik** (D42). A vízen töltött idő
 /// szinkron, a naplóval együtt már megvan; az össztáv és a rekord a
-/// track-mintákból számol, és a saját `AsyncValue`-ja mögül úszik be. Amíg
-/// nincs kész, a két cella a hiányjelet mutatja — a betöltés és a hiányzó
-/// mérés így egyformán néz ki, ami tudatos egyszerűsítés: cellánkénti
-/// spinner zajosabb lenne. Ha a mérés hosszúnak mutatja a beúszást, ezen
-/// érdemes változtatni.
+/// track-mintákból számol. Amíg számolódik, a két érték tompa hiányjel, és
+/// a sáv alján mozgó sáv fut (makett 35f). A teljes napló betöltése alatt
+/// a lista helyén a sorok vázai állnak.
 ///
 /// Nincs új lekérdezés a lista felé (D41): a napló a lajstroméval azonos
 /// reaktív projekcióból épül, a csoportosítást a `BuildRaceLog` domain use
 /// case végzi.
 ///
 /// Az `AppLocalizations.of(context)!` biztonságos: a `MaterialApp`
-/// regisztrálja a delegátorokat. A `TextTones` ugyanígy: a `foretackTheme`
-/// regisztrálja.
+/// regisztrálja a delegátorokat.
 class RaceLogScreen extends ConsumerWidget {
   /// A Versenynapló képernyője; paramétert nem vesz át, mindent providerből
   /// olvas.
   const RaceLogScreen({super.key});
 
-  // Az év-választó lapot nyitja, és a választást a nyers state-be írja. A
-  // feloldást (elavult év, alapértelmezés) a selected-provider végzi.
-  Future<void> _pickYear(
-    BuildContext context,
-    WidgetRef ref, {
-    required List<RaceLogYear> years,
-    required int selectedYear,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      builder: (_) => RaceLogYearSheet(
-        title: l10n.logYearSheetTitle,
-        years: years,
-        selectedYear: selectedYear,
-      ),
-    );
-    if (picked == null) return;
-    ref.read(raceLogYearSelectionProvider.notifier).state = picked;
-  }
+  // A számolás alatti stat-érték (makett 35f); a mértékegység a valódi
+  // formázóé, hogy a kettő ne térhessen el.
+  static const String _pendingValue = '––,–';
 
   void _openDetail(BuildContext context, Race race) {
     unawaited(
@@ -76,78 +54,103 @@ class RaceLogScreen extends ConsumerWidget {
     );
   }
 
+  // Számolás alatt csak a mértékegység ismert. Egy hiányzó mérés
+  // formázása mértékegység nélküli, ezért a mértékegységet egy minta-érték
+  // formázásából vesszük.
+  static final MeasuredValue _timeSample = measureHours(
+    const Duration(hours: 1),
+  );
+  static final MeasuredValue _distanceSample = measureDistance(1000);
+  static final MeasuredValue _speedSample = measureKnots(1);
+
+  static RaceLogBandStat _stat(
+    String label,
+    MeasuredValue measured,
+  ) => (label: label, measured: measured, isPending: false);
+
+  static RaceLogBandStat _pendingStat(String label, MeasuredValue sample) => (
+    label: label,
+    measured: (value: _pendingValue, unit: sample.unit),
+    isPending: true,
+  );
+
+  static List<RaceLogBandStat> _pendingStats(AppLocalizations l10n) => [
+    _pendingStat(l10n.logStatTimeCaps, _timeSample),
+    _pendingStat(l10n.logStatDistanceCaps, _distanceSample),
+    _pendingStat(l10n.logStatRecordCaps, _speedSample),
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final tones = Theme.of(context).extension<TextTones>()!;
+    final scheme = Theme.of(context).colorScheme;
     final log = ref.watch(raceLogProvider);
     final selected = ref.watch(raceLogSelectedYearProvider);
     final timeOnWater = ref.watch(raceLogTimeOnWaterProvider);
-    final totals = ref.watch(raceLogTrackTotalsProvider).valueOrNull;
+    final totalsAsync = ref.watch(raceLogTrackTotalsProvider);
+    // Évváltáskor a provider az előző év értékével tölt újra: azt nem
+    // mutatjuk az új év alatt (D38), hanem a számolás jelét.
+    final isTotalsPending = totalsAsync.isLoading;
+    final totals = isTotalsPending ? null : totalsAsync.valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 64,
-        title: Text(l10n.logTitle, style: screenTitleStyle),
-        actions: [
-          if (selected != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 20),
-              child: Center(
-                child: Text(
-                  l10n.logRaceCountCaps(selected.raceCount),
-                  style: numeralCaptionStyle.copyWith(color: tones.low),
-                ),
-              ),
-            ),
-        ],
+        titleSpacing: 20,
+        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+        title: Text(l10n.logTitle, style: tabTitleStyle),
       ),
       body: SafeArea(
         child: log.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              RaceLogYearBand(
+                years: const [],
+                selectedYear: null,
+                countLabel: l10n.logRaceCountPendingCaps,
+                stats: _pendingStats(l10n),
+                isLoading: true,
+              ),
+              const Expanded(child: RaceLogLoadingList()),
+            ],
+          ),
           error: (_, _) => Center(child: Text(l10n.listError)),
           data: (years) {
-            // Fülként üres naplóval is elérhető (ADR 0056 D2); a végleges
-            // üres állapot az U8-cal jön.
             if (selected == null) {
-              return Center(
-                child: Text(
-                  l10n.logEmpty,
-                  style: supportTextStyle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              return ListView(
+                padding: EdgeInsets.zero,
+                children: const [RaceLogEmpty()],
               );
             }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                RaceLogYearBar(
-                  year: selected.year,
-                  onTap: () => unawaited(
-                    _pickYear(
-                      context,
-                      ref,
-                      years: years,
-                      selectedYear: selected.year,
-                    ),
-                  ),
-                ),
-                RaceLogStatsStrip(
-                  cells: [
-                    (
-                      label: l10n.logStatTimeCaps,
-                      measured: measureHours(timeOnWater),
-                    ),
-                    (
-                      label: l10n.logStatDistanceCaps,
-                      measured: measureDistance(totals?.distanceMeters),
-                    ),
-                    (
-                      label: l10n.logStatRecordCaps,
-                      measured: measureKnots(totals?.maxSpeedMps),
-                    ),
+                RaceLogYearBand(
+                  years: [for (final year in years) year.year],
+                  selectedYear: selected.year,
+                  onYearSelected: (year) {
+                    ref.read(raceLogYearSelectionProvider.notifier).state =
+                        year;
+                  },
+                  countLabel: l10n.logRaceCountCaps(selected.raceCount),
+                  isLoading: isTotalsPending,
+                  stats: [
+                    _stat(l10n.logStatTimeCaps, measureHours(timeOnWater)),
+                    if (isTotalsPending) ...[
+                      _pendingStat(l10n.logStatDistanceCaps, _distanceSample),
+                      _pendingStat(l10n.logStatRecordCaps, _speedSample),
+                    ] else ...[
+                      _stat(
+                        l10n.logStatDistanceCaps,
+                        measureDistance(totals?.distanceMeters),
+                      ),
+                      _stat(
+                        l10n.logStatRecordCaps,
+                        measureKnots(totals?.maxSpeedMps),
+                      ),
+                    ],
                   ],
                 ),
                 Expanded(

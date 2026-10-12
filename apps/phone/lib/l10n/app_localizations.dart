@@ -184,11 +184,23 @@ abstract class AppLocalizations {
   /// **'Engine debug'**
   String get homeMenuEngineDebug;
 
-  /// A Versenynapló fül üres állapota.
+  /// A Versenynapló fül üres állapotának címe.
   ///
   /// In hu, this message translates to:
-  /// **'Még nincs befejezett verseny.'**
-  String get logEmpty;
+  /// **'Még nincs befejezett verseny'**
+  String get logEmptyTitle;
+
+  /// A Versenynapló fül üres állapotának magyarázata.
+  ///
+  /// In hu, this message translates to:
+  /// **'A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.'**
+  String get logEmptyMessage;
+
+  /// A napló betöltés közbeni fejléce (makett 35f).
+  ///
+  /// In hu, this message translates to:
+  /// **'BETÖLTÉS'**
+  String get logLoadingCaps;
 
   /// Tooltip: az élő követés leállítása (AppBar ikon).
   ///
@@ -700,31 +712,31 @@ abstract class AppLocalizations {
   /// **'{month}'**
   String logMonth(DateTime month);
 
-  /// Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).
+  /// Verseny-darabszám a napló évsávján és hónap-fejlécein (verzál).
   ///
   /// In hu, this message translates to:
   /// **'{count} VERSENY'**
   String logRaceCountCaps(int count);
 
-  /// Az év-választó lap fejléc-felirata; a widget verzálosítja.
+  /// A versenyszám helye az évsávon, amíg a napló töltődik (makett 35f).
   ///
   /// In hu, this message translates to:
-  /// **'Év'**
-  String get logYearSheetTitle;
+  /// **'–– VERSENY'**
+  String get logRaceCountPendingCaps;
 
-  /// A napló stat-csík első cellája: vízen töltött idő.
+  /// Az évsáv első statja: vízen töltött idő.
   ///
   /// In hu, this message translates to:
   /// **'VÍZEN TÖLTÖTT'**
   String get logStatTimeCaps;
 
-  /// A napló stat-csík második cellája: az év össztávja.
+  /// Az évsáv második statja: az év össztávja.
   ///
   /// In hu, this message translates to:
   /// **'ÖSSZ. TÁV'**
   String get logStatDistanceCaps;
 
-  /// A napló stat-csík harmadik cellája: sebesség-rekord.
+  /// Az évsáv harmadik statja: sebesség-rekord.
   ///
   /// In hu, this message translates to:
   /// **'REKORD'**
