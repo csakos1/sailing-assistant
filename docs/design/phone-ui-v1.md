@@ -431,6 +431,14 @@ A mai Versenynapló (ADR 0044 + a webes 7c évsáv, ADR 0048 Addendum 7)
 A mai `race_log_year_sheet` alsó lapja a 7c-vel feleslegessé válik (az
 összevetésnél ellenőrizendő, §11).
 
+**A kód szerint (U8):** a sáv a telefon saját `RaceLogYearBand`-je: az
+évek 48 dp-s tapintási felülettel, 150 ms-os átmenettel, a kiválasztott
+év nem koppintható; ha nem férnek ki, az évsor oldalra görgethető. Nincs
+„Összes". A statok a sávban; számolás alatt (évváltáskor is) „––,–" a
+mértékegységgel és mozgó sáv az alsó vonal helyén. Az alsó lap és a régi
+évsor törlődött. Üres naplóban a 31b-hez hasonló üres állapot áll, sáv
+nélkül.
+
 ## 8. Korábbi bóják sheet (35c)
 
 A 10a változatlanul: fogantyú, keresőmező (a darabszám a mezőben, pl.
@@ -491,6 +499,12 @@ törölhető a részletről; ilyenkor a véglegesítés előbb elengedi a
 versenyt az engine-ben (ADR 0054 D6 nem engedi az aktív verseny
 cseréjét, ezért ehhez a `finish` vagy egy külön `discard` parancs kell).
 Ez a törlés-szelet előtt eldöntendő (§11).
+
+**A kód szerint (U8):** futó versenyen nincs kuka (felhasználói döntés):
+előbb a Cél zárja le, így `discard` parancs nem kell. A DB-törlés 1 mp-es
+ráhagyással a snackbar után fut, és előtte újra megnézi, nem indult-e el
+közben a verseny. Háttérbe kerüléskor a függő törlések elmaradnak, a
+snackbar eltűnik; az értesítési sáv lehúzása nem számít háttérnek.
 
 ## 10. Szövegek (ARB)
 

@@ -732,6 +732,16 @@ A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.
   a tizedes fok.
 - **Hivatkozás**: ADR 0056; `docs/design/phone-ui-v1.md` §5.
 
+### Futó verseny elvetése
+- **Mi**: egy tévesen indított, futó verseny törlése a telefonon, az
+  engine-ből való elengedéssel (`discard` parancs), cél nélkül.
+- **Mikor**: ha a vízen előfordul, hogy egy versenyt cél nélkül kell
+  eldobni.
+- **Miért halasztva**: felhasználói döntés (2026-10-12): futó versenyen
+  nincs kuka, előbb a Cél zárja le, utána törölhető.
+- **Hivatkozás**: ADR 0056 D6 és „Pontosítás a kód után (U8)"; ADR 0054
+  D6.
+
 ---
 
 ## Done

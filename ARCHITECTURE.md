@@ -3635,6 +3635,14 @@ rajthely közös `CoordinateCard`-ja, 58 / 62 dp-s sávok. A `RaceForm` egy
 rajthelyet; a rajthely a bójakönyvtárba is kerül (ADR 0055 D3). A törzs
 nem lusta (`SingleChildScrollView`), hogy a `Form.validate()` minden
 kártyát lásson. A 35c lap versenyenként csoportosít (`groupSavedMarks`).
+**Kész (U8):** a Versenynapló fül a 35a / 35f szerint: a telefon saját
+évsávja (`RaceLogYearBand`, 48 dp-s évek, oldalra görgethető sor, a
+statok a sávban, számolás alatt hiányjel és mozgó sáv), sor-vázas
+betöltés, üres állapot; az év-alsólap törlődött. A törlés késleltetett és
+visszavonható: a `pendingRaceDeletionsProvider` halmazát a közös
+`raceListProvider` szűri ki, a DB-törlés az 5 mp-es VISSZAVONÁS-snackbar
+után 1 mp-es ráhagyással fut, újraellenőrzi, hogy a verseny nem indult-e
+el, háttérbe kerüléskor elmarad. Futó versenyen nincs kuka.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

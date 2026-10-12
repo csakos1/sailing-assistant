@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1–U7 kész (2026-10-11/12); a
-többi szelet a „Szeletek" sorrendjében követi, docs-first.
+Elfogadva — 2026-10-10. Implementálva: az U1–U8 kész (2026-10-11/12); az
+R1 (kiadás és on-device próba) követi.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -655,3 +655,76 @@ képernyők (U3, U4) replay-próbát is kapnak.
   helyi időt a `DateTime` 03:xx-re igazítja (a fejléc ezt mutatja, a
   léptető a beállítottat); a figyelmeztetés, mint az U6 „AUTOMATIKUS"
   cellája, nem nézi, hogy ma ez-e a nap versenye.
+
+## Pontosítás a kód után (U8, 2026-10-12)
+
+- **A felhasználó döntései** (a régi–új összevetés után):
+  - **futó versenyen nincs kuka**: a részlet AppBar-jából aktív versenyen
+    a törlés ikonja elmarad, előbb a Cél zárja le. Így a D6 „engine-ből
+    előbb el kell engedni" kérdése nem merül fel, `discard` parancs nem
+    készül (ADR 0054 D6 érintetlen). Ma egy futó verseny törlése elrontaná
+    az adatot: az engine a törölt versenyhez írna tovább (FK);
+  - a napló **sorai és hónap-fejlécei** a mai napló szerint maradnak;
+  - a fejléc a **35a évsáv**, és úgy működik, mint a weben (7c, ADR 0048
+    Addendum 7 N1): az évsor maga a választó, egy évre koppintva az áll
+    nagyban, 150 ms-os átmenettel, a kiválasztott év nem koppintható;
+  - ha az évek nem férnek ki, az évsor **oldalra görgethető**;
+  - nincs „Összes" választás, csak az évek;
+  - az AppBar a Versenyek füléé (64 dp, `tabTitleStyle`, alsó hairline,
+    vissza-nyíl nélkül);
+  - a függő törlések szűrője a közös `raceListProvider`-ben van, így a
+    verseny minden fülről (Versenyek, napló, Műszerek, sáv) egyszerre tűnik
+    el.
+- **A függő törlés** (`pendingRaceDeletionsProvider`): a megerősítés után
+  a részlet bezárul, a gyökér-messengeren a „Verseny törölve ·
+  VISSZAVONÁS" snackbar 5 mp-ig áll (a sorban álló snackbarok törlődnek,
+  hogy a visszavonás most látsszon). A DB-törlés **1 mp-es ráhagyással**
+  a snackbar után fut: a snackbar órája a belépő animáció után indul, így
+  egy utolsó pillanatban megnyomott VISSZAVONÁS sem ér törölt versenyt.
+  - **Véglegesítéskor újraellenőrzés:** ha az ablak alatt az engine
+    magától elindította a versenyt (ADR 0055 D6), a törlés elmarad, a
+    verseny visszajön. A dialógus után is ellenőrzünk (a dialógus alatt
+    is rajtolhatott).
+  - **Hiba esetén** (pl. DB-hiba) a verseny visszajön, a hiba naplóba
+    kerül; adat nem vész el.
+  - **A sikeresen törölt azonosító rejtve marad** a munkamenet végéig: a
+    Drift watch-lekérdezése aszinkron fut újra, és a halmazból kivéve a
+    sor egy pillanatra visszavillanna (review-lelet, teszttel).
+  - **Háttérbe kerüléskor** (`AppLifecycleListener.onHide`) a héj minden
+    függő törlést visszavon, és leveszi a snackbart. Az értesítési sáv
+    lehúzása (`inactive`) nem számít háttérnek.
+  - **Kiválasztás:** ha a törölt verseny volt kiválasztva, az in-memory
+    holder kiürül; a VISSZAVONÁS visszaadja, ha közben nem lett más
+    kiválasztva.
+  - **Az engine a függő törlést nem látja:** az engine-lifecycle és a nap
+    versenyének kiválasztása a repository szűretlen streamjét olvassa,
+    így az ablak alatt egy függő verseny még a nap versenye lehet. Ha a
+    tervezett rajtja épp az ablakba esik, az engine elindítja, a törlés
+    elmarad, és a verseny futóként jön vissza. Ritka, és a biztonságos
+    irányba hibázik.
+- **A dialógus** a 35d szövegével: „Törlöd a versenyt?", „A track, a bóják
+  és a statisztika véglegesen törlődik." (a „nem vonható vissza" elmaradt).
+- **Az évsáv** a telefon saját widgetje (`RaceLogYearBand`), nem a webes
+  `RaceLogYearSelector`: a telefonon minden év 48 dp magas tapintási
+  felületet kap (függőleges betét, az alapvonal-igazítás marad), és a
+  versenyszám, a három stat is a sávban áll. A web érintetlen. A stat-sor
+  keskeny kijelzőn vagy nagy betűméretnél kicsinyít, nem csordul túl.
+- **A statok** (vízen töltött idő, össztáv, rekord) a sávban; a mai
+  `RaceLogStatsStrip` a telefonon nem kell (a web használja tovább).
+  Amíg az össztáv és a rekord számolódik, az értékük „––,–" a valódi
+  mértékegységgel, és a sáv alsó vonala helyén mozgó sáv fut (35f).
+  **Évváltáskor** is ez látszik: az előző év értéke nem állhat az új év
+  alatt (D38; review-lelet, teszttel).
+- **Betöltés (35f):** a sáv a helyén „––––" évvel, „–– VERSENY"
+  darabszámmal és hiányjeles statokkal; a lista helyén „BETÖLTÉS" fejléc
+  szögletes forgó jellel és hét sor-váz („––" napszám, tompa sáv).
+- **Üres napló:** a 31b mintájára egy „0", „Még nincs befejezett verseny"
+  és egy magyarázó sor, a sáv nélkül.
+- **Törlődött:** a `RaceLogYearBar`, a `RaceLogYearSheet` alsó lap és a
+  `logYearSheetTitle` kulcs; a `logEmpty` helyett `logEmptyTitle` /
+  `logEmptyMessage`.
+- **A makett eltérései:** a 35d / 35e / 35f képen még a régi évsáv és az
+  58 dp-s fejrész látszik; a 35a és a spec az irányadó.
+- **Fájlok:** `providers/pending_race_deletions_provider.dart`;
+  `features/race_log/widgets/` alatt `race_log_year_band.dart`,
+  `race_log_empty.dart`, `race_log_loading_list.dart`.
