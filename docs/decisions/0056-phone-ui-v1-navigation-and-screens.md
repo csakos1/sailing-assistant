@@ -810,6 +810,13 @@ legénységi APK. A feature-ágról nem megy élesbe semmi.
 a színe továbbra sem változik (UF); a többi fül fejrésze változatlan.
 Üres naplóban (sáv nélkül) a fejrész ugyanígy `surfaceContainer`.
 
+**Rezgés fülváltáskor** (felhasználói döntés a próba után): a navigációs
+sáv egy cellájának koppintása, ha másik fülre vált, rövid
+`HapticFeedback.selectionClick()`-et kér; a kiválasztott fül újbóli
+koppintása nem rezeg. Csak a koppintás rezeg: a vissza-gomb és a
+rajt-jelzés fülváltása nem. Az Android „Érintési visszajelzés"
+beállítása kikapcsolhatja; engedély nem kell.
+
 **Megfigyelés (nem hiba, halasztva):** egy verseny közbeni újranyitás
 után a Versenyek és a napló első betöltése lassú; a részlet „Cél"-ja után
 a verseny kb. 10 mp múlva kerül át a naplóba (a mentés és az értesítés
@@ -818,4 +825,5 @@ azonnali, DB-hiba nincs). A valószínű ok, hogy a nehéz track-olvasások
 bója-lekérdezései egy sorban várnak. Mérés alapján, a merge után
 (`docs/deferred.md`, „Adatréteg").
 
-**Fájlok:** `features/race_log/race_log_screen.dart` és a tesztje.
+**Fájlok:** `features/race_log/race_log_screen.dart`,
+`features/shell/widgets/shell_navigation_bar.dart` és a tesztjeik.

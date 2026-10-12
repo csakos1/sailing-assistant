@@ -125,6 +125,10 @@ kivételével). Egy futó verseny induláskori visszatöltése is a Műszerekre
 vált, ha folytatható (ADR 0056 „Pontosítás a kód után (U3)"); egy már
 futó verseny kiválasztása nem rajt, nem vált (U2).
 
+**Rezgés (R1).** Egy cella koppintása, ha másik fülre vált, rövid
+`selectionClick` rezgést ad; a kiválasztott fül koppintása és a kívülről
+jövő fül-váltás nem rezeg.
+
 ## 3. Versenyek fül (31a, 31b)
 
 **Fejrész.** 64 dp, alul hairline; bal oldalon 20 dp-vel a „Versenyek"
