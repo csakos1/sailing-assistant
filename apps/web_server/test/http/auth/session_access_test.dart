@@ -65,6 +65,7 @@ void main() {
       for (final (method, path) in [
         ('GET', racesPath),
         ('PUT', raceResultPath('r1')),
+        ('DELETE', racePath('r1')),
         ('GET', exportPath),
       ]) {
         final response = await archive(method, path, session);
@@ -87,12 +88,14 @@ void main() {
       // ACT
       final read = await archive('GET', racesPath, session);
       final write = await archive('PUT', raceResultPath('r1'), session);
+      final delete = await archive('DELETE', racePath('r1'), session);
       final export = await archive('GET', exportPath, session);
 
       // ASSERT
       expect(read.statusCode, 200);
       expect(write.statusCode, 403);
       expect(await errorOf(write), const NotAllowed());
+      expect(delete.statusCode, 403);
       expect(export.statusCode, 403);
     });
   });
