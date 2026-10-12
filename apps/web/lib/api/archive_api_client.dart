@@ -81,11 +81,19 @@ class ArchiveApiClient {
 
   /// Egy kézi verseny törlése: `DELETE /api/manual-races/{id}`. A siker
   /// `204`, üres törzzsel, ezért itt nincs mit dekódolni.
-  Future<Result<void, ApiFailure>> deleteManualRace(String raceId) async {
+  Future<Result<void, ApiFailure>> deleteManualRace(String raceId) =>
+      _delete(manualRacePath(raceId));
+
+  /// Egy telemetriás verseny végleges törlése: `DELETE /api/races/{id}`
+  /// (ADR 0057). A siker `204`, üres törzzsel.
+  Future<Result<void, ApiFailure>> deleteTelemetryRace(String raceId) =>
+      _delete(racePath(raceId));
+
+  Future<Result<void, ApiFailure>> _delete(String path) async {
     final http.Response response;
     try {
       response = await _client.delete(
-        _baseUri.resolve(manualRacePath(raceId)),
+        _baseUri.resolve(path),
         headers: _clientHeader,
       );
     } on http.ClientException catch (error) {

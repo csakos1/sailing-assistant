@@ -24,6 +24,8 @@ import '../support/signed_in_session.dart';
 void main() {
   late RaceDetail detail;
   late List<http.Request> writes;
+  late bool isDeleted;
+  late int deleteStatus;
 
   RaceDetail telemetryDetail({RaceResultInput? result}) {
     final start = DateTime(2026, 7, 26, 11);
@@ -64,6 +66,12 @@ void main() {
       );
 
   Future<http.Response> answer(http.Request request) {
+    if (request.method == 'DELETE') {
+      writes.add(request);
+      if (deleteStatus != 204) return json('hiba', status: deleteStatus);
+      isDeleted = true;
+      return Future.value(http.Response('', 204));
+    }
     if (request.method == 'PUT') {
       writes.add(request);
       final input = switch (decodeRaceResultInput(jsonDecode(request.body))) {
@@ -82,7 +90,7 @@ void main() {
       );
     }
     return request.url.path == racesPath
-        ? json(encodeRaceSummaries([detail.summary]))
+        ? json(encodeRaceSummaries([if (!isDeleted) detail.summary]))
         : json(encodeRaceDetail(detail));
   }
 
@@ -122,6 +130,8 @@ void main() {
   setUp(() {
     detail = telemetryDetail();
     writes = [];
+    isDeleted = false;
+    deleteStatus = 204;
   });
 
   testWidgets('saves a placing and returns to the detail with a snack bar', (
@@ -205,5 +215,61 @@ void main() {
     // ASSERT
     expect(find.text('Elveted a változtatásokat?'), findsNothing);
     expect(find.text('Eredmény szerkesztése'), findsNothing);
+  });
+
+  testWidgets('deletes the race after confirming, back to the log', (
+    tester,
+  ) async {
+    // ARRANGE
+    await openEditor(tester);
+
+    // ACT
+    await tester.tap(find.byTooltip('Verseny törlése'));
+    await tester.pumpAndSettle();
+    expect(find.text('Törlöd a versenyt?'), findsOneWidget);
+    expect(find.textContaining('visszakerül'), findsOneWidget);
+    await tester.tap(find.text('Törlés'));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(writes.single.method, 'DELETE');
+    expect(writes.single.url.path, racePath('horvath'));
+    expect(find.text('Eredmény szerkesztése'), findsNothing);
+    expect(find.byType(RaceLogRow), findsNothing);
+    expect(find.text('Verseny törölve'), findsOneWidget);
+  });
+
+  testWidgets('keeps the race when the delete is cancelled', (tester) async {
+    // ARRANGE
+    await openEditor(tester);
+
+    // ACT
+    await tester.tap(find.byTooltip('Verseny törlése'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mégse'));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(writes, isEmpty);
+    expect(find.text('Eredmény szerkesztése'), findsOneWidget);
+  });
+
+  testWidgets('stays in the editor with an error when the delete fails', (
+    tester,
+  ) async {
+    // ARRANGE
+    deleteStatus = 500;
+    await openEditor(tester);
+
+    // ACT
+    await tester.tap(find.byTooltip('Verseny törlése'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Törlés'));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(writes.single.method, 'DELETE');
+    expect(find.text('Eredmény szerkesztése'), findsOneWidget);
+    expect(find.text('A törlés nem sikerült. Próbáld újra.'), findsOneWidget);
   });
 }

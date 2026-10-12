@@ -55,8 +55,15 @@ class RaceRecordEditor {
   /// siker: a felhasználó célja, hogy ne legyen ott (K15). Csak a napló
   /// frissül: a törölt verseny részletezője épp bezárul, és egy újratöltés
   /// csak egy fölösleges 404-et hozna.
-  Future<Result<void, ApiFailure>> deleteManualRace(String raceId) async {
-    final result = await _client.deleteManualRace(raceId);
+  Future<Result<void, ApiFailure>> deleteManualRace(String raceId) async =>
+      _settleDeletion(await _client.deleteManualRace(raceId));
+
+  /// Egy telemetriás verseny végleges törlése (ADR 0057); a `RaceNotFound`
+  /// és az érvénytelenítés ugyanaz, mint a kézi versenynél.
+  Future<Result<void, ApiFailure>> deleteTelemetryRace(String raceId) async =>
+      _settleDeletion(await _client.deleteTelemetryRace(raceId));
+
+  Result<void, ApiFailure> _settleDeletion(Result<void, ApiFailure> result) {
     final isGone = switch (result) {
       Ok() => true,
       Err(error: ServerFailure(error: RaceNotFound())) => true,

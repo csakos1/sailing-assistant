@@ -391,6 +391,10 @@ class WebLocalizationsHu extends WebLocalizations {
       'A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.';
 
   @override
+  String get editDeleteTelemetryMessage =>
+      'A verseny telemetriája, trackje, eredménye és statisztikája véglegesen törlődik a webes archívumból. A telefonon megmarad: ha onnan újra feltöltöd, visszakerül.';
+
+  @override
   String get editDeleteCancel => 'Mégse';
 
   @override

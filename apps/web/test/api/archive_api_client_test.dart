@@ -222,6 +222,24 @@ void main() {
       expect(sent?.headers[clientHeaderName], clientHeaderWebValue);
     });
 
+    test('deletes a telemetry race at the race path', () async {
+      // ARRANGE
+      http.Request? sent;
+      final client = clientAnswering((request) async {
+        sent = request;
+        return http.Response('', 204);
+      });
+
+      // ACT
+      final result = await client.deleteTelemetryRace('r1');
+
+      // ASSERT
+      expect(result, isA<Ok<void, ApiFailure>>());
+      expect(sent?.method, 'DELETE');
+      expect(sent?.url.path, racePath('r1'));
+      expect(sent?.headers[clientHeaderName], clientHeaderWebValue);
+    });
+
     test('maps a validation error of a write to a server failure', () async {
       final client = clientAnswering(
         (request) async => jsonResponse(
