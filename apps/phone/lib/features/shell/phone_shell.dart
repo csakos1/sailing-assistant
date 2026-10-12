@@ -9,6 +9,7 @@ import 'package:phone/features/shell/instruments_tab_status_provider.dart';
 import 'package:phone/features/shell/shell_tab.dart';
 import 'package:phone/features/shell/shell_tab_provider.dart';
 import 'package:phone/features/shell/widgets/shell_navigation_bar.dart';
+import 'package:phone/providers/pending_race_deletions_provider.dart';
 import 'package:phone/providers/race_start_signal_provider.dart';
 
 /// Az app háromfüles héja (ADR 0056 D2, `phone-ui-v1.md` §2).
@@ -25,7 +26,7 @@ import 'package:phone/providers/race_start_signal_provider.dart';
 /// induláskori visszatöltése): a héj a Műszerekre vált, és ha az app
 /// előtérben van, a push-olt képernyőket bezárja, kivéve amelyik nem
 /// engedi (`PopScope`). A vissza-gomb a Versenyekre lép, onnan
-/// kilép.
+/// kilép. Háttérbe kerüléskor a függő (visszavonható) törlések elmaradnak.
 class PhoneShell extends ConsumerStatefulWidget {
   /// Héj a három fül tartalmával; a tesztek egyszerű helyettesítőket
   /// adhatnak.
@@ -68,7 +69,21 @@ class _PhoneShellState extends ConsumerState<PhoneShell> {
         ..invalidate(instrumentsRaceChoiceProvider)
         ..invalidate(dayRaceProvider)
         ..invalidate(raceListEntriesProvider),
+      onHide: _cancelPendingDeletions,
     );
+  }
+
+  // Háttérbe kerüléskor a függő törlések elmaradnak (ADR 0056 D6): a
+  // biztonságos irány, a verseny visszajön. A VISSZAVONÁS-snackbar ilyenkor
+  // már nem ígérhet semmit, ezért eltűnik. Az értesítési sáv (`inactive`)
+  // nem számít háttérnek.
+  void _cancelPendingDeletions() {
+    final hadPending = ref
+        .read(pendingRaceDeletionsProvider.notifier)
+        .cancelAll();
+    if (hadPending && mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
   }
 
   @override

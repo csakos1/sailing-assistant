@@ -12,6 +12,7 @@ import 'package:phone/features/shell/shell_tab.dart';
 import 'package:phone/features/shell/shell_tab_provider.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/pending_race_deletions_provider.dart';
 import 'package:phone/providers/race_start_signal_provider.dart';
 
 void main() {
@@ -244,5 +245,58 @@ void main() {
     // ASSERT — a ful valtott, a kepernyo a helyen maradt.
     expect(find.text('codes'), findsOneWidget);
     expect(container.read(shellTabProvider), ShellTab.instruments);
+  });
+
+  testWidgets('going to the background cancels pending deletions', (
+    tester,
+  ) async {
+    // ARRANGE - egy fuggo torles a VISSZAVONAS-snackbarral.
+    await pumpShell(tester);
+    container.read(pendingRaceDeletionsProvider.notifier).schedule('r1');
+    ScaffoldMessenger.of(
+      tester.element(find.text('races')),
+    ).showSnackBar(const SnackBar(content: Text('deleted')));
+    await tester.pumpAndSettle();
+    expect(find.text('deleted'), findsOneWidget);
+    addTearDown(
+      () => tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      ),
+    );
+
+    // ACT
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+
+    // ASSERT - a torles elmarad.
+    expect(container.read(pendingRaceDeletionsProvider), isEmpty);
+
+    // ACT - visszateres: `hidden` alatt nincs kepkocka, a snackbar
+    // eltunese csak ezutan animal le.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pumpAndSettle();
+
+    // ASSERT - a snackbar mar nem igerhet semmit.
+    expect(find.text('deleted'), findsNothing);
+  });
+
+  testWidgets('a pulled-down shade keeps pending deletions', (tester) async {
+    // ARRANGE
+    await pumpShell(tester);
+    container.read(pendingRaceDeletionsProvider.notifier).schedule('r1');
+    addTearDown(
+      () => tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      ),
+    );
+
+    // ACT - az ertesitesi sav csak `inactive`.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+
+    // ASSERT
+    expect(container.read(pendingRaceDeletionsProvider), {'r1'});
+    container.read(pendingRaceDeletionsProvider.notifier).cancelAll();
   });
 }

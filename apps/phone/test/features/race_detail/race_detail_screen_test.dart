@@ -15,6 +15,7 @@ import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/local_wall_clock_provider.dart';
+import 'package:phone/providers/pending_race_deletions_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/providers/rounding_sample_reader_provider.dart';
 import 'package:phone/providers/tick_provider.dart';
@@ -411,7 +412,7 @@ void main() {
     expect(find.text('Régi'), findsNothing);
   });
 
-  testWidgets('a törlés megerősítés után töröl és visszanavigál', (
+  testWidgets('a törlés elrejt, és csak az ablak végén töröl', (
     tester,
   ) async {
     // ARRANGE — detail egy home-route fölött, hogy a pop tiszta legyen.
@@ -462,11 +463,109 @@ void main() {
         matching: find.text(l10n.detailDeleteConfirm),
       ),
     );
+    await tester.pump();
+    // A route-atmenet (Androidon 450 ms) biztosan lefut.
+    await tester.pump(const Duration(seconds: 1));
+
+    // ASSERT - visszanavigal, a VISSZAVONAS-snackbar latszik, de a DB-ben
+    // meg nincs torles (ADR 0056 D6).
+    expect(find.byType(RaceDetailScreen), findsNothing);
+    expect(find.text(l10n.detailDeletedMessage), findsOneWidget);
+    expect(container.read(pendingRaceDeletionsProvider), {'r1'});
+    expect(repository.deleted, isEmpty);
+
+    // ACT - lejar a visszavonasi ablak.
+    await tester.pump(raceDeletionUndoWindow + const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
     // ASSERT
     expect(repository.deleted, ['r1']);
-    expect(find.byType(RaceDetailScreen), findsNothing);
+  });
+
+  testWidgets('a VISSZAVONAS megtartja a versenyt', (tester) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    container.read(activeRaceProvider.notifier).activeRace = race;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
+          localizationsDelegates: phoneLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => RaceDetailScreen(race: race),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteConfirm),
+      ),
+    );
+    await tester.pump();
+    // A route-atmenet (Androidon 450 ms) biztosan lefut.
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(container.read(activeRaceProvider), isNull);
+
+    // ACT
+    await tester.tap(find.text(l10n.detailDeleteUndo.toUpperCase()));
+    await tester.pump(raceDeletionUndoWindow + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a kivalasztas is visszajon.
+    expect(container.read(pendingRaceDeletionsProvider), isEmpty);
+    expect(repository.deleted, isEmpty);
+    expect(container.read(activeRaceProvider)?.id, 'r1');
+  });
+
+  testWidgets('futo versenyen nincs torles', (tester) async {
+    // ARRANGE & ACT
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark],
+    ).start(at: clock);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+
+    // ASSERT - elobb a Cel zarja le (ADR 0056 Pontositas U8).
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+  });
+
+  testWidgets('a torles-dialogus a 35d szoveget mutatja', (tester) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(find.text('Törlöd a versenyt?'), findsOneWidget);
+    expect(find.text(l10n.detailDeleteMessage), findsOneWidget);
+    expect(l10n.detailDeleteMessage, isNot(contains('vissza')));
   });
 
   testWidgets('a torles Megse-re semmit nem torol, a reszlet marad', (

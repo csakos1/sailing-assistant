@@ -358,11 +358,11 @@
   "@detailDelete": {
     "description": "Tooltip: a verseny törlése (AppBar ikon)."
   },
-  "detailDeleteTitle": "Verseny törlése",
+  "detailDeleteTitle": "Törlöd a versenyt?",
   "@detailDeleteTitle": {
     "description": "A törlés-megerősítő dialógus címe."
   },
-  "detailDeleteMessage": "Biztosan törlöd ezt a versenyt?",
+  "detailDeleteMessage": "A track, a bóják és a statisztika véglegesen törlődik.",
   "@detailDeleteMessage": {
     "description": "A törlés-megerősítő dialógus szövege."
   },
@@ -373,6 +373,14 @@
   "detailDeleteConfirm": "Törlés",
   "@detailDeleteConfirm": {
     "description": "A törlés-dialógus megerősítő gombja."
+  },
+  "detailDeletedMessage": "Verseny törölve",
+  "@detailDeletedMessage": {
+    "description": "A törlés utáni snackbar szövege (makett 35e)."
+  },
+  "detailDeleteUndo": "Visszavonás",
+  "@detailDeleteUndo": {
+    "description": "A törlés-snackbar akciója; a snackbar verzálosítja (makett 35e)."
   },
   "listTitle": "Versenyek",
   "@listTitle": {

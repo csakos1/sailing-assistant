@@ -589,13 +589,13 @@ abstract class AppLocalizations {
   /// A törlés-megerősítő dialógus címe.
   ///
   /// In hu, this message translates to:
-  /// **'Verseny törlése'**
+  /// **'Törlöd a versenyt?'**
   String get detailDeleteTitle;
 
   /// A törlés-megerősítő dialógus szövege.
   ///
   /// In hu, this message translates to:
-  /// **'Biztosan törlöd ezt a versenyt?'**
+  /// **'A track, a bóják és a statisztika véglegesen törlődik.'**
   String get detailDeleteMessage;
 
   /// A törlés-dialógus megszakító gombja.
@@ -609,6 +609,18 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Törlés'**
   String get detailDeleteConfirm;
+
+  /// A törlés utáni snackbar szövege (makett 35e).
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny törölve'**
+  String get detailDeletedMessage;
+
+  /// A törlés-snackbar akciója; a snackbar verzálosítja (makett 35e).
+  ///
+  /// In hu, this message translates to:
+  /// **'Visszavonás'**
+  String get detailDeleteUndo;
 
   /// A Versenyek fül címsora (makett 31a).
   ///

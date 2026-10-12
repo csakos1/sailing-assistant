@@ -275,16 +275,23 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailDelete => 'Törlés';
 
   @override
-  String get detailDeleteTitle => 'Verseny törlése';
+  String get detailDeleteTitle => 'Törlöd a versenyt?';
 
   @override
-  String get detailDeleteMessage => 'Biztosan törlöd ezt a versenyt?';
+  String get detailDeleteMessage =>
+      'A track, a bóják és a statisztika véglegesen törlődik.';
 
   @override
   String get detailDeleteCancel => 'Mégse';
 
   @override
   String get detailDeleteConfirm => 'Törlés';
+
+  @override
+  String get detailDeletedMessage => 'Verseny törölve';
+
+  @override
+  String get detailDeleteUndo => 'Visszavonás';
 
   @override
   String get listTitle => 'Versenyek';

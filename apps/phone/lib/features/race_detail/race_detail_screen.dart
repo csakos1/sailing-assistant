@@ -17,8 +17,8 @@ import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/local_wall_clock_provider.dart';
+import 'package:phone/providers/pending_race_deletions_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
-import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/section_label.dart';
 
 /// Egy verseny részletei: státusz-csík, pálya-lista, és státuszfüggő akciók
@@ -198,16 +198,49 @@ class RaceDetailScreen extends ConsumerWidget {
         ),
       ],
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
+    // A dialógus alatt az engine magától rajtolhatott (ADR 0055 D6): futó
+    // versenyt nem törlünk.
+    if (_readCurrent(ref).status == RaceStatus.active) return;
 
-    await ref.read(raceRepositoryProvider).delete(race.id);
-    // Ha a törölt verseny volt az aktív, ürítjük az in-memory holdert.
-    if (ref.read(activeRaceProvider)?.id == race.id) {
-      ref.read(activeRaceProvider.notifier).activeRace = null;
+    // A DB-törlés csak a visszavonási ablak után fut (ADR 0056 D6); a
+    // verseny addig is eltűnik a listákból.
+    final deletions = ref.read(pendingRaceDeletionsProvider.notifier)
+      ..schedule(target.id);
+    // Ha a törölt verseny volt a kiválasztott, ürítjük az in-memory
+    // holdert; a visszavonás visszaadja, ha közben nem lett más
+    // kiválasztva. Futó verseny ide nem jut (nincs kuka), tehát az
+    // engine-t ez nem érinti.
+    final selection = ref.read(activeRaceProvider.notifier);
+    final wasSelected = selection.activeRace?.id == target.id;
+    if (wasSelected) selection.activeRace = null;
+
+    void undo() {
+      // Egy késői koppintás a már törölt versenyt nem választhatja ki.
+      final isRestored = deletions.undo(target.id);
+      if (isRestored && wasSelected && selection.activeRace == null) {
+        selection.activeRace = target;
+      }
     }
 
-    if (!context.mounted) return;
+    // A snackbar a gyökér messengeren jelenik meg, így a pop után a héj
+    // fölött látszik.
+    final snackBar = foretackSnackBar(
+      context,
+      message: l10n.detailDeletedMessage,
+      duration: raceDeletionUndoWindow,
+      action: ForetackSnackBarAction(
+        label: l10n.detailDeleteUndo,
+        onPressed: undo,
+      ),
+    );
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
+    // A sorban álló snackbarok is mennek: a VISSZAVONÁS-nak most kell
+    // látszania, nem a visszavonási ablak után.
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(snackBar);
   }
 
   Widget? _actionBar(
@@ -267,11 +300,14 @@ class RaceDetailScreen extends ConsumerWidget {
               icon: const Icon(Icons.edit_outlined),
               tooltip: l10n.detailEdit,
             ),
-          IconButton(
-            onPressed: () => _delete(context, ref, current),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: l10n.detailDelete,
-          ),
+          // Futó versenyen nincs törlés: az engine ír hozzá, előbb a Cél
+          // zárja le (ADR 0056 „Pontosítás (U8)").
+          if (current.status != RaceStatus.active)
+            IconButton(
+              onPressed: () => _delete(context, ref, current),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.detailDelete,
+            ),
         ],
       ),
       body: SafeArea(
