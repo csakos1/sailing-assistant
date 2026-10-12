@@ -305,6 +305,12 @@ szerkesztés megtartja a rajtidőt és a rajthelyet. A bója-sín sorszáma
 navigációs sáv (§2). A hónap- és napnevek ARB-listából jönnek (§10
 eltérés, ADR 0056 U7).
 
+**A kód szerint (UF):** a „Verseny neve" saját körvonalas mező lebegő
+címkével (54 dp, kártya nélkül), nem helyőrzős kártya-mező. A kártyán
+belüli mezők fókusz-kerete pontosan a cellát fogja körbe, minden oldalon
+1,5 dp, és a helyőrző fókuszkor nem mozdul; egyetlen bójánál a név-mező
+a kártya széléig ér (ADR 0056 UF).
+
 ## 6. Műszerek fül (34a, 34b, 34c)
 
 **Közös váz** (az 1c, ADR 0042):
@@ -438,6 +444,10 @@ A mai `race_log_year_sheet` alsó lapja a 7c-vel feleslegessé válik (az
 mértékegységgel és mozgó sáv az alsó vonal helyén. Az alsó lap és a régi
 évsor törlődött. Üres naplóban a 31b-hez hasonló üres állapot áll, sáv
 nélkül.
+
+**A kód szerint (UF):** az AppBar görgetéskor sem színeződik át (csak a
+naplón); az évsor 12 dp felső betéttel áll, hogy a sáv tartalma
+függőlegesen középen legyen (ADR 0056 UF).
 
 ## 8. Korábbi bóják sheet (35c)
 

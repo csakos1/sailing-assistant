@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1–U8 kész (2026-10-11/12); az
-R1 (kiadás és on-device próba) követi.
+Elfogadva — 2026-10-10. Implementálva: az U1–U8 és az UF-javítások kész
+(2026-10-11/12); az R1 (kiadás és on-device próba) követi.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -192,6 +192,7 @@ PR a végén):
 | U6 | 0056 | `feat(phone)` | Versenyrészlet (32a–c) |
 | U7 | 0056 | `feat(phone)` | Új verseny / szerkesztés (33a–c) és a korábbi bóják sheet (35c) |
 | U8 | 0056 | `feat(phone)` | Versenynapló (35a, 35f) és a késleltetett törlés (35d, 35e) |
+| UF | 0056 | `fix(phone)` | a készülékes átnézés vizuális hibái (űrlap-mezők, napló-fejrész) |
 | R1 | 0055 D4, 0053 | `chore` | a szerver v6-os kiadása, majd replay és on-device próba, PR a `main`-be, legénységi APK `0.3.0` |
 
 Minden U-szelet előtt a D8 összevetése. Az U-szeletek a `foretack_ui`
@@ -728,3 +729,52 @@ képernyők (U3, U4) replay-próbát is kapnak.
 - **Fájlok:** `providers/pending_race_deletions_provider.dart`;
   `features/race_log/widgets/` alatt `race_log_year_band.dart`,
   `race_log_empty.dart`, `race_log_loading_list.dart`.
+
+## Pontosítás a kód után (UF, 2026-10-12)
+
+A készülékes átnézés vizuális hibái. Minden pontnál a gyökérok is áll,
+hogy a javítás ne egy tünetet takarjon el.
+
+- **Új verseny — fókusz-keret (bója neve, koordináták, rajthely):**
+  - *Alacsonyabb a mezőnél, a helyőrző fent ül:* a mező magasságát egy
+    `constraints: minHeight` adta; az csak a dobozt nyújtja, az
+    `InputDecorator` a keretet a tartalom magasságán rajzolja. Most a
+    magasság a `contentPadding`-ből jön, rögzített sormagassággal (1,25),
+    a rendszer-betűmérettel skálázva (`cardFieldVerticalPadding`): a keret
+    pontosan a cellára esik, a szöveg középen áll. Nagy betűméretnél a
+    betét elfogy, és a mező nő, nem vágódik.
+  - *A helyőrző fókuszkor jobbra ugrik:* nyugalomban `InputBorder.none`,
+    fókuszban `OutlineInputBorder` volt; a Flutter az outline keretnél
+    4 dp-vel (`gapPadding`) beljebb kezdi a szöveget, és máshogy igazítja
+    függőlegesen. Az új `CardCellBorder` minden állapotban ugyanaz a
+    típus (nyugalomban nulla vastag), így a szöveg helye állandó.
+  - *Nem egyforma vastag oldalak:* a `FormCard` kerete a Material
+    `shape`-jében volt, és a tartalom **fölé** festett, letakarva egy
+    szélen álló mező fókusz-keretének a felét. A keret most a tartalom
+    alatt van (`DecoratedBox`), a fókusz-keret befelé rajzol, így minden
+    oldala 1,5 dp. A bója-sín 1 dp-vel beljebb kezdődik, hogy a kártya
+    keretét ne takarja.
+  - *A bója neve keretje rövidebb egyetlen bójánál:* a rejtett „×" helye
+    üresen fennmaradt. Gomb nélkül a név-mező most a kártya széléig ér;
+    ez csak egyetlen bójánál fordul elő, így kártyák közt nincs eltérő
+    szélesség (a U7 „ne ugráljon" indoka nem sérül).
+- **A verseny neve** (felhasználói döntés): ismét saját körvonalas mező
+  **lebegő címkével**, mint az U7 előtt — gépeléskor a „Verseny neve" a
+  keret vonalába csúszik. Az U7 ezt helyőrzőre cserélte egy kártyán
+  belül; a mező most kártya nélkül, 54 dp magas, a szöveg középen, a
+  keret minden állapotban a téma outline kerete (nincs ugrás). A bóják
+  mezői helyőrzősek maradnak.
+- **Versenynapló — fejrész görgetéskor** (felhasználói döntés: csak a
+  naplón): az M3 AppBar alátekert tartalomnál `surfaceContainer`-re vált.
+  A napló AppBar-ja `surface` hátteret és 0 `scrolledUnderElevation`-t
+  kap, így a színe állandó. A többi fül AppBar-ja nem változik.
+- **Versenynapló — az évsáv teteje:** az évsornak nem volt felső betéte,
+  a nagy évszám csak a saját 5 dp-jével állt a sáv tetejétől, míg a
+  stat-sor alatt 20 dp volt. Az évsor 12 dp felső betétet kap
+  (`RaceLogYearBand.topInset`); a Martian Mono számjegyei a dobozuk
+  tetejénél pár dp-vel lejjebb kezdődnek, így a szám teteje kb. 20 dp-re
+  esik — a tartalom függőlegesen középen áll.
+- **Fájlok:** `features/race_setup/widgets/card_cell_border.dart` (új),
+  `card_field_decoration.dart`, `form_card.dart`, `coordinate_card.dart`,
+  `race_form.dart`; `features/race_log/race_log_screen.dart`,
+  `widgets/race_log_year_band.dart`.

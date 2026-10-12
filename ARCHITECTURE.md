@@ -3643,6 +3643,11 @@ visszavonható: a `pendingRaceDeletionsProvider` halmazát a közös
 `raceListProvider` szűri ki, a DB-törlés az 5 mp-es VISSZAVONÁS-snackbar
 után 1 mp-es ráhagyással fut, újraellenőrzi, hogy a verseny nem indult-e
 el, háttérbe kerüléskor elmarad. Futó versenyen nincs kuka.
+**Kész (UF):** a készülékes átnézés javításai: a kártya-mezők közös
+`CardCellBorder`-e (egy keret-típus minden állapotban, pontos
+cellamagasság, befelé rajzolt fókusz-keret a tartalom alatti kártya-keret
+fölött), a „Verseny neve" lebegő címkés mezője, a napló állandó színű
+AppBar-ja és középre igazított évsávja.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
