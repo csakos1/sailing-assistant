@@ -3,9 +3,8 @@
 ## Státusz
 
 Elfogadva — 2026-10-10. Implementálva: az E1–E4 kész (2026-10-10). Az
-E4 on-device próbája a felhasználónál fut
-(`docs/testing/engine-session-on-device.md`); az eredménye legkésőbb az
-R1 előtt kerül ide.
+E4 on-device próbája az R1 előtt lefutott, minden pont rendben
+(2026-10-12; lásd „On-device eredmény (R1)").
 
 A döntések egy része felhasználói döntés (a 2026-10-09-i kérdéskörök), más
 része Claude javaslata. A javaslatok „(javaslat)" jelzést kapnak, és a
@@ -494,3 +493,25 @@ Az E1–E3 a navigációs sáv (ADR 0056) előtt is tesztelhető: a mai
   akkumulátor-mérés). A telefon `adb reverse`-szel és
   `FORETACK_GATEWAY_HOST=127.0.0.1`-gyel ér a replayhez, így IP-cím
   sehova nem kerül.
+
+## On-device eredmény (R1, 2026-10-12)
+
+A `docs/testing/engine-session-on-device.md` A–I pontja a felhasználó
+Pixelén (Android 17), a feature-ág release buildjével, home-log és mozgó
+log replay-jel: **mind rendben**. Ami unit-tesztből nem látszott, és most
+igazolódott:
+
+- a 10 perces leállás kikapcsolt kijelzővel (E) időben lefut, a
+  service-izolátum időzítője zárolt telefonon is jár;
+- az átvétel egy lesöpört app hidegindítása után (F) a futó engine-t
+  veszi át, újraindítás nélkül (a `createTime` tovább öregszik);
+- a folytatás egy verseny közbeni `am force-stop` után (G) a versennyel
+  indul;
+- a kézi „Leállítás" (H) után a service nem indul újra magától.
+
+**Akkumulátor (D8):** az I pont (1 óra szabad mód, kikapcsolt kijelző)
+lefutott, a felhasználó szerint rendben; a pontos mAh-szám nincs
+rögzítve. A D8 vízi mérése marad: ha a GPS-idő szabad módban
+számottevő, egy addendum ritkíthatja.
+
+**Az óra:** szabad módban (zárolt telefonnal is) és versenyen kap adatot.

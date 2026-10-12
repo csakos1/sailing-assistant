@@ -6,8 +6,9 @@ a tervezett rajté (J) a `race_engine_scheduled_start_replay_test.dart`.
 Ez a lista azt nézi, amit egy unit-teszt nem lát: a kikapcsolt kijelzőt, a
 lesöpört appot, a folyamat-halált és az értesítést.
 
-A próba egy otthoni `nmea_replay`-jel fut, hajó nélkül. Az R1 előtt ezt a
-listát még egyszer végig kell futtatni.
+A próba egy otthoni `nmea_replay`-jel fut, hajó nélkül. Nagyobb engine-
+vagy UI-változás után a listát újra végig kell futtatni; legutóbb az R1
+előtt futott (2026-10-12, lásd § Eredmények).
 
 ## Előkészítés
 
@@ -55,19 +56,23 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
 1. Replay fut (1.), nyisd meg az appot.
 2. Várt: néhány mp-en belül értesítés **„Foretack — műszerek”**; a
    `dumpsys` mutat egy `ServiceRecord`-ot.
-3. Óra: műszer-adatok, a bója-mezők `— · —`. A telefonon a szabad mód
-   csak a Műszerek füllel (U3) lesz látható; addig az óra és az
-   értesítés a jel.
+3. A Műszerek fül szabad módban élő adatot mutat (34a). Óra:
+   műszer-adatok, a bója-mezők `— · —`.
 
 **B. Rajt előtt**
-1. Új verseny „E4 egy bója”, egyetlen bója: **M1** = `47.5850, 18.8550`.
-2. Részlet → „Élő nézet”.
-3. Várt: a verseny az engine-ben, bója-irány és táv az M1-re; az
+1. Új verseny „E4 egy bója”, rajtidő ma, kb. 2 óra múlva (33c lap,
+   „Kész"), egyetlen bója: **M1** = `47.5850, 18.8550`. A rajtidő kell:
+   a Műszerek magától csak mai, rajtidős versenyt vesz rajt előtti
+   állapotba (ADR 0055 D5); rajtidő nélküli versenyt nem.
+2. Nyisd meg a Műszerek fület.
+3. Várt: rajt előtti nézet (34b), a cél az M1, irány és táv; az
    értesítés marad „műszerek” (rajt előtt nincs rögzítés).
 
 **C. Rajt**
-1. Vissza a részletre → „Indítás”.
-2. Várt: az értesítés **„Foretack — verseny”**; a státusz „Folyamatban”.
+1. Műszerek → „Rajt most" → megerősítés (vagy a részlet „Rajt most"
+   gombja).
+2. Várt: az értesítés **„Foretack — verseny”**; a státusz „Folyamatban”,
+   a rajtidő ez a pillanat.
 
 **D. Automatikus cél az utolsó bóján**
 1. Állítsd le a futó replayt (Ctrl+C), és indítsd a mozgó logot,
@@ -103,7 +108,8 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
 5. Várt: 5 mp-en belül élő adat. A `createTime` **tovább öregedett**
    (nem nullázódott), és az értesítés nem villant: az app átvette a
    futó engine-t, nem indította újra.
-6. Ugyanez versenyen (C után): az újranyitás után is „Folyamatban”, a
+6. Ugyanez versenyen (C után, vagy egy rajtidő nélküli verseny a
+   részlet „Rajt" gombjával): az újranyitás után is „Folyamatban”, a
    rajtidő változatlan.
 
 **G. Folytatás app-újraindítás után, verseny közben**
@@ -117,11 +123,13 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
      fedi, ezt nem kell kivárni.
 
 **H. Kézi „Leállítás”**
-1. Élő nézet → „Leállítás” → megerősítés.
-2. Várt: a service leáll (`dumpsys` üres), az értesítés eltűnik.
+1. Műszerek → a csík ⋮ menüje → „Leállítás” → megerősítés.
+2. Várt: a service leáll (`dumpsys` üres), az értesítés eltűnik, a
+   csíkon „Leállítva”.
 3. Húzd le az értesítési sávot, majd vissza: **nem** indul újra.
 4. Home gomb, majd vissza az appba: a próba újra elindítja (a
-   következő előtérbe kerüléskor).
+   következő előtérbe kerüléskor). Egy 6 órán belül rögzítő aktív verseny
+   ilyenkor folytatódik (ADR 0054 E3); a részlet „Cél" gombja zárja le.
 
 **J. Tervezett rajt rajthellyel (ADR 0055 T5, az U7 óta beállítható)**
 1. Replay fut (1., home-log `--loop`-pal). Új verseny „E4 tervezett":
@@ -161,18 +169,28 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
 
 ## Eredmények
 
+**R1, 2026-10-12:** Pixel, Android 17, a `feature/phone-ui-refresh`
+release buildje (`3901ae3`), home-log és mozgó log replay. Ugyanebben a
+körben az ADR 0056 U4–UF telefonos pontjai és az óra (szabad mód,
+zárolt telefon, verseny) is rendben voltak.
+
 | Pont | Dátum | Rendben? | Megjegyzés |
 |---|---|---|---|
-| A | | | |
-| B | | | |
-| C | | | |
-| D | | | |
-| E | | | |
-| F | | | |
-| G | | | |
-| H | | | |
-| I | | | |
-| J | | | |
+| A | 2026-10-12 | igen | |
+| B | 2026-10-12 | igen | rajtidős versennyel (a fenti B szerint) |
+| C | 2026-10-12 | igen | a Műszerek „Rajt most"-jával |
+| D | 2026-10-12 | igen | |
+| E | 2026-10-12 | igen | |
+| F | 2026-10-12 | igen | |
+| G | 2026-10-12 | igen | |
+| H | 2026-10-12 | igen | |
+| I | 2026-10-12 | igen | lefutott; a pontos szám nincs rögzítve (ADR 0054 D8) |
+| J | 2026-10-12 | igen | |
+
+**Megfigyelés (nem hiba):** egy verseny közbeni app-újranyitás után a
+Versenyek és a napló első betöltése lassú (utána gyors), és a részlet
+„Cél"-ja után a verseny kb. 10 mp múlva kerül át a naplóba (a mentés és
+az értesítés azonnali). A `docs/deferred.md` „Adatréteg" részében.
 
 ## Takarítás
 

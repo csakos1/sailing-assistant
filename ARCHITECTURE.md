@@ -3587,7 +3587,9 @@ kód-szelete, hogy a branch addig zöld maradjon.
 
 ### 8.12 Telefonos UI v1: navigációs héj, Műszerek, tervezett verseny (ADR 0054–0056) — tervezett
 
-**Állapot:** elfogadott, még nem implementált terv (2026-10-10). A
+**Állapot:** elfogadva (2026-10-10), implementálva a
+`feature/phone-ui-refresh` ágon (E1–E4, T1–T6, U1–U8, UF), az on-device
+próba rendben (R1, 2026-10-12); élesbe a merge után kerül. A
 részletek a három ADR-ben, a képernyők a `docs/design/phone-ui-v1.html`
 makettjében és a `docs/design/phone-ui-v1.md` specifikációban; ez a
 szakasz csak a szerkezetet rögzíti, és az implementáció során bővül.
@@ -3648,6 +3650,9 @@ el, háttérbe kerüléskor elmarad. Futó versenyen nincs kuka.
 cellamagasság, befelé rajzolt fókusz-keret a tartalom alatti kártya-keret
 fölött), a „Verseny neve" lebegő címkés mezője, a napló állandó színű
 AppBar-ja (jobbra a versenyszámmal) és középre igazított évsávja.
+**Kész (R1, próba):** az on-device próba (az útmutató A–J pontja, az
+U4–UF telefonos pontjai, az óra) a feature-ág release buildjével rendben
+(2026-10-12); a napló fejrésze az évsáv színét kapja, vonal nélkül.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

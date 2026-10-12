@@ -656,6 +656,27 @@ nem látszik.
 - **Hivatkozás**: `packages/data/lib/src/persistence/repositories/`
   `telemetry_logger_impl.dart:67`.
 
+### Lassú lista-frissítés nehéz track-olvasás közben
+- **Mi**: az R1 on-device próbáján (2026-10-12, Pixel, teljes szezonnyi
+  adat) egy verseny közbeni újranyitás után a Versenyek és a napló első
+  betöltése lassú, és a részlet „Cél"-ja után a verseny kb. 10 mp múlva
+  kerül át a naplóba. A mentés és az értesítés azonnali, DB-hiba nincs a
+  logcatben.
+- **Mikor**: önálló `perf(data)` / `perf(phone)` szelet a merge után,
+  **előbb mérés** (profile build, időbélyeg a lekérdezések köré).
+- **Miért nem most**: nem adatvesztés, és a javítás a mérés nélkül csak
+  becslés lenne; a felhasználó szerint ráér a merge utánig.
+- **Megjegyzés**: a valószínű ok, hogy a UI-izolátum minden
+  DB-kérése egy drift-háttérizolátumon, sorban fut, és a
+  `RaceRepositoryImpl.watchRaces` versenyenként külön kérdezi a bójákat
+  (N+1), így ezek egyenként a nehéz `snapshot_logs`-olvasások
+  (részlet-elemzés, `raceLogTrackTotalsProvider`) mögé állnak. Jelöltek:
+  a bóják egyetlen lekérdezéssel; külön olvasó kapcsolat a nehéz
+  olvasásoknak (WAL). A két izolátum külön kapcsolata és a hiányzó
+  `busy_timeout` (fent) a mérésnél szintén nézendő.
+- **Hivatkozás**: ADR 0056 „Pontosítás és on-device eredmény (R1)";
+  `packages/data/lib/src/persistence/repositories/race_repository_impl.dart`.
+
 ## Telefonos UI v1, szabad mód, tervezett verseny (ADR 0054–0056)
 
 A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.

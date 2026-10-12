@@ -419,9 +419,9 @@ dialógusa alatt az engine magától rajtolt, a kézi rajt elmarad (ADR 0056
 
 A mai Versenynapló (ADR 0044 + a webes 7c évsáv, ADR 0048 Addendum 7)
 **fülként**:
-- **fejrész:** vissza-nyíl nélkül, a Versenyek fejrészével azonos
+- **fejrész:** vissza-nyíl nélkül, a Versenyek fejrészével azonos méretű
   (64 dp, „Versenynapló" 24 / w700, 20 dp bal padding); felhasználói
-  döntés, 2026-10-10;
+  döntés, 2026-10-10; a színe és a vonal az R1 szerint (lent);
 - alatta a **7c évsáv** változatlanul: a nagy évszám (Martian Mono 38 /
   w800), mellette alapvonalra igazítva a szomszéd évek (Martian Mono 14 /
   w600, `TextTones.low`) — maga a lista a választó, külön ikon nincs; a
@@ -450,6 +450,11 @@ naplón); az évsor 12 dp felső betéttel áll, hogy a sáv tartalma
 függőlegesen középen legyen. A versenyszám nem a sávban, hanem az AppBar
 jobb oldalán, a címmel egy sorban áll; a sávban az évsor alatt rögtön a
 stat-sor jön (ADR 0056 UF).
+
+**A kód szerint (R1):** a fejrész az évsáv színét kapja
+(`surfaceContainer`, a 35a hexája szerint), alatta nincs hairline; a
+fejrész és a sáv egy blokk (ADR 0056 „Pontosítás és on-device eredmény
+(R1)").
 
 ## 8. Korábbi bóják sheet (35c)
 

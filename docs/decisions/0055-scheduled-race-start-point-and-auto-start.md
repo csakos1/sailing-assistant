@@ -3,8 +3,9 @@
 ## Státusz
 
 Elfogadva — 2026-10-10. Implementálva: a T1–T6 kész (2026-10-10/11); a
-v6-os szerver kiadása a feature ág mergelése után, a telefonos kiadás
-előtt; a T5 on-device próbája az U7 után.
+T5 on-device próbája (J) rendben (2026-10-12, lásd „On-device eredmény
+(R1)"); a v6-os szerver kiadása a feature ág mergelése után, a `main`-ről,
+a telefonos kiadás előtt.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk
@@ -505,3 +506,19 @@ A kódban eldőlt részletek (Claude javaslata):
 - **A kézi választást a Műszerek váltója írja**, és a lifecycle azonnal
   újradönt; a „felhasználó átadta" ág (az „Élő nézet" `handOver`-je, T4)
   megszűnt.
+
+## On-device eredmény (R1, 2026-10-12)
+
+A `docs/testing/engine-session-on-device.md` J pontja a felhasználó
+Pixelén (Android 17), a feature-ág release buildjével, home-log replay-jel:
+**rendben**.
+
+- A rajt előtti nézet (34b) a rajthely felé vezet, nem az első bója felé;
+  a „MAI VERSENYEK" váltó két mai versenynél megjelenik.
+- Zárolt telefonnal az engine a tervezett percben rajtol (értesítés
+  „Foretack — verseny"); az app megnyitása után a rajt ideje a tervezett
+  idő (D6).
+- A visszamenőleges rajt (fél órával korábbi idő) mentés után néhány mp-en
+  belül indul a beírt múltbeli idővel; a tegnapi rajtidő „Nem indult"
+  marad (D7).
+- A rajthely a bójakönyvtárba a verseny csoportjában, a bóják elé kerül.

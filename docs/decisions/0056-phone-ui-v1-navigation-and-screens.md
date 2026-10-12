@@ -3,7 +3,9 @@
 ## Státusz
 
 Elfogadva — 2026-10-10. Implementálva: az U1–U8 és az UF-javítások kész
-(2026-10-11/12); az R1 (kiadás és on-device próba) követi.
+(2026-10-11/12); az R1 on-device próbája rendben (2026-10-12, lásd
+„Pontosítás és on-device eredmény (R1)"); a merge, a szerver és a
+legénységi APK kiadása követi.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
@@ -193,7 +195,7 @@ PR a végén):
 | U7 | 0056 | `feat(phone)` | Új verseny / szerkesztés (33a–c) és a korábbi bóják sheet (35c) |
 | U8 | 0056 | `feat(phone)` | Versenynapló (35a, 35f) és a késleltetett törlés (35d, 35e) |
 | UF | 0056 | `fix(phone)` | a készülékes átnézés vizuális hibái (űrlap-mezők, napló-fejrész) |
-| R1 | 0055 D4, 0053 | `chore` | a szerver v6-os kiadása, majd replay és on-device próba, PR a `main`-be, legénységi APK `0.3.0` |
+| R1 | 0053, 0055 D4, 0057 | `fix`, `docs`, `chore` | replay és on-device próba a feature-ágon, a napló fejrésze az évsáv színében, verzió `0.3.0+3`, PR a `main`-be, a szerver v6-os kiadása a `main`-ről, végül a legénységi APK |
 
 Minden U-szelet előtt a D8 összevetése. Az U-szeletek a `foretack_ui`
 widget-tesztjeivel és a telefon widget-tesztjeivel zöldek; a vízen futó
@@ -784,3 +786,36 @@ hogy a javítás ne egy tünetet takarjon el.
   `card_field_decoration.dart`, `form_card.dart`, `coordinate_card.dart`,
   `race_form.dart`; `features/race_log/race_log_screen.dart`,
   `widgets/race_log_year_band.dart`.
+
+## Pontosítás és on-device eredmény (R1, 2026-10-12)
+
+**On-device eredmény.** A felhasználó Pixelén (Android 17), a feature-ág
+release buildjével (`3901ae3`), home-log és mozgó log replay-jel az U4–U8
+és az UF telefonos pontjai **rendben**: a Műszerek három nézete és a
+váltó, a Versenyek sorai (futó, „MA · HH:MM", dátum nélküli, elmaradt), a
+részlet három alsó sávja és a megerősítő dialógusok, az új verseny /
+szerkesztés a 33c lappal és a 35c sheettel, a napló évsávja és a
+késleltetett, visszavonható törlés, és az UF mezői nagy
+rendszer-betűmérettel is. Az engine-pontok eredménye az ADR 0054-ben és
+0055-ben.
+
+**A sorrend.** A szelet-táblázat R1-sora eredetileg a szerver kiadásával
+kezdődött; a tényleges sorrend a rögzített döntés szerint: próba a
+feature-ágon → PR és merge → a szerver kiadása a `main`-ről → a
+legénységi APK. A feature-ágról nem megy élesbe semmi.
+
+**A napló fejrésze** (felhasználói döntés a próba után): az AppBar az
+évsáv színét kapja (`surfaceContainer`, a makett 35a hexája szerint is),
+és nincs alatta hairline, így a fejrész és az évsáv egy blokk. Görgetéskor
+a színe továbbra sem változik (UF); a többi fül fejrésze változatlan.
+Üres naplóban (sáv nélkül) a fejrész ugyanígy `surfaceContainer`.
+
+**Megfigyelés (nem hiba, halasztva):** egy verseny közbeni újranyitás
+után a Versenyek és a napló első betöltése lassú; a részlet „Cél"-ja után
+a verseny kb. 10 mp múlva kerül át a naplóba (a mentés és az értesítés
+azonnali, DB-hiba nincs). A valószínű ok, hogy a nehéz track-olvasások
+(részlet-elemzés, a napló track-összesítője) és a lista versenyenkénti
+bója-lekérdezései egy sorban várnak. Mérés alapján, a merge után
+(`docs/deferred.md`, „Adatréteg").
+
+**Fájlok:** `features/race_log/race_log_screen.dart` és a tesztje.
