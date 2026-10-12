@@ -447,7 +447,9 @@ nélkül.
 
 **A kód szerint (UF):** az AppBar görgetéskor sem színeződik át (csak a
 naplón); az évsor 12 dp felső betéttel áll, hogy a sáv tartalma
-függőlegesen középen legyen (ADR 0056 UF).
+függőlegesen középen legyen. A versenyszám nem a sávban, hanem az AppBar
+jobb oldalán, a címmel egy sorban áll; a sávban az évsor alatt rögtön a
+stat-sor jön (ADR 0056 UF).
 
 ## 8. Korábbi bóják sheet (35c)
 

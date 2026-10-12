@@ -774,6 +774,12 @@ hogy a javítás ne egy tünetet takarjon el.
   (`RaceLogYearBand.topInset`); a Martian Mono számjegyei a dobozuk
   tetejénél pár dp-vel lejjebb kezdődnek, így a szám teteje kb. 20 dp-re
   esik — a tartalom függőlegesen középen áll.
+- **Versenynapló — a versenyszám a fejrészben** (felhasználói döntés,
+  az U8 előtti elrendezés szerint): a kiválasztott év versenyszáma nem az
+  évszám alatt, hanem az AppBar jobb oldalán, a „Versenynapló" címmel egy
+  sorban áll (`numeralCaptionStyle`, tompa); töltés alatt „–– VERSENY",
+  üres naplónál nincs. Az évsávban az évsor alatt 14 dp réssel közvetlenül
+  a stat-sor jön. A 35a makett itt eltér: a spec és a kód az irányadó.
 - **Fájlok:** `features/race_setup/widgets/card_cell_border.dart` (új),
   `card_field_decoration.dart`, `form_card.dart`, `coordinate_card.dart`,
   `race_form.dart`; `features/race_log/race_log_screen.dart`,
