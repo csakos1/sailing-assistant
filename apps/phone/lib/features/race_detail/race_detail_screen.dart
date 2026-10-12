@@ -1,22 +1,36 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/race_detail/detail_action.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
+import 'package:phone/features/race_detail/widgets/detail_course_mark_row.dart';
+import 'package:phone/features/race_detail/widgets/detail_start_point_row.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
+import 'package:phone/features/race_detail/widgets/race_detail_strip.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
+import 'package:phone/format/race_day_format.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
+import 'package:phone/providers/clock_provider.dart';
+import 'package:phone/providers/local_wall_clock_provider.dart';
 import 'package:phone/providers/race_list_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/widgets/section_label.dart';
 
 /// Egy verseny részletei: státusz-csík, pálya-lista, és státuszfüggő akciók
-/// (start/finish, törlés, valamint `notStarted` versenynél szerkesztés),
-/// ADR 0044 3a. Az élő adatok a héj Műszerek fülén vannak (ADR 0056 D2): a
-/// rajt után a héj oda vált, és ezt a képernyőt bezárja.
+/// (rajt/cél, törlés, valamint `notStarted` versenynél szerkesztés),
+/// ADR 0044 3a, makett 32a–c (ADR 0056 D4, U6). Az élő adatok a héj
+/// Műszerek fülén vannak (ADR 0056 D2): a rajt után a héj oda vált, és ezt a
+/// képernyőt bezárja.
+///
+/// A rajt és a cél megerősítést kér (`phone-ui-v1.md` §9). A dialógus után
+/// a verseny friss állapota dönt: ha közben az engine magától rajtolt
+/// (ADR 0055 D6), a kézi rajt elmarad, és nem írja felül a tervezett
+/// rajtidőt.
 ///
 /// **Egy képernyő, három állapot** (D19). A `RaceStatus` négy helyen kapuz:
 /// az AppBar-akcióknál, a státusz-csík meta-mezőjében, az aktív bója
@@ -46,14 +60,105 @@ class RaceDetailScreen extends ConsumerWidget {
     return null;
   }
 
-  Future<void> _start(WidgetRef ref, Race target) async {
-    ref.read(activeRaceProvider.notifier).activeRace = target;
-    await ref.read(activeRaceProvider.notifier).start();
+  // A képernyő friss példánya (D5): aktív futó versenynél az in-memory élő
+  // állapot, egyébként a reaktív lista, a pillanatkép csak fallback.
+  Race _currentOf(Race? active, List<Race>? races) =>
+      (active != null && active.id == race.id)
+      ? active
+      : (_findById(races, race.id) ?? race);
+
+  Race _readCurrent(WidgetRef ref) => _currentOf(
+    ref.read(activeRaceProvider),
+    ref.read(raceListProvider).valueOrNull,
+  );
+
+  Future<void> _confirmStart(
+    BuildContext context,
+    WidgetRef ref,
+    Race target,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final activeRace = ref.read(activeRaceProvider.notifier);
+    final confirmed = await showForetackDialog<bool>(
+      context: context,
+      title: l10n.instrumentsStartTitle,
+      message: _startMessage(ref, l10n, target),
+      subject: (leading: null, name: target.name, trailing: null),
+      actions: [
+        ForetackDialogAction(label: l10n.instrumentsStartCancel, value: false),
+        ForetackDialogAction(label: l10n.instrumentsStartConfirm, value: true),
+      ],
+    );
+    if (confirmed != true || !context.mounted) return;
+    // A dialógus alatt az engine maga is rajtolhatott a tervezett időben:
+    // ilyenkor a friss példány már nem notStarted, és a kézi rajt elmarad.
+    final fresh = _readCurrent(ref);
+    if (fresh.status != RaceStatus.notStarted) return;
+    activeRace.activeRace = fresh;
+    try {
+      await activeRace.start();
+    } on Object catch (error) {
+      // Egy mentési hiba nem dönthet le a vízen (mint a Műszerek „Rajt
+      // most"-jánál): a rajt elmarad, a felhasználó újrapróbálhatja.
+      developer.log('manual start failed: $error', name: 'RaceDetail');
+    }
   }
 
-  Future<void> _finish(WidgetRef ref, Race target) async {
-    ref.read(activeRaceProvider.notifier).activeRace = target;
-    await ref.read(activeRaceProvider.notifier).finish();
+  // Tervezett rajtnál a dialógus kimondja, hogy a verseny nem a tervezett
+  // időben, hanem most indul.
+  String _startMessage(WidgetRef ref, AppLocalizations l10n, Race target) {
+    final scheduledStartAt = target.scheduledStartAt;
+    if (scheduledStartAt == null) return l10n.instrumentsStartMessage;
+    final label = _scheduledStartLabel(ref, l10n, scheduledStartAt);
+    return l10n.detailStartScheduledMessage(label.toLowerCase());
+  }
+
+  // A mai rajtnál csak az idő („09:00"), más napon a nap is („OKT. 13.
+  // 09:00"), hogy a felirat ne ígérjen mai rajtot.
+  String _scheduledStartLabel(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    DateTime scheduledStartAt,
+  ) {
+    final toLocal = ref.read(localWallClockProvider);
+    return formatRaceStart(
+      l10n,
+      toLocal(scheduledStartAt),
+      localToday: toLocal(ref.read(clockProvider)()),
+    );
+  }
+
+  Future<void> _confirmFinish(
+    BuildContext context,
+    WidgetRef ref,
+    Race target,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final activeRace = ref.read(activeRaceProvider.notifier);
+    final confirmed = await showForetackDialog<bool>(
+      context: context,
+      title: l10n.detailFinishTitle,
+      message: l10n.detailFinishMessage,
+      subject: (leading: null, name: target.name, trailing: null),
+      actions: [
+        ForetackDialogAction(label: l10n.detailFinishCancel, value: false),
+        ForetackDialogAction(
+          label: l10n.detailFinishConfirm,
+          value: true,
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (confirmed != true || !context.mounted) return;
+    // A dialógus alatt az engine az utolsó bójánál maga is lezárhatta.
+    final fresh = _readCurrent(ref);
+    if (fresh.status != RaceStatus.active) return;
+    activeRace.activeRace = fresh;
+    try {
+      await activeRace.finish();
+    } on Object catch (error) {
+      developer.log('manual finish failed: $error', name: 'RaceDetail');
+    }
   }
 
   // A szerkesztő-képernyőre navigál (csak notStarted versenynél hívjuk).
@@ -105,6 +210,32 @@ class RaceDetailScreen extends ConsumerWidget {
     Navigator.of(context).pop();
   }
 
+  Widget? _actionBar(
+    BuildContext context,
+    WidgetRef ref,
+    Race current,
+    DetailAction? action,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    void start() => unawaited(_confirmStart(context, ref, current));
+    return switch (action) {
+      null => null,
+      DetailScheduledStart(:final scheduledStartAt) =>
+        DetailActionBar.scheduled(
+          automaticStartLabel: _scheduledStartLabel(
+            ref,
+            l10n,
+            scheduledStartAt,
+          ),
+          onStart: start,
+        ),
+      DetailStart() => DetailActionBar.start(onStart: start),
+      DetailFinish() => DetailActionBar.finish(
+        onFinish: () => unawaited(_confirmFinish(context, ref, current)),
+      ),
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -112,15 +243,21 @@ class RaceDetailScreen extends ConsumerWidget {
     final listValue = ref.watch(raceListProvider).valueOrNull;
     // Aktív futó versenynél az in-memory élő állapot az igazság; egyébként a
     // reaktív lista friss verziója, a pillanatkép csak fallback (ADR 0029 D5).
-    final current = (active != null && active.id == race.id)
-        ? active
-        : (_findById(listValue, race.id) ?? race);
+    final current = _currentOf(active, listValue);
+    final scheme = Theme.of(context).colorScheme;
     final isFinished = current.status == RaceStatus.finished;
     final isActive = current.status == RaceStatus.active;
+    final toLocal = ref.watch(localWallClockProvider);
+    final now = ref.watch(clockProvider)();
+    final startPoint = current.startPoint;
+    final startedAt = current.startedAt;
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 64,
+        toolbarHeight: 58,
+        shape: Border(
+          bottom: BorderSide(color: scheme.outlineVariant),
+        ),
         title: Text(current.name, style: screenTitleStyle),
         actions: [
           // Szerkesztés csak el nem indított versenyen (ADR 0029 D1).
@@ -141,7 +278,7 @@ class RaceDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DetailStatusStrip(race: current),
+            RaceDetailStrip(race: current),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -159,9 +296,17 @@ class RaceDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                     child: SectionLabel(text: l10n.detailCourseLabel),
                   ),
+                  if (startPoint != null)
+                    DetailStartPointRow(
+                      startPoint: startPoint,
+                      localStartedAt: startedAt == null
+                          ? null
+                          : toLocal(startedAt),
+                    ),
                   for (final (index, mark) in current.marks.indexed)
-                    DetailMarkRow(
+                    DetailCourseMarkRow(
                       mark: mark,
+                      toLocal: toLocal,
                       // Csak futó versenyen van soron következő bója (D27).
                       isActive: isActive && index == current.activeMarkIndex,
                     ),
@@ -170,12 +315,12 @@ class RaceDetailScreen extends ConsumerWidget {
             ),
             // Befejezett versenyen nincs alsó sáv: a megosztás a teljes
             // képernyős térkép-nézeté, a törlés az AppBaré (D30).
-            if (!isFinished)
-              DetailActionBar(
-                status: current.status,
-                onStatusAction: () =>
-                    isActive ? _finish(ref, current) : _start(ref, current),
-              ),
+            ?_actionBar(
+              context,
+              ref,
+              current,
+              detailActionOf(race: current, now: now, toLocal: toLocal),
+            ),
           ],
         ),
       ),

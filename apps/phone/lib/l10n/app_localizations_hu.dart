@@ -220,10 +220,56 @@ class AppLocalizationsHu extends AppLocalizations {
   String get raceStatusFinished => 'Befejezve';
 
   @override
-  String get detailStart => 'Indítás';
+  String get detailStart => 'Rajt';
 
   @override
-  String get detailFinish => 'Befejezés';
+  String get detailFinish => 'Cél';
+
+  @override
+  String get detailStartNow => 'Rajt most';
+
+  @override
+  String get detailAutomaticStart => 'AUTOMATIKUS';
+
+  @override
+  String get detailScheduledStartLabel => 'RAJT';
+
+  @override
+  String get detailNoScheduledStart => 'NINCS TERVEZETT RAJT';
+
+  @override
+  String detailStartPointName(String name) {
+    return 'Rajthely — $name';
+  }
+
+  @override
+  String get detailStartPointTag => 'RAJTHELY';
+
+  @override
+  String detailStartedAt(String time) {
+    return 'RAJT $time';
+  }
+
+  @override
+  String get detailActiveMarkTag => 'AKTÍV';
+
+  @override
+  String detailStartScheduledMessage(String time) {
+    return 'A verseny most indul a tervezett $time helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.';
+  }
+
+  @override
+  String get detailFinishTitle => 'Cél?';
+
+  @override
+  String get detailFinishMessage =>
+      'A verseny most véget ér: a rögzítés leáll, és a track lezárul.';
+
+  @override
+  String get detailFinishCancel => 'Mégse';
+
+  @override
+  String get detailFinishConfirm => 'Cél';
 
   @override
   String get detailDelete => 'Törlés';

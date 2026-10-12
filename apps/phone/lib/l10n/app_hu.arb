@@ -279,13 +279,80 @@
   "@raceStatusFinished": {
     "description": "Verseny-státusz: befejeződött."
   },
-  "detailStart": "Indítás",
+  "detailStart": "Rajt",
   "@detailStart": {
-    "description": "Gomb: a verseny elindítása (notStarted -> active)."
+    "description": "A részlet alsó sávja: a kézi rajt rajtidő nélküli versenyen (32c)."
   },
-  "detailFinish": "Befejezés",
+  "detailFinish": "Cél",
   "@detailFinish": {
-    "description": "Gomb: a verseny befejezése (active -> finished)."
+    "description": "A részlet alsó sávja: a verseny befejezése (32b)."
+  },
+  "detailStartNow": "Rajt most",
+  "@detailStartNow": {
+    "description": "A részlet alsó sávja: a kézi rajt egy tervezett rajtú versenyen (32a)."
+  },
+  "detailAutomaticStart": "AUTOMATIKUS",
+  "@detailAutomaticStart": {
+    "description": "A részlet alsó sávjának bal cellája: az engine a rajtidőben magától indít."
+  },
+  "detailScheduledStartLabel": "RAJT",
+  "@detailScheduledStartLabel": {
+    "description": "A részlet státuszcsíkja: a tervezett rajt felirata a nap és az idő előtt."
+  },
+  "detailNoScheduledStart": "NINCS TERVEZETT RAJT",
+  "@detailNoScheduledStart": {
+    "description": "A részlet státuszcsíkja rajtidő nélküli, el nem indult versenyen."
+  },
+  "detailStartPointName": "Rajthely — {name}",
+  "@detailStartPointName": {
+    "description": "A részlet pálya-listájának első sora: a rajthely neve.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "detailStartPointTag": "RAJTHELY",
+  "@detailStartPointTag": {
+    "description": "A rajthely-sor keretes címkéje."
+  },
+  "detailStartedAt": "RAJT {time}",
+  "@detailStartedAt": {
+    "description": "A rajthely-sor elindult versenyen: a tényleges rajt ideje, pl. RAJT 09:00:00.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailActiveMarkTag": "AKTÍV",
+  "@detailActiveMarkTag": {
+    "description": "Az aktív bója sorának kitöltött címkéje."
+  },
+  "detailStartScheduledMessage": "A verseny most indul a tervezett {time} helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.",
+  "@detailStartScheduledMessage": {
+    "description": "A rajt-dialógus szövege tervezett rajtú versenyen; a time pl. 09:00 vagy okt. 13. 09:00.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailFinishTitle": "Cél?",
+  "@detailFinishTitle": {
+    "description": "A cél-megerősítő dialógus címe."
+  },
+  "detailFinishMessage": "A verseny most véget ér: a rögzítés leáll, és a track lezárul.",
+  "@detailFinishMessage": {
+    "description": "A cél-megerősítő dialógus szövege."
+  },
+  "detailFinishCancel": "Mégse",
+  "@detailFinishCancel": {
+    "description": "A cél-dialógus megszakító gombja."
+  },
+  "detailFinishConfirm": "Cél",
+  "@detailFinishConfirm": {
+    "description": "A cél-dialógus megerősítő (romboló) gombja."
   },
   "detailDelete": "Törlés",
   "@detailDelete": {

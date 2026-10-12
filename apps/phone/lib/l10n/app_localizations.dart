@@ -490,17 +490,95 @@ abstract class AppLocalizations {
   /// **'Befejezve'**
   String get raceStatusFinished;
 
-  /// Gomb: a verseny elindítása (notStarted -> active).
+  /// A részlet alsó sávja: a kézi rajt rajtidő nélküli versenyen (32c).
   ///
   /// In hu, this message translates to:
-  /// **'Indítás'**
+  /// **'Rajt'**
   String get detailStart;
 
-  /// Gomb: a verseny befejezése (active -> finished).
+  /// A részlet alsó sávja: a verseny befejezése (32b).
   ///
   /// In hu, this message translates to:
-  /// **'Befejezés'**
+  /// **'Cél'**
   String get detailFinish;
+
+  /// A részlet alsó sávja: a kézi rajt egy tervezett rajtú versenyen (32a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most'**
+  String get detailStartNow;
+
+  /// A részlet alsó sávjának bal cellája: az engine a rajtidőben magától indít.
+  ///
+  /// In hu, this message translates to:
+  /// **'AUTOMATIKUS'**
+  String get detailAutomaticStart;
+
+  /// A részlet státuszcsíkja: a tervezett rajt felirata a nap és az idő előtt.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT'**
+  String get detailScheduledStartLabel;
+
+  /// A részlet státuszcsíkja rajtidő nélküli, el nem indult versenyen.
+  ///
+  /// In hu, this message translates to:
+  /// **'NINCS TERVEZETT RAJT'**
+  String get detailNoScheduledStart;
+
+  /// A részlet pálya-listájának első sora: a rajthely neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely — {name}'**
+  String detailStartPointName(String name);
+
+  /// A rajthely-sor keretes címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJTHELY'**
+  String get detailStartPointTag;
+
+  /// A rajthely-sor elindult versenyen: a tényleges rajt ideje, pl. RAJT 09:00:00.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT {time}'**
+  String detailStartedAt(String time);
+
+  /// Az aktív bója sorának kitöltött címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'AKTÍV'**
+  String get detailActiveMarkTag;
+
+  /// A rajt-dialógus szövege tervezett rajtú versenyen; a time pl. 09:00 vagy okt. 13. 09:00.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most indul a tervezett {time} helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.'**
+  String detailStartScheduledMessage(String time);
+
+  /// A cél-megerősítő dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Cél?'**
+  String get detailFinishTitle;
+
+  /// A cél-megerősítő dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most véget ér: a rögzítés leáll, és a track lezárul.'**
+  String get detailFinishMessage;
+
+  /// A cél-dialógus megszakító gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get detailFinishCancel;
+
+  /// A cél-dialógus megerősítő (romboló) gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Cél'**
+  String get detailFinishConfirm;
 
   /// Tooltip: a verseny törlése (AppBar ikon).
   ///

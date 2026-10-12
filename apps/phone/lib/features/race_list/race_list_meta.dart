@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 import 'package:phone/features/race_list/race_list_entries.dart';
 import 'package:phone/format/clock_format.dart';
-import 'package:phone/format/month_format.dart';
+import 'package:phone/format/race_day_format.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 /// A lajstrom-sor meta-sora (makett 31a, `phone-ui-v1.md` §3).
@@ -41,17 +41,6 @@ String raceListMetaOf(
   final start = toLocal(scheduledStartAt);
   final day = entry.isToday
       ? l10n.listMetaToday
-      : _dayLabel(l10n, start, today: toLocal(now));
+      : formatRaceDate(l10n, start, localToday: toLocal(now));
   return [day, formatClock(start), marks].join(' · ');
-}
-
-// „OKT. 11.", más évben „2027. JAN. 3.".
-String _dayLabel(
-  AppLocalizations l10n,
-  DateTime start, {
-  required DateTime today,
-}) {
-  final month = monthShortName(l10n, start.month).toUpperCase();
-  if (start.year == today.year) return l10n.listMetaDay(month, start.day);
-  return l10n.listMetaDayWithYear(start.year, month, start.day);
 }
