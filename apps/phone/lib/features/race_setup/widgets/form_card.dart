@@ -19,13 +19,20 @@ class FormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    // Material, nem DecoratedBox: a kártyán belüli InkWell-ek (rajtidő,
+    // Material a háttérnek: a kártyán belüli InkWell-ek (rajtidő,
     // rajthely-utak) a legközelebbi Material-ra festenek, és egy színes
     // DecoratedBox eltakarná a hullámot.
+    //
+    // A keret viszont a tartalom ALATT van (háttérként festett, szín
+    // nélküli DecoratedBox), nem a Material `shape`-jében: az a tartalom
+    // fölé festene, és letakarná egy szélen álló mező fókusz-keretének a
+    // felét, amitől a keret oldalai nem lennének egyforma vastagok (UF).
     return Material(
       color: isTransparent ? Colors.transparent : scheme.surfaceContainer,
-      shape: Border.all(color: scheme.outline),
-      child: child,
+      child: DecoratedBox(
+        decoration: BoxDecoration(border: Border.all(color: scheme.outline)),
+        child: child,
+      ),
     );
   }
 }

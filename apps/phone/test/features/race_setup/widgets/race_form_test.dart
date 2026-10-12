@@ -374,4 +374,38 @@ void main() {
     // ASSERT
     expect(submitted, isFalse);
   });
+
+  // A verseny neve sajat korvonalas mezo lebego cimkevel (UF): a cimke
+  // gepeleskor a keret vonalaba csuszik, mint az U7 elott.
+  testWidgets('labels the race name with a floating label', (tester) async {
+    // ARRANGE & ACT
+    await pumpForm(tester, onSubmit: (_) {});
+
+    // ASSERT
+    final decorator = find
+        .descendant(
+          of: find.byType(TextFormField).first,
+          matching: find.byType(InputDecorator),
+        )
+        .first;
+    final decoration = tester.widget<InputDecorator>(decorator).decoration;
+    expect(decoration.labelText, 'Verseny neve');
+    expect(decoration.hintText, isNull);
+    expect(decoration.border?.isOutline, isTrue);
+  });
+
+  // Regresszio-or: a mezo pontosan a 33a 54 dp-s magassaga (UF).
+  testWidgets('keeps the race name field 54 dp tall', (tester) async {
+    // ARRANGE & ACT
+    await pumpForm(tester, onSubmit: (_) {});
+
+    // ASSERT
+    final decorator = find
+        .descendant(
+          of: find.byType(TextFormField).first,
+          matching: find.byType(InputDecorator),
+        )
+        .first;
+    expect(tester.getSize(decorator).height, closeTo(54, 0.01));
+  });
 }

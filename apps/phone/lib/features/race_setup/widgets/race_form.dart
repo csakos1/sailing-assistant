@@ -296,16 +296,21 @@ class _RaceFormState extends State<RaceForm> {
     required String hint,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final style = supportTextStyle.copyWith(
+      fontSize: 15,
+      height: cardFieldLineHeight,
+      color: scheme.onSurface,
+    );
     return TextFormField(
       controller: row.nameController,
       autofocus: row.shouldFocusName,
       decoration: cardFieldDecoration(
         context,
         hint: hint,
-        minHeight: _nameHeight,
+        style: style,
+        height: _nameHeight,
       ),
-      textAlignVertical: TextAlignVertical.center,
-      style: supportTextStyle.copyWith(fontSize: 15, color: scheme.onSurface),
+      style: style,
       textInputAction: TextInputAction.next,
       validator: (value) => _validateName(l10n, value),
     );
@@ -317,6 +322,11 @@ class _RaceFormState extends State<RaceForm> {
     GeoAxis axis,
   ) {
     final scheme = Theme.of(context).colorScheme;
+    final style = coordinateValueStyle.copyWith(
+      fontSize: 13,
+      height: cardFieldLineHeight,
+      color: scheme.onSurfaceVariant,
+    );
     return TextFormField(
       controller: controller,
       decoration: cardFieldDecoration(
@@ -324,13 +334,10 @@ class _RaceFormState extends State<RaceForm> {
         hint: axis == GeoAxis.latitude
             ? l10n.setupLatitudeLabel
             : l10n.setupLongitudeLabel,
-        minHeight: _coordinateHeight,
+        style: style,
+        height: _coordinateHeight,
       ),
-      textAlignVertical: TextAlignVertical.center,
-      style: coordinateValueStyle.copyWith(
-        fontSize: 13,
-        color: scheme.onSurfaceVariant,
-      ),
+      style: style,
       keyboardType: const TextInputType.numberWithOptions(
         signed: true,
         decimal: true,
@@ -429,26 +436,39 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
-  Widget _raceNameCard(AppLocalizations l10n) {
+  /// A verseny neve: saját körvonalas mező (nem kártya), lebegő címkével,
+  /// amely gépeléskor a keret vonalába csúszik (felhasználói döntés, UF).
+  ///
+  /// A keret és a kitöltés a téma `inputDecorationTheme`-jéből jön; mivel
+  /// a keret minden állapotban outline, a szöveg fókuszváltáskor nem ugrik.
+  Widget _raceNameField(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
-    return FormCard(
-      child: TextFormField(
-        controller: _nameController,
-        decoration: cardFieldDecoration(
-          context,
-          hint: l10n.setupRaceNameLabel,
-          minHeight: _raceNameHeight,
+    final style = supportTextStyle.copyWith(
+      fontSize: 15,
+      height: cardFieldLineHeight,
+      color: scheme.onSurface,
+    );
+    final vertical = cardFieldVerticalPadding(
+      context,
+      style: style,
+      height: _raceNameHeight,
+    );
+    return TextFormField(
+      controller: _nameController,
+      decoration: InputDecoration(
+        labelText: l10n.setupRaceNameLabel,
+        labelStyle: const TextStyle(fontSize: 15),
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: vertical,
         ),
-        textAlignVertical: TextAlignVertical.center,
-        style: supportTextStyle.copyWith(
-          fontSize: 15,
-          color: scheme.onSurface,
-        ),
-        textInputAction: TextInputAction.next,
-        validator: (value) => (value == null || value.trim().isEmpty)
-            ? l10n.setupRaceNameRequired
-            : null,
       ),
+      style: style,
+      textInputAction: TextInputAction.next,
+      validator: (value) => (value == null || value.trim().isEmpty)
+          ? l10n.setupRaceNameRequired
+          : null,
     );
   }
 
@@ -526,7 +546,7 @@ class _RaceFormState extends State<RaceForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _padded(_raceNameCard(l10n)),
+                  _padded(_raceNameField(l10n)),
                   const SizedBox(height: _cardGap),
                   _padded(
                     StartTimeCard(

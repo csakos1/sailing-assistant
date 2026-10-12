@@ -69,23 +69,29 @@ void main() {
     expect(find.byIcon(Icons.close), findsNothing);
   });
 
-  // Regresszio-or: a rejtett torles-gomb helye fennmarad, kulonben a
-  // nev-mezo szelessege kartyarol kartyara ugralna.
-  testWidgets('keeps the name width when the remove button is hidden', (
+  // Torles-gomb nelkul (egyetlen boja) a nev-mezo a kartya szeleig er,
+  // hogy a fokusz-kerete a teljes cellat korbefogja (UF).
+  testWidgets('stretches the name to the card edge without a remove button', (
     tester,
   ) async {
-    // ARRANGE
-    await _pump(tester, onRemove: () {});
-    final withButton = tester.getSize(find.byKey(const ValueKey('name'))).width;
-
-    // ACT
+    // ARRANGE & ACT
     await _pump(tester, onRemove: null);
-    final withoutButton = tester
-        .getSize(find.byKey(const ValueKey('name')))
-        .width;
 
     // ASSERT
-    expect(withoutButton, withButton);
+    final cardRight = tester.getTopRight(find.byType(CoordinateCard)).dx;
+    final nameRight = tester.getTopRight(find.byKey(const ValueKey('name'))).dx;
+    expect(nameRight, cardRight);
+  });
+
+  // A gomb mellett a mezo a gomb elott er veget (48 dp tapintas + 4 dp).
+  testWidgets('ends the name before the remove button', (tester) async {
+    // ARRANGE & ACT
+    await _pump(tester, onRemove: () {});
+
+    // ASSERT
+    final cardRight = tester.getTopRight(find.byType(CoordinateCard)).dx;
+    final nameRight = tester.getTopRight(find.byKey(const ValueKey('name'))).dx;
+    expect(cardRight - nameRight, 48 + 4);
   });
 
   // 40 dp sin + 1 dp hairline (9e, 33a); a mezo-oszlop csak utana kezdodik.

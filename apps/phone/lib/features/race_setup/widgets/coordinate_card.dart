@@ -9,7 +9,6 @@ const double _railTopGap = 14;
 
 /// A törlés-gomb rajza (40 dp, 33a); a tapintás a `padded` célmérettel 48.
 const double _removeSize = 40;
-const double _removeTouchSize = 48;
 
 /// Egy bója- vagy rajthely-kártya az űrlapon (9e, 33a).
 ///
@@ -25,8 +24,9 @@ const double _removeTouchSize = 48;
 /// (felhasználói döntés, U7): egy külön fok-perces kijelző-állapot nem kell.
 ///
 /// Az [onRemove] null értéke azt jelenti, hogy a kártya nem törölhető (az
-/// utolsó bóját megtartjuk); a gomb helye ilyenkor üresen fennmarad, hogy
-/// a név-mező szélessége kártyáról kártyára ne ugráljon.
+/// utolsó bóját megtartjuk); ilyenkor a név-mező a sor végéig ér, hogy a
+/// fókusz-kerete a teljes cellát körbefogja (UF). Ez csak egyetlen bójánál
+/// fordul elő, így kártyák közt nincs eltérő szélesség.
 class CoordinateCard extends StatelessWidget {
   /// Egy kártya a hívó mezőivel.
   const CoordinateCard({
@@ -70,12 +70,14 @@ class CoordinateCard extends StatelessWidget {
         children: [
           // A sín háttere a kártya teljes magasságára feszül. A Stack a
           // nem-pozicionált gyerekéhez (a Row-hoz) méreteződik, így ez
-          // IntrinsicHeight nélkül megy a lusta listában.
+          // IntrinsicHeight nélkül megy a lusta listában. A kártya kerete a
+          // tartalom alatt van, ezért a színes sín 1 dp-vel beljebb kezdődik,
+          // hogy ne takarja le.
           Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: _railWidth + 1,
+            left: 1,
+            top: 1,
+            bottom: 1,
+            width: _railWidth,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: railColor,
@@ -151,16 +153,16 @@ class _NameRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Padding(
-        padding: const EdgeInsets.only(right: 4),
+        // A gomb mellett 4 dp rés marad; gomb nélkül a mező a kártya
+        // széléig ér.
+        padding: EdgeInsets.only(right: onRemove == null ? 0 : 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: field),
             // A 48 dp-s tapintási doboz a 48 dp-s név-mező mellett felül
             // igazítva is középen áll; egy hibaüzenet csak a mezőt nyújtja.
-            if (onRemove == null)
-              const SizedBox.square(dimension: _removeTouchSize)
-            else
+            if (onRemove != null)
               IconButton(
                 onPressed: onRemove,
                 icon: const Icon(Icons.close, size: 20),
