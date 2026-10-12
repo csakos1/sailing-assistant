@@ -5509,7 +5509,9 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 - **Végpontok:** `GET /api/races`, `GET /api/races/{id}`,
   `PUT /api/races/{id}/result` (csupa üres mezővel törli az eredményt),
   `POST /api/manual-races`, `PUT` és `DELETE /api/manual-races/{id}`,
-  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7).
+  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7), és
+  `DELETE /api/races/{id}` egy telemetriás verseny végleges törlésére
+  (ADR 0057; tombstone nélkül, egy új feltöltés visszahozza).
 - **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
   `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
   adja.
@@ -5549,7 +5551,8 @@ nem egyértelmű napot a `--match` dönti el. Meglévő adatot csak
 `--overwrite`-tal ír felül (ADR 0048 Addendum 6).
 
 - **Kétféle verseny.** A **telemetriás** a phone DB-jéből jön (név, idő
-  és track csak olvasható). A **kézi** a `web.sqlite` `manual_races`
+  és track csak olvasható; a tulajdonos az eredmény-szerkesztőből
+  végleg törölheti, ADR 0057). A **kézi** a `web.sqlite` `manual_races`
   táblájában él: név, dátum, táv, max. sebesség, átlagos és max. szél,
   szélirány; szerkeszthető és törölhető.
 - **`RaceResult`** mindkét fajtán:
