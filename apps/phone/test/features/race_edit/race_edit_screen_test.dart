@@ -39,10 +39,9 @@ void main() {
   // Az edit-screent egy home-route fölé pusholjuk, hogy a mentés utáni pop
   // tiszta visszatérést adjon, és a navigáció assertelhető legyen.
   Future<void> openEdit(WidgetTester tester, Race race) async {
-    // Nagyobb teszt-viewport, hogy mindkét bója-kártya
-    // felépüljön: a ListView lusta, a lapozott sorok mezői
-    // viszont assertelendők. A mentés gombja az ADR 0044 D1
-    // óta a rögzített sávban ül, nem rejtheti el a görgetés.
+    // Nagyobb teszt-viewport, hogy minden kartya a kepernyon legyen, es a
+    // tap-ek celt talaljanak. A mentes gombja az ADR 0044 D1 ota a
+    // rogzitett savban ul, nem rejtheti el a gorgetes.
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -123,7 +122,7 @@ void main() {
     expect(find.byType(RaceEditScreen), findsNothing);
   });
 
-  testWidgets('mentéskor a bóyák a könyvtárba kerülnek az új névvel', (
+  testWidgets('mentéskor a bóják a könyvtárba kerülnek az új névvel', (
     tester,
   ) async {
     // ARRANGE
@@ -149,6 +148,36 @@ void main() {
       library.saved.every((m) => m.sourceRaceName == 'Új név'),
       isTrue,
     );
+  });
+
+  testWidgets('a mentés megőrzi a rajtidőt és a rajthelyet', (tester) async {
+    // ARRANGE - a T1 ota a Race.create mindkettot atveszi; a regi kod-ut
+    // a szerkesztessel csendben torolte volna oket.
+    final start = DateTime.utc(2026, 10, 20, 7);
+    const startPoint = StartPoint(
+      name: 'Rajt',
+      position: Coordinate(latitude: 46.95, longitude: 17.9),
+    );
+    final race = Race.create(
+      id: 'r1',
+      name: 'Régi',
+      marks: const [markA, markB],
+      scheduledStartAt: start,
+      startPoint: startPoint,
+    );
+    await openEdit(tester, race);
+
+    // ACT
+    await tester.enterText(find.byType(TextFormField).first, 'Új név');
+    await tester.tap(_saveButton(tester));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a verseny mindkettot megtartja, a konyvtar a rajthelyet is
+    // kapja.
+    final saved = repository.saved.single;
+    expect(saved.scheduledStartAt, start);
+    expect(saved.startPoint, startPoint);
+    expect(library.saved.map((m) => m.name).toList(), ['Rajt', 'A', 'B']);
   });
 }
 

@@ -6,6 +6,7 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_setup/race_setup_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
+import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/id_provider.dart';
 import 'package:phone/providers/mark_library_repository_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
@@ -33,10 +34,16 @@ void main() {
     WidgetTester tester, {
     MarkLibraryRepository? markLibrary,
   }) async {
+    // Nagyobb viewport: minden kartya a kepernyon van, a tap-ek celt talalnak.
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           idProvider.overrideWithValue(() => 'fixed-id'),
+          clockProvider.overrideWithValue(() => DateTime(2026, 10, 12, 8, 30)),
           raceRepositoryProvider.overrideWithValue(repository),
           markLibraryRepositoryProvider.overrideWithValue(
             markLibrary ?? library,
@@ -119,7 +126,7 @@ void main() {
     expect(find.byType(RaceSetupScreen), findsOneWidget);
   });
 
-  testWidgets('mentéskor a bóyák a könyvtárba is kerülnek', (tester) async {
+  testWidgets('mentéskor a bóják a könyvtárba is kerülnek', (tester) async {
     // ARRANGE
     await openSetup(tester);
 
@@ -130,6 +137,55 @@ void main() {
     expect(library.saved, hasLength(1));
     expect(library.saved.single.name, 'Z1');
     expect(library.saved.single.sourceRaceName, 'Kedd esti');
+  });
+
+  testWidgets('a fejrész 58 dp magas (33a)', (tester) async {
+    // ARRANGE & ACT
+    await openSetup(tester);
+
+    // ASSERT
+    expect(tester.getSize(find.byType(AppBar)).height, 58);
+  });
+
+  testWidgets('a rajtidő és a rajthely a versenybe kerül', (tester) async {
+    // ARRANGE
+    await openSetup(tester);
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(RaceSetupScreen)),
+    )!;
+
+    // ACT - a valaszto a kovetkezo egesz oran nyilik (09:00), a rajthely
+    // a "Koordinata" uton kerul be.
+    await tester.tap(find.text(l10n.setupStartTimeEmpty));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.startTimeSheetDone));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.setupStartPointCoordinates));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Kedd esti');
+    await tester.enterText(fields.at(1), 'Rajt');
+    await tester.enterText(fields.at(2), '46.95');
+    await tester.enterText(fields.at(3), '17.9');
+    await tester.enterText(fields.at(4), 'Z1');
+    await tester.enterText(fields.at(5), '46.9');
+    await tester.enterText(fields.at(6), '18.05');
+    await tester.tap(_saveButton(tester));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a verseny mindkettot viszi, a konyvtar a rajthelyet is
+    // kapja, elsonek (ADR 0055 D3).
+    final race = repository.saved.single;
+    expect(race.scheduledStartAt, DateTime(2026, 10, 12, 9).toUtc());
+    expect(
+      race.startPoint,
+      const StartPoint(
+        name: 'Rajt',
+        position: Coordinate(latitude: 46.95, longitude: 17.9),
+      ),
+    );
+    expect(library.saved.map((m) => m.name).toList(), ['Rajt', 'Z1']);
+    expect(library.saved.first.sourceRaceName, 'Kedd esti');
   });
 
   testWidgets('a könyvtár-írás hibája nem blokkolja a verseny-mentést', (

@@ -790,6 +790,150 @@ abstract class AppLocalizations {
   /// **'Nincs találat erre a névre.'**
   String get setupPickFromLibraryNoMatch;
 
+  /// A verseny-űrlap rajtidő-kártyájának címkéje (33a).
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT IDŐPONTJA'**
+  String get setupStartTimeLabel;
+
+  /// A rajtidő-kártya üres állapota (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs tervezett rajt — kézzel indul'**
+  String get setupStartTimeEmpty;
+
+  /// A rajtidő-kártya ürítő gombjának tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajtidő törlése'**
+  String get setupStartTimeClear;
+
+  /// Halk jelzés: az elmúlt rajtidő még a mai késési ablakon belül van (ADR 0055 D7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez az időpont már elmúlt — a verseny visszamenőleg indul.'**
+  String get setupStartTimePastRetroactive;
+
+  /// Halk jelzés: az elmúlt rajtidő az automatikus rajt ablakán kívül esik.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.'**
+  String get setupStartTimePastManual;
+
+  /// A verseny-űrlap rajthely-szakaszának címkéje (33a).
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJTHELY'**
+  String get setupStartPointSection;
+
+  /// Az üres rajthely-kártya felső sora (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely hozzáadása'**
+  String get setupStartPointAdd;
+
+  /// Az üres rajthely-kártya útja: a rajthely kézi megadása (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Koordináta'**
+  String get setupStartPointCoordinates;
+
+  /// A rajthely név-mezőjének helyőrzője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely neve'**
+  String get setupStartPointNameLabel;
+
+  /// A rajthely-kártya törlés-gombjának tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely törlése'**
+  String get setupStartPointRemove;
+
+  /// A rajtidő-választó (33c) címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt időpontja'**
+  String get startTimeSheetTitle;
+
+  /// A rajtidő-választó hónap-léptetőjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Előző hónap'**
+  String get startTimeSheetPreviousMonth;
+
+  /// A rajtidő-választó hónap-léptetőjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Következő hónap'**
+  String get startTimeSheetNextMonth;
+
+  /// A naptár oszlopfejlécei hétfővel kezdve, |-vel elválasztva.
+  ///
+  /// In hu, this message translates to:
+  /// **'H|K|Sze|Cs|P|Szo|V'**
+  String get startTimeSheetWeekdays;
+
+  /// A hónapok teljes neve |-vel elválasztva, a naptár hónap-sorához.
+  ///
+  /// In hu, this message translates to:
+  /// **'január|február|március|április|május|június|július|augusztus|szeptember|október|november|december'**
+  String get startTimeSheetMonths;
+
+  /// A naptár hónap-sora, pl. 2026. október (a kód verzáloz).
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month}'**
+  String startTimeSheetMonth(int year, String month);
+
+  /// A rajtidő-választó idő-sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'IDŐPONT'**
+  String get startTimeSheetTime;
+
+  /// A rajtidő-választó idő-sorának alcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'24 órás'**
+  String get startTimeSheetClock24;
+
+  /// Az óra-léptető fel-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Óra növelése'**
+  String get startTimeSheetHourUp;
+
+  /// Az óra-léptető le-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Óra csökkentése'**
+  String get startTimeSheetHourDown;
+
+  /// A perc-léptető fel-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Perc növelése'**
+  String get startTimeSheetMinuteUp;
+
+  /// A perc-léptető le-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Perc csökkentése'**
+  String get startTimeSheetMinuteDown;
+
+  /// A rajtidő-választó ürítő gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs rajtidő'**
+  String get startTimeSheetClear;
+
+  /// A rajtidő-választó jóváhagyó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kész'**
+  String get startTimeSheetDone;
+
   /// A bója-lista verzál szakasz-címkéje a detail-képernyőn.
   ///
   /// In hu, this message translates to:

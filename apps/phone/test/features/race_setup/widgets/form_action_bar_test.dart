@@ -44,7 +44,7 @@ void main() {
     expect(find.text('Mentes'), findsOneWidget);
   });
 
-  testWidgets('gives the cells the same width and a 56 dp height', (
+  testWidgets('gives the cells the same width and a 58 dp height', (
     tester,
   ) async {
     // ARRANGE & ACT
@@ -57,8 +57,8 @@ void main() {
     final left = tester.getSize(find.byType(TextButton).first);
     final right = tester.getSize(find.byType(TextButton).last);
     expect(left.width, right.width);
-    expect(left.height, 56);
-    expect(right.height, 56);
+    expect(left.height, 58);
+    expect(right.height, 58);
   });
 
   testWidgets('fires the callback of the tapped cell', (tester) async {
@@ -135,7 +135,7 @@ void main() {
     final bar = tester.getSize(find.byType(FormActionBar));
     final primary = tester.getSize(find.byType(FilledButton));
     expect(primary.width, bar.width);
-    expect(primary.height, 60);
+    expect(primary.height, 62);
   });
 
   // Egyetlen akcional nincs oszto vonal, tehat a cella a teljes sort kapja.

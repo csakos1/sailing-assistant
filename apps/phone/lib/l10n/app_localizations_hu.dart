@@ -400,6 +400,83 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibraryNoMatch => 'Nincs találat erre a névre.';
 
   @override
+  String get setupStartTimeLabel => 'RAJT IDŐPONTJA';
+
+  @override
+  String get setupStartTimeEmpty => 'Nincs tervezett rajt — kézzel indul';
+
+  @override
+  String get setupStartTimeClear => 'Rajtidő törlése';
+
+  @override
+  String get setupStartTimePastRetroactive =>
+      'Ez az időpont már elmúlt — a verseny visszamenőleg indul.';
+
+  @override
+  String get setupStartTimePastManual =>
+      'Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.';
+
+  @override
+  String get setupStartPointSection => 'RAJTHELY';
+
+  @override
+  String get setupStartPointAdd => 'Rajthely hozzáadása';
+
+  @override
+  String get setupStartPointCoordinates => 'Koordináta';
+
+  @override
+  String get setupStartPointNameLabel => 'Rajthely neve';
+
+  @override
+  String get setupStartPointRemove => 'Rajthely törlése';
+
+  @override
+  String get startTimeSheetTitle => 'Rajt időpontja';
+
+  @override
+  String get startTimeSheetPreviousMonth => 'Előző hónap';
+
+  @override
+  String get startTimeSheetNextMonth => 'Következő hónap';
+
+  @override
+  String get startTimeSheetWeekdays => 'H|K|Sze|Cs|P|Szo|V';
+
+  @override
+  String get startTimeSheetMonths =>
+      'január|február|március|április|május|június|július|augusztus|szeptember|október|november|december';
+
+  @override
+  String startTimeSheetMonth(int year, String month) {
+    return '$year. $month';
+  }
+
+  @override
+  String get startTimeSheetTime => 'IDŐPONT';
+
+  @override
+  String get startTimeSheetClock24 => '24 órás';
+
+  @override
+  String get startTimeSheetHourUp => 'Óra növelése';
+
+  @override
+  String get startTimeSheetHourDown => 'Óra csökkentése';
+
+  @override
+  String get startTimeSheetMinuteUp => 'Perc növelése';
+
+  @override
+  String get startTimeSheetMinuteDown => 'Perc csökkentése';
+
+  @override
+  String get startTimeSheetClear => 'Nincs rajtidő';
+
+  @override
+  String get startTimeSheetDone => 'Kész';
+
+  @override
   String get detailCourseLabel => 'PÁLYA';
 
   @override

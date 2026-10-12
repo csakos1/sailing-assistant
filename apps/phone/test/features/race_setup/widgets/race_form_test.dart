@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
+import 'package:phone/features/race_setup/race_form_result.dart';
+import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
 import 'package:phone/features/race_setup/widgets/race_form.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/widgets/foretack_switch.dart';
@@ -20,12 +22,17 @@ void main() {
   );
 
   // A RaceForm-ot egy Scaffold-ba ágyazzuk (Material + textTheme + l10n).
-  // Az onSubmit-et a hívó köti be, hogy a kibocsátott párt elkaphassa.
+  // Az onSubmit-et a hivo koti be, hogy a kibocsatott eredmenyt elkaphassa.
+  // A nagyobb viewport miatt minden kartya a kepernyon van.
   Future<void> pumpForm(
     WidgetTester tester, {
-    required void Function(String name, List<Mark> marks) onSubmit,
+    required void Function(RaceFormResult result) onSubmit,
     Race? initialRace,
   }) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
         theme: foretackTheme,
@@ -47,6 +54,13 @@ void main() {
     AppLocalizations.of(tester.element(find.byType(RaceForm)))!.setupSave,
   );
 
+  // A "+" es a "Korabbi bojak" ikon a rajthely ures kartyajan is ott van,
+  // ezert a sav gombjait a FormActionBar-on belul keressuk.
+  Finder barIcon(IconData icon) => find.descendant(
+    of: find.byType(FormActionBar),
+    matching: find.byIcon(icon),
+  );
+
   testWidgets('edit módban feltölti a mezőket az initialRace-ből', (
     tester,
   ) async {
@@ -56,7 +70,7 @@ void main() {
       name: 'Régi',
       marks: const [markA, markB],
     );
-    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+    await pumpForm(tester, initialRace: race, onSubmit: (_) {});
 
     // ASSERT — a név és mindkét bója adatai a mezőkbe töltődtek.
     expect(find.text('Régi'), findsOneWidget);
@@ -79,7 +93,7 @@ void main() {
     await pumpForm(
       tester,
       initialRace: race,
-      onSubmit: (_, marks) => emitted = marks,
+      onSubmit: (result) => emitted = result.marks,
     );
 
     // ACT
@@ -105,7 +119,7 @@ void main() {
     await pumpForm(
       tester,
       initialRace: race,
-      onSubmit: (_, marks) => emitted = marks,
+      onSubmit: (result) => emitted = result.marks,
     );
 
     // ACT — a reordert a ReorderableListView publikus onReorder
@@ -129,11 +143,11 @@ void main() {
 
   testWidgets('a hozzáadás gomb új bója-sort ad', (tester) async {
     // ARRANGE — create: egy bója-sorral indul (név + 1 sor = 4 mező).
-    await pumpForm(tester, onSubmit: (_, _) {});
+    await pumpForm(tester, onSubmit: (_) {});
     expect(find.byType(TextFormField), findsNWidgets(4));
 
     // ACT
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(barIcon(Icons.add));
     await tester.pumpAndSettle();
 
     // ASSERT — két sor (név + 2 sor = 7 mező).
@@ -147,7 +161,7 @@ void main() {
       name: 'V',
       marks: const [markA, markB],
     );
-    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+    await pumpForm(tester, initialRace: race, onSubmit: (_) {});
     expect(find.byType(TextFormField), findsNWidgets(7));
 
     // ACT — az első sort töröljük.
@@ -161,7 +175,7 @@ void main() {
   testWidgets('érvénytelen szélesség blokkolja a submitot', (tester) async {
     // ARRANGE
     var submitted = false;
-    await pumpForm(tester, onSubmit: (_, _) => submitted = true);
+    await pumpForm(tester, onSubmit: (_) => submitted = true);
 
     // ACT — mezők tree-sorrendben: verseny-név, bója-név, lat, lon.
     final fields = find.byType(TextFormField);
@@ -181,7 +195,7 @@ void main() {
   ) async {
     // ARRANGE
     List<Mark>? emitted;
-    await pumpForm(tester, onSubmit: (_, marks) => emitted = marks);
+    await pumpForm(tester, onSubmit: (result) => emitted = result.marks);
 
     // ACT — mezők tree-sorrendben: verseny-név, bója-név, lat, lon.
     final fields = find.byType(TextFormField);
@@ -201,7 +215,7 @@ void main() {
   testWidgets('DMS formátumú koordinátát elfogad', (tester) async {
     // ARRANGE
     List<Mark>? emitted;
-    await pumpForm(tester, onSubmit: (_, marks) => emitted = marks);
+    await pumpForm(tester, onSubmit: (result) => emitted = result.marks);
 
     // ACT
     final fields = find.byType(TextFormField);
@@ -223,7 +237,7 @@ void main() {
   ) async {
     // ARRANGE
     var submitted = false;
-    await pumpForm(tester, onSubmit: (_, _) => submitted = true);
+    await pumpForm(tester, onSubmit: (_) => submitted = true);
 
     // ACT — a lat egyik formátumként sem értelmezhető.
     final fields = find.byType(TextFormField);
@@ -240,7 +254,7 @@ void main() {
 
   testWidgets('a kapcsoló kiveszi a bója-blokkot a fából', (tester) async {
     // ARRANGE — create: név + 1 bója-sor = 4 mező.
-    await pumpForm(tester, onSubmit: (_, _) {});
+    await pumpForm(tester, onSubmit: (_) {});
     expect(find.byType(TextFormField), findsNWidgets(4));
 
     // ACT
@@ -251,8 +265,8 @@ void main() {
     // könyvtár-választó is eltűnt.
     expect(find.byType(TextFormField), findsNWidgets(1));
     expect(find.byType(ReorderableListView), findsNothing);
-    expect(find.byIcon(Icons.add), findsNothing);
-    expect(find.byIcon(Icons.history), findsNothing);
+    expect(barIcon(Icons.add), findsNothing);
+    expect(barIcon(Icons.history), findsNothing);
   });
 
   testWidgets('bekapcsolva üres listát ad ki, validáció nélkül', (
@@ -263,9 +277,9 @@ void main() {
     List<Mark>? emitted;
     await pumpForm(
       tester,
-      onSubmit: (name, marks) {
-        emittedName = name;
-        emitted = marks;
+      onSubmit: (result) {
+        emittedName = result.name;
+        emitted = result.marks;
       },
     );
     await tester.enterText(find.byType(TextFormField).at(0), 'Túra');
@@ -288,7 +302,7 @@ void main() {
       name: 'V',
       marks: const [markA, markB],
     );
-    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+    await pumpForm(tester, initialRace: race, onSubmit: (_) {});
 
     // ACT — ki, majd vissza.
     await tester.tap(find.byType(ForetackSwitch));
@@ -305,10 +319,59 @@ void main() {
   testWidgets('edit-mód üres bójákkal bekapcsolva indul', (tester) async {
     // ARRANGE & ACT — az ADR 0046 D1 óta ez érvényes Race.
     final race = Race.create(id: 'r1', name: 'Túra', marks: const []);
-    await pumpForm(tester, initialRace: race, onSubmit: (_, _) {});
+    await pumpForm(tester, initialRace: race, onSubmit: (_) {});
 
     // ASSERT — csak a verseny-név mezője látszik.
     expect(find.byType(TextFormField), findsNWidgets(1));
-    expect(find.byIcon(Icons.add), findsNothing);
+    expect(barIcon(Icons.add), findsNothing);
+  });
+
+  // Regresszio-or: egy lusta lista a kigorgetett kartyat lebontana, es a
+  // Form.validate() azt a mezot mar nem futtatna - az ures nev atcsuszna.
+  testWidgets('validates a scrolled-away card on the default viewport', (
+    tester,
+  ) async {
+    // ARRANGE - alap 800x600 viewport, sok boja.
+    var submitted = false;
+    final race = Race.create(
+      id: 'r1',
+      name: 'V',
+      marks: [
+        for (var i = 1; i <= 10; i++)
+          Mark(
+            sequence: i,
+            name: 'M$i',
+            position: const Coordinate(latitude: 46.9, longitude: 18),
+          ),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: foretackTheme,
+        locale: const Locale('hu'),
+        localizationsDelegates: phoneLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: RaceForm(
+            initialRace: race,
+            onSubmit: (_) => submitted = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '');
+
+    // ACT - az aljara gorgetunk, majd mentunk.
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -3000),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton(tester));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(submitted, isFalse);
   });
 }

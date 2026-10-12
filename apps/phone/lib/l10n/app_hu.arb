@@ -557,6 +557,110 @@
   "@setupPickFromLibraryNoMatch": {
     "description": "A bója-választó üres állapota név szerinti szűrés után."
   },
+  "setupStartTimeLabel": "RAJT IDŐPONTJA",
+  "@setupStartTimeLabel": {
+    "description": "A verseny-űrlap rajtidő-kártyájának címkéje (33a)."
+  },
+  "setupStartTimeEmpty": "Nincs tervezett rajt — kézzel indul",
+  "@setupStartTimeEmpty": {
+    "description": "A rajtidő-kártya üres állapota (33b)."
+  },
+  "setupStartTimeClear": "Rajtidő törlése",
+  "@setupStartTimeClear": {
+    "description": "A rajtidő-kártya ürítő gombjának tooltipje."
+  },
+  "setupStartTimePastRetroactive": "Ez az időpont már elmúlt — a verseny visszamenőleg indul.",
+  "@setupStartTimePastRetroactive": {
+    "description": "Halk jelzés: az elmúlt rajtidő még a mai késési ablakon belül van (ADR 0055 D7)."
+  },
+  "setupStartTimePastManual": "Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.",
+  "@setupStartTimePastManual": {
+    "description": "Halk jelzés: az elmúlt rajtidő az automatikus rajt ablakán kívül esik."
+  },
+  "setupStartPointSection": "RAJTHELY",
+  "@setupStartPointSection": {
+    "description": "A verseny-űrlap rajthely-szakaszának címkéje (33a)."
+  },
+  "setupStartPointAdd": "Rajthely hozzáadása",
+  "@setupStartPointAdd": {
+    "description": "Az üres rajthely-kártya felső sora (33b)."
+  },
+  "setupStartPointCoordinates": "Koordináta",
+  "@setupStartPointCoordinates": {
+    "description": "Az üres rajthely-kártya útja: a rajthely kézi megadása (33b)."
+  },
+  "setupStartPointNameLabel": "Rajthely neve",
+  "@setupStartPointNameLabel": {
+    "description": "A rajthely név-mezőjének helyőrzője."
+  },
+  "setupStartPointRemove": "Rajthely törlése",
+  "@setupStartPointRemove": {
+    "description": "A rajthely-kártya törlés-gombjának tooltipje."
+  },
+  "startTimeSheetTitle": "Rajt időpontja",
+  "@startTimeSheetTitle": {
+    "description": "A rajtidő-választó (33c) címe."
+  },
+  "startTimeSheetPreviousMonth": "Előző hónap",
+  "@startTimeSheetPreviousMonth": {
+    "description": "A rajtidő-választó hónap-léptetőjének tooltipje."
+  },
+  "startTimeSheetNextMonth": "Következő hónap",
+  "@startTimeSheetNextMonth": {
+    "description": "A rajtidő-választó hónap-léptetőjének tooltipje."
+  },
+  "startTimeSheetWeekdays": "H|K|Sze|Cs|P|Szo|V",
+  "@startTimeSheetWeekdays": {
+    "description": "A naptár oszlopfejlécei hétfővel kezdve, |-vel elválasztva."
+  },
+  "startTimeSheetMonths": "január|február|március|április|május|június|július|augusztus|szeptember|október|november|december",
+  "@startTimeSheetMonths": {
+    "description": "A hónapok teljes neve |-vel elválasztva, a naptár hónap-sorához."
+  },
+  "startTimeSheetMonth": "{year}. {month}",
+  "@startTimeSheetMonth": {
+    "description": "A naptár hónap-sora, pl. 2026. október (a kód verzáloz).",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "startTimeSheetTime": "IDŐPONT",
+  "@startTimeSheetTime": {
+    "description": "A rajtidő-választó idő-sorának címkéje."
+  },
+  "startTimeSheetClock24": "24 órás",
+  "@startTimeSheetClock24": {
+    "description": "A rajtidő-választó idő-sorának alcíme."
+  },
+  "startTimeSheetHourUp": "Óra növelése",
+  "@startTimeSheetHourUp": {
+    "description": "Az óra-léptető fel-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetHourDown": "Óra csökkentése",
+  "@startTimeSheetHourDown": {
+    "description": "Az óra-léptető le-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetMinuteUp": "Perc növelése",
+  "@startTimeSheetMinuteUp": {
+    "description": "A perc-léptető fel-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetMinuteDown": "Perc csökkentése",
+  "@startTimeSheetMinuteDown": {
+    "description": "A perc-léptető le-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetClear": "Nincs rajtidő",
+  "@startTimeSheetClear": {
+    "description": "A rajtidő-választó ürítő gombja."
+  },
+  "startTimeSheetDone": "Kész",
+  "@startTimeSheetDone": {
+    "description": "A rajtidő-választó jóváhagyó gombja."
+  },
   "detailCourseLabel": "PÁLYA",
   "@detailCourseLabel": {
     "description": "A bója-lista verzál szakasz-címkéje a detail-képernyőn."
