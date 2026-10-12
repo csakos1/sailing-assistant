@@ -3617,7 +3617,11 @@ lévő, mai és későbbi rajt szerint, elmaradt, rajtidő nélküliek), a
 meta-sort a
 `raceListMetaOf`; a mai és a futó verseny sora kiemelt; 64 dp-s fejrész
 a `tabTitleStyle`-lal, 56 dp-s „Új verseny", üres állapot a lista
-helyén.
+helyén. **Kész (U6):** a versenyrészlet a 32a–c szerint: a telefon saját
+csíkja (rajtidő vagy eltelt idő), rajthely- és bója-sora (a web a
+`foretack_ui` régi widgetjeit tartja); az alsó sáv akcióját a tiszta
+`detailActionOf` adja („AUTOMATIKUS 09:00 | Rajt most", „Rajt", „Cél"),
+és a rajt és a cél megerősítést kér.
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

@@ -2,7 +2,7 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1–U5 kész (2026-10-11/12); a
+Elfogadva — 2026-10-10. Implementálva: az U1–U6 kész (2026-10-11/12); a
 többi szelet a „Szeletek" sorrendjében követi, docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
@@ -513,3 +513,69 @@ képernyők (U3, U4) replay-próbát is kapnak.
 - **Ami nem változott:** a webes szalagok, a QR-belépés snackbarja, a
   betöltés és a hiba-sor; a `WebAccessRefresher` a héjban bármelyik fül
   mellett frissít előtérbe kerüléskor, push-olt képernyő alatt nem.
+
+## Pontosítás a kód után (U6, 2026-10-12)
+
+- **A felhasználó döntései** (a régi–új összevetés után):
+  - a csík, a rajthely-sor és a bója-sor **a telefon saját widgetje**
+    (`features/race_detail/widgets/`: `RaceDetailStrip`,
+    `DetailStartPointRow`, `DetailCourseMarkRow`, `DetailTag`); a
+    `foretack_ui` `DetailStatusStrip`-je és `DetailMarkRow`-ja változatlan,
+    a webes részletező a régi formát tartja;
+  - a koordináta **tizedes fok** marad („46.9535, 17.8980", ADR 0044 D25),
+    nem a makett fok-perces alakja: a bevitel is tizedes fok
+    (`phone-ui-v1.md` §5); a §4 állítása, hogy a mai formátum a fok-perc,
+    téves volt;
+  - egy rajtidős verseny csak akkor kap „AUTOMATIKUS" cellát, ha az engine
+    még magától indítaná: a rajtidő ablaka (3 óra,
+    `SelectInstrumentsRace.defaultLateStartWindow`) nem járt le, és a rajt
+    napja nem korábbi a mainál (egy tegnapi versenyt a nap versenye nem
+    választ ki, ADR 0055 D5). Különben a sima „Rajt" jár, a csík a rajtidőt
+    továbbra is mutatja. Ismert korlát: a cella nem nézi, hogy ma ez-e a
+    nap versenye; ha több mai verseny közül egy korábbi vagy a Műszerek
+    kézi választása nyer, az engine ezt nem indítja magától, a cella
+    mégis „AUTOMATIKUS"-t ír;
+  - a „Rajt" és a „Rajt most" a Műszerek „Rajt most?" dialógusát kapja;
+    tervezett rajtnál a szöveg kimondja, hogy a verseny a tervezett idő
+    helyett most indul. A „Cél" saját dialógust kap („Cél?" / „A verseny
+    most véget ér: a rögzítés leáll, és a track lezárul."), romboló
+    gombbal.
+- **Az akció** a tiszta `detailActionOf`-é
+  (`features/race_detail/detail_action.dart`, sealed `DetailAction`:
+  `DetailScheduledStart`, `DetailStart`, `DetailFinish`; befejezettnél
+  `null`). Nem időzít: a lejárt ablak a képernyő következő újraépülésekor
+  vált „Rajt"-ra (egy közben megnyomott „Rajt most" ugyanúgy indít).
+- **A megerősítés után a friss állapot dönt** (az U4 „Rajt most"-jának
+  mintájára): a notifier a dialógus előtt elfogva, utána a verseny friss
+  példánya (az aktív holder vagy a reaktív lista); ha közben az engine
+  magától rajtolt (vagy lezárta a versenyt), a kézi rajt (cél) elmarad, és
+  nem írja felül az átvett időt.
+- **A csík** (`surfaceContainer`, 12 / 20, alul hairline): a `StatusBadge`
+  és jobbra „RAJT" + „MA 09:00" / „OKT. 11. 10:30", rajtidő nélkül „NINCS
+  TERVEZETT RAJT", folyamatban a 4 dp-s `primary` sín és az eltelt idő
+  („00:42:10", egy kétnapos versenyen „30:12:05"), másodpercenként egy
+  külön widgetben (`tickProvider`), hogy csak az épüljön újra. Befejezettnél
+  a befejezés napja marad (a makett nem rajzolja). A bójaszám kikerült a
+  csíkból.
+- **A rajthely-sor** a pálya-lista élén (zászló, „Rajthely — név",
+  koordináta, „RAJTHELY" keretes címke); elindult (és befejezett)
+  versenyen 60%-ra tompul, és a koordináta helyén a tényleges rajt
+  („RAJT 09:00:00").
+- **A bója-sor:** 15 / w600 név (`onSurfaceVariant`), 13 / w700 sorszám,
+  11-es koordináta; az aktív bója `surfaceContainer` hátteret, `primary`
+  sínt és sorszámot, `onSurface` nevet és „AKTÍV" címkét kap. A megkerült
+  bója jobb szélén a megkerülés ideje marad (ADR 0044 Addendum 3; a makett
+  nem rajzolja). A „PÁLYA" szakaszcímke is marad.
+- **Az alsó sáv** 62 dp, felső hairline: „AUTOMATIKUS" + idő | „Rajt most"
+  (10 : 13), „Rajt", vagy a semleges „Cél". Az „AUTOMATIKUS" cella más
+  napon a napot is írja („OKT. 13. 09:00"), szűk helyen kicsinyít
+  (`FittedBox`). A `detailStart` „Rajt", a `detailFinish` „Cél" lett.
+- **A fejrész** 58 dp, alul hairline; a ceruza (csak `notStarted`) és a
+  kuka marad, a törlés változatlan (U8).
+- **Közös formázók** a `lib/format/`-ban: `formatRaceDate` /
+  `formatRaceDay` / `formatRaceStart` (a lista meta-sora is ezt használja),
+  `formatElapsed`, `formatDecimalCoordinate`, `formatClockWithSeconds`.
+- **Ami nem változott:** a befejezett verseny nézete (post-race elemzés,
+  track-kártya, teljes képernyős térkép és PNG-export); egy másik futó
+  verseny mellett indított „Rajt" a régit a DB nélkül engedi el (a
+  törléssel együtt az U8-é).

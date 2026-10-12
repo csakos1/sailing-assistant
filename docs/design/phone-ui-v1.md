@@ -224,6 +224,16 @@ A „Rajt most", a „Rajt" és a „Cél" megerősítő dialógust kér (35d ny
 Ha a „Rajt most" egy olyan versenyt indít, ami nem a Műszerek fülön
 kiválasztott (ADR 0055 D5), az indítás egyben ki is választja.
 
+**A kód szerint (U6):** a csík és a sorok a telefon saját widgetjei, a
+web a régit tartja; a koordináta tizedes fok marad (felhasználói döntés;
+a fenti „mai formátum" állítás téves volt); az „AUTOMATIKUS" cella csak
+akkor jár, ha az engine még magától indítana (az ablak nem járt le, és a
+rajt napja nem korábbi a mainál), különben a sima „Rajt"; más napon a
+cella a napot is írja. A „Rajt" és a „Rajt most" a Műszerek „Rajt most?"
+dialógusát kapja (tervezett rajtnál egy mondattal a tervezett időről), a
+„Cél" a sajátját, romboló gombbal. Befejezettnél a csík a befejezés
+napját mutatja; a megkerült bója ideje és a „PÁLYA" címke marad.
+
 ## 5. Új verseny / szerkesztés (33a, 33b, 33c) — push, sáv nélkül
 
 **Fejrész:** 58 dp, vissza-nyíl, „Új verseny" vagy „Verseny szerkesztése"
@@ -258,7 +268,8 @@ kiválasztott (ADR 0055 D5), az indítás egyben ki is választja.
 **Koordináta-bevitel:** marad a mai **tizedes fok** (felhasználói döntés,
 2026-10-10; mezőcímke „Szélesség (°)" / „Hosszúság (°)", a mai
 validációval). Kitöltött, nem szerkesztett állapotban a kártya a
-részlettel azonos fok-perc alakban mutatja (`46° 57,210′ É`). A
+részlettel azonos fok-perc alakban mutatja (`46° 57,210′ É`); az U6 óta
+a részlet tizedes fokot mutat, ezért ezt az U7 összevetése dönti el. A
 fok-perces bevitel a `docs/deferred.md` „DDM-előtöltés" tétele.
 
 **Alsó sávok:** „Bója hozzáadása" | „Korábbi bóják" kettéosztott, 58 dp-s
