@@ -712,13 +712,13 @@ abstract class AppLocalizations {
   /// **'{month}'**
   String logMonth(DateTime month);
 
-  /// Verseny-darabszám a napló évsávján és hónap-fejlécein (verzál).
+  /// Verseny-darabszám a napló fejrészében és hónap-fejlécein (verzál).
   ///
   /// In hu, this message translates to:
   /// **'{count} VERSENY'**
   String logRaceCountCaps(int count);
 
-  /// A versenyszám helye az évsávon, amíg a napló töltődik (makett 35f).
+  /// A versenyszám helye a napló fejrészében, amíg a napló töltődik (makett 35f).
   ///
   /// In hu, this message translates to:
   /// **'–– VERSENY'**

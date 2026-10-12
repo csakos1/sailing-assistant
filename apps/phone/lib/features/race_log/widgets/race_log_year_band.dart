@@ -16,8 +16,9 @@ typedef RaceLogBandStat = ({
 /// helyén nagy számmal, a többi tompított, koppintható számként, alapvonalra
 /// igazítva — maga az évsor a választó, mint a weben. A váltás 150 ms-os
 /// animáció. Ha az évek nem férnek ki, a sor oldalra görgethető. Alatta a
-/// versenyszám, a három stat és alul a 2 dp-s vonal; betöltés közben a
-/// vonal helyén mozgó sáv fut (makett 35f).
+/// három stat és alul a 2 dp-s vonal; betöltés közben a vonal helyén mozgó
+/// sáv fut (makett 35f). A versenyszám nem a sávban, hanem a képernyő
+/// fejrészében áll, a cím mellett jobbra (felhasználói döntés, UF).
 ///
 /// A webes `RaceLogYearSelector`-tól azért külön widget, mert a telefonon
 /// minden évnek 48 dp-s tapintási felület kell (a webé egérre szabott), és
@@ -30,7 +31,6 @@ class RaceLogYearBand extends StatelessWidget {
   const RaceLogYearBand({
     required this.years,
     required this.selectedYear,
-    required this.countLabel,
     required this.stats,
     this.onYearSelected,
     this.isLoading = false,
@@ -42,9 +42,6 @@ class RaceLogYearBand extends StatelessWidget {
 
   /// A kiválasztott év; `null`, amíg a napló töltődik.
   final int? selectedYear;
-
-  /// A kiválasztott év versenyszámának kész, verzál felirata.
-  final String countLabel;
 
   /// A három stat, balról jobbra.
   final List<RaceLogBandStat> stats;
@@ -71,16 +68,14 @@ class RaceLogYearBand extends StatelessWidget {
   // A betöltés alatti nagy szám helyén álló hiányjel (makett 35f).
   static const String _pendingYear = '––––';
 
-  static const TextStyle _countStyle = TextStyle(
-    fontFamily: numeralFontFamily,
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-  );
+  // Az évsor és a stat-sor közti rés. A kiválasztott év saját 5 dp-s alsó
+  // betétjével és a számjegyek alatti üres sávval együtt kb. 20 dp, mint a
+  // sáv két szélén.
+  static const double _yearToStatsGap = 14;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final tones = Theme.of(context).extension<TextTones>()!;
     final selected = selectedYear;
     final select = onYearSelected;
 
@@ -126,8 +121,7 @@ class RaceLogYearBand extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(countLabel, style: _countStyle.copyWith(color: tones.low)),
-                const SizedBox(height: 20),
+                const SizedBox(height: _yearToStatsGap),
                 // Nagy betűméretnél vagy keskeny kijelzőn kicsinyít, sosem
                 // csordul túl.
                 FittedBox(

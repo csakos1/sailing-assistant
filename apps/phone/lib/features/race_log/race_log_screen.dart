@@ -17,11 +17,11 @@ import 'package:phone/providers/race_log_year_provider.dart';
 /// (ADR 0056 D2, D4; makett 35a, 35f).
 ///
 /// A fejrész a Versenyek füléével azonos (64 dp, `tabTitleStyle`, alsó
-/// hairline). Alatta az évsáv a webes 7c mintájára: maga az évsor a
-/// választó, alatta a kiválasztott év versenyszáma és három statja. A
-/// képernyőn nincs év-független szám: amit a felhasználó lát, az a
-/// kiválasztott évhez tartozik (D38). A hónap-fejlécek és a sorok a mai
-/// napló szerint (felhasználói döntés, U8).
+/// hairline), jobb oldalán a kiválasztott év versenyszámával (UF). Alatta
+/// az évsáv a webes 7c mintájára: maga az évsor a választó, alatta a
+/// kiválasztott év három statja. A képernyőn nincs év-független szám: amit
+/// a felhasználó lát, az a kiválasztott évhez tartozik (D38). A
+/// hónap-fejlécek és a sorok a mai napló szerint (felhasználói döntés, U8).
 ///
 /// A három stat **nem egyszerre érkezik** (D42). A vízen töltött idő
 /// szinkron, a naplóval együtt már megvan; az össztáv és a rekord a
@@ -84,6 +84,8 @@ class RaceLogScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
     final log = ref.watch(raceLogProvider);
     final selected = ref.watch(raceLogSelectedYearProvider);
     final timeOnWater = ref.watch(raceLogTimeOnWaterProvider);
@@ -92,6 +94,14 @@ class RaceLogScreen extends ConsumerWidget {
     // mutatjuk az új év alatt (D38), hanem a számolás jelét.
     final isTotalsPending = totalsAsync.isLoading;
     final totals = isTotalsPending ? null : totalsAsync.valueOrNull;
+    // A versenyszám a fejrészben (UF), a törzzsel azonos állapot szerint:
+    // töltés alatt hiányjellel, üres naplónál és hibánál nincs.
+    final countLabel = log.when<String?>(
+      loading: () => l10n.logRaceCountPendingCaps,
+      error: (_, _) => null,
+      data: (_) =>
+          selected == null ? null : l10n.logRaceCountCaps(selected.raceCount),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -103,6 +113,18 @@ class RaceLogScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
         title: Text(l10n.logTitle, style: tabTitleStyle),
+        actions: [
+          if (countLabel != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: Center(
+                child: Text(
+                  countLabel,
+                  style: numeralCaptionStyle.copyWith(color: tones.low),
+                ),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
         child: log.when(
@@ -112,7 +134,6 @@ class RaceLogScreen extends ConsumerWidget {
               RaceLogYearBand(
                 years: const [],
                 selectedYear: null,
-                countLabel: l10n.logRaceCountPendingCaps,
                 stats: _pendingStats(l10n),
                 isLoading: true,
               ),
@@ -138,7 +159,6 @@ class RaceLogScreen extends ConsumerWidget {
                     ref.read(raceLogYearSelectionProvider.notifier).state =
                         year;
                   },
-                  countLabel: l10n.logRaceCountCaps(selected.raceCount),
                   isLoading: isTotalsPending,
                   stats: [
                     _stat(l10n.logStatTimeCaps, measureHours(timeOnWater)),

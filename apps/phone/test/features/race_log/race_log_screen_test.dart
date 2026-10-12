@@ -104,7 +104,13 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(find.byType(RaceLogLoadingList), findsOneWidget);
       expect(find.text(l10n.logLoadingCaps), findsOneWidget);
-      expect(find.text(l10n.logRaceCountPendingCaps), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text(l10n.logRaceCountPendingCaps),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('––––'), findsOneWidget);
       expect(find.text('––,–'), findsNWidgets(3));
       expect(find.text('ó'), findsOneWidget);
@@ -125,6 +131,7 @@ void main() {
       expect(find.text(l10n.logEmptyTitle), findsOneWidget);
       expect(find.byType(RaceLogYearBand), findsNothing);
       expect(find.byType(RaceLogRow), findsNothing);
+      expect(find.textContaining('VERSENY'), findsNothing);
     });
   });
 
@@ -157,7 +164,7 @@ void main() {
       expect(find.text('Regi'), findsNothing);
     });
 
-    testWidgets('shows the year count in the year band', (tester) async {
+    testWidgets('shows the year count in the header', (tester) async {
       // Ket honapra osztva, kulonben az osszesito felirat egybeesne a
       // honap-fejlecevel, es a talalat nem lenne egyertelmu.
       await pumpScreen(
@@ -173,13 +180,25 @@ void main() {
         ]),
       );
 
+      // A versenyszam a fejresz jobb oldalan, nem az evsavban (UF).
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('3 VERSENY'),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: find.byType(RaceLogYearBand),
           matching: find.text('3 VERSENY'),
         ),
-        findsOneWidget,
+        findsNothing,
       );
+      final title = tester.getRect(find.text('Versenynapló'));
+      final count = tester.getRect(find.text('3 VERSENY'));
+      expect(count.left, greaterThan(title.right));
+      expect(count.center.dy, closeTo(title.center.dy, 0.5));
       expect(find.text('2 VERSENY'), findsOneWidget);
       expect(find.text('1 VERSENY'), findsOneWidget);
     });

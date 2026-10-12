@@ -490,7 +490,7 @@
   },
   "logRaceCountCaps": "{count} VERSENY",
   "@logRaceCountCaps": {
-    "description": "Verseny-darabszám a napló évsávján és hónap-fejlécein (verzál).",
+    "description": "Verseny-darabszám a napló fejrészében és hónap-fejlécein (verzál).",
     "placeholders": {
       "count": {
         "type": "int"
@@ -499,7 +499,7 @@
   },
   "logRaceCountPendingCaps": "–– VERSENY",
   "@logRaceCountPendingCaps": {
-    "description": "A versenyszám helye az évsávon, amíg a napló töltődik (makett 35f)."
+    "description": "A versenyszám helye a napló fejrészében, amíg a napló töltődik (makett 35f)."
   },
   "logStatTimeCaps": "VÍZEN TÖLTÖTT",
   "@logStatTimeCaps": {
