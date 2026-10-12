@@ -293,6 +293,18 @@ fölött):
 - A választó a dátumot és az időt **együtt** adja (ADR 0055 D1); csak
   dátum nem menthető.
 
+**A kód szerint (U7):** a koordináta-cellák mindig szerkeszthető mezők,
+tizedes fokkal előtöltve; a bevitel a DD mellett a DDM-et és a DMS-t is
+elfogadja (a fenti „tizedes fok" az előtöltésre igaz). A 33c a saját lapja,
+üres mezőről a mai nap következő egész óráján nyílik. Múltbeli rajtidő
+menthető, egy halk sorral a kártyán: „visszamenőleg indul" (ma, a 3 órás
+ablakon belül) vagy „magától nem indul, csak kézzel". A rajthely neve
+kötelező, bója nélküli versenyen is megadható, a könyvtárba is kerül; a
+szerkesztés megtartja a rajtidőt és a rajthelyet. A bója-sín sorszáma
+„01" alakú; a „×" tapintási doboza 48 dp. A push-képernyőn nincs
+navigációs sáv (§2). A hónap- és napnevek ARB-listából jönnek (§10
+eltérés, ADR 0056 U7).
+
 ## 6. Műszerek fül (34a, 34b, 34c)
 
 **Közös váz** (az 1c, ADR 0042):
@@ -426,6 +438,12 @@ A 10a változatlanul: fogantyú, keresőmező (a darabszám a mezőben, pl.
 nyelvén, a sorok egysorosak (bójanév + koordináta). A csoporton belüli
 elválasztók 20 dp-s betéttel, a csoportzáró vonal él-től él-ig. A sheet
 a rajthelyhez és a bójákhoz is ugyanez.
+
+**A kód szerint (U7):** cím nélkül; a darabszám a mezőben a látható
+találatoké („12 BÓJA"), üres könyvtárban nincs keresőmező. A csoport-fejléc
+a forrás-verseny neve, ahogy megadták (nem verzál), és a darabszám; a
+legutóbb mentett verseny áll elöl. A sor 50 dp: név és négy tizedes
+koordináta egy sorban; a forrás-címke a sorról lekerült.
 
 ## 9. Dialógus és snackbar (35d, 35e)
 

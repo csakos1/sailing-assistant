@@ -1,7 +1,8 @@
 # On-device próba — az engine-session (ADR 0054 E4)
 
 Kézi próba a Pixelen (és az órán): az E3 életciklusa valódi Androidon. Az
-automatikus rész a `packages/data/test/engine/race_engine_replay_test.dart`.
+automatikus rész a `packages/data/test/engine/race_engine_replay_test.dart`,
+a tervezett rajté (J) a `race_engine_scheduled_start_replay_test.dart`.
 Ez a lista azt nézi, amit egy unit-teszt nem lát: a kikapcsolt kijelzőt, a
 lesöpört appot, a folyamat-halált és az értesítést.
 
@@ -122,6 +123,28 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
 4. Home gomb, majd vissza az appba: a próba újra elindítja (a
    következő előtérbe kerüléskor).
 
+**J. Tervezett rajt rajthellyel (ADR 0055 T5, az U7 óta beállítható)**
+1. Replay fut (1., home-log `--loop`-pal). Új verseny „E4 tervezett":
+   - rajtidő: ma, **a következő percek egyikére** (a 33c lapon az óra és
+     a perc léptetőjével, „Kész");
+   - rajthely a „Koordináta" úton: **Rajt** = `47.5800, 18.8500`;
+   - egyetlen bója: **M1** = `47.5850, 18.8550`.
+2. Várt mentés után: a részlet „AUTOMATIKUS" cellája a rajtidővel; a
+   Műszerek fül rajt előtti nézete (34b) a **Rajt** felé vezet, nem az
+   M1 felé.
+3. Várj a rajtidőig, a telefon zárva (kikapcsolt kijelző).
+4. Várt: a rajtidőben az értesítés **„Foretack — verseny”**; az app
+   megnyitása után a verseny „Folyamatban”, és a rajt ideje a tervezett
+   idő (nem a megnyitásé). A Műszereken a cél az M1.
+5. Visszamenőleges rajt: új verseny „E4 visszamenőleg" a ma **fél órával
+   korábbi** rajtidővel. A kártyán a halk sor „visszamenőleg indul”;
+   mentés után a verseny néhány mp-en belül „Folyamatban”, a rajt ideje a
+   beírt (múltbeli) idő.
+6. Ablakon túli rajt: egy **tegnapi** rajtidő. A kártyán „magától nem
+   indul, csak kézzel”; mentés után a verseny „Nem indult” marad.
+7. Könyvtár: egy új verseny „Korábbi bóják” lapján a **Rajt** az
+   „E4 tervezett” csoportjában, az **M1** előtt.
+
 **I. Akkumulátor-mérés (ADR 0054 D8, előkészítés)**
 1. A töltő ne legyen bedugva. Az USB-töltés eltorzítja a mérést, ezért
    vezeték nélküli adb kell (az `adb reverse` azon is működik).
@@ -149,6 +172,7 @@ Minden pontnál: **lépés → várt eredmény**. Az eltérést a táblázatba �
 | G | | | |
 | H | | | |
 | I | | | |
+| J | | | |
 
 ## Takarítás
 

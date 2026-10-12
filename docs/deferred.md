@@ -591,6 +591,10 @@ ahhoz, hogy a sor hogyan néz ki.
 
 **Hivatkozás:** ADR 0044 D25.
 
+**Állapot (U7):** okafogyott. A setup tizedes fokkal tölt elő (a bevitel
+mindhárom alakot érti), a részlet az U6 óta tizedes fokot mutat; a kettő
+egyezik. A tétel a DDM-előtöltéssel együtt térhet vissza.
+
 ### A 60 dp-s sáv-váz közös widgetbe emelése (pontosított feltétel)
 
 **Mi:** a `ListActionBar` és a `DetailActionBar` közös vázának kiemelése.

@@ -3186,6 +3186,11 @@ tehát a csomagnak a **teljes tavat** kell fednie.
 
 ### 8.11 CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
 
+> **Az U7 óta (ADR 0056):** a setup / szerkesztés űrlapja és a korábbi
+> bóják lapja a §8.12 szerint épül (33a–c, 35c): kártyás bója-sorok 40 dp-s
+> sínnel, 58 / 62 dp-s sávok. Az itteni setup-vázlat és -geometria
+> az ADR 0044 állapotát rögzíti, történeti leírásként.
+
 Az ADR 0041 token-rétege app-wide hat, de az ADR 0042 csak az élő képernyő
 **elrendezését** építette át. A CRUD-felület (lista, setup, edit, detail, a
 két térkép-nézet) migrációja egy közös döntés-rekordban él (**ADR 0044**),
@@ -3621,7 +3626,15 @@ helyén. **Kész (U6):** a versenyrészlet a 32a–c szerint: a telefon saját
 csíkja (rajtidő vagy eltelt idő), rajthely- és bója-sora (a web a
 `foretack_ui` régi widgetjeit tartja); az alsó sáv akcióját a tiszta
 `detailActionOf` adja („AUTOMATIKUS 09:00 | Rajt most", „Rajt", „Cél"),
-és a rajt és a cél megerősítést kér.
+és a rajt és a cél megerősítést kér. **Kész (U7):** az új verseny és a
+szerkesztés a 33a–c szerint: rajtidő-kártya és a saját 33c lap
+(`features/race_setup/start_time/`, tiszta naptár-segédekkel), opcionális
+rajthely (a „Korábbi bóják" lapról vagy koordinátával), a bója és a
+rajthely közös `CoordinateCard`-ja, 58 / 62 dp-s sávok. A `RaceForm` egy
+`RaceFormResult` rekordot ad, így a szerkesztés megtartja a rajtidőt és a
+rajthelyet; a rajthely a bójakönyvtárba is kerül (ADR 0055 D3). A törzs
+nem lusta (`SingleChildScrollView`), hogy a `Form.validate()` minden
+kártyát lásson. A 35c lap versenyenként csoportosít (`groupSavedMarks`).
 
 **Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
 `_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,

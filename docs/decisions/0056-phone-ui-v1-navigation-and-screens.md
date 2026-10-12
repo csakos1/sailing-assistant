@@ -2,7 +2,7 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-10. Implementálva: az U1–U6 kész (2026-10-11/12); a
+Elfogadva — 2026-10-10. Implementálva: az U1–U7 kész (2026-10-11/12); a
 többi szelet a „Szeletek" sorrendjében követi, docs-first.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
@@ -579,3 +579,79 @@ képernyők (U3, U4) replay-próbát is kapnak.
   track-kártya, teljes képernyős térkép és PNG-export); egy másik futó
   verseny mellett indított „Rajt" a régit a DB nélkül engedi el (a
   törléssel együtt az U8-é).
+
+## Pontosítás a kód után (U7, 2026-10-12)
+
+- **A felhasználó döntései** (a régi–új összevetés után):
+  - a koordináta a kártyán **mindig szerkeszthető mező**, tizedes fokkal
+    előtöltve; a §5 „kitöltött, nem szerkesztett" fok-perces kijelző
+    állapota nem készül el;
+  - a rajtidő a **33c saját lapját** kapja (hétfővel kezdődő naptár, 24
+    órás óra- és perc-léptető, „Nincs rajtidő" / „Kész"), nem a Material
+    dátum- és időválasztóját;
+  - **múltbeli rajtidő menthető** (ADR 0055 D9), egy halk sorral a kártyán:
+    ha az engine még visszamenőleg indítaná (ma, a 3 órás ablakon belül,
+    ADR 0055 D5 / D7), „a verseny visszamenőleg indul", különben „a verseny
+    magától nem indul, csak kézzel";
+  - a 35c lap **versenyenként csoportosít**.
+- **A spec pontosítása:** a koordináta-bevitel nem csak tizedes fok. A
+  mezők a `ParseGeoAngle`-en át a DD-t, a DDM-et és a DMS-t is elfogadják
+  (ADR 0044 óta így volt); az U6 „a bevitel is tizedes fok" mondata az
+  előtöltésre igaz. A DDM-előtöltés továbbra is a `docs/deferred.md` tétele.
+- **Alapértékek, kérdés nélkül:**
+  - a választó üres mezőről a mai nap **következő egész óráján** nyílik
+    (23 óra után a következő nap 00:00-ján), kitöltöttről az értékén; a lap
+    bezárása választás nélkül nem változtat semmit;
+  - a rajtidő az állapotban UTC pillanat, a kártya és a lap helyi időben
+    mutatja („2026. okt. 10. · 09:00", mindig évvel: `formatScheduledStart`);
+  - a rajthely opcionális, **bója nélküli versenyen is** megadható (ADR
+    0055 D1); a neve kötelező (a `StartPoint` üres nevet nem fogad), a
+    koordinátái ugyanúgy validálódnak, mint a bójáéi;
+  - a „Koordináta" út üres mezőket ad, a fókusz a név-mezőn; a „Korábbi
+    bóják" út ugyanazt a 35c lapot nyitja, mint a sáv gombja;
+  - a rajthely „×"-e az egész rajthelyet törli, vissza az üres kártyára;
+    a rajthely nem húzható a bóják közé.
+- **Szerkesztés:** a `RaceForm` egy `RaceFormResult` rekordot ad ki (név,
+  bóják, rajtidő, rajthely); a setup és a szerkesztés is mind a négyet a
+  `Race.create`-nek adja, így a szerkesztés **megtartja** a rajtidőt és a
+  rajthelyet.
+- **Könyvtár (ADR 0055 D3):** a `persistRaceMarksToLibrary` a rajthelyet
+  is menti, a bóják előtt, ugyanazzal a forrás-versennyel és időbélyeggel.
+- **Az űrlap képe:** 58 dp-s fejrész (`screenTitleStyle`), alatta a név
+  (54 dp), a rajtidő-kártya (min. 62 dp), a bója nélküli kapcsoló kártyán,
+  „RAJTHELY" és „BÓJÁK n" szakasz-fejléc (címke, vonal, darabszám). A
+  rajthely és a bója közös kártyája a `CoordinateCard`: 40 dp-s sín
+  hairline-nal (a bójánál „01" és fogantyú, a rajthelynél zászló
+  `secondaryContainer` háttéren), 48 dp-s név-sor 48 dp-s tapintású „×"-szel,
+  két 44 dp-s koordináta-cella. Az alsó sávok 58 / 62 dp (a sáv mérete a
+  `FormActionBar`-é).
+- **Nincs navigációs sáv** a push-képernyőn: a makett rajzolja, de a D2 és
+  a `phone-ui-v1.md` §2 szerint a push a héj fölé kerül.
+- **Nem lusta görgetés:** az űrlap törzse `SingleChildScrollView` +
+  `Column`, nem `ListView`. A `Form.validate()` csak a fában lévő mezőket
+  futtatja; egy lusta lista a kigörgetett kártyát lebontaná, és az üres
+  név vagy a hibás rajthely validálatlanul jutna a mentésig (review-lelet,
+  regresszió-teszttel).
+- **A 35c lap:** nincs cím; a keresőmező jobb szélén a látható darabszám
+  („12 BÓJA"), üres könyvtárban a mező sem jelenik meg. A csoportok a
+  forrás-verseny nevével (ahogy megadták, nem verzálozva) és
+  darabszámmal, az első előfordulás sorrendjében — a könyvtár `savedAt`
+  szerint csökkenő, tehát a legutóbb mentett verseny áll elöl
+  (`groupSavedMarks`). A sor 50 dp, egysoros: név és négy tizedes
+  koordináta; a csoporton belüli vonal 20 dp-s betéttel, a csoportzáró
+  él-től él-ig. A forrás-címke a sorról lekerült (a csoport-fejléc
+  mondja).
+- **Hónap- és napnevek ARB-listából** (`startTimeSheetMonths`,
+  `startTimeSheetWeekdays`), a `webMonthsShort` mintájára, nem az `intl`
+  lokáléjából (a `phone-ui-v1.md` §10 ezt másképp írta): így a
+  `pubspec.yaml` nem változik, és a fordítás egy ARB-kulcs.
+- **Fájlok:** `features/race_setup/start_time/` (a tiszta
+  `start_time_calendar.dart` és a `StartTimeSheet`), a `widgets/` alatt
+  `FormCard`, `CoordinateCard`, `StartTimeCard`, `StartPointEmptyCard`,
+  `FormSectionHeader`, `cardFieldDecoration`; `race_form_result.dart`,
+  `saved_mark_groups.dart`, `lib/format/scheduled_start_format.dart`. A
+  `MarkRow` törlődött.
+- **Ismert korlátok:** a tavaszi óraátállítás napján a nem létező 02:xx
+  helyi időt a `DateTime` 03:xx-re igazítja (a fejléc ezt mutatja, a
+  léptető a beállítottat); a figyelmeztetés, mint az U6 „AUTOMATIKUS"
+  cellája, nem nézi, hogy ma ez-e a nap versenye.
