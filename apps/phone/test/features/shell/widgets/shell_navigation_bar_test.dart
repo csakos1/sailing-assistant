@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
@@ -115,6 +116,53 @@ void main() {
 
     // ASSERT
     expect(taps, [ShellTab.instruments, ShellTab.log]);
+  });
+
+  group('haptic feedback', () {
+    // A HapticFeedback a SystemChannels.platform 'HapticFeedback.vibrate'
+    // metodusara fordul; a tipus az argumentumban jon.
+    late List<Object?> vibrations;
+
+    setUp(() => vibrations = []);
+
+    void recordVibrations(WidgetTester tester) {
+      final messenger = tester.binding.defaultBinaryMessenger
+        ..setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            vibrations.add(call.arguments);
+          }
+          return null;
+        });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+    }
+
+    testWidgets('clicks once when switching to another tab', (tester) async {
+      // ARRANGE
+      recordVibrations(tester);
+      await pumpBar(tester);
+
+      // ACT
+      await tester.tap(find.text('Műszerek'));
+
+      // ASSERT
+      expect(vibrations, ['HapticFeedbackType.selectionClick']);
+      expect(taps, [ShellTab.instruments]);
+    });
+
+    testWidgets('stays still on the selected tab', (tester) async {
+      // ARRANGE
+      recordVibrations(tester);
+      await pumpBar(tester);
+
+      // ACT
+      await tester.tap(find.text('Versenyek'));
+
+      // ASSERT — a koppintas tovabbra is jelez, csak nem rezeg.
+      expect(vibrations, isEmpty);
+      expect(taps, [ShellTab.races]);
+    });
   });
 
   testWidgets('shows the live label on a highlighted cell', (tester) async {

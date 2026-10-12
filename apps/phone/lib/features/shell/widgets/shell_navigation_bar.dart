@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/shell/instruments_tab_status.dart';
 import 'package:phone/features/shell/shell_tab.dart';
@@ -13,6 +16,9 @@ import 'package:phone/l10n/app_localizations.dart';
 /// középső (Műszerek) cella mindig emelt, a felső éle és a jelvénye a
 /// hajó-kapcsolatot és a nap versenyét mutatja. A teal csak állapotot
 /// jelent, kiválasztást soha: a kiválasztott fül fehér, alatta vonás.
+///
+/// Fülváltáskor a telefon röviden rezeg (`selectionClick`); a rendszer
+/// „Érintési visszajelzés" beállítása ezt kikapcsolhatja.
 class ShellNavigationBar extends StatelessWidget {
   /// Sáv a [selected] füllel és a Műszerek [status] állapotával.
   const ShellNavigationBar({
@@ -36,6 +42,13 @@ class ShellNavigationBar extends StatelessWidget {
 
   /// Egy cella koppintása.
   final ValueChanged<ShellTab> onSelected;
+
+  // Rövid rezgés csak fülváltáskor (R1, felhasználói döntés): a már
+  // kiválasztott fül koppintása nem vált, ezért nem is rezeg.
+  void _select(ShellTab tab) {
+    if (tab != selected) unawaited(HapticFeedback.selectionClick());
+    onSelected(tab);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +89,7 @@ class ShellNavigationBar extends StatelessWidget {
                     tab: ShellTab.races,
                     label: l10n.navRaces,
                     isSelected: selected == ShellTab.races,
-                    onTap: () => onSelected(ShellTab.races),
+                    onTap: () => _select(ShellTab.races),
                   ),
                 ),
                 Expanded(
@@ -86,7 +99,7 @@ class ShellNavigationBar extends StatelessWidget {
                     liveLabel: l10n.navLive,
                     status: status,
                     isSelected: selected == ShellTab.instruments,
-                    onTap: () => onSelected(ShellTab.instruments),
+                    onTap: () => _select(ShellTab.instruments),
                   ),
                 ),
                 Expanded(
@@ -95,7 +108,7 @@ class ShellNavigationBar extends StatelessWidget {
                     tab: ShellTab.log,
                     label: l10n.navLog,
                     isSelected: selected == ShellTab.log,
-                    onTap: () => onSelected(ShellTab.log),
+                    onTap: () => _select(ShellTab.log),
                   ),
                 ),
               ],
