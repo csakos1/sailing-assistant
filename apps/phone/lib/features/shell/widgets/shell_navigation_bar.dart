@@ -17,7 +17,7 @@ import 'package:phone/l10n/app_localizations.dart';
 /// hajó-kapcsolatot és a nap versenyét mutatja. A teal csak állapotot
 /// jelent, kiválasztást soha: a kiválasztott fül fehér, alatta vonás.
 ///
-/// Fülváltáskor a telefon röviden rezeg (`selectionClick`); a rendszer
+/// Fülváltáskor a telefon röviden rezeg (`lightImpact`); a rendszer
 /// „Érintési visszajelzés" beállítása ezt kikapcsolhatja.
 class ShellNavigationBar extends StatelessWidget {
   /// Sáv a [selected] füllel és a Műszerek [status] állapotával.
@@ -46,7 +46,7 @@ class ShellNavigationBar extends StatelessWidget {
   // Rövid rezgés csak fülváltáskor (R1, felhasználói döntés): a már
   // kiválasztott fül koppintása nem vált, ezért nem is rezeg.
   void _select(ShellTab tab) {
-    if (tab != selected) unawaited(HapticFeedback.selectionClick());
+    if (tab != selected) unawaited(HapticFeedback.lightImpact());
     onSelected(tab);
   }
 

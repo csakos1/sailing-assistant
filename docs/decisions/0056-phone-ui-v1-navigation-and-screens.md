@@ -812,8 +812,8 @@ a színe továbbra sem változik (UF); a többi fül fejrésze változatlan.
 
 **Rezgés fülváltáskor** (felhasználói döntés a próba után): a navigációs
 sáv egy cellájának koppintása, ha másik fülre vált, rövid
-`HapticFeedback.selectionClick()`-et kér; a kiválasztott fül újbóli
-koppintása nem rezeg. Csak a koppintás rezeg: a vissza-gomb és a
+`HapticFeedback.lightImpact()`-et kér (a `selectionClick` a Pixelen túl
+gyenge volt); a kiválasztott fül újbóli koppintása nem rezeg. Csak a koppintás rezeg: a vissza-gomb és a
 rajt-jelzés fülváltása nem. Az Android „Érintési visszajelzés"
 beállítása kikapcsolhatja; engedély nem kell.
 

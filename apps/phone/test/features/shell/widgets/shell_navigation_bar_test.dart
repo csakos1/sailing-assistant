@@ -138,7 +138,7 @@ void main() {
       );
     }
 
-    testWidgets('clicks once when switching to another tab', (tester) async {
+    testWidgets('taps once when switching to another tab', (tester) async {
       // ARRANGE
       recordVibrations(tester);
       await pumpBar(tester);
@@ -147,7 +147,7 @@ void main() {
       await tester.tap(find.text('Műszerek'));
 
       // ASSERT
-      expect(vibrations, ['HapticFeedbackType.selectionClick']);
+      expect(vibrations, ['HapticFeedbackType.lightImpact']);
       expect(taps, [ShellTab.instruments]);
     });
 
