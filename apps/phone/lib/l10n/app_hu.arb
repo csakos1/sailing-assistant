@@ -536,9 +536,14 @@
   "@setupPickFromLibrary": {
     "description": "Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból."
   },
-  "setupPickFromLibraryTitle": "KORÁBBI BÓJÁK",
-  "@setupPickFromLibraryTitle": {
-    "description": "A bója-választó (modal sheet) címe."
+  "setupPickFromLibraryCount": "{count} BÓJA",
+  "@setupPickFromLibraryCount": {
+    "description": "A bója-választó keresőmezőjében a látható bóják száma (35c), pl. 63 BÓJA.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "setupPickFromLibraryEmpty": "Még nincs mentett bója.",
   "@setupPickFromLibraryEmpty": {

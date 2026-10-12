@@ -766,11 +766,11 @@ abstract class AppLocalizations {
   /// **'Korábbi bóják'**
   String get setupPickFromLibrary;
 
-  /// A bója-választó (modal sheet) címe.
+  /// A bója-választó keresőmezőjében a látható bóják száma (35c), pl. 63 BÓJA.
   ///
   /// In hu, this message translates to:
-  /// **'KORÁBBI BÓJÁK'**
-  String get setupPickFromLibraryTitle;
+  /// **'{count} BÓJA'**
+  String setupPickFromLibraryCount(int count);
 
   /// A bója-választó üres állapota: a könyvtár üres.
   ///
