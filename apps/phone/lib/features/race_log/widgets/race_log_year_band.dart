@@ -61,6 +61,13 @@ class RaceLogYearBand extends StatelessWidget {
   /// A sáv alsó vonalának vastagsága.
   static const double bottomRuleHeight = 2;
 
+  /// Az évsor felső betéte. A kiválasztott év saját 5 dp-s betétjével a
+  /// szám doboza 17 dp-re van a sáv tetejétől; a Martian Mono számjegyei a
+  /// dobozuk tetejénél pár dp-vel lejjebb kezdődnek, így a szám teteje
+  /// ugyanakkora (~20 dp) résre esik a sáv tetejétől, mint a stat-sor alja
+  /// (20 dp betét) a sáv aljától: a tartalom függőlegesen középen áll (UF).
+  static const double topInset = 12;
+
   // A betöltés alatti nagy szám helyén álló hiányjel (makett 35f).
   static const String _pendingYear = '––––';
 
@@ -86,8 +93,11 @@ class RaceLogYearBand extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             // Az évek saját vízszintes betéte (_YearButton) adja ki a 20 dp-s
             // margót, így a szám a makett szerinti helyen áll.
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20 - _YearButton.horizontalInset,
+            padding: const EdgeInsets.fromLTRB(
+              20 - _YearButton.horizontalInset,
+              topInset,
+              20 - _YearButton.horizontalInset,
+              0,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,

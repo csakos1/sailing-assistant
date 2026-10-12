@@ -254,9 +254,55 @@ void main() {
       expect(title.style?.fontSize, tabTitleStyle.fontSize);
       expect(find.byType(BackButton), findsNothing);
     });
+
+    // A fejresz szine gorgeteskor sem valtozik (UF, felhasznaloi dontes).
+    testWidgets('keeps the header colour when the list scrolls under', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+        ]),
+      );
+
+      final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      expect(appBar.backgroundColor, foretackTheme.colorScheme.surface);
+      expect(appBar.scrolledUnderElevation, 0);
+    });
   });
 
   group('RaceLogScreen year band stats', () {
+    // A kivalasztott ev sajat 5 dp-s betetje plusz a sav felso betete
+    // adja a szam helyet; ettol all kozepen a sav tartalma (UF).
+    testWidgets('insets the selected year from the band top', (tester) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+        ]),
+      );
+
+      final band = tester.getTopLeft(find.byType(RaceLogYearBand));
+      final year = tester.getTopLeft(
+        find.descendant(
+          of: find.byType(RaceLogYearBand),
+          matching: find.text('2026'),
+        ),
+      );
+      expect(year.dy - band.dy, RaceLogYearBand.topInset + 5);
+    });
+
     testWidgets('shows the elapsed time straight away', (tester) async {
       // Harom negy oras verseny = 12 ora, meg a track-osszesitok elott.
       await pumpScreen(

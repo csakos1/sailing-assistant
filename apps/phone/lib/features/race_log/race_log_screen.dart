@@ -97,6 +97,10 @@ class RaceLogScreen extends ConsumerWidget {
       appBar: AppBar(
         toolbarHeight: 64,
         titleSpacing: 20,
+        // Görgetéskor az M3 AppBar `surfaceContainer`-re váltana; a fejrész
+        // színe a listától független marad (UF, felhasználói döntés).
+        backgroundColor: scheme.surface,
+        scrolledUnderElevation: 0,
         shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
         title: Text(l10n.logTitle, style: tabTitleStyle),
       ),
