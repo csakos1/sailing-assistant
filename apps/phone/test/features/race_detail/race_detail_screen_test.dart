@@ -6,13 +6,19 @@ import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_detail/race_detail_screen.dart';
 import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
+import 'package:phone/features/race_detail/widgets/detail_course_mark_row.dart';
+import 'package:phone/features/race_detail/widgets/detail_start_point_row.dart';
 import 'package:phone/features/race_detail/widgets/post_race_analysis_section.dart';
+import 'package:phone/features/race_detail/widgets/race_detail_strip.dart';
 import 'package:phone/features/race_edit/race_edit_screen.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/active_race_provider.dart';
 import 'package:phone/providers/clock_provider.dart';
+import 'package:phone/providers/local_wall_clock_provider.dart';
+import 'package:phone/providers/pending_race_deletions_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
 import 'package:phone/providers/rounding_sample_reader_provider.dart';
+import 'package:phone/providers/tick_provider.dart';
 
 void main() {
   const mark = Mark(
@@ -31,6 +37,10 @@ void main() {
       overrides: [
         raceRepositoryProvider.overrideWithValue(repository),
         clockProvider.overrideWithValue(() => clock),
+        // UTC-ben szamol, hogy a gep idozonaja ne szamitson; a tick nem jar,
+        // igy az eltelt ido a rogzitett orabol jon (nincs fuggo timer).
+        localWallClockProvider.overrideWithValue((instant) => instant.toUtc()),
+        tickProvider.overrideWith((ref) => const Stream<DateTime>.empty()),
         // A befejezett verseny mostantól a debug-only post-race szekciót is
         // rendereli (ADR 0034); üres readerrel a valódi AppDatabase helyett.
         roundingSampleReaderProvider.overrideWithValue(
@@ -68,7 +78,13 @@ void main() {
     return tester.widget<Material>(row.first).color!;
   }
 
-  testWidgets('notStarted: az Indítás elindítja és aktívvá teszi a versenyt', (
+  // A megerosito dialogus egy gombja.
+  Finder dialogButton(String label) => find.descendant(
+    of: find.byType(ForetackDialog<bool>),
+    matching: find.text(label),
+  );
+
+  testWidgets('notStarted: a Rajt megerősítés után elindítja a versenyt', (
     tester,
   ) async {
     // ARRANGE
@@ -76,24 +92,127 @@ void main() {
     await pumpDetail(tester, race);
     final l10n = l10nOf(tester);
 
-    // ACT
-    expect(find.text(l10n.detailStart), findsOneWidget);
+    // ACT - 32c: Rajt -> dialogus -> Rajt.
     await tester.tap(find.text(l10n.detailStart));
     await tester.pumpAndSettle();
+    expect(find.text(l10n.instrumentsStartMessage), findsOneWidget);
+    await tester.tap(dialogButton(l10n.instrumentsStartConfirm));
+    await tester.pumpAndSettle();
 
-    // ASSERT — aktívként mentve, a felirat Befejezésre vált, és a kitöltés
-    // átvándorol az élő nézet sorára.
+    // ASSERT - aktivkent mentve a mostani idovel, a sav Celra valt.
     expect(repository.saved, hasLength(1));
     expect(repository.saved.single.status, RaceStatus.active);
+    expect(repository.saved.single.startedAt, clock);
     expect(find.text(l10n.detailFinish), findsOneWidget);
     expect(
-      rowBackgroundOf(tester, l10n.liveOpen),
-      foretackTheme.colorScheme.primary,
+      rowBackgroundOf(tester, l10n.detailFinish),
+      foretackTheme.colorScheme.surfaceContainer,
     );
   });
 
-  testWidgets('active: a Befejezés befejezi a versenyt', (tester) async {
-    // ARRANGE — az aktív race-t a holderbe ültetjük.
+  testWidgets('notStarted: a Rajt Mégse-re nem indít', (tester) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.text(l10n.detailStart));
+    await tester.pumpAndSettle();
+    await tester.tap(dialogButton(l10n.instrumentsStartCancel));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(repository.saved, isEmpty);
+    expect(container.read(activeRaceProvider), isNull);
+  });
+
+  testWidgets('a tervezett rajt AUTOMATIKUS cellát és Rajt most-ot kap', (
+    tester,
+  ) async {
+    // ARRANGE - a rajt ma 14:00, most 12:00 van.
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kekszalag',
+      marks: const [mark],
+      scheduledStartAt: DateTime.utc(2025, 6, 1, 14),
+    );
+    await pumpDetail(tester, race);
+    final l10n = l10nOf(tester);
+
+    // ASSERT - 32a: a csik a napot es az idot, a sav az automatikus rajtot.
+    expect(find.text(l10n.detailScheduledStartLabel), findsOneWidget);
+    expect(find.text('MA 14:00'), findsOneWidget);
+    expect(find.text(l10n.detailAutomaticStart), findsOneWidget);
+    expect(find.text('14:00'), findsOneWidget);
+
+    // ACT - Rajt most -> a dialogus kimondja a tervezett idot.
+    await tester.tap(find.text(l10n.detailStartNow));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(l10n.detailStartScheduledMessage('14:00')),
+      findsOneWidget,
+    );
+    await tester.tap(dialogButton(l10n.instrumentsStartConfirm));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a rajtido a mostani pillanat, nem a tervezett.
+    expect(repository.saved.single.startedAt, clock);
+  });
+
+  testWidgets('egy lejárt tervezett rajt csak a sima Rajtot kapja', (
+    tester,
+  ) async {
+    // ARRANGE - a rajt ma 08:00 volt, a 3 oras ablak 11:00-kor lejart.
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kekszalag',
+      marks: const [mark],
+      scheduledStartAt: DateTime.utc(2025, 6, 1, 8),
+    );
+    await pumpDetail(tester, race);
+    final l10n = l10nOf(tester);
+
+    // ASSERT - a csik a rajtidot mutatja, a sav nem iger automatikus rajtot.
+    expect(find.text('MA 08:00'), findsOneWidget);
+    expect(find.text(l10n.detailAutomaticStart), findsNothing);
+    expect(find.text(l10n.detailStart), findsOneWidget);
+  });
+
+  testWidgets('nem indít kézzel, ha a dialógus alatt a verseny elindult', (
+    tester,
+  ) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kekszalag',
+      marks: const [mark],
+      scheduledStartAt: DateTime.utc(2025, 6, 1, 14),
+    );
+    await pumpDetail(tester, race);
+    final l10n = l10nOf(tester);
+    await tester.tap(find.text(l10n.detailStartNow));
+    await tester.pumpAndSettle();
+
+    // ACT - a dialogus alatt az engine rajtja atvetelre kerul (ADR 0055
+    // D6), majd a felhasznalo megis megerositi a kezi rajtot.
+    final engineStart = clock.subtract(const Duration(minutes: 1));
+    container.read(activeRaceProvider.notifier).activeRace = race.start(
+      at: engineStart,
+    );
+    await tester.pump();
+    await tester.tap(dialogButton(l10n.instrumentsStartConfirm));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a kezi rajt elmarad, az atvett rajtido marad.
+    expect(repository.saved, isEmpty);
+    expect(container.read(activeRaceProvider)?.startedAt, engineStart);
+  });
+
+  testWidgets('active: a Cél megerősítés után befejezi a versenyt', (
+    tester,
+  ) async {
+    // ARRANGE - az aktiv race-t a holderbe ultetjuk.
     final race = Race.create(
       id: 'r1',
       name: 'Kedd esti',
@@ -104,14 +223,121 @@ void main() {
     final l10n = l10nOf(tester);
 
     // ACT
-    expect(find.text(l10n.detailFinish), findsOneWidget);
     await tester.tap(find.text(l10n.detailFinish));
     await tester.pumpAndSettle();
+    expect(find.text(l10n.detailFinishMessage), findsOneWidget);
+    await tester.tap(dialogButton(l10n.detailFinishConfirm));
+    await tester.pumpAndSettle();
 
-    // ASSERT — befejezett állapot mentve, és az egész alsó sáv eltűnik.
+    // ASSERT - befejezett allapot mentve, es az egesz also sav eltunik.
     expect(repository.saved, hasLength(1));
     expect(repository.saved.single.status, RaceStatus.finished);
     expect(find.byType(DetailActionBar), findsNothing);
+  });
+
+  testWidgets('active: a Cél Mégse-re a verseny fut tovább', (tester) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark],
+    ).start(at: clock);
+    container.read(activeRaceProvider.notifier).activeRace = race;
+    await pumpDetail(tester, race);
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.text(l10n.detailFinish));
+    await tester.pumpAndSettle();
+    await tester.tap(dialogButton(l10n.detailFinishCancel));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(repository.saved, isEmpty);
+    expect(container.read(activeRaceProvider)?.status, RaceStatus.active);
+  });
+
+  testWidgets('active: a csík az eltelt időt és az aktív bóját mutatja', (
+    tester,
+  ) async {
+    // ARRANGE
+    const second = Mark(
+      sequence: 2,
+      name: 'Z2',
+      position: Coordinate(latitude: 46.8, longitude: 17.9),
+    );
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark, second],
+    ).start(at: clock.subtract(const Duration(minutes: 42, seconds: 10)));
+    container.read(activeRaceProvider.notifier).activeRace = race;
+
+    // ACT
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ASSERT - 32b: az eltelt ido, es csak az elso boja aktiv.
+    expect(find.text('00:42:10'), findsOneWidget);
+    expect(find.text(l10n.detailActiveMarkTag), findsOneWidget);
+    final active = tester.widget<DetailCourseMarkRow>(
+      find.widgetWithText(DetailCourseMarkRow, 'Z1'),
+    );
+    expect(active.isActive, isTrue);
+  });
+
+  testWidgets('a rajthely a pálya élén áll, rajt után tompítva', (
+    tester,
+  ) async {
+    // ARRANGE
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kekszalag',
+      marks: const [mark],
+      startPoint: const StartPoint(
+        name: 'Rajtvonal',
+        position: Coordinate(latitude: 46.95, longitude: 17.9),
+      ),
+    );
+
+    // ACT - el nem indult verseny.
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ASSERT - a koordinata latszik, es a sor a bojak elott all.
+    expect(find.text(l10n.detailStartPointName('Rajtvonal')), findsOneWidget);
+    expect(find.text(l10n.detailStartPointTag), findsOneWidget);
+    expect(find.text('46.9500, 17.9000'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byType(DetailStartPointRow)).dy,
+      lessThan(tester.getTopLeft(find.byType(DetailCourseMarkRow)).dy),
+    );
+
+    // ACT - a verseny elindult.
+    final started = race.start(at: DateTime.utc(2025, 6, 1, 11, 17, 50));
+    container.read(activeRaceProvider.notifier).activeRace = started;
+    await tester.pumpAndSettle();
+
+    // ASSERT - a koordinata helyen a rajt ideje, a sor 60%-ra tompul.
+    expect(find.text(l10n.detailStartedAt('11:17:50')), findsOneWidget);
+    final opacity = tester.widget<Opacity>(
+      find.descendant(
+        of: find.byType(DetailStartPointRow),
+        matching: find.byType(Opacity),
+      ),
+    );
+    expect(opacity.opacity, DetailStartPointRow.startedOpacity);
+  });
+
+  testWidgets('a fejrész 58 dp magas', (tester) async {
+    // ARRANGE & ACT
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+
+    // ASSERT
+    expect(tester.getSize(find.byType(AppBar)).height, 58);
   });
 
   testWidgets('notStarted: a Szerkesztés akció a RaceEditScreen-t nyitja', (
@@ -186,7 +412,163 @@ void main() {
     expect(find.text('Régi'), findsNothing);
   });
 
-  testWidgets('a törlés megerősítés után töröl és visszanavigál', (
+  testWidgets('a törlés elrejt, és csak az ablak végén töröl', (
+    tester,
+  ) async {
+    // ARRANGE — detail egy home-route fölött, hogy a pop tiszta legyen.
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
+          localizationsDelegates: phoneLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => RaceDetailScreen(race: race),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT — törlés ikon → megerősítés.
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    // A 35d adatcellaja a verseny nevet es a bojak szamat mutatja.
+    final subject = find.byType(ForetackDialogSubjectCell);
+    expect(
+      find.descendant(of: subject, matching: find.text('Kedd esti')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: subject, matching: find.text('1 BÓJA')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteConfirm),
+      ),
+    );
+    await tester.pump();
+    // A route-atmenet (Androidon 450 ms) biztosan lefut.
+    await tester.pump(const Duration(seconds: 1));
+
+    // ASSERT - visszanavigal, a VISSZAVONAS-snackbar latszik, de a DB-ben
+    // meg nincs torles (ADR 0056 D6).
+    expect(find.byType(RaceDetailScreen), findsNothing);
+    expect(find.text(l10n.detailDeletedMessage), findsOneWidget);
+    expect(container.read(pendingRaceDeletionsProvider), {'r1'});
+    expect(repository.deleted, isEmpty);
+
+    // ACT - lejar a visszavonasi ablak.
+    await tester.pump(raceDeletionUndoWindow + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(repository.deleted, ['r1']);
+  });
+
+  testWidgets('a VISSZAVONAS megtartja a versenyt', (tester) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    container.read(activeRaceProvider.notifier).activeRace = race;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: foretackTheme,
+          locale: const Locale('hu'),
+          localizationsDelegates: phoneLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => RaceDetailScreen(race: race),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteConfirm),
+      ),
+    );
+    await tester.pump();
+    // A route-atmenet (Androidon 450 ms) biztosan lefut.
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(container.read(activeRaceProvider), isNull);
+
+    // ACT
+    await tester.tap(find.text(l10n.detailDeleteUndo.toUpperCase()));
+    await tester.pump(raceDeletionUndoWindow + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // ASSERT - a kivalasztas is visszajon.
+    expect(container.read(pendingRaceDeletionsProvider), isEmpty);
+    expect(repository.deleted, isEmpty);
+    expect(container.read(activeRaceProvider)?.id, 'r1');
+  });
+
+  testWidgets('futo versenyen nincs torles', (tester) async {
+    // ARRANGE & ACT
+    final race = Race.create(
+      id: 'r1',
+      name: 'Kedd esti',
+      marks: const [mark],
+    ).start(at: clock);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+
+    // ASSERT - elobb a Cel zarja le (ADR 0056 Pontositas U8).
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+  });
+
+  testWidgets('a torles-dialogus a 35d szoveget mutatja', (tester) async {
+    // ARRANGE
+    final race = Race.create(id: 'r1', name: 'Kedd esti', marks: const [mark]);
+    await pumpDetail(tester, race);
+    await tester.pumpAndSettle();
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+
+    // ASSERT
+    expect(find.text('Törlöd a versenyt?'), findsOneWidget);
+    expect(find.text(l10n.detailDeleteMessage), findsOneWidget);
+    expect(l10n.detailDeleteMessage, isNot(contains('vissza')));
+  });
+
+  testWidgets('a torles Megse-re semmit nem torol, a reszlet marad', (
     tester,
   ) async {
     // ARRANGE — detail egy home-route fölött, hogy a pop tiszta legyen.
@@ -222,13 +604,16 @@ void main() {
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.widgetWithText(FilledButton, l10n.detailDeleteConfirm),
+      find.descendant(
+        of: find.byType(ForetackDialog<bool>),
+        matching: find.text(l10n.detailDeleteCancel),
+      ),
     );
     await tester.pumpAndSettle();
 
     // ASSERT
-    expect(repository.deleted, ['r1']);
-    expect(find.byType(RaceDetailScreen), findsNothing);
+    expect(repository.deleted, isEmpty);
+    expect(find.byType(RaceDetailScreen), findsOneWidget);
   });
 
   testWidgets('SafeArea: az alsó akció-sáv a nav-inset fölött marad', (
@@ -260,13 +645,13 @@ void main() {
 
     // ASSERT - a csik es a szakasz-cimke all a bojak folott, es a bojak a
     // sajat sor-widgetjukben (nem ListTile-ban).
-    expect(find.byType(DetailStatusStrip), findsOneWidget);
+    expect(find.byType(RaceDetailStrip), findsOneWidget);
     expect(find.text(l10nOf(tester).detailCourseLabel), findsOneWidget);
-    expect(find.byType(DetailMarkRow), findsOneWidget);
+    expect(find.byType(DetailCourseMarkRow), findsOneWidget);
     expect(find.byType(ListTile), findsNothing);
     expect(
-      tester.getTopLeft(find.byType(DetailStatusStrip)).dy,
-      lessThan(tester.getTopLeft(find.byType(DetailMarkRow)).dy),
+      tester.getTopLeft(find.byType(RaceDetailStrip)).dy,
+      lessThan(tester.getTopLeft(find.byType(DetailCourseMarkRow)).dy),
     );
   });
 
@@ -276,7 +661,8 @@ void main() {
     await pumpDetail(tester, race);
     await tester.pumpAndSettle();
 
-    // ASSERT - ADR 0044 D25: tizedes fok, negy jeggyel.
+    // ASSERT - ADR 0044 D25: tizedes fok, negy jeggyel (felhasznaloi
+    // dontes, U6: a makett fok-perce helyett).
     expect(find.text('46.9000, 18.0500'), findsOneWidget);
   });
 
@@ -297,7 +683,7 @@ void main() {
     expect(find.byType(DetailActionBar), findsNothing);
     expect(
       tester.getTopLeft(find.byType(PostRaceAnalysisSection)).dy,
-      lessThan(tester.getTopLeft(find.byType(DetailMarkRow)).dy),
+      lessThan(tester.getTopLeft(find.byType(DetailCourseMarkRow)).dy),
     );
   });
 }

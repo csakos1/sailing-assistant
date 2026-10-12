@@ -1,13 +1,5 @@
 {
   "@@locale": "hu",
-  "liveOpen": "Élő nézet",
-  "@liveOpen": {
-    "description": "Gomb a race-detailen: az élő verseny-képernyő megnyitása."
-  },
-  "liveNoActiveRace": "Nincs aktív verseny",
-  "@liveNoActiveRace": {
-    "description": "Az élő képernyő üres állapota: nincs aktív verseny."
-  },
   "liveStale": "ELAVULT",
   "@liveStale": {
     "description": "Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül)."
@@ -24,10 +16,6 @@
   "@liveTwdHeld": {
     "description": "Diszkrét jel a köv-TWA hero alatt: a TWD utolsó jó értékét tartjuk (held), nincs friss derivált szélirány (ADR 0020 D7)."
   },
-  "liveBearing": "BEARING",
-  "@liveBearing": {
-    "description": "Cella-címke: irány a bójához (abszolút bearing)."
-  },
   "liveCorrection": "KORREKCIÓ",
   "@liveCorrection": {
     "description": "Cella-címke: kormányzási korrekció a bójához."
@@ -39,6 +27,50 @@
   "liveEta": "ETA",
   "@liveEta": {
     "description": "Cella-címke: becsült érkezés a bójához (ETA)."
+  },
+  "navRaces": "Versenyek",
+  "@navRaces": {
+    "description": "A navigációs sáv bal fülének felirata (ADR 0056 D2)."
+  },
+  "navInstruments": "Műszerek",
+  "@navInstruments": {
+    "description": "A navigációs sáv középső fülének felirata: az élő adatok."
+  },
+  "navLog": "Versenynapló",
+  "@navLog": {
+    "description": "A navigációs sáv jobb fülének felirata."
+  },
+  "navLive": "ÉLŐ",
+  "@navLive": {
+    "description": "Címke a Műszerek fülön, ha aktív verseny fut (mono verzál)."
+  },
+  "homeMenuTooltip": "Menü",
+  "@homeMenuTooltip": {
+    "description": "A Versenyek fül ⋮ menüjének tooltipje."
+  },
+  "homeMenuDebugSection": "FEJLESZTÉS",
+  "@homeMenuDebugSection": {
+    "description": "A ⋮ menü debug-csoportjának címkéje (csak debug-buildben)."
+  },
+  "homeMenuRawNmea": "Nyers NMEA",
+  "@homeMenuRawNmea": {
+    "description": "A ⋮ menü sora: a nyers NMEA-néző (csak debug-buildben)."
+  },
+  "homeMenuEngineDebug": "Engine debug",
+  "@homeMenuEngineDebug": {
+    "description": "A ⋮ menü sora: az engine-debug képernyő (csak debug-buildben)."
+  },
+  "logEmptyTitle": "Még nincs befejezett verseny",
+  "@logEmptyTitle": {
+    "description": "A Versenynapló fül üres állapotának címe."
+  },
+  "logEmptyMessage": "A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.",
+  "@logEmptyMessage": {
+    "description": "A Versenynapló fül üres állapotának magyarázata."
+  },
+  "logLoadingCaps": "BETÖLTÉS",
+  "@logLoadingCaps": {
+    "description": "A napló betöltés közbeni fejléce (makett 35f)."
   },
   "liveStop": "Leállítás",
   "@liveStop": {
@@ -68,18 +100,9 @@
   "@liveRoundMarkTitle": {
     "description": "A kézi boja-megkerulés megerosito dialogus cime."
   },
-  "liveRoundMarkMessage": "Megjelölöd a(z) {mark} át megkerültnek?",
-  "@liveRoundMarkMessage": {
-    "description": "A kézi boja-megkerulés dialogus szovege a célboja nevevel.",
-    "placeholders": {
-      "mark": {
-        "type": "String"
-      }
-    }
-  },
   "liveRoundMarkMessageGeneric": "Megjelölöd a jelenlegi bóját megkerültnek?",
   "@liveRoundMarkMessageGeneric": {
-    "description": "A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio)."
+    "description": "A kézi bója-megkerülés dialógusának szövege; a bója sorszáma és neve, ha ismert, az adatcellában áll."
   },
   "liveRoundMarkCancel": "Mégse",
   "@liveRoundMarkCancel": {
@@ -264,23 +287,90 @@
   "@raceStatusFinished": {
     "description": "Verseny-státusz: befejeződött."
   },
-  "detailStart": "Indítás",
+  "detailStart": "Rajt",
   "@detailStart": {
-    "description": "Gomb: a verseny elindítása (notStarted -> active)."
+    "description": "A részlet alsó sávja: a kézi rajt rajtidő nélküli versenyen (32c)."
   },
-  "detailFinish": "Befejezés",
+  "detailFinish": "Cél",
   "@detailFinish": {
-    "description": "Gomb: a verseny befejezése (active -> finished)."
+    "description": "A részlet alsó sávja: a verseny befejezése (32b)."
+  },
+  "detailStartNow": "Rajt most",
+  "@detailStartNow": {
+    "description": "A részlet alsó sávja: a kézi rajt egy tervezett rajtú versenyen (32a)."
+  },
+  "detailAutomaticStart": "AUTOMATIKUS",
+  "@detailAutomaticStart": {
+    "description": "A részlet alsó sávjának bal cellája: az engine a rajtidőben magától indít."
+  },
+  "detailScheduledStartLabel": "RAJT",
+  "@detailScheduledStartLabel": {
+    "description": "A részlet státuszcsíkja: a tervezett rajt felirata a nap és az idő előtt."
+  },
+  "detailNoScheduledStart": "NINCS TERVEZETT RAJT",
+  "@detailNoScheduledStart": {
+    "description": "A részlet státuszcsíkja rajtidő nélküli, el nem indult versenyen."
+  },
+  "detailStartPointName": "Rajthely — {name}",
+  "@detailStartPointName": {
+    "description": "A részlet pálya-listájának első sora: a rajthely neve.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "detailStartPointTag": "RAJTHELY",
+  "@detailStartPointTag": {
+    "description": "A rajthely-sor keretes címkéje."
+  },
+  "detailStartedAt": "RAJT {time}",
+  "@detailStartedAt": {
+    "description": "A rajthely-sor elindult versenyen: a tényleges rajt ideje, pl. RAJT 09:00:00.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailActiveMarkTag": "AKTÍV",
+  "@detailActiveMarkTag": {
+    "description": "Az aktív bója sorának kitöltött címkéje."
+  },
+  "detailStartScheduledMessage": "A verseny most indul a tervezett {time} helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.",
+  "@detailStartScheduledMessage": {
+    "description": "A rajt-dialógus szövege tervezett rajtú versenyen; a time pl. 09:00 vagy okt. 13. 09:00.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailFinishTitle": "Cél?",
+  "@detailFinishTitle": {
+    "description": "A cél-megerősítő dialógus címe."
+  },
+  "detailFinishMessage": "A verseny most véget ér: a rögzítés leáll, és a track lezárul.",
+  "@detailFinishMessage": {
+    "description": "A cél-megerősítő dialógus szövege."
+  },
+  "detailFinishCancel": "Mégse",
+  "@detailFinishCancel": {
+    "description": "A cél-dialógus megszakító gombja."
+  },
+  "detailFinishConfirm": "Cél",
+  "@detailFinishConfirm": {
+    "description": "A cél-dialógus megerősítő (romboló) gombja."
   },
   "detailDelete": "Törlés",
   "@detailDelete": {
     "description": "Tooltip: a verseny törlése (AppBar ikon)."
   },
-  "detailDeleteTitle": "Verseny törlése",
+  "detailDeleteTitle": "Törlöd a versenyt?",
   "@detailDeleteTitle": {
     "description": "A törlés-megerősítő dialógus címe."
   },
-  "detailDeleteMessage": "Biztosan törlöd ezt a versenyt?",
+  "detailDeleteMessage": "A track, a bóják és a statisztika véglegesen törlődik.",
   "@detailDeleteMessage": {
     "description": "A törlés-megerősítő dialógus szövege."
   },
@@ -292,13 +382,80 @@
   "@detailDeleteConfirm": {
     "description": "A törlés-dialógus megerősítő gombja."
   },
-  "listTitle": "VERSENYEK",
-  "@listTitle": {
-    "description": "A versenylista (home) képernyő címsora."
+  "detailDeletedMessage": "Verseny törölve",
+  "@detailDeletedMessage": {
+    "description": "A törlés utáni snackbar szövege (makett 35e)."
   },
-  "listEmpty": "Még nincs verseny. Indíts egyet az Új verseny gombbal.",
-  "@listEmpty": {
-    "description": "A lista üres állapotának üzenete."
+  "detailDeleteUndo": "Visszavonás",
+  "@detailDeleteUndo": {
+    "description": "A törlés-snackbar akciója; a snackbar verzálosítja (makett 35e)."
+  },
+  "listTitle": "Versenyek",
+  "@listTitle": {
+    "description": "A Versenyek fül címsora (makett 31a)."
+  },
+  "listEmptyTitle": "Még nincs verseny",
+  "@listEmptyTitle": {
+    "description": "Az üres lista címe (makett 31b)."
+  },
+  "listEmptyMessage": "Hozz létre egyet az {action} gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.",
+  "@listEmptyMessage": {
+    "description": "Az üres lista magyarázata (makett 31b); az {action} a gomb felirata, félkövéren.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "listMetaToday": "MA",
+  "@listMetaToday": {
+    "description": "A lista-sor meta-sora: a ma tervezett rajt napja."
+  },
+  "listMetaDay": "{month} {day}.",
+  "@listMetaDay": {
+    "description": "A lista-sor meta-sora: a rajt napja az idei évben, pl. OKT. 11.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "listMetaDayWithYear": "{year}. {month} {day}.",
+  "@listMetaDayWithYear": {
+    "description": "A lista-sor meta-sora: a rajt napja más évben, pl. 2027. JAN. 3.",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "listMetaNoMarks": "bója nélkül",
+  "@listMetaNoMarks": {
+    "description": "A lista-sor meta-sora bója nélküli versenyen."
+  },
+  "listMetaActiveMark": "{index} / {total} · {mark}",
+  "@listMetaActiveMark": {
+    "description": "A folyamatban lévő verseny meta-sora: hányadik bójára tart, és a neve.",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "mark": {
+        "type": "String"
+      }
+    }
   },
   "listError": "Nem sikerült betölteni a versenyeket.",
   "@listError": {
@@ -333,28 +490,28 @@
   },
   "logRaceCountCaps": "{count} VERSENY",
   "@logRaceCountCaps": {
-    "description": "Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).",
+    "description": "Verseny-darabszám a napló fejrészében és hónap-fejlécein (verzál).",
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "logYearSheetTitle": "Év",
-  "@logYearSheetTitle": {
-    "description": "Az év-választó lap fejléc-felirata; a widget verzálosítja."
+  "logRaceCountPendingCaps": "–– VERSENY",
+  "@logRaceCountPendingCaps": {
+    "description": "A versenyszám helye a napló fejrészében, amíg a napló töltődik (makett 35f)."
   },
   "logStatTimeCaps": "VÍZEN TÖLTÖTT",
   "@logStatTimeCaps": {
-    "description": "A napló stat-csík első cellája: vízen töltött idő."
+    "description": "Az évsáv első statja: vízen töltött idő."
   },
   "logStatDistanceCaps": "ÖSSZ. TÁV",
   "@logStatDistanceCaps": {
-    "description": "A napló stat-csík második cellája: az év össztávja."
+    "description": "Az évsáv második statja: az év össztávja."
   },
   "logStatRecordCaps": "REKORD",
   "@logStatRecordCaps": {
-    "description": "A napló stat-csík harmadik cellája: sebesség-rekord."
+    "description": "Az évsáv harmadik statja: sebesség-rekord."
   },
   "liveCorrectionRight": "jobbra",
   "@liveCorrectionRight": {
@@ -395,9 +552,14 @@
   "@setupPickFromLibrary": {
     "description": "Gomb a verseny-űrlapon: korábbi bója választása a könyvtárból."
   },
-  "setupPickFromLibraryTitle": "KORÁBBI BÓJÁK",
-  "@setupPickFromLibraryTitle": {
-    "description": "A bója-választó (modal sheet) címe."
+  "setupPickFromLibraryCount": "{count} BÓJA",
+  "@setupPickFromLibraryCount": {
+    "description": "A bója-választó keresőmezőjében a látható bóják száma (35c), pl. 63 BÓJA.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "setupPickFromLibraryEmpty": "Még nincs mentett bója.",
   "@setupPickFromLibraryEmpty": {
@@ -410,6 +572,110 @@
   "setupPickFromLibraryNoMatch": "Nincs találat erre a névre.",
   "@setupPickFromLibraryNoMatch": {
     "description": "A bója-választó üres állapota név szerinti szűrés után."
+  },
+  "setupStartTimeLabel": "RAJT IDŐPONTJA",
+  "@setupStartTimeLabel": {
+    "description": "A verseny-űrlap rajtidő-kártyájának címkéje (33a)."
+  },
+  "setupStartTimeEmpty": "Nincs tervezett rajt — kézzel indul",
+  "@setupStartTimeEmpty": {
+    "description": "A rajtidő-kártya üres állapota (33b)."
+  },
+  "setupStartTimeClear": "Rajtidő törlése",
+  "@setupStartTimeClear": {
+    "description": "A rajtidő-kártya ürítő gombjának tooltipje."
+  },
+  "setupStartTimePastRetroactive": "Ez az időpont már elmúlt — a verseny visszamenőleg indul.",
+  "@setupStartTimePastRetroactive": {
+    "description": "Halk jelzés: az elmúlt rajtidő még a mai késési ablakon belül van (ADR 0055 D7)."
+  },
+  "setupStartTimePastManual": "Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.",
+  "@setupStartTimePastManual": {
+    "description": "Halk jelzés: az elmúlt rajtidő az automatikus rajt ablakán kívül esik."
+  },
+  "setupStartPointSection": "RAJTHELY",
+  "@setupStartPointSection": {
+    "description": "A verseny-űrlap rajthely-szakaszának címkéje (33a)."
+  },
+  "setupStartPointAdd": "Rajthely hozzáadása",
+  "@setupStartPointAdd": {
+    "description": "Az üres rajthely-kártya felső sora (33b)."
+  },
+  "setupStartPointCoordinates": "Koordináta",
+  "@setupStartPointCoordinates": {
+    "description": "Az üres rajthely-kártya útja: a rajthely kézi megadása (33b)."
+  },
+  "setupStartPointNameLabel": "Rajthely neve",
+  "@setupStartPointNameLabel": {
+    "description": "A rajthely név-mezőjének helyőrzője."
+  },
+  "setupStartPointRemove": "Rajthely törlése",
+  "@setupStartPointRemove": {
+    "description": "A rajthely-kártya törlés-gombjának tooltipje."
+  },
+  "startTimeSheetTitle": "Rajt időpontja",
+  "@startTimeSheetTitle": {
+    "description": "A rajtidő-választó (33c) címe."
+  },
+  "startTimeSheetPreviousMonth": "Előző hónap",
+  "@startTimeSheetPreviousMonth": {
+    "description": "A rajtidő-választó hónap-léptetőjének tooltipje."
+  },
+  "startTimeSheetNextMonth": "Következő hónap",
+  "@startTimeSheetNextMonth": {
+    "description": "A rajtidő-választó hónap-léptetőjének tooltipje."
+  },
+  "startTimeSheetWeekdays": "H|K|Sze|Cs|P|Szo|V",
+  "@startTimeSheetWeekdays": {
+    "description": "A naptár oszlopfejlécei hétfővel kezdve, |-vel elválasztva."
+  },
+  "startTimeSheetMonths": "január|február|március|április|május|június|július|augusztus|szeptember|október|november|december",
+  "@startTimeSheetMonths": {
+    "description": "A hónapok teljes neve |-vel elválasztva, a naptár hónap-sorához."
+  },
+  "startTimeSheetMonth": "{year}. {month}",
+  "@startTimeSheetMonth": {
+    "description": "A naptár hónap-sora, pl. 2026. október (a kód verzáloz).",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "startTimeSheetTime": "IDŐPONT",
+  "@startTimeSheetTime": {
+    "description": "A rajtidő-választó idő-sorának címkéje."
+  },
+  "startTimeSheetClock24": "24 órás",
+  "@startTimeSheetClock24": {
+    "description": "A rajtidő-választó idő-sorának alcíme."
+  },
+  "startTimeSheetHourUp": "Óra növelése",
+  "@startTimeSheetHourUp": {
+    "description": "Az óra-léptető fel-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetHourDown": "Óra csökkentése",
+  "@startTimeSheetHourDown": {
+    "description": "Az óra-léptető le-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetMinuteUp": "Perc növelése",
+  "@startTimeSheetMinuteUp": {
+    "description": "A perc-léptető fel-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetMinuteDown": "Perc csökkentése",
+  "@startTimeSheetMinuteDown": {
+    "description": "A perc-léptető le-nyilának akadálymentes felirata."
+  },
+  "startTimeSheetClear": "Nincs rajtidő",
+  "@startTimeSheetClear": {
+    "description": "A rajtidő-választó ürítő gombja."
+  },
+  "startTimeSheetDone": "Kész",
+  "@startTimeSheetDone": {
+    "description": "A rajtidő-választó jóváhagyó gombja."
   },
   "detailCourseLabel": "PÁLYA",
   "@detailCourseLabel": {
@@ -833,10 +1099,6 @@
         "type": "String"
       }
     }
-  },
-  "webMenuTooltip": "Webes hozzáférés",
-  "@webMenuTooltip": {
-    "description": "A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6)."
   },
   "webMenuSection": "WEBES HOZZÁFÉRÉS",
   "@webMenuSection": {
@@ -1393,5 +1655,91 @@
   "webPromptCodesTitle": "Új helyreállító kódok",
   "@webPromptCodesTitle": {
     "description": "Ujjlenyomat-ablak: kódok (Z13)."
+  },
+  "liveStw": "STW",
+  "@liveStw": {
+    "description": "Szabad mód (34a) sebesség-cellája: víz szerinti sebesség csomóban."
+  },
+  "liveSog": "SOG",
+  "@liveSog": {
+    "description": "Szabad mód (34a) sebesség-cellája STW hiányában: föld szerinti sebesség csomóban."
+  },
+  "liveTwa": "TWA",
+  "@liveTwa": {
+    "description": "Szabad mód (34a) sín-cellája: a vízhez mért szélirány-szög, oldal-jellel."
+  },
+  "liveTws": "TWS",
+  "@liveTws": {
+    "description": "Szabad mód (34a) sín-cellája: a vízhez mért szélsebesség csomóban."
+  },
+  "instrumentsSearching": "Hajó keresése…",
+  "@instrumentsSearching": {
+    "description": "Műszerek csík (34a-1): a próba keresi a hajót, vagy az engine még kapcsolódik."
+  },
+  "instrumentsStopped": "Leállítva",
+  "@instrumentsStopped": {
+    "description": "Műszerek csík: az engine áll (kézi leállítás után); a keresés a következő megnyitáskor indul."
+  },
+  "instrumentsDataLabel": "ADAT",
+  "@instrumentsDataLabel": {
+    "description": "Műszerek csík (34a-3): az utolsó adat korának felirata megszakadt kapcsolatnál."
+  },
+  "instrumentsDataAgeMinutes": "{age} perce",
+  "@instrumentsDataAgeMinutes": {
+    "description": "Az utolsó adat kora egy óra alatt; az age perc:mp alakú (1:12).",
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "instrumentsDataAgeHours": "{age} órája",
+  "@instrumentsDataAgeHours": {
+    "description": "Az utolsó adat kora egy óra felett; az age óra:perc alakú (1:05).",
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "instrumentsMenuTooltip": "Menü",
+  "@instrumentsMenuTooltip": {
+    "description": "A Műszerek csík ⋮ menüjének tooltipje."
+  },
+  "instrumentsStopTitle": "Műszerek leállítása",
+  "@instrumentsStopTitle": {
+    "description": "A szabad mód Leállítás-dialógusának címe."
+  },
+  "instrumentsStopMessage": "Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.",
+  "@instrumentsStopMessage": {
+    "description": "A szabad mód Leállítás-dialógusának szövege."
+  },
+  "instrumentsStartNow": "Rajt most",
+  "@instrumentsStartNow": {
+    "description": "A Műszerek rajt előtti nézetének (34b) alsó gombja."
+  },
+  "instrumentsStartTitle": "Rajt most?",
+  "@instrumentsStartTitle": {
+    "description": "A „Rajt most” megerősítő dialógusának címe."
+  },
+  "instrumentsStartMessage": "A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.",
+  "@instrumentsStartMessage": {
+    "description": "A „Rajt most” megerősítő dialógusának szövege."
+  },
+  "instrumentsStartCancel": "Mégse",
+  "@instrumentsStartCancel": {
+    "description": "A „Rajt most” dialógusának elvetése."
+  },
+  "instrumentsStartConfirm": "Rajt",
+  "@instrumentsStartConfirm": {
+    "description": "A „Rajt most” dialógusának megerősítése."
+  },
+  "instrumentsTodayRaces": "MAI VERSENYEK",
+  "@instrumentsTodayRaces": {
+    "description": "A Műszerek váltójának (34b-2a) fejléce."
+  },
+  "instrumentsSwitchRace": "Verseny váltása",
+  "@instrumentsSwitchRace": {
+    "description": "A Műszerek csíkjában a versenynév-váltó képernyőolvasó-címkéje."
   }
 }

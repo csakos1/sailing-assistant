@@ -105,3 +105,19 @@ Future<int> countRows(AppDatabase database, String table, String raceId) async {
       .getSingle();
   return row.read<int>('c');
 }
+
+/// Egy friss (aktualis semaju) telefon-DB visszabutitasa v4-esre, mint a
+/// data migracios tesztjeiben: a v5-os tabla es a v6-os oszlopok
+/// (ADR 0055 D3) eldobva, user_version = 4.
+Future<void> downgradeToSchemaV4(AppDatabase database) async {
+  await database.customStatement('DROP TABLE race_track_stats');
+  for (final column in [
+    'scheduled_start_at',
+    'start_point_name',
+    'start_point_latitude',
+    'start_point_longitude',
+  ]) {
+    await database.customStatement('ALTER TABLE races DROP COLUMN $column');
+  }
+  await database.customStatement('PRAGMA user_version = 4');
+}

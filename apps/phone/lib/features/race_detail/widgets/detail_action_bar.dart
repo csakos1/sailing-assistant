@@ -1,92 +1,160 @@
-import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
-/// A detail-képernyő alsó akció-sávja (ADR 0044 D30).
+/// A részlet alsó akció-sávja (makett 32a–c, `phone-ui-v1.md` §4).
 ///
-/// Két 60 dp-s, éltől élig érő sor, radius nélkül — a `ListActionBar`
-/// geometriája —, közöttük 1 px hairline. Felül mindig az élő nézet, alul a
-/// státusz-akció (indítás vagy befejezés).
+/// Egy 62 dp-s, éltől élig érő sáv felső hairline-nal, három alakban:
+/// - [DetailActionBar.scheduled]: kettéosztva 1 : 1,3 — bal cella
+///   „AUTOMATIKUS" és a rajtidő (nem érinthető, csak tájékoztat), jobb
+///   cella `primary` „Rajt most" (32a);
+/// - [DetailActionBar.start]: egy `primary` „Rajt" (32c);
+/// - [DetailActionBar.finish]: egy **semleges** „Cél" (32b), hogy a vízen
+///   egy véletlen érintés ne hívja (a megerősítést a hívó kéri).
 ///
-/// **Képernyőnként pontosan egy sor kitöltött.** Nem indult versenyen az
-/// indítás, futó versenyen az élő nézet: a hangsúly azon áll, amit abban az
-/// állapotban tényleg megnyomunk. Két teal sáv egymás alatt nem rangsorolna,
-/// két semleges pedig semmit nem ajánlana.
-///
-/// Befejezett versenyen **nincs sáv** — ezt a hívó dönti el, a widget ilyen
-/// státuszt nem fogad. Az assert a `build`-ben áll, nem a konstruktorban,
-/// hogy a `const` ctor megmaradjon.
+/// Befejezett versenyen nincs sáv; ezt a hívó dönti el.
 ///
 /// A `SafeArea` szándékosan hiányzik: a `RaceDetailScreen` törzse már
-/// `SafeArea`-ban ül, tehát itt no-op lenne.
+/// `SafeArea`-ban ül.
 class DetailActionBar extends StatelessWidget {
-  /// Egy alsó akció-sáv.
-  const DetailActionBar({
-    required this.status,
-    required this.onOpenLive,
-    required this.onStatusAction,
+  /// Tervezett rajt: „AUTOMATIKUS [automaticStartLabel] | Rajt most".
+  const DetailActionBar.scheduled({
+    required String this.automaticStartLabel,
+    required VoidCallback this.onStart,
     super.key,
-  });
+  }) : onFinish = null;
 
-  /// A verseny státusza; `finished` nem érvényes (ott nincs sáv).
-  final RaceStatus status;
+  /// Kézi rajt: „Rajt".
+  const DetailActionBar.start({
+    required VoidCallback this.onStart,
+    super.key,
+  }) : automaticStartLabel = null,
+       onFinish = null;
 
-  /// Az élő képernyő megnyitása.
-  final VoidCallback onOpenLive;
+  /// Cél: „Cél".
+  const DetailActionBar.finish({
+    required VoidCallback this.onFinish,
+    super.key,
+  }) : automaticStartLabel = null,
+       onStart = null;
 
-  /// Az indítás vagy a befejezés.
-  final VoidCallback onStatusAction;
+  /// A sáv magassága a hairline-nal együtt.
+  static const double height = 62;
+
+  /// Az automatikus rajt ideje („09:00"); csak tervezett rajtnál.
+  final String? automaticStartLabel;
+
+  /// A rajt (kézi vagy „most").
+  final VoidCallback? onStart;
+
+  /// A cél.
+  final VoidCallback? onFinish;
 
   @override
   Widget build(BuildContext context) {
-    assert(
-      status != RaceStatus.finished,
-      'Befejezett versenyen nincs also akcio-sav (ADR 0044 D30).',
-    );
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final isActive = status == RaceStatus.active;
+    final automatic = automaticStartLabel;
+    final start = onStart;
+    final finish = onFinish;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _ActionRow(
-          label: l10n.liveOpen,
-          onTap: onOpenLive,
-          isEmphasised: isActive,
-        ),
-        SizedBox(
-          height: 1,
-          child: ColoredBox(color: scheme.outlineVariant),
-        ),
-        _ActionRow(
-          label: isActive ? l10n.detailFinish : l10n.detailStart,
-          onTap: onStatusAction,
-          isEmphasised: !isActive,
-        ),
-      ],
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (automatic != null)
+            Expanded(flex: 10, child: _AutomaticCell(label: automatic)),
+          if (start != null)
+            Expanded(
+              flex: 13,
+              child: _ActionCell(
+                icon: Icons.play_arrow,
+                label: automatic != null
+                    ? l10n.detailStartNow
+                    : l10n.detailStart,
+                isEmphasised: true,
+                onTap: start,
+              ),
+            ),
+          if (finish != null)
+            Expanded(
+              child: _ActionCell(
+                icon: Icons.sports_score,
+                label: l10n.detailFinish,
+                isEmphasised: false,
+                onTap: finish,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// A sáv egyik 60 dp-s sora: középre zárt felirat, kitöltve vagy
-/// semlegesen. Ikon szándékosan nincs — a két sor felirata elég rövid
-/// ahhoz, hogy a hangsúlyt a kitöltés hordozza.
-///
-/// A háttér `Material`-ből jön, nem `ColoredBox`-ból: az elnyelné az
-/// `InkWell` ripple-jét.
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({
-    required this.label,
-    required this.onTap,
-    required this.isEmphasised,
-  });
+class _AutomaticCell extends StatelessWidget {
+  const _AutomaticCell({required this.label});
 
   final String label;
-  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final tones = Theme.of(context).extension<TextTones>()!;
+    return ColoredBox(
+      color: scheme.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 5,
+          children: [
+            Text(
+              l10n.detailAutomaticStart,
+              style: numeralCaptionStyle.copyWith(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1,
+                color: tones.low,
+              ),
+            ),
+            // Más napon a nap is benne van („OKT. 13. 09:00"): keskeny
+            // kijelzőn kicsinyít, de nem vág le.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: numeralCaptionStyle.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionCell extends StatelessWidget {
+  const _ActionCell({
+    required this.icon,
+    required this.label,
+    required this.isEmphasised,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
   final bool isEmphasised;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -98,18 +166,20 @@ class _ActionRow extends StatelessWidget {
       color: background,
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          height: 60,
-          child: Center(
-            child: Text(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 9,
+          children: [
+            Icon(icon, size: 18, color: foreground),
+            Text(
               label,
               style: supportTextStyle.copyWith(
-                fontSize: 14,
-                fontWeight: isEmphasised ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
                 color: foreground,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

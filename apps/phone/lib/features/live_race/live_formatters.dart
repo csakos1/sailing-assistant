@@ -80,3 +80,31 @@ String? formatVmgTarget(double? knots) {
   }
   return _withDecimalComma(knots.toStringAsFixed(1));
 }
+
+// 1 m/s = 3600/1852 csomó; a Speed VO-nak nincs csomó-gettere (a
+// `target_speed.dart` és a `watch_payload_builder.dart` ugyanezt teszi).
+const double _knotsPerMps = 1.943844;
+
+/// Egy sebesség csomóban, egy tizedesre, tizedesvesszővel (`6,4`), vagy
+/// `missingValue` ha null; a szabad mód STW/SOG- és TWS-cellája (34a). A
+/// szabályt a `shared` `formatSpeedKnots` adja, a vesszőt ez a réteg.
+String formatSpeedLive(Speed? speed) => _withDecimalComma(
+  formatSpeedKnots(
+    speed == null ? null : speed.metersPerSecond * _knotsPerMps,
+  ),
+);
+
+/// Az utolsó adat kora a megszakadt kapcsolat csíkján (34a-3): egy óra
+/// alatt `perc:mp` (`1:12`), felette `óra:perc` (`1:05`); az `isHours`
+/// mondja meg a hívónak, melyik egység-szöveg (`perce` / `órája`) jár
+/// hozzá. Csonkol, mint egy stopperóra: 72,9 mp → `1:12`.
+({String value, bool isHours}) formatDataAge(Duration age) {
+  final minutes = age.inMinutes;
+  if (minutes < 60) {
+    final seconds = age.inSeconds % 60;
+    return (value: '$minutes:${_twoDigits(seconds)}', isHours: false);
+  }
+  return (value: '${age.inHours}:${_twoDigits(minutes % 60)}', isHours: true);
+}
+
+String _twoDigits(int value) => value.toString().padLeft(2, '0');

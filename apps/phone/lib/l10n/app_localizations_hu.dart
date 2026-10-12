@@ -9,12 +9,6 @@ class AppLocalizationsHu extends AppLocalizations {
   AppLocalizationsHu([String locale = 'hu']) : super(locale);
 
   @override
-  String get liveOpen => 'Élő nézet';
-
-  @override
-  String get liveNoActiveRace => 'Nincs aktív verseny';
-
-  @override
   String get liveStale => 'ELAVULT';
 
   @override
@@ -27,9 +21,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get liveTwdHeld => 'TARTOTT';
 
   @override
-  String get liveBearing => 'BEARING';
-
-  @override
   String get liveCorrection => 'KORREKCIÓ';
 
   @override
@@ -37,6 +28,40 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get liveEta => 'ETA';
+
+  @override
+  String get navRaces => 'Versenyek';
+
+  @override
+  String get navInstruments => 'Műszerek';
+
+  @override
+  String get navLog => 'Versenynapló';
+
+  @override
+  String get navLive => 'ÉLŐ';
+
+  @override
+  String get homeMenuTooltip => 'Menü';
+
+  @override
+  String get homeMenuDebugSection => 'FEJLESZTÉS';
+
+  @override
+  String get homeMenuRawNmea => 'Nyers NMEA';
+
+  @override
+  String get homeMenuEngineDebug => 'Engine debug';
+
+  @override
+  String get logEmptyTitle => 'Még nincs befejezett verseny';
+
+  @override
+  String get logEmptyMessage =>
+      'A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.';
+
+  @override
+  String get logLoadingCaps => 'BETÖLTÉS';
 
   @override
   String get liveStop => 'Leállítás';
@@ -59,11 +84,6 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get liveRoundMarkTitle => 'Bója megkerülve?';
-
-  @override
-  String liveRoundMarkMessage(String mark) {
-    return 'Megjelölöd a(z) $mark át megkerültnek?';
-  }
 
   @override
   String get liveRoundMarkMessageGeneric =>
@@ -207,19 +227,66 @@ class AppLocalizationsHu extends AppLocalizations {
   String get raceStatusFinished => 'Befejezve';
 
   @override
-  String get detailStart => 'Indítás';
+  String get detailStart => 'Rajt';
 
   @override
-  String get detailFinish => 'Befejezés';
+  String get detailFinish => 'Cél';
+
+  @override
+  String get detailStartNow => 'Rajt most';
+
+  @override
+  String get detailAutomaticStart => 'AUTOMATIKUS';
+
+  @override
+  String get detailScheduledStartLabel => 'RAJT';
+
+  @override
+  String get detailNoScheduledStart => 'NINCS TERVEZETT RAJT';
+
+  @override
+  String detailStartPointName(String name) {
+    return 'Rajthely — $name';
+  }
+
+  @override
+  String get detailStartPointTag => 'RAJTHELY';
+
+  @override
+  String detailStartedAt(String time) {
+    return 'RAJT $time';
+  }
+
+  @override
+  String get detailActiveMarkTag => 'AKTÍV';
+
+  @override
+  String detailStartScheduledMessage(String time) {
+    return 'A verseny most indul a tervezett $time helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.';
+  }
+
+  @override
+  String get detailFinishTitle => 'Cél?';
+
+  @override
+  String get detailFinishMessage =>
+      'A verseny most véget ér: a rögzítés leáll, és a track lezárul.';
+
+  @override
+  String get detailFinishCancel => 'Mégse';
+
+  @override
+  String get detailFinishConfirm => 'Cél';
 
   @override
   String get detailDelete => 'Törlés';
 
   @override
-  String get detailDeleteTitle => 'Verseny törlése';
+  String get detailDeleteTitle => 'Törlöd a versenyt?';
 
   @override
-  String get detailDeleteMessage => 'Biztosan törlöd ezt a versenyt?';
+  String get detailDeleteMessage =>
+      'A track, a bóják és a statisztika véglegesen törlődik.';
 
   @override
   String get detailDeleteCancel => 'Mégse';
@@ -228,11 +295,42 @@ class AppLocalizationsHu extends AppLocalizations {
   String get detailDeleteConfirm => 'Törlés';
 
   @override
-  String get listTitle => 'VERSENYEK';
+  String get detailDeletedMessage => 'Verseny törölve';
 
   @override
-  String get listEmpty =>
-      'Még nincs verseny. Indíts egyet az Új verseny gombbal.';
+  String get detailDeleteUndo => 'Visszavonás';
+
+  @override
+  String get listTitle => 'Versenyek';
+
+  @override
+  String get listEmptyTitle => 'Még nincs verseny';
+
+  @override
+  String listEmptyMessage(String action) {
+    return 'Hozz létre egyet az $action gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.';
+  }
+
+  @override
+  String get listMetaToday => 'MA';
+
+  @override
+  String listMetaDay(String month, int day) {
+    return '$month $day.';
+  }
+
+  @override
+  String listMetaDayWithYear(int year, String month, int day) {
+    return '$year. $month $day.';
+  }
+
+  @override
+  String get listMetaNoMarks => 'bója nélkül';
+
+  @override
+  String listMetaActiveMark(int index, int total, String mark) {
+    return '$index / $total · $mark';
+  }
 
   @override
   String get listError => 'Nem sikerült betölteni a versenyeket.';
@@ -262,7 +360,7 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String get logYearSheetTitle => 'Év';
+  String get logRaceCountPendingCaps => '–– VERSENY';
 
   @override
   String get logStatTimeCaps => 'VÍZEN TÖLTÖTT';
@@ -302,7 +400,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get setupPickFromLibrary => 'Korábbi bóják';
 
   @override
-  String get setupPickFromLibraryTitle => 'KORÁBBI BÓJÁK';
+  String setupPickFromLibraryCount(int count) {
+    return '$count BÓJA';
+  }
 
   @override
   String get setupPickFromLibraryEmpty => 'Még nincs mentett bója.';
@@ -312,6 +412,83 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get setupPickFromLibraryNoMatch => 'Nincs találat erre a névre.';
+
+  @override
+  String get setupStartTimeLabel => 'RAJT IDŐPONTJA';
+
+  @override
+  String get setupStartTimeEmpty => 'Nincs tervezett rajt — kézzel indul';
+
+  @override
+  String get setupStartTimeClear => 'Rajtidő törlése';
+
+  @override
+  String get setupStartTimePastRetroactive =>
+      'Ez az időpont már elmúlt — a verseny visszamenőleg indul.';
+
+  @override
+  String get setupStartTimePastManual =>
+      'Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.';
+
+  @override
+  String get setupStartPointSection => 'RAJTHELY';
+
+  @override
+  String get setupStartPointAdd => 'Rajthely hozzáadása';
+
+  @override
+  String get setupStartPointCoordinates => 'Koordináta';
+
+  @override
+  String get setupStartPointNameLabel => 'Rajthely neve';
+
+  @override
+  String get setupStartPointRemove => 'Rajthely törlése';
+
+  @override
+  String get startTimeSheetTitle => 'Rajt időpontja';
+
+  @override
+  String get startTimeSheetPreviousMonth => 'Előző hónap';
+
+  @override
+  String get startTimeSheetNextMonth => 'Következő hónap';
+
+  @override
+  String get startTimeSheetWeekdays => 'H|K|Sze|Cs|P|Szo|V';
+
+  @override
+  String get startTimeSheetMonths =>
+      'január|február|március|április|május|június|július|augusztus|szeptember|október|november|december';
+
+  @override
+  String startTimeSheetMonth(int year, String month) {
+    return '$year. $month';
+  }
+
+  @override
+  String get startTimeSheetTime => 'IDŐPONT';
+
+  @override
+  String get startTimeSheetClock24 => '24 órás';
+
+  @override
+  String get startTimeSheetHourUp => 'Óra növelése';
+
+  @override
+  String get startTimeSheetHourDown => 'Óra csökkentése';
+
+  @override
+  String get startTimeSheetMinuteUp => 'Perc növelése';
+
+  @override
+  String get startTimeSheetMinuteDown => 'Perc csökkentése';
+
+  @override
+  String get startTimeSheetClear => 'Nincs rajtidő';
+
+  @override
+  String get startTimeSheetDone => 'Kész';
 
   @override
   String get detailCourseLabel => 'PÁLYA';
@@ -636,9 +813,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String webReplaceForeignMessage(String current, String next) {
     return 'Ez a telefon a(z) $current szerveren van regisztrálva. Lecseréled erre: $next?';
   }
-
-  @override
-  String get webMenuTooltip => 'Webes hozzáférés';
 
   @override
   String get webMenuSection => 'WEBES HOZZÁFÉRÉS';
@@ -997,4 +1171,67 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get webPromptCodesTitle => 'Új helyreállító kódok';
+
+  @override
+  String get liveStw => 'STW';
+
+  @override
+  String get liveSog => 'SOG';
+
+  @override
+  String get liveTwa => 'TWA';
+
+  @override
+  String get liveTws => 'TWS';
+
+  @override
+  String get instrumentsSearching => 'Hajó keresése…';
+
+  @override
+  String get instrumentsStopped => 'Leállítva';
+
+  @override
+  String get instrumentsDataLabel => 'ADAT';
+
+  @override
+  String instrumentsDataAgeMinutes(String age) {
+    return '$age perce';
+  }
+
+  @override
+  String instrumentsDataAgeHours(String age) {
+    return '$age órája';
+  }
+
+  @override
+  String get instrumentsMenuTooltip => 'Menü';
+
+  @override
+  String get instrumentsStopTitle => 'Műszerek leállítása';
+
+  @override
+  String get instrumentsStopMessage =>
+      'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.';
+
+  @override
+  String get instrumentsStartNow => 'Rajt most';
+
+  @override
+  String get instrumentsStartTitle => 'Rajt most?';
+
+  @override
+  String get instrumentsStartMessage =>
+      'A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.';
+
+  @override
+  String get instrumentsStartCancel => 'Mégse';
+
+  @override
+  String get instrumentsStartConfirm => 'Rajt';
+
+  @override
+  String get instrumentsTodayRaces => 'MAI VERSENYEK';
+
+  @override
+  String get instrumentsSwitchRace => 'Verseny váltása';
 }

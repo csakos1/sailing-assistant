@@ -1,7 +1,10 @@
+import 'dart:developer' as developer;
+
 import 'package:domain/domain.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phone/providers/clock_provider.dart';
 import 'package:phone/providers/race_repository_provider.dart';
+import 'package:phone/providers/race_start_signal_provider.dart';
 
 /// A folyamatban lévő race egyetlen írható, in-memory tartója (ADR 0009 D5).
 ///
@@ -31,13 +34,15 @@ class ActiveRaceNotifier extends Notifier<Race?> {
   /// a telemetria-logger lifecycle erre a state-változásra tear-down-ol.
   set activeRace(Race? race) => state = race;
 
-  /// notStarted → active, majd perzisztálás. No-op, ha nincs aktív race.
+  /// notStarted → active, majd perzisztálás és a rajt jelzése
+  /// ([raceStartSignalProvider]). No-op, ha nincs aktív race.
   Future<void> start() async {
     final race = state;
     if (race == null) return;
     final started = race.start(at: ref.read(clockProvider)());
     await ref.read(raceRepositoryProvider).save(started);
     state = started;
+    ref.read(raceStartSignalProvider.notifier).signal(started.id);
   }
 
   /// Az aktív bója megkerülése: a következő bójára lép (az utolsón a domain
@@ -50,6 +55,80 @@ class ActiveRaceNotifier extends Notifier<Race?> {
     final rounded = race.roundCurrentMark(at: ref.read(clockProvider)());
     await ref.read(raceRepositoryProvider).save(rounded);
     state = rounded;
+  }
+
+  /// Az engine által magától elindított verseny ([raceId]) átvétele a
+  /// DB-be (ADR 0055 D6, T4): az engine a tervezett rajtidővel ([at]) indít,
+  /// de a DB-t nem írja (ADR 0016 D6). Idempotens: ha a verseny már nem
+  /// `notStarted` (egy kézi „Rajt" vagy egy korábbi átvétel már mentette),
+  /// az első mentés marad, és egy eltérő rajtidő csak naplósor. Az átvett
+  /// verseny lesz a kiválasztott is (ez az, ami rögzül), kivéve, ha közben
+  /// egy másik verseny aktív a UI-ban. Rajtot csak akkor jelez
+  /// ([raceStartSignalProvider]), ha az átvett verseny lett a kiválasztott.
+  Future<void> adoptEngineStart(String raceId, {required DateTime at}) async {
+    final repository = ref.read(raceRepositoryProvider);
+    final selected = state;
+    final isSelected = selected?.id == raceId;
+    final race = selected != null && isSelected
+        ? selected
+        : await repository.getRace(raceId);
+    if (race == null) return;
+    // A DB-olvasás alatt egy kézi „Rajt" már menthetett: az első mentés
+    // nyer, ezért a kiválasztott friss állapotát is nézzük.
+    final current = state;
+    final latest = current != null && current.id == raceId ? current : race;
+    if (latest.status != RaceStatus.notStarted) {
+      _logDifferentStart(latest, at);
+      return;
+    }
+    final started = latest.start(at: at);
+    // A kiválasztást a mentés előtt frissítjük, mint a finishFromEngine-nél.
+    if (current == null ||
+        current.id == raceId ||
+        current.status != RaceStatus.active) {
+      state = started;
+      ref.read(raceStartSignalProvider.notifier).signal(raceId);
+    }
+    await repository.save(started);
+  }
+
+  void _logDifferentStart(Race race, DateTime engineStartedAt) {
+    final savedStartedAt = race.startedAt;
+    if (race.status != RaceStatus.active ||
+        savedStartedAt == null ||
+        savedStartedAt.isAtSameMomentAs(engineStartedAt)) {
+      return;
+    }
+    developer.log(
+      'engine start $engineStartedAt kept saved start $savedStartedAt',
+      name: 'ActiveRace',
+    );
+  }
+
+  /// Az engine által magától lezárt verseny ([raceId]) perzisztálása (az
+  /// utolsó bója auto-finish-e, ADR 0054 E3): az engine nem ír vissza a
+  /// DB-be (ADR 0016 D6), ezért a UI zárja le az [at] időponttal (a lezárás
+  /// pillanatképének ideje, nem a mostani óra: a UI késve is kaphatja). A
+  /// kiválasztott versenyt az élő állapotából, mást a DB friss példányából
+  /// zárja. No-op, ha a verseny ismeretlen vagy már nem `active`.
+  Future<void> finishFromEngine(String raceId, {required DateTime at}) async {
+    final repository = ref.read(raceRepositoryProvider);
+    final selected = state;
+    final isSelected = selected?.id == raceId;
+    final race = selected != null && isSelected
+        ? selected
+        : await repository.getRace(raceId);
+    if (race == null || race.status != RaceStatus.active) return;
+    final startedAt = race.startedAt;
+    // Óraeltérés ellen: a cél nem lehet a rajt előtt.
+    final finishAt = startedAt != null && at.isBefore(startedAt)
+        ? startedAt
+        : at;
+    final finished = race.finish(at: finishAt);
+    // A kiválasztást a mentés előtt frissítjük, hogy egy közben jövő kézi
+    // „Cél" már lezárt versenyt lásson.
+    if (isSelected) state = finished;
+    await repository.save(finished);
   }
 
   /// active → finished (DNF/abort), majd perzisztálás. No-op, ha nincs aktív

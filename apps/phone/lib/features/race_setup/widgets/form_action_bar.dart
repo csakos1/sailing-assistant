@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
 
-/// A másodlagos sor magassága (ADR 0044 D50, geometria: ARCHITECTURE 8.11).
-const double _secondaryHeight = 56;
+/// A másodlagos sor magassága (ADR 0044 D50, az U7 óta a 33a szerint).
+const double _secondaryHeight = 58;
 
-/// A primary sáv magassága.
-const double _primaryHeight = 60;
+/// A primary sáv magassága (33a).
+const double _primaryHeight = 62;
 
 /// A cellák közti osztó vonal vastagsága.
 const double _dividerWidth = 1;
@@ -14,8 +14,9 @@ const double _dividerWidth = 1;
 /// Az ikon mérete a másodlagos cellákban.
 const double _actionIconSize = 18;
 
-/// A felirat fokozata mindkét sorban; a súly soronként tér el.
-const double _labelSize = 15;
+/// A feliratok fokozata (33a): a felső sor 14 / w600, a primary 15 / w700.
+const double _secondaryLabelSize = 14;
+const double _primaryLabelSize = 15;
 
 /// Rögzített, kétsoros akció-sáv egy űrlap alján (ADR 0044 D1, D50).
 ///
@@ -25,7 +26,7 @@ const double _labelSize = 15;
 /// magától a billentyűzet fölé emelkedik, ezért a [SafeArea] csak alul kell.
 ///
 /// Fölül a [secondaryActions] osztozik egyenlően a soron, alatta a teljes
-/// szélességű primary gomb. A geometria (56 / 60 dp, r0, osztó hairline)
+/// szélességű primary gomb. A geometria (58 / 62 dp, r0, osztó hairline)
 /// **itt van bezárva**, nem a hívóban — így a következő űrlap nem tudja
 /// véletlenül elrontani, ugyanazon a megfontoláson, mint az ADR 0042
 /// cellánkénti `FittedBox`-a.
@@ -74,7 +75,7 @@ class FormActionBar extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   shape: const RoundedRectangleBorder(),
                   textStyle: supportTextStyle.copyWith(
-                    fontSize: _labelSize,
+                    fontSize: _primaryLabelSize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -144,7 +145,7 @@ class _ActionCell extends StatelessWidget {
         shape: const RoundedRectangleBorder(),
         foregroundColor: scheme.onSurface,
         textStyle: supportTextStyle.copyWith(
-          fontSize: _labelSize,
+          fontSize: _secondaryLabelSize,
           fontWeight: FontWeight.w600,
         ),
       ),

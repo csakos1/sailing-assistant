@@ -2,8 +2,10 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-09. Még nem implementálva. A „Szeletek" sorrendjében
-követi, docs-first.
+Elfogadva és élesítve — 2026-10-09 (`b1ac63a`,
+`https://lola.foretack.hu/app/foretack.apk`, `0.2.0+2`). A D6 próbája a
+fölösleges telefonon sikeres volt; a részletek a „Pontosítás a próba után"
+szakaszban.
 
 A döntések egy része felhasználói döntés, más része Claude javaslata. A
 javaslatokat a pontok „(javaslat)" jelzéssel hordozzák, és a hozzájuk
@@ -40,8 +42,8 @@ A mai helyzet (a felhasználó válaszai, 2026-10-09):
 
 - **Az aláírás:** a `apps/phone/android/app/build.gradle.kts` release
   ága ma `signingConfig = signingConfigs.getByName("debug")`. A release
-  APK tehát ugyanazzal a `~/.android/debug.keystore`-ral van aláírva,
-  mint a Pixel debug buildje.
+  APK tehát ugyanazzal a `~/.config/.android/debug.keystore`-ral van
+  aláírva, mint a Pixel debug buildje.
 - **Android frissítési szabály:** egy telepített app akkor frissíthető
   a helyén (adatvesztés nélkül), ha az új APK csomagneve
   (`applicationId`) és aláíró tanúsítványa azonos, és a `versionCode`-ja
@@ -77,8 +79,9 @@ szerepet a szerver adja (`GET /api/auth/me`), a biztonság a szerveren van.
 ### D2 — Az aláírás marad a mostani kulcs (javaslat, a felhasználó helyzetéből)
 
 - A release build továbbra is a fejlesztői gép
-  `~/.android/debug.keystore`-jával van aláírva. A `build.gradle.kts`
-  `TODO`-ja helyett egy komment rögzíti, hogy ez szándékos (ADR 0053).
+  `~/.config/.android/debug.keystore`-jával van aláírva. A
+  `build.gradle.kts` `TODO`-ja helyett egy komment rögzíti, hogy ez
+  szándékos (ADR 0053).
 - **Ok:** a legénységi telefonon ezzel aláírt app fut versenyadatokkal.
   Egy új release-kulcs után a frissítés csak eltávolítással menne, ami az
   adatot törli. APK-kulcsrotációval (v3 aláírás) ez elkerülhető lenne, de
@@ -181,6 +184,24 @@ linket. A próba egy fölösleges telefonon:
 A tulajdonos Pixele debug buildben marad a fejlesztéshez; ugyanaz a
 kulcs, így egy release is felmehetne rá adatvesztés nélkül, de nem kell.
 
+## Pontosítás a próba után (2026-10-09)
+
+- **A keystore helye** ezen a gépen `~/.config/.android/debug.keystore`,
+  nem az Android-alapértelmezés szerinti `~/.android/`. A Flutter/Gradle
+  ezt használja, a `deploy/README.md` 15. fejezete is ezt a helyet adja
+  meg. A D2 és a „Következmények" már ezt az utat írják.
+- **A D6 próbája rendben:** a régi APK fölé a linkről telepített
+  `0.2.0+2` megtartotta a versenyeket, és a release build webes része
+  (QR-beolvasás, csatlakozási kérelem, jóváhagyás, `crew` belépés) is
+  működött.
+- **R8:** extra ProGuard-szabály nem kellett; a `biometric_signature` és
+  a `mobile_scanner` saját szabályai elegendők.
+- **`build_phone_apk.sh`:** az `aapt2 dump badging` kimenete nem
+  `| head`-del szűrődik, mert a `pipefail` mellett a SIGPIPE csendben
+  leállította a szkriptet; a teljes kimenet egy változóba kerül
+  (`3c5240c`).
+- **S9c** nem kellett: a próbán nem derült ki hiba.
+
 ## Mit ír felül
 
 - **ADR 0051 D14** („a legénység APK-terjesztése nem része"): ez az ADR
@@ -200,7 +221,8 @@ kulcs, így egy release is felmehetne rá adatvesztés nélkül, de nem kell.
 
 - A legénység egy linkről frissít, adatvesztés nélkül; minden további
   kiadás ugyanígy megy (verzió-emelés → build → közzététel).
-- A `~/.android/debug.keystore` mostantól kritikus fájl, mentéssel.
+- A `~/.config/.android/debug.keystore` mostantól kritikus fájl,
+  mentéssel.
 - Egy release-ben előjövő R8-hiba a próbán derül ki, nem a vízen.
 
 ## Amit ez az ADR NEM dönt el

@@ -25,8 +25,11 @@ class RecoveryCodesScreen extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     // A `MaterialApp` regisztrálja a delegátorokat, ezért nem `null`.
     final copied = AppLocalizations.of(context)!.webCodesCopied;
+    // A snackbar a másolás előtt készül: az `await` után a context
+    // már nem használható.
+    final snackBar = foretackSnackBar(context, message: copied);
     await Clipboard.setData(ClipboardData(text: codes.join('\n')));
-    messenger.showSnackBar(SnackBar(content: Text(copied)));
+    messenger.showSnackBar(snackBar);
   }
 
   @override

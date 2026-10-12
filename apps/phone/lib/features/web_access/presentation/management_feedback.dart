@@ -32,37 +32,19 @@ void showManagementError(BuildContext context, WebAccessError error) {
   );
 }
 
-/// Egy rövid, lebegő értesítés piros négyzettel, a 18d snackbarjának
-/// mintájára.
+/// Egy rövid, lebegő értesítés piros négyzettel (a közös 35e
+/// snackbar, ADR 0056 D5).
 SnackBar webNoticeSnackBar(BuildContext context, String text) =>
-    _squareSnackBar(context, text, Theme.of(context).colorScheme.error);
+    foretackSnackBar(
+      context,
+      message: text,
+      markColor: Theme.of(context).colorScheme.error,
+    );
 
 /// Egy sikeres művelet lebegő értesítése teal négyzettel (pl. „Jelszó
-/// mentve"), a 18d mintájára.
-SnackBar webDoneSnackBar(BuildContext context, String text) =>
-    _squareSnackBar(context, text, Theme.of(context).colorScheme.primary);
-
-SnackBar _squareSnackBar(BuildContext context, String text, Color square) {
-  final scheme = Theme.of(context).colorScheme;
-  return SnackBar(
-    // Az M3 alapja (`inverseSurface`) világos: a sötét témában a világos
-    // szöveg eltűnne rajta.
-    backgroundColor: scheme.surfaceContainerHigh,
-    behavior: SnackBarBehavior.floating,
-    content: Row(
-      spacing: 10,
-      children: [
-        SizedBox.square(dimension: 8, child: ColoredBox(color: square)),
-        Expanded(
-          child: Text(
-            text,
-            style: supportTextStyle.copyWith(
-              color: scheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+/// mentve"; a közös 35e snackbar, ADR 0056 D5).
+SnackBar webDoneSnackBar(BuildContext context, String text) => foretackSnackBar(
+  context,
+  message: text,
+  markColor: Theme.of(context).colorScheme.primary,
+);

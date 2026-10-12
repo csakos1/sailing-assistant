@@ -591,6 +591,10 @@ ahhoz, hogy a sor hogyan néz ki.
 
 **Hivatkozás:** ADR 0044 D25.
 
+**Állapot (U7):** okafogyott. A setup tizedes fokkal tölt elő (a bevitel
+mindhárom alakot érti), a részlet az U6 óta tizedes fokot mutat; a kettő
+egyezik. A tétel a DDM-előtöltéssel együtt térhet vissza.
+
 ### A 60 dp-s sáv-váz közös widgetbe emelése (pontosított feltétel)
 
 **Mi:** a `ListActionBar` és a `DetailActionBar` közös vázának kiemelése.
@@ -652,6 +656,113 @@ nem látszik.
 - **Hivatkozás**: `packages/data/lib/src/persistence/repositories/`
   `telemetry_logger_impl.dart:67`.
 
+### Lassú lista-frissítés nehéz track-olvasás közben
+- **Mi**: az R1 on-device próbáján (2026-10-12, Pixel, teljes szezonnyi
+  adat) egy verseny közbeni újranyitás után a Versenyek és a napló első
+  betöltése lassú, és a részlet „Cél"-ja után a verseny kb. 10 mp múlva
+  kerül át a naplóba. A mentés és az értesítés azonnali, DB-hiba nincs a
+  logcatben.
+- **Mikor**: önálló `perf(data)` / `perf(phone)` szelet a merge után,
+  **előbb mérés** (profile build, időbélyeg a lekérdezések köré).
+- **Miért nem most**: nem adatvesztés, és a javítás a mérés nélkül csak
+  becslés lenne; a felhasználó szerint ráér a merge utánig.
+- **Megjegyzés**: a valószínű ok, hogy a UI-izolátum minden
+  DB-kérése egy drift-háttérizolátumon, sorban fut, és a
+  `RaceRepositoryImpl.watchRaces` versenyenként külön kérdezi a bójákat
+  (N+1), így ezek egyenként a nehéz `snapshot_logs`-olvasások
+  (részlet-elemzés, `raceLogTrackTotalsProvider`) mögé állnak. Jelöltek:
+  a bóják egyetlen lekérdezéssel; külön olvasó kapcsolat a nehéz
+  olvasásoknak (WAL). A két izolátum külön kapcsolata és a hiányzó
+  `busy_timeout` (fent) a mérésnél szintén nézendő.
+- **Hivatkozás**: ADR 0056 „Pontosítás és on-device eredmény (R1)";
+  `packages/data/lib/src/persistence/repositories/race_repository_impl.dart`.
+
+## Telefonos UI v1, szabad mód, tervezett verseny (ADR 0054–0056)
+
+A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.
+
+### Egyszerűsített óranézet szabad módra
+- **Mi**: az óra szabad módban (verseny nélkül) ma a versenyképernyőt
+  mutatja üres bója-mezőkkel; helyette egy egyszerű nézet: sebesség,
+  polár-cél %, szél.
+- **Mikor**: a telefonos UI v1 kiadása után, külön ADR-rel vagy az ADR
+  0054 addendumával; a `WatchPayload` egy mód-mezőt kap.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): „egyelőre a
+  versenyképernyő legyen, üres bója-mezőkkel, de jegyezzük fel".
+- **Hivatkozás**: ADR 0054 D2; `apps/watch/lib/screens/`.
+
+### Visszaszámláló a rajtig
+- **Mi**: visszaszámláló a tervezett rajtig a Műszerek fülön és az órán.
+- **Mikor**: ha a vízen hiányzik; az órás része az előző tétellel együtt.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): „nem kell".
+- **Hivatkozás**: ADR 0055 „Amit nem dönt el".
+
+### Rajtidő-javítás aktív versenyen (visszahívás, késői halasztás)
+- **Mi**: egy már (akár automatikusan) elindult verseny `startedAt`-jének
+  javítása a telefonon, a track és a telemetria megtartásával.
+- **Mikor**: ha az első szezonban előfordul téves automatikus rajt.
+- **Miért halasztva**: felhasználói döntés (2026-10-09): v1-ben nem
+  kezeljük; a weben utólag javítható.
+- **Hivatkozás**: ADR 0055 D8.
+
+### Rajtvonal két ponttal
+- **Mi**: a rajthely helyett rajtvonal (rendezőhajó + bója),
+  vonaltávolsággal és oldal-jelzéssel.
+- **Mikor**: v2.
+- **Miért halasztva**: nagyobb munka (geometria, megjelenítés); v1-ben a
+  rajthely-pont elég.
+- **Hivatkozás**: ADR 0055 „Amit nem dönt el".
+
+### Opcionális rajt előtti rögzítés
+- **Mi**: kapcsoló, amivel a rajt előtti szakasz (rajtvonal körüli
+  manőverek) is a trackbe és a telemetriába kerül.
+- **Mikor**: ha a felhasználó a rajtot elemezni szeretné.
+- **Miért halasztva**: a felhasználó kifejezetten azt kérte, hogy a rajt
+  előtti rávezetés ne rögzüljön.
+- **Hivatkozás**: ADR 0054 D3.
+
+### Háttér-kapcsolódás a WiFi-hálózat figyelésével
+- **Mi**: az app akkor is induljon szabad módban, ha a telefon a hajó
+  WiFi-jére lép, és az app épp nincs előtérben.
+- **Mikor**: ha az app-nyitásos próba a gyakorlatban kevés.
+- **Miért halasztva**: felhasználói döntés (az app-nyitásos változat);
+  háttér-jogosultság és platformkód kellene hozzá.
+- **Hivatkozás**: ADR 0054 D4.
+
+### GPS-idő ritkítása szabad módban
+- **Mi**: szabad módban a service GPS-ideje ritkábban vagy egyáltalán
+  nem fut.
+- **Mikor**: az első vízi akkumulátor-mérés után, ha indokolt.
+- **Miért halasztva**: előbb mérni kell (`adb shell dumpsys
+  batterystats`).
+- **Hivatkozás**: ADR 0054 D8.
+
+### Tervezett rajt és rajthely a weben
+- **Mi**: a webes részlet és lista mutassa a tervezett rajtot és a
+  rajthelyet.
+- **Mikor**: a telefonos UI v1 kiadása után.
+- **Miért halasztva**: a mezők a v6-os sémával a szerverre is átjönnek,
+  de a web v1-ben nem mutatja őket.
+- **Hivatkozás**: ADR 0055 D4.
+
+### Fok-perces koordináta-bevitel a RaceSetupban
+- **Mi**: a bója- és rajthely-koordináta fok-percben is beírható legyen
+  (a versenykiírások jellemzően így adják meg).
+- **Mikor**: a „DDM-előtöltés a koordináta-mezőkben" tétellel együtt.
+- **Miért halasztva**: felhasználói döntés (2026-10-10): a bevitel marad
+  a tizedes fok.
+- **Hivatkozás**: ADR 0056; `docs/design/phone-ui-v1.md` §5.
+
+### Futó verseny elvetése
+- **Mi**: egy tévesen indított, futó verseny törlése a telefonon, az
+  engine-ből való elengedéssel (`discard` parancs), cél nélkül.
+- **Mikor**: ha a vízen előfordul, hogy egy versenyt cél nélkül kell
+  eldobni.
+- **Miért halasztva**: felhasználói döntés (2026-10-12): futó versenyen
+  nincs kuka, előbb a Cél zárja le, utána törölhető.
+- **Hivatkozás**: ADR 0056 D6 és „Pontosítás a kód után (U8)"; ADR 0054
+  D6.
+
 ---
 
 ## Done
@@ -696,3 +807,12 @@ kerülnek ide.)_
 - **Hol**: a `feature/ui-redesign` branch commitjai, `6cdc657` … `87428ac`;
   két ADR, öt új widget, három törölt, négy új teszt-fájl, egy on-device
   javítókör.
+
+### A UI-oldali második TCP-kliens és a kettős telemetria-írás — `dfedfa5`
+- **Mi**: a `telemetryLoggerProvider` törölve. Az ADR 0017 D8 óta a
+  telemetriát az engine írja; a provider a UI-izolátumban egy második
+  gateway-kapcsolaton át minden nyers sort másodszor is beírt. A
+  2026-09-30-i DB-ben a 14 versenyből a sorok ~30%-a duplikátum.
+- **Hol**: `fix(phone): stop double-logging telemetry from the UI isolate`.
+  A már rögzített duplikátumok maradnak; a `database is locked`
+  elkapatlan kivétele (Adatréteg) külön tétel marad.

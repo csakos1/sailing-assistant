@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:phone/features/race_list/widgets/home_menu.dart';
 import 'package:phone/features/web_access/presentation/web_access_banners.dart';
-import 'package:phone/features/web_access/presentation/web_access_menu.dart';
 import 'package:phone/features/web_access/presentation/web_access_refresher.dart';
 import 'package:race_archive_api/race_archive_api.dart';
 
@@ -16,7 +16,7 @@ void main() {
   late int sessionsOpened;
   late int crewOpened;
   late int scannerOpened;
-  late List<WebAccessMenuItem> selected;
+  late List<HomeMenuItem> selected;
 
   setUp(() {
     server = FakeWebServer();
@@ -39,7 +39,10 @@ void main() {
     store: store,
     home: Scaffold(
       appBar: AppBar(
-        actions: [WebAccessMenu(onSelected: selected.add)],
+        actions: [
+          // A debug-sorok nelkul: itt a webes csoport viselkedese szamit.
+          HomeMenu(onSelected: selected.add, showsDebugItems: false),
+        ],
       ),
       body: WebAccessRefresher(
         child: Column(
@@ -281,7 +284,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert
-      expect(selected, [WebAccessMenuItem.sessions]);
+      expect(selected, [HomeMenuItem.sessions]);
     });
 
     testWidgets('the owner gets the crew row with the request count', (
@@ -302,7 +305,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert
-      expect(selected, [WebAccessMenuItem.crew]);
+      expect(selected, [HomeMenuItem.crew]);
     });
 
     testWidgets('the crew gets only the sessions and the account', (
@@ -322,7 +325,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert
-      expect(selected, [WebAccessMenuItem.account]);
+      expect(selected, [HomeMenuItem.account]);
     });
 
     testWidgets('is hidden without an account', (tester) async {

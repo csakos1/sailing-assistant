@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
 import 'package:phone/app/localization_delegates.dart';
 import 'package:phone/features/race_log/race_log_screen.dart';
-import 'package:phone/features/race_log/widgets/race_log_year_bar.dart';
-import 'package:phone/features/race_log/widgets/race_log_year_sheet.dart';
+import 'package:phone/features/race_log/widgets/race_log_empty.dart';
+import 'package:phone/features/race_log/widgets/race_log_loading_list.dart';
+import 'package:phone/features/race_log/widgets/race_log_year_band.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/race_log_provider.dart';
 import 'package:phone/providers/race_track_stats_provider.dart';
@@ -56,13 +59,15 @@ void main() {
     WidgetTester tester, {
     required AsyncValue<List<RaceLogYear>> log,
     Map<String, List<TrackSample>> samples = const {},
+    TrackSampleReader? readSamples,
   }) {
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
           raceLogProvider.overrideWith((ref) => log),
           trackSampleReaderProvider.overrideWith((ref) {
-            return (raceId) async => samples[raceId] ?? const <TrackSample>[];
+            return readSamples ??
+                (raceId) async => samples[raceId] ?? const <TrackSample>[];
           }),
           // A stat-csik a gyorsitotarat is olvassa; ures cache mellett a
           // minta-olvasohoz jut, iras utan viszont nem all fel valos DB.
@@ -84,25 +89,49 @@ void main() {
   }
 
   group('RaceLogScreen states', () {
-    testWidgets('shows a spinner while the log is loading', (tester) async {
+    testWidgets('shows the skeleton while the log is loading', (tester) async {
       await pumpScreen(
         tester,
         log: const AsyncValue<List<RaceLogYear>>.loading(),
       );
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(RaceLogYearBar), findsNothing);
+      // Makett 35f: az evsav a helyen hianyjelekkel, a lista helyen vazak,
+      // korre forgo spinner nelkul.
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RaceLogScreen)),
+      )!;
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.byType(RaceLogLoadingList), findsOneWidget);
+      expect(find.text(l10n.logLoadingCaps), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text(l10n.logRaceCountPendingCaps),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('––––'), findsOneWidget);
+      expect(find.text('––,–'), findsNWidgets(3));
+      expect(find.text('ó'), findsOneWidget);
+      expect(find.byType(RaceLogRow), findsNothing);
     });
 
-    testWidgets('draws nothing for an empty log', (tester) async {
+    testWidgets('says so for an empty log', (tester) async {
       await pumpScreen(
         tester,
         log: const AsyncValue<List<RaceLogYear>>.data(<RaceLogYear>[]),
       );
 
-      expect(find.byType(RaceLogYearBar), findsNothing);
-      expect(find.byType(RaceLogStatsStrip), findsNothing);
+      // Fulkent ures naploval is elerheto (ADR 0056 D2).
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RaceLogScreen)),
+      )!;
+      expect(find.byType(RaceLogEmpty), findsOneWidget);
+      expect(find.text(l10n.logEmptyTitle), findsOneWidget);
+      expect(find.byType(RaceLogYearBand), findsNothing);
       expect(find.byType(RaceLogRow), findsNothing);
+      expect(find.textContaining('VERSENY'), findsNothing);
     });
   });
 
@@ -135,7 +164,7 @@ void main() {
       expect(find.text('Regi'), findsNothing);
     });
 
-    testWidgets('shows the year count in the app bar', (tester) async {
+    testWidgets('shows the year count in the header', (tester) async {
       // Ket honapra osztva, kulonben az osszesito felirat egybeesne a
       // honap-fejlecevel, es a talalat nem lenne egyertelmu.
       await pumpScreen(
@@ -151,12 +180,30 @@ void main() {
         ]),
       );
 
-      expect(find.text('3 VERSENY'), findsOneWidget);
+      // A versenyszam a fejresz jobb oldalan, nem az evsavban (UF).
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('3 VERSENY'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(RaceLogYearBand),
+          matching: find.text('3 VERSENY'),
+        ),
+        findsNothing,
+      );
+      final title = tester.getRect(find.text('Versenynapló'));
+      final count = tester.getRect(find.text('3 VERSENY'));
+      expect(count.left, greaterThan(title.right));
+      expect(count.center.dy, closeTo(title.center.dy, 0.5));
       expect(find.text('2 VERSENY'), findsOneWidget);
       expect(find.text('1 VERSENY'), findsOneWidget);
     });
 
-    testWidgets('defaults the year bar to the newest year', (tester) async {
+    testWidgets('defaults the year band to the newest year', (tester) async {
       await pumpScreen(
         tester,
         log: AsyncValue.data([
@@ -175,11 +222,118 @@ void main() {
         ]),
       );
 
-      expect(find.text('2026'), findsOneWidget);
+      // A kivalasztott ev nagyban, a tobbi kicsiben, a helyen.
+      final selectedSize = tester
+          .widget<DefaultTextStyle>(
+            find
+                .ancestor(
+                  of: find.text('2026'),
+                  matching: find.byType(DefaultTextStyle),
+                )
+                .first,
+          )
+          .style
+          .fontSize;
+      final otherSize = tester
+          .widget<DefaultTextStyle>(
+            find
+                .ancestor(
+                  of: find.text('2024'),
+                  matching: find.byType(DefaultTextStyle),
+                )
+                .first,
+          )
+          .style
+          .fontSize;
+      expect(selectedSize, 38);
+      expect(otherSize, 14);
+      expect(
+        tester.getTopLeft(find.text('2026')).dx,
+        lessThan(tester.getTopLeft(find.text('2024')).dx),
+      );
+    });
+
+    testWidgets('uses the tab header without a hairline', (tester) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+        ]),
+      );
+
+      final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      expect(appBar.toolbarHeight, 64);
+      // A fejresz es az evsav egy blokk: nincs koztuk vonal (R1).
+      expect(appBar.shape, isNull);
+      final title = tester.widget<Text>(find.text('Versenynapló'));
+      expect(title.style?.fontSize, tabTitleStyle.fontSize);
+      expect(find.byType(BackButton), findsNothing);
+    });
+
+    // A fejresz az evsav szinet kapja (R1), es gorgeteskor sem valtozik
+    // (UF, felhasznaloi dontes).
+    testWidgets('paints the header in the year band colour', (tester) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+        ]),
+      );
+
+      final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      final band = tester.widget<ColoredBox>(
+        find
+            .descendant(
+              of: find.byType(RaceLogYearBand),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
+      );
+      expect(appBar.backgroundColor, band.color);
+      expect(
+        appBar.backgroundColor,
+        foretackTheme.colorScheme.surfaceContainer,
+      );
+      expect(appBar.scrolledUnderElevation, 0);
     });
   });
 
-  group('RaceLogScreen stats strip', () {
+  group('RaceLogScreen year band stats', () {
+    // A kivalasztott ev sajat 5 dp-s betetje plusz a sav felso betete
+    // adja a szam helyet; ettol all kozepen a sav tartalma (UF).
+    testWidgets('insets the selected year from the band top', (tester) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+        ]),
+      );
+
+      final band = tester.getTopLeft(find.byType(RaceLogYearBand));
+      final year = tester.getTopLeft(
+        find.descendant(
+          of: find.byType(RaceLogYearBand),
+          matching: find.text('2026'),
+        ),
+      );
+      expect(year.dy - band.dy, RaceLogYearBand.topInset + 5);
+    });
+
     testWidgets('shows the elapsed time straight away', (tester) async {
       // Harom negy oras verseny = 12 ora, meg a track-osszesitok elott.
       await pumpScreen(
@@ -194,11 +348,16 @@ void main() {
         ]),
       );
 
-      expect(find.byType(RaceLogStatsStrip), findsOneWidget);
-      expect(find.text('12,0'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(RaceLogYearBand),
+          matching: find.text('12,0'),
+        ),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('holds the track cells at the gap marker until they land', (
+    testWidgets('holds the track cells pending until they land', (
       tester,
     ) async {
       await pumpScreen(
@@ -213,13 +372,63 @@ void main() {
         ]),
       );
 
-      // Elso kepkocka: a ket track-cella meg nem szamolt.
-      expect(find.text('—'), findsNWidgets(2));
+      // Elso kepkocka: a ket track-cella meg szamolodik, a sav alja fut.
+      expect(find.text('––,–'), findsNWidgets(2));
+      // A hianyjel mellett a mertekegyseg mar a helyen all (makett 35f).
+      expect(find.text('km'), findsOneWidget);
+      expect(find.text('kn'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
 
       await tester.pumpAndSettle();
 
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
       // Minta nelkul a ket ertek marad hianyjel, de mar szamolt allapotban.
       expect(find.text('—'), findsNWidgets(2));
+    });
+
+    testWidgets('a year switch holds the stats until the new year lands', (
+      tester,
+    ) async {
+      // ARRANGE - a 2025-os verseny mintai meg nem erkeztek meg.
+      final pendingSamples = Completer<List<TrackSample>>();
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+          logYear(
+            year: 2025,
+            byMonth: {
+              5: ['Regi'],
+            },
+          ),
+        ]),
+        readSamples: (raceId) => raceId == 'Regi'
+            ? pendingSamples.future
+            : Future.value(const <TrackSample>[]),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      // ACT
+      await tester.tap(find.text('2025'));
+      await tester.pump();
+
+      // ASSERT - nem a 2026-os ertek all a 2025-os ev alatt (D38).
+      expect(find.text('––,–'), findsNWidgets(2));
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      // ACT - megerkeznek a mintak.
+      pendingSamples.complete(const <TrackSample>[]);
+      await tester.pumpAndSettle();
+
+      // ASSERT
+      expect(find.byType(LinearProgressIndicator), findsNothing);
     });
 
     testWidgets('fills in the distance and the record once computed', (
@@ -266,7 +475,7 @@ void main() {
   });
 
   group('RaceLogScreen year switching', () {
-    testWidgets('swaps the list when another year is picked', (tester) async {
+    testWidgets('swaps the list when another year is tapped', (tester) async {
       await pumpScreen(
         tester,
         log: AsyncValue.data([
@@ -288,17 +497,82 @@ void main() {
       expect(find.text('Uj'), findsOneWidget);
       expect(find.text('Regi'), findsNothing);
 
-      // ACT - ev-sav megnyitasa, majd a masik ev kivalasztasa.
-      await tester.tap(find.byType(RaceLogYearBar));
-      await tester.pumpAndSettle();
-      expect(find.byType(RaceLogYearSheet), findsOneWidget);
-
+      // ACT - az evsorban a masik ev (mint a weben, lap nelkul).
       await tester.tap(find.text('2024'));
       await tester.pumpAndSettle();
 
       // ASSERT
       expect(find.text('Regi'), findsOneWidget);
       expect(find.text('Uj'), findsNothing);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('gives every year a tap target of at least 48 dp', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          logYear(
+            year: 2026,
+            byMonth: {
+              5: ['Uj'],
+            },
+          ),
+          logYear(
+            year: 2024,
+            byMonth: {
+              6: ['Regi'],
+            },
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      final target = find.ancestor(
+        of: find.text('2024'),
+        matching: find.byType(InkWell),
+      );
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('scrolls the years sideways when they do not fit', (
+      tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(300, 800)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpScreen(
+        tester,
+        log: AsyncValue.data([
+          for (var year = 2026; year >= 2015; year--)
+            logYear(
+              year: year,
+              byMonth: {
+                5: ['R$year'],
+              },
+            ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      // ASSERT - nincs tulcsordulas, es az evsor oldalra gorgetheto.
+      expect(tester.takeException(), isNull);
+      final scrollable = find.descendant(
+        of: find.byType(RaceLogYearBand),
+        matching: find.byType(Scrollable),
+      );
+      expect(
+        tester.widget<Scrollable>(scrollable).axisDirection,
+        AxisDirection.right,
+      );
+
+      await tester.drag(scrollable, const Offset(-2000, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2015'));
+      await tester.pumpAndSettle();
+      expect(find.text('R2015'), findsOneWidget);
     });
   });
 }

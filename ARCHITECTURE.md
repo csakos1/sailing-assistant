@@ -2120,7 +2120,7 @@ Gyökerek (keep-alive)
 Mellék-ágak (a főképernyő külön watch-olja, §8.3 / §8.5):
   nmeaStream.statusChanges → connectionStatusProvider (seedelt badge)
   nmeaStream.rawLines      → rawNmeaLinesProvider (debug ring-buffer)
-  activeRace + rawLines    → telemetryLoggerProvider (csak status == active)
+  (a nyers telemetriát a háttér-engine írja, ADR 0017 D8; UI-oldali logger nincs)
 ```
 
 ### 8.3 Fázis 3 provider-példák (ADR 0006)
@@ -2211,7 +2211,8 @@ class RawNmeaLinesNotifier extends AutoDisposeNotifier<List<String>> {
   **landolt** Fázis 5 / 5b (§8.6, ADR 0010). A `windShiftTrendProvider`,
   `markPredictionProvider`, `tickProvider` → 5c; a 8.4
   `markRoundingMonitorProvider` → 5e.
-- `telemetryLoggerProvider` → **Fázis 4** (Drift) — **landolt** (§8.5, ADR 0009).
+- `telemetryLoggerProvider` → **Fázis 4** (Drift) — landolt (§8.5, ADR 0009),
+  majd **kivezetve** (2026-10): a telemetriát az engine írja (ADR 0017 D8).
 - Eager-connect-at-boot felülvizsgálata → **Fázis 5** (mindig-fent főképernyő);
   Fázis 3-ban a kapcsolat lazy-on-first-screen.
 
@@ -2325,8 +2326,14 @@ class ActiveRaceNotifier extends Notifier<Race?> {
 }
 ```
 
+> **Kivezetve (2026-10):** az ADR 0017 D8 óta a telemetriát kizárólag a
+> háttér-engine írja. Ez a provider ennek ellenére megmaradt, és aktív
+> versenyen egy második TCP-kapcsolaton át minden nyers sort másodszor is
+> beírt a `telemetry_records`-ba (a rögzített versenyek sorainak ~30%-a
+> duplikátum). A provider törölve; az alábbi kód csak történeti.
+
 ```dart
-// apps/phone/lib/providers/telemetry_logger_provider.dart
+// apps/phone/lib/providers/telemetry_logger_provider.dart (TÖRÖLVE)
 // Selector-alapú életciklus: csak a (versenyzik?, raceId) pár változására épül
 // újra, NEM minden bója-körözésnél. Csak status == active alatt logol; fake/
 // replay forrás (nem RawNmeaLineSource) → graceful no-op. Eagerly életre kell
@@ -2372,7 +2379,7 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 // apps/phone/lib/providers/active_race_persistence_provider.dart
 // Restart-túlélés az aktív race-re (Fázis 5f, ADR 0011). Külön mellékhatás-
 // provider, hogy a tesztelt ActiveRaceNotifier byte-azonos maradjon (OCP); a
-// ForetackApp eager-watch-olja (mint a telemetryLoggert). (a) induláskor
+// ForetackApp eager-watch-olja. (a) induláskor
 // EGYSZER restore: id → getRace → activeRace (no-clobber, ha a user közben
 // választott); (b) ref.listen-nel a kiválasztás-változáskor perzisztál;
 // finished/null → id törlése (nem támasztunk fel befejezett race-t).
@@ -2895,13 +2902,13 @@ van — valós impl `WakelockPlus`-szal és keep-alive
 `screenWakeLockProvider`-rel —, hogy a screen widget-teszt no-op fake-kel
 override-olhasson (a plugin tesztben `MissingPluginException`-t dobna).
 
-**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg `status != finished` (befejezett versenynél nincs élő nézet, mert a `finished` a sessiont is lezárja; ADR 0017 A12). Akció: `ref.read(activeRaceProvider.notifier)
+**Navigáció.** A `race_detail` kap egy „Élő nézet" `FilledButton`-t, amíg `status != finished` (befejezett versenynél nincs élő nézet; ADR 0017 A12; az E3 óta `handOver`, §10.6). Akció: `ref.read(activeRaceProvider.notifier)
 .activeRace = current` (a live-or-snapshot race, nem a nyers `race`, hogy ne
 clobbereljük az élő állapotot), majd `Navigator.push` a `LiveRaceScreen`-re.
 A start/finish gomb változatlan és ortogonális (SRP: a start state-et vált,
 az „Élő nézet" navigál). Pre-start alatt is elérhető — ez állítja be az
-`activeRace`-t a pre-start prediction-höz. A `telemetryLogger` már az
-app-gyökéren eager-watch-olt (ADR 0009 D6) → a live screenen nem kell újra.
+`activeRace`-t a pre-start prediction-höz. A telemetriát a háttér-engine
+írja (ADR 0017 D8) → a live screennek nincs vele dolga.
 
 **Provider-fogyasztás és lifetime.** A `LiveRaceScreen` gyökerén eager-watch:
 `activeRaceProvider`, `markPredictionProvider`, `windDataProvider`,
@@ -3106,13 +3113,16 @@ C-lapján a gomb letiltása sem helyettesíti az őrt: a payload-szerződés
 additív és visszafelé kompatibilis (ADR 0015), tehát egy régi óra-build
 küldhet parancsot új telefonnak.
 
-**Engine-lifecycle (iii — belépés indít, explicit leállás).** Az engine a
+**Engine-lifecycle (iii — belépés indít, explicit leállás).** *(Az ADR
+0054 E3 óta felülírva: a session egy állapotgép, az engine a gateway-próba
+találatára is indul, és a cél után szabad módban fut tovább; lásd §10.6
+„Engine-session". A bekezdés a korábbi alakot őrzi.)* Az engine a
 belépéskor indul, és explicit „Leállítás”-ig fut — a cél (`finished`) terminális eseményként szintén lezárja a sessiont; a screenről való kilépés és a háttérbe tétel viszont nem (`stopWithTask=false`, ADR 0016 D5). A trigger NEM az `activeRaceProvider` nem-null-sága: azt az
 `activeRacePersistenceProvider` boot-kor visszatölti, ami akaratlan
 boot-restore-t okozna. Ezért külön explicit session-állapot vezérli: egy
 `raceEngineSessionProvider` flag (az „Élő nézet” megnyitása `true`-ra, egy
 „Leállítás” akció `false`-ra állítja). Egy `raceEngineLifecycleProvider`
-(`Provider<void>`, app-gyökéren eager-watch a `telemetryLoggerProvider`
+(`Provider<void>`, app-gyökéren eager-watch az `activeRacePersistenceProvider`
 mintájára) ezt a flaget listen-eli: `true` → `host.start()` + a Race init-
 küldés; `false` → `host.stop()`. A restore az `activeRace`-t visszatölti, de a
 session-flag `false` marad → boot-kor nincs auto-indítás. A
@@ -3175,6 +3185,11 @@ méretezésénél számít, hogy a jelölők Keszthelytől Siófokig szórtak,
 tehát a csomagnak a **teljes tavat** kell fednie.
 
 ### 8.11 CRUD-képernyők: a design-rendszer alkalmazása (ADR 0044)
+
+> **Az U7 óta (ADR 0056):** a setup / szerkesztés űrlapja és a korábbi
+> bóják lapja a §8.12 szerint épül (33a–c, 35c): kártyás bója-sorok 40 dp-s
+> sínnel, 58 / 62 dp-s sávok. Az itteni setup-vázlat és -geometria
+> az ADR 0044 állapotát rögzíti, történeti leírásként.
 
 Az ADR 0041 token-rétege app-wide hat, de az ADR 0042 csak az élő képernyő
 **elrendezését** építette át. A CRUD-felület (lista, setup, edit, detail, a
@@ -3570,6 +3585,127 @@ a `pubspec.yaml` nem változik; a verzálosítás a widgeté. A
 „Versenynapló", és a `FinishedRacesSheet` törlődik — a törlés a 4d utolsó
 kód-szelete, hogy a branch addig zöld maradjon.
 
+### 8.12 Telefonos UI v1: navigációs héj, Műszerek, tervezett verseny (ADR 0054–0056) — tervezett
+
+**Állapot:** elfogadva (2026-10-10), implementálva a
+`feature/phone-ui-refresh` ágon (E1–E4, T1–T6, U1–U8, UF), az on-device
+próba rendben (R1, 2026-10-12); élesbe a merge után kerül. A
+részletek a három ADR-ben, a képernyők a `docs/design/phone-ui-v1.html`
+makettjében és a `docs/design/phone-ui-v1.md` specifikációban; ez a
+szakasz csak a szerkezetet rögzíti, és az implementáció során bővül.
+
+**Navigációs héj (ADR 0056 D2).** Az app `home`-ja egy háromfüles héj
+(Versenyek · Műszerek · Versenynapló) `IndexedStack`-kel. A részlet, a
+setup / szerkesztés, a térképek és a webes képernyők a gyökér-`Navigator`-ra
+kerülnek, a héj fölé, navigációs sáv nélkül. Az „Élő nézet" gomb
+megszűnik; a Műszerek a mai `LiveRaceScreen` utódja, fülként. **Kész (U2):**
+`PhoneShell` (`features/shell/`) a `ShellNavigationBar`-ral; a
+Versenyek és a napló az `IndexedStack`-ben él, a Műszerek csak
+kiválasztva épül fel (wakelock). A kiválasztott fül a
+`shellTabProvider`; aktívvá váló versenynél a héj a Műszerekre vált. A
+sáv állapota az `instrumentsTabStatusOf` (engine-session, kapcsolat,
+kiválasztott verseny, a nap versenye). A debug-képernyők a ⋮ menüben
+(`HomeMenu`), csak debug-buildben. **Kész (U3):** a Műszerek fül szabad
+módja (34a, `features/live_race/free_mode/`); a tartalmat az engine
+állapota választja (`instrumentsRaceOf`: 1c csak az engine aktív
+versenyén), a 34a állapota a `freeModeLinkOf` (keresés, élő, megszakadt
+az adat korával, leállítva); a „Leállítás" a csík ⋮ menüjében, a
+térkép-gomb mellett. Egy futó verseny visszatöltése a Műszerekre vált.
+**Kész (U4):** a Műszerek fül rajt előtti (34b) és versenyes (34c)
+tartalma; a tartalmat az `instrumentsContentOf` választja (szabad / rajt
+előtt / verseny), a 34b és a 34c közös nézete a `RaceInstrumentsView`, a
+csík mindhárom tartalomban az `InstrumentsStrip` ugyanazzal a
+kapcsolat-szabállyal. „Rajt most" és „Bója megvan" megerősítéssel; a
+mai versenyek váltója a kézi választást írja, és a lifecycle azonnal
+újradönt (a `handOver` megszűnt). A kijelző csak rajt előtt és versenyen
+marad ébren. **Kész (U5):** a Versenyek fül a 31a / 31b szerint: a
+sorrendet és a „ma"-t a tiszta `raceListEntriesOf` adja (folyamatban
+lévő, mai és későbbi rajt szerint, elmaradt, rajtidő nélküliek), a
+meta-sort a
+`raceListMetaOf`; a mai és a futó verseny sora kiemelt; 64 dp-s fejrész
+a `tabTitleStyle`-lal, 56 dp-s „Új verseny", üres állapot a lista
+helyén. **Kész (U6):** a versenyrészlet a 32a–c szerint: a telefon saját
+csíkja (rajtidő vagy eltelt idő), rajthely- és bója-sora (a web a
+`foretack_ui` régi widgetjeit tartja); az alsó sáv akcióját a tiszta
+`detailActionOf` adja („AUTOMATIKUS 09:00 | Rajt most", „Rajt", „Cél"),
+és a rajt és a cél megerősítést kér. **Kész (U7):** az új verseny és a
+szerkesztés a 33a–c szerint: rajtidő-kártya és a saját 33c lap
+(`features/race_setup/start_time/`, tiszta naptár-segédekkel), opcionális
+rajthely (a „Korábbi bóják" lapról vagy koordinátával), a bója és a
+rajthely közös `CoordinateCard`-ja, 58 / 62 dp-s sávok. A `RaceForm` egy
+`RaceFormResult` rekordot ad, így a szerkesztés megtartja a rajtidőt és a
+rajthelyet; a rajthely a bójakönyvtárba is kerül (ADR 0055 D3). A törzs
+nem lusta (`SingleChildScrollView`), hogy a `Form.validate()` minden
+kártyát lásson. A 35c lap versenyenként csoportosít (`groupSavedMarks`).
+**Kész (U8):** a Versenynapló fül a 35a / 35f szerint: a telefon saját
+évsávja (`RaceLogYearBand`, 48 dp-s évek, oldalra görgethető sor, a
+statok a sávban, számolás alatt hiányjel és mozgó sáv), sor-vázas
+betöltés, üres állapot; az év-alsólap törlődött. A törlés késleltetett és
+visszavonható: a `pendingRaceDeletionsProvider` halmazát a közös
+`raceListProvider` szűri ki, a DB-törlés az 5 mp-es VISSZAVONÁS-snackbar
+után 1 mp-es ráhagyással fut, újraellenőrzi, hogy a verseny nem indult-e
+el, háttérbe kerüléskor elmarad. Futó versenyen nincs kuka.
+**Kész (UF):** a készülékes átnézés javításai: a kártya-mezők közös
+`CardCellBorder`-e (egy keret-típus minden állapotban, pontos
+cellamagasság, befelé rajzolt fókusz-keret a tartalom alatti kártya-keret
+fölött), a „Verseny neve" lebegő címkés mezője, a napló állandó színű
+AppBar-ja (jobbra a versenyszámmal) és középre igazított évsávja.
+**Kész (R1, próba):** az on-device próba (az útmutató A–J pontja, az
+U4–UF telefonos pontjai, az óra) a feature-ág release buildjével rendben
+(2026-10-12); a napló fejrésze az évsáv színét kapja, vonal nélkül.
+
+**Engine-módok (ADR 0054).** Az engine versenyt nem igényel; a mód a
+`_race`-ből adódik: `null` = szabad, `notStarted` = rajt előtti,
+`active` = verseny. A nyers telemetria és a snapshot-log **csak `active`
+alatt** íródik. **Kész (E1):** `RaceEngine.start({Race? race, Polar?
+polar})`, a tick verseny nélkül is snapshotot ad (`prediction: null`), a
+`RaceSnapshot.raceStatus` nullable (`null` = szabad mód). **Kész (E2):**
+a `race` parancs (`RaceEngineHost.sendRaceCommand`,
+`RaceEngine.applyRaceCommand`), az init verseny nélkül, a módfüggő
+értesítés (§10.3). **Kész (E3):** az app
+előtérben egy `GatewayProbe` TCP-próbával keresi a
+gatewayt, és csak találatra indítja az engine-t (foreground service). Cél
+után az engine szabad módban fut tovább; szabad módban 10 perc kapcsolat
+nélkül leáll (§10.6 „Engine-session"). Új UI→task parancs:
+`{type: 'race', race: … | null}`, csak nem aktív versenyre. **Kész (E4):** replay-teszt
+a teljes körre (szabad → rajt előtt → aktív → automatikus cél → szabad) a
+`moving_mark_rounding.nmea`-val (`packages/data/test/engine/`), és egy
+on-device útmutató (`docs/testing/engine-session-on-device.md`).
+
+**Tervezett verseny (ADR 0055).** A `Race` két új, opcionális mezője a
+`scheduledStartAt` (UTC) és a `startPoint` (`StartPoint`: név +
+koordináta, nem `Mark`). A rajt előtti rávezetés célja a rajthely (ha
+nincs, az első bója) a `guidanceTargetOrNull` / `guidanceNextOrNull`
+gettereken át. A nap versenyét a `SelectInstrumentsRace` tiszta függvény
+választja (folytatható aktív verseny > a mai, még nem indult, a 3 órás
+visszamenőleges ablakon belüli versenyek közül a mai kézi választás,
+különben a legkorábbi > szabad mód). **Kész (T1):** a domain része
+(`StartPoint`, a két mező, a getterek, `SelectInstrumentsRace`,
+`InstrumentsRaceChoice`); a „helyi ma" egy injektált
+`LocalWallClock`-ból jön. **Kész (T2):** séma v6, repository, codec
+(§9.2). **Kész (T3):** az engine a guidance-getterekkel számol, a
+tervezett rajtot ő indítja (csak a 3 órás ablakon belül), és a snapshot
+`raceStartedAt`-et hordoz. **Kész (T4):** a phone a próba találatakor,
+a versenyek változásakor és az előtérben a nap versenyét adja az
+engine-nek (`InstrumentsRaceSelector`; az „Élő nézet" átadása erősebb), és
+az engine által indított rajtot átveszi a DB-be
+(`ActiveRaceNotifier.adoptEngineStart`); a kézi választás a
+`SettingsRepository`-ben. **Kész (T5):** replay-teszt a rávezetésre, az
+időben és a visszamenőleg indított, valamint az ablakon túli rajtra
+(`race_engine_scheduled_start_replay_test.dart`). **Kész (T6):** a
+szerver kódja v6-os, egy import-teszt igazolja a két mező átvitelét; a
+kiadás a feature ág mergelése után megy ki. A rajtidőben az engine
+indítja a versenyt (`startedAt = scheduledStartAt`, visszamenőleg is), és
+a UI a snapshot alapján veszi át a DB-be. A séma v6 (ADR 0055 D3, §9.2); a szerver
+v6-os kiadása megelőzi a telefonosat.
+
+**Dialógus és snackbar (ADR 0056 D5).** **Kész (U1):** minden telefonos
+megerősítés a `foretack_ui` `showForetackDialog`-ja (makett 35d), az
+érintett elem a 42 dp-s adatcellában (`ForetackDialog.subject`); minden
+snackbar a `foretackSnackBar` (makett 35e): szögletes, keretes, legalább
+52 dp, színes státusznégyzettel, akciónál mono cellával és
+visszaszámláló sávval.
+
 ## 9. Perzisztencia (Drift / SQLite)
 
 ### 9.1 Drift = típus-biztos SQL Dart-hoz
@@ -3589,6 +3725,11 @@ class Races extends Table {
   DateTimeColumn get finishedAt => dateTime().nullable()();
   IntColumn get activeMarkIndex => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
+  // v6 (ADR 0055 D3): tervezett rajt és rajthely
+  DateTimeColumn get scheduledStartAt => dateTime().nullable()();
+  TextColumn get startPointName => text().nullable()();
+  RealColumn get startPointLatitude => real().nullable()();
+  RealColumn get startPointLongitude => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -3694,6 +3835,16 @@ class RaceTrackStats extends Table {
 > `insertOnConflictUpdate`: a feltöltés a képernyő elhagyásakor bármikor
 > megszakadhat, és a következő megnyitás újraindítja — félkész vagy
 > duplikált sort nem hagyhat.
+
+> **v5 → v6 migráció (ADR 0055 D3)**: a `Races` négy nullable oszlopot kap
+> (`scheduled_start_at`, `start_point_name`, `start_point_latitude`,
+> `start_point_longitude`). `schemaVersion` 5 → 6, `onUpgrade`-ben
+> `if (from < 6)` négy `m.addColumn(races, …)`; a meglévő versenyek
+> `null`-t kapnak. A rajthely három oszlopa vagy mind kitöltött, vagy mind
+> üres: a `RaceRepositoryImpl` egy hiányos vagy érvénytelen sort `null`
+> rajthelyként olvas, warning-naplóval. A webes archívum ugyanezt az
+> `AppDatabase`-t használja, ezért **a szerver v6-os kiadása megelőzi a
+> telefonosat** (ADR 0055 D4).
 
 > **v2 migration**: hozzáadódik a `Polars` tábla (`id`, `name`, `csvData`, `importedAt`, `isActive`). Drift schema version bump + migration script.
 
@@ -3869,6 +4020,14 @@ Az óra-push az **engine-ből** indul (ADR 0016 D6): mivel kijelző-off mellett 
 
 A pipeline a meglévő, már tesztelt egységeket komponálja a task handlerben (ez `apps/phone`, tehát importálhatja a phone-kódot): a `buildWatchPayload` a snapshot `boatState`/`wind`/`prediction`-jéből + a service-izolátumbeli `TrueTimeReading`-ből + az `EvaluateWarnings` kimenetéből építi a `WatchPayload`-ot; a `WatchSyncController.onTick` `==`-szal change-detectel, és csak változásra küld a `WatchTransport`-on. A critical-warningokat a service-izolátum lokalizálja (`lookupAppLocalizations(Locale('hu'))` — tiszta generált Dart, widget-fa nélkül, ADR 0015 D4). A warning-gatinghez a `RaceSnapshot` egy `raceStatus` mezővel bővül. A sekély-víz riasztáshoz (ADR 0031) a `RaceSnapshot` és a `WatchPayload` további két mezőt kap — `depthAlertMeters` (a live mélység, amíg az epizód aktív, különben null) és `depthBuzzCounter` (monoton; az óra a felfutó élén rezeg) —, az állapotgép (`EvaluateDepthAlert`) pedig a `RaceEngine` reducerében fut, nem a task handlerben (stateful, 1 Hz, kijelző-off mellett is — ADR 0031 D4).
 
+**Verseny nélkül (ADR 0054, E2).** A pipeline szabad módban is fut: a
+snapshot `prediction`-je `null`, ezért a payload bója-mezői is `null`-ok,
+és az óra a meglévő „—" helyőrzőket rajzolja (az óra-UI nem változik). Az
+`EvaluateWarnings` a `null` státuszt `notStarted`-ként kapja, így a
+versenyhez kötött warning szabad módban nem jön. Az értesítés címe a
+módtól függ: „Foretack — verseny" `active` alatt, egyébként „Foretack —
+műszerek" (`engineNotificationTitle`).
+
 A GPS-idő forrása a **service-izolátumban futó** true-time (GNSS-anchor + monoton extrapoláció, ADR 0012): a `geolocator` itt fut (az FGS-típus `location`-nel bővül + `ACCESS_FINE_LOCATION`), így kijelző-off mellett is van pontos `gpsTimeUtc`. A telefon saját GPS-idő-cellája a meglévő UI-oldali `trueTimeProvider`-t használja (kijelző-on), az engine-étől függetlenül. Másodpercre szinkron: a chartplotter, a telefon és az óra ugyanazt a GPS-UTC instantot mutatja — a stale stream-időt (`instrumentTimeUtc`, 4–6 mp késés) sehol nem jelenítjük meg.
 
 A natív küldés (ADR 0015 D5): a `WatchTransport` produkciós implementációja (`PhoneWearableBridge`, MethodChannel a service-izolátum FlutterEngine-jén) egy **latched `DataItem`-et** ír a Wearable Data Layer `/race-state` path-jára (`DataClient.putDataItem`, NEM `MessageClient` — az utóbbi alvó órának elveszne). A latched item mindig az utolsó állapotot tartja, így az óra ébredéskor a legfrissebbet olvassa; a change-detect ezzel konzisztens (csak változásra írunk, az item a jelenlegi értéket tartja). Az óra-oldal passzívan figyel (`DataListener`) + ébredéskor közvetlenül olvas (7-bg-f).
@@ -3999,6 +4158,32 @@ A háttér-futás architektúráját az **ADR 0016** rögzíti; ez a szakasz a d
 v1-core: a telefon a zsebben, **kikapcsolt kijelzővel**, az óra a primary élő kijelző, megszakítás nélkül. Mivel háttérben / kijelző-off az UI-izolátum felfüggesztődik (a `Timer`-ek és a socket-olvasás leáll), a teljes adatfolyam (§6) egy **RaceEngine** háttér-izolátumba kerül, amit egy Android **foreground service** hoszttol (`flutter_foreground_task`, `connectedDevice` FGS-típus). Az engine az **egyedüli tulajdonosa** az NMEA-pipeline-nak, a domain-számításnak, a Drift-telemetriának és az óra-pushnak; a telefon UI-ja **read-only tükör**, ami az engine ~1 Hz-es `RaceSnapshot`-jaira renderel (a snapshotot a plugin saját csatornáján kapja). Az óra-push (Wearable Data Layer) az engine-ből indul, a meglévő `buildWatchPayload`-dal (§10.3). A domain **tiszta marad** (az engine a `domain` + `data` package-eket futtatja, nincs natív újraimplementáció); a `RaceEngineHost` DIP-varrat mögött a plugin cserélhető, és a replay-tesztelhetőség megmarad. A kijelző-wakelock így már csak előtér-UI-kényelem, nem load-bearing.
 
 A konkrét belső felépítést az **ADR 0017** rögzíti (7-bg-c): a compute-orchestráció egy plain-Dart **`RaceEngine`** a `packages/data`-ban (nincs Riverpod az izolátumban; a `domain` + `data`-t komponálja), és a jelenleg `apps/phone`-ban élő pure fold-logika (`_reduce`, wind-history-buffer) a `domain`-be költözik. Az NMEA-forrás a `FORETACK_GATEWAY_HOST` `--dart-define`-ból oldódik fel az izolátumon belül is (ADR 0007), így a Vulcan ↔ `nmea_replay` váltás változatlan. Az aktív `Race` a session-indításkor átadva érkezik (nem DB-olvasás); a Drift-telemetriát az engine **saját, WAL-módú kapcsolaton** írja (`AppDatabase.secondary()`; a séma-migráció a UI-izolátumé). Az 1 Hz recompute-kadenciát az engine belső `Timer.periodic`-ja adja (a Riverpod `tickProvider` helyett), az NMEA-streamtől hajtva; a foreground task `eventAction: nothing()`. A `RaceSnapshot` DTO + a UI-providerek snapshot-streamre átszármaztatása a 7-bg-d.
+
+**Engine-session (ADR 0054 E3).** Az engine indítását és leállítását egy
+tiszta állapotgép vezérli (`engineSessionProvider`: `EngineStopped` →
+`EngineProbing` → `EngineRunning(cause)`), a mellékhatásokat a
+`raceEngineLifecycleProvider` (`RaceEngineLifecycle`) végzi. Az előtérbe
+kerüléskor (`AppForegroundBinding`) a lifecycle előbb egyeztet a valóban
+futó service-szel: egy közben leállt engine-t észrevesz, egy korábbi
+app-folyamatból futót átvesz (`attach`; 5 mp pillanatkép nélkül
+újraindítja). Utána a `gatewayProbeLoopProvider` egy TCP-próbát nyit a
+gatewayre (3 mp timeout, a `data` `NmeaConnection` seamjén), és az előző
+eredménye után 5 mp-et vár a következőig; találatra az engine szabad módban
+indul, a nap versenyével (ADR 0055 D5, T4: a folytatható `active`
+verseny, különben a mai tervezett, különben szabad mód; a versenyek
+változásakor és az előtérben újra dönt, amíg az engine nem versenyez és
+a versenyét nem az „Élő nézet" adta át). Egy `active` verseny csak friss
+felvételnél folytatódik
+(`IsRaceResumable`: a legutóbbi pillanatkép vagy a rajt 6 órán belül), így
+egy kétnapos verseny éjfél után is, egy elfelejtett „Cél" másnap nem. Az
+engine által indított rajtot a lifecycle a snapshotból a DB-be veteti. A
+„Rajt" és az „Élő nézet" maga is indít. A cél után az engine `race:
+null`-lal szabad módban fut tovább. Szabad módban 10 perc kapcsolat nélkül a
+háttér-engine (`FreeModeIdleWatch` a task handlerben) maga állítja le a
+service-t, és jelez a UI-nak (`idleStops`). Rajt előtt és versenyen nincs
+automatikus leállás. A kézi „Leállítás" után a próba a következő előtérbe
+kerüléskor indul. Induláskor a session leállított, így a boot-restore nem
+indít engine-t (ADR 0017 A12).
 
 ### 10.7 Natív transport: a `wearable_bridge` plugin-csomag (ADR 0018)
 
@@ -5329,7 +5514,9 @@ A web és a szerver közötti szerződés a `race_archive_api` csomagban él
 - **Végpontok:** `GET /api/races`, `GET /api/races/{id}`,
   `PUT /api/races/{id}/result` (csupa üres mezővel törli az eredményt),
   `POST /api/manual-races`, `PUT` és `DELETE /api/manual-races/{id}`,
-  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7).
+  `POST /api/imports` (ADR 0048 D6 + Addendum 3 I7), és
+  `DELETE /api/races/{id}` egy telemetriás verseny végleges törlésére
+  (ADR 0057; tombstone nélkül, egy új feltöltés visszahozza).
 - **Hibák:** a hibaválasz egy `{"error": {"code": ...}}` boríték, a sealed
   `ApiError` ágai szerint. A HTTP státuszkódot az `ApiError.httpStatus`
   adja.
@@ -5369,7 +5556,8 @@ nem egyértelmű napot a `--match` dönti el. Meglévő adatot csak
 `--overwrite`-tal ír felül (ADR 0048 Addendum 6).
 
 - **Kétféle verseny.** A **telemetriás** a phone DB-jéből jön (név, idő
-  és track csak olvasható). A **kézi** a `web.sqlite` `manual_races`
+  és track csak olvasható; a tulajdonos az eredmény-szerkesztőből
+  végleg törölheti, ADR 0057). A **kézi** a `web.sqlite` `manual_races`
   táblájában él: név, dátum, táv, max. sebesség, átlagos és max. szél,
   szélirány; szerkeszthető és törölhető.
 - **`RaceResult`** mindkét fajtán:
@@ -5664,7 +5852,8 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     aláírva, hogy a meglévő telepítések adatvesztés nélkül frissüljenek;
     a `versionCode` kiadásonként nő; a
     `https://lola.foretack.hu/app/foretack.apk` linkről tölthető le, a
-    szerver-kiadástól független könyvtárból;
+    szerver-kiadástól független könyvtárból (élesítve 2026-10-09,
+    `0.2.0+2`);
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek

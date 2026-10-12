@@ -1,5 +1,6 @@
 import 'package:data/src/persistence/app_database.dart';
 import 'package:data/src/persistence/repositories/settings_repository_impl.dart';
+import 'package:domain/domain.dart';
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
@@ -60,5 +61,66 @@ void main() {
       await repository.writeActiveRaceId(null);
       expect(await repository.readActiveRaceId(), isNull);
     });
+  });
+  group('instruments race choice', () {
+    test('üres tárból null', () async {
+      expect(await repository.readInstrumentsRaceChoice(), isNull);
+    });
+
+    test('írás után visszaolvasható, a nap megmarad', () async {
+      // ARRANGE
+      final choice = InstrumentsRaceChoice(
+        raceId: 'race-1',
+        chosenOnLocalDay: DateTime(2026, 7, 30),
+      );
+
+      // ACT
+      await repository.writeInstrumentsRaceChoice(choice);
+
+      // ASSERT
+      expect(await repository.readInstrumentsRaceChoice(), equals(choice));
+    });
+
+    test('null törli, az aktív race id-je megmarad', () async {
+      // ARRANGE
+      await repository.writeActiveRaceId('race-1');
+      await repository.writeInstrumentsRaceChoice(
+        InstrumentsRaceChoice(
+          raceId: 'race-2',
+          chosenOnLocalDay: DateTime(2026, 7, 30),
+        ),
+      );
+
+      // ACT
+      await repository.writeInstrumentsRaceChoice(null);
+
+      // ASSERT
+      expect(await repository.readInstrumentsRaceChoice(), isNull);
+      expect(await repository.readActiveRaceId(), equals('race-1'));
+    });
+
+    for (final stored in [
+      'nem json',
+      '[]',
+      '{"raceId":"","day":"2026-07-30"}',
+      '{"raceId":"race-1"}',
+      '{"raceId":"race-1","day":"2026-7-30"}',
+      '{"raceId":"race-1","day":"2026-02-31"}',
+    ]) {
+      test('olvashatatlan érték null: $stored', () async {
+        // ARRANGE
+        await db
+            .into(db.settings)
+            .insert(
+              SettingsCompanion.insert(
+                key: 'instruments_race_choice',
+                value: stored,
+              ),
+            );
+
+        // ACT / ASSERT
+        expect(await repository.readInstrumentsRaceChoice(), isNull);
+      });
+    }
   });
 }

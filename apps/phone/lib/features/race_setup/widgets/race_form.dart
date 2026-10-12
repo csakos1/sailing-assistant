@@ -3,51 +3,74 @@ import 'dart:async';
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/race_setup/race_form_result.dart';
+import 'package:phone/features/race_setup/start_time/start_time_calendar.dart';
+import 'package:phone/features/race_setup/start_time/start_time_sheet.dart';
+import 'package:phone/features/race_setup/widgets/card_field_decoration.dart';
+import 'package:phone/features/race_setup/widgets/coordinate_card.dart';
 import 'package:phone/features/race_setup/widgets/form_action_bar.dart';
 import 'package:phone/features/race_setup/widgets/form_bar_action.dart';
-import 'package:phone/features/race_setup/widgets/mark_row.dart';
+import 'package:phone/features/race_setup/widgets/form_card.dart';
+import 'package:phone/features/race_setup/widgets/form_section_header.dart';
 import 'package:phone/features/race_setup/widgets/saved_mark_picker.dart';
+import 'package:phone/features/race_setup/widgets/start_point_empty_card.dart';
+import 'package:phone/features/race_setup/widgets/start_time_card.dart';
+import 'package:phone/format/scheduled_start_format.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/widgets/foretack_switch.dart';
-import 'package:phone/widgets/section_label.dart';
 import 'package:shared/shared.dart';
 
-/// Verseny-űrlap: név + dinamikus, átrendezhető bója-sorok.
+/// A kártyák oldalsó margója és a köztük lévő köz (33a).
+const double _sideMargin = 20;
+const double _cardGap = 10;
+
+/// A cellák magassága (33a): verseny-név, kártya-név, koordináta.
+const double _raceNameHeight = 54;
+const double _nameHeight = 48;
+const double _coordinateHeight = 44;
+
+/// Verseny-űrlap (33a–c): név, rajtidő, bója nélküli kapcsoló, rajthely
+/// és átrendezhető bója-kártyák.
 ///
 /// A létrehozás (`RaceSetupScreen`) és a szerkesztés (`RaceEditScreen`)
 /// közös magja (ADR 0029 D2). Befelé egy opcionális [initialRace] tölti
-/// fel a mezőket: `null` = create (üres űrlap egy bója-sorral), nem-null =
-/// edit (a meglévő név + bóják feltöltve). Kifelé egy MÁR VALIDÁLT
-/// `(név, bóják)` párt ad az [onSubmit] callbacken — az id-forrást és a
-/// mentés utáni navigációt a befoglaló képernyő intézi, így a form maga
-/// nem ismeri a perzisztenciát.
+/// fel a mezőket: `null` = create (üres űrlap egy bója-kártyával), nem-null
+/// = edit (a meglévő név, rajtidő, rajthely és bóják). Kifelé egy MÁR
+/// VALIDÁLT [RaceFormResult]-ot ad az [onSubmit]-en — az id-forrást és a
+/// mentés utáni navigációt a befoglaló képernyő intézi.
 ///
-/// A bója-sorok `ReorderableListView`-ben ülnek; a húzást explicit
-/// drag-handle indítja (a sorokban `TextField`-ek vannak, a sor-szintű
-/// long-press ütközne velük). A `Mark.sequence` nincs külön tárolva: a
-/// submit a vizuális sorrend `index + 1`-éből gyártja, ezért a reorder a
-/// domain/data réteget egyáltalán nem érinti.
+/// A bója-kártyák `ReorderableListView`-ben ülnek; a húzást explicit
+/// drag-handle indítja (a kártyákban `TextField`-ek vannak). A
+/// `Mark.sequence` a submitkor a vizuális sorrend `index + 1`-éből jön.
 ///
-/// **Elrendezés (ADR 0044 D1).** Görgetett törzs + rögzített akció-sáv: a
-/// „Mentés" hat bójánál is elérhető marad görgetés nélkül. A sáv a formon
-/// belül ül, ezért a két befoglaló képernyő nem tud róla — és nem is kell.
-/// A sor-megjelenítés a [MarkRow]-ban van, itt csak az állapot marad.
+/// **Rajtidő és rajthely (ADR 0055 D9, ADR 0056 U7).** A rajtidő egy UTC
+/// pillanat az állapotban; a kártya és a választó (33c) helyi időben
+/// mutatja. A rajthely opcionális, bója nélküli versenyen is megadható
+/// (ADR 0055 D1); a mezői ugyanúgy validálódnak, mint a bójáéi.
 ///
-/// **Bója nélküli verseny (ADR 0046 D4, Addendum 1 D7).** A verseny-név
-/// alatti fix kapcsoló-sor kiveszi a bója-blokkot a fából, és a submit
-/// üres listát ad ki. A koordináta-validáció ilyenkor magától kimarad,
-/// mert a `Form.validate()` csak a fában lévő mezőket futtatja — nincs
-/// feltételes validációs ág. A sor-állapot NEM törlődik, hogy a
-/// vissza-kapcsolás a beírt adatokat visszaadja.
+/// **Bója nélküli verseny (ADR 0046 D4).** A kapcsoló kiveszi a bója-
+/// blokkot a fából, és a submit üres listát ad ki. A koordináta-validáció
+/// ilyenkor magától kimarad, mert a `Form.validate()` csak a fában lévő
+/// mezőket futtatja. A sor-állapot NEM törlődik, hogy a vissza-kapcsolás a
+/// beírt adatokat visszaadja.
 class RaceForm extends StatefulWidget {
   /// [initialRace] null = create (üres űrlap); nem-null = edit.
-  const RaceForm({required this.onSubmit, this.initialRace, super.key});
+  const RaceForm({
+    required this.onSubmit,
+    this.initialRace,
+    this.now = DateTime.now,
+    super.key,
+  });
 
   /// A feltöltés forrása, vagy null üres (create) űrlaphoz.
   final Race? initialRace;
 
-  /// Validált submit: a vizuális sorrendből gyártott bójákkal hívódik.
-  final void Function(String name, List<Mark> marks) onSubmit;
+  /// Validált submit a teljes űrlap-eredménnyel.
+  final void Function(RaceFormResult result) onSubmit;
+
+  /// A „most" pillanat: a választó kezdőértékéhez és az elmúlt rajtidő
+  /// jelzéséhez. A képernyők a `clockProvider`-t adják.
+  final DateTime Function() now;
 
   @override
   State<RaceForm> createState() => _RaceFormState();
@@ -56,27 +79,40 @@ class RaceForm extends StatefulWidget {
 class _RaceFormState extends State<RaceForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final List<_MarkRowControllers> _markRows;
+  late final List<_PointControllers> _markRows;
 
   /// Bója nélküli mód (ADR 0046 D4). Csak a megjelenítést és a submit
   /// kimenetét kapcsolja — a `_markRows` érintetlen marad alatta.
   late bool _isMarkless;
+
+  /// A tervezett rajt UTC pillanata, vagy `null` (ADR 0055 D1).
+  DateTime? _scheduledStartAt;
+
+  /// A rajthely mezői, vagy `null`, ha nincs rajthely.
+  _PointControllers? _startPoint;
 
   @override
   void initState() {
     super.initState();
     final race = widget.initialRace;
     _nameController = TextEditingController(text: race?.name ?? '');
-    // Edit: a meglévő bóják feltöltve; create: egy üres sorral indulunk (a
-    // Race ctor a nemüres marks-ot asserteli, és az utolsót nem töröljük).
+    // Edit: a meglévő bóják feltöltve; create: egy üres sorral indulunk
+    // (az utolsót nem töröljük).
     _markRows = race == null || race.marks.isEmpty
-        ? [_MarkRowControllers()]
+        ? [_PointControllers()]
         : [
-            for (final mark in race.marks) _MarkRowControllers.fromMark(mark),
+            for (final mark in race.marks)
+              _PointControllers.fromPosition(mark.name, mark.position),
           ];
-    // Edit-módban a tényleges állapot dönt; create-nél mindig kikapcsolva
-    // indulunk, hogy a megszokott űrlap változatlan legyen.
     _isMarkless = race != null && race.marks.isEmpty;
+    _scheduledStartAt = race?.scheduledStartAt?.toUtc();
+    final startPoint = race?.startPoint;
+    if (startPoint != null) {
+      _startPoint = _PointControllers.fromPosition(
+        startPoint.name,
+        startPoint.position,
+      );
+    }
   }
 
   @override
@@ -85,18 +121,15 @@ class _RaceFormState extends State<RaceForm> {
     for (final row in _markRows) {
       row.dispose();
     }
+    _startPoint?.dispose();
     super.dispose();
   }
 
-  void _addMarkRow() {
-    setState(() => _markRows.add(_MarkRowControllers()));
-  }
-
-  Future<void> _pickFromLibrary() async {
-    final picked = await showModalBottomSheet<SavedMark>(
+  Future<SavedMark?> _openLibrary() {
+    return showModalBottomSheet<SavedMark>(
       context: context,
-      // A 4e lap a képernyő felénél magasabb, ezért scroll-vezérelt
-      // módban nyitjuk; a magasság-korlátot maga a picker adja (D51).
+      // A lap a képernyő felénél magasabb, ezért scroll-vezérelt módban
+      // nyitjuk; a magasság-korlátot maga a picker adja (D51).
       isScrollControlled: true,
       showDragHandle: true,
       // A design-rendszer minden felülete r0 (ADR 0044 D47).
@@ -110,18 +143,26 @@ class _RaceFormState extends State<RaceForm> {
         child: const SavedMarkPicker(),
       ),
     );
-    if (!mounted || picked == null) return;
-    _addPickedMarkRow(picked);
   }
 
-  void _addPickedMarkRow(SavedMark mark) {
+  void _addMarkRow() {
+    setState(() => _markRows.add(_PointControllers()));
+  }
+
+  Future<void> _pickMarkFromLibrary() async {
+    final picked = await _openLibrary();
+    if (!mounted || picked == null) return;
     setState(
-      () => _markRows.add(_MarkRowControllers.fromSavedMark(mark)),
+      () => _markRows.add(
+        _PointControllers.fromPosition(picked.name, picked.position),
+      ),
     );
   }
 
   void _removeMarkRow(int index) {
-    setState(() => _markRows.removeAt(index).dispose());
+    final removed = _markRows[index];
+    setState(() => _markRows.removeAt(index));
+    WidgetsBinding.instance.addPostFrameCallback((_) => removed.dispose());
   }
 
   void _reorderMarkRow(int oldIndex, int newIndex) {
@@ -133,43 +174,98 @@ class _RaceFormState extends State<RaceForm> {
     });
   }
 
-  // Egynél több sornál törölhető a sor; az utolsót megtartjuk (a Race
-  // nemüres marks-ot vár). A closure a build-kori indexet zárja be — minden
-  // setState új closure-öket gyárt a friss sorrenddel.
+  // Egynél több sornál törölhető a sor; az utolsót megtartjuk. A closure a
+  // build-kori indexet zárja be — minden setState új closure-öket gyárt.
   VoidCallback? _onRemoveFor(int index) =>
       _markRows.length > 1 ? () => _removeMarkRow(index) : null;
+
+  Future<void> _openStartTime() async {
+    final localNow = widget.now().toLocal();
+    final choice = await showStartTimeSheet(
+      context,
+      initial: _scheduledStartAt?.toLocal() ?? defaultStartTime(localNow),
+      today: localNow,
+    );
+    // A lap bezárása választás nélkül nem változtat semmit.
+    if (!mounted || choice == null) return;
+    setState(() => _scheduledStartAt = choice.localStart?.toUtc());
+  }
+
+  void _clearStartTime() => setState(() => _scheduledStartAt = null);
+
+  Future<void> _pickStartPointFromLibrary() async {
+    final picked = await _openLibrary();
+    if (!mounted || picked == null) return;
+    _replaceStartPoint(
+      _PointControllers.fromPosition(picked.name, picked.position),
+    );
+  }
+
+  void _enterStartPointCoordinates() {
+    // Üres mezők, a fókusz a névre kerül: a „Koordináta" út a gépelésé.
+    _replaceStartPoint(_PointControllers(shouldFocusName: true));
+  }
+
+  void _replaceStartPoint(_PointControllers? next) {
+    final previous = _startPoint;
+    setState(() => _startPoint = next);
+    // A régi kontrollereket a következő frame után dobjuk el, amikor a
+    // mezőik már biztosan lekerültek a fáról (a bója-sor törlése
+    // ugyanezt teszi).
+    if (previous != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+    }
+  }
 
   void _submit() {
     // A Form a fában van, így a currentState garantáltan nem null.
     if (!_formKey.currentState!.validate()) return;
 
-    // Bója nélkül a sorok kikerültek a fából, tehát a validátoraik sem
-    // futottak; a bennük maradt szöveget szándékosan eldobjuk (ADR 0046 D4).
-    if (_isMarkless) {
-      widget.onSubmit(_nameController.text.trim(), const []);
-      return;
-    }
+    widget.onSubmit((
+      name: _nameController.text.trim(),
+      // Bója nélkül a sorok kikerültek a fából, tehát a validátoraik sem
+      // futottak; a bennük maradt szöveget szándékosan eldobjuk.
+      marks: _isMarkless
+          ? const <Mark>[]
+          : [
+              for (var i = 0; i < _markRows.length; i++)
+                Mark(
+                  sequence: i + 1,
+                  name: _markRows[i].nameController.text.trim(),
+                  position: _markRows[i].position(),
+                ),
+            ],
+      scheduledStartAt: _scheduledStartAt,
+      startPoint: _startPointValue(),
+    ));
+  }
 
-    final marks = <Mark>[
-      for (var i = 0; i < _markRows.length; i++)
-        Mark(
-          sequence: i + 1,
-          name: _markRows[i].nameController.text.trim(),
-          // A validáció után a lat/lon garantáltan érvényes tartomány.
-          position: Coordinate.checked(
-            latitude: _degrees(
-              _markRows[i].latitudeController.text,
-              GeoAxis.latitude,
-            ),
-            longitude: _degrees(
-              _markRows[i].longitudeController.text,
-              GeoAxis.longitude,
-            ),
-          ),
-        ),
-    ];
+  StartPoint? _startPointValue() {
+    final startPoint = _startPoint;
+    if (startPoint == null) return null;
+    return StartPoint(
+      name: startPoint.nameController.text.trim(),
+      position: startPoint.position(),
+    );
+  }
 
-    widget.onSubmit(_nameController.text.trim(), marks);
+  /// Az elmúlt rajtidő halk jelzése (felhasználói döntés, U7).
+  ///
+  /// A mentés nem tiltott (ADR 0055 D9). Az engine egy elmúlt rajtot csak
+  /// a mai napon, a késési ablakon belül indít visszamenőleg (ADR 0055
+  /// D5, D7); azon túl a verseny csak kézzel indul — a jelzés ezt mondja.
+  String? _startTimeNote(AppLocalizations l10n) {
+    final start = _scheduledStartAt;
+    if (start == null) return null;
+    final now = widget.now();
+    if (!start.isBefore(now)) return null;
+    final windowEnd = start.add(SelectInstrumentsRace.defaultLateStartWindow);
+    final isRetroactive =
+        now.isBefore(windowEnd) &&
+        isSameLocalDay(start.toLocal(), now.toLocal());
+    return isRetroactive
+        ? l10n.setupStartTimePastRetroactive
+        : l10n.setupStartTimePastManual;
   }
 
   String? _validateName(AppLocalizations l10n, String? value) =>
@@ -177,8 +273,8 @@ class _RaceFormState extends State<RaceForm> {
       ? l10n.setupMarkNameRequired
       : null;
 
-  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi (a tengely-
-  /// tudatos OutOfRange-üzenettel), vagy null-t ad érvényes bemenetre.
+  /// A `ParseGeoAngle` hibáját a megfelelő ARB-szövegre képezi, vagy null-t
+  /// ad érvényes bemenetre. A bevitel DD-t, DDM-et és DMS-t is elfogad.
   String? _coordinateError(AppLocalizations l10n, String? value, GeoAxis axis) {
     final result = const ParseGeoAngle().call(input: value ?? '', axis: axis);
     return switch (result) {
@@ -194,24 +290,29 @@ class _RaceFormState extends State<RaceForm> {
     };
   }
 
-  /// A kártyán belüli mezők dekorációja (ADR 0044 D3).
-  ///
-  /// A téma alapját a kitöltés szűkíti: a mező `surfaceContainer`,
-  /// mert a bója-sor háttere `surface`, és azonos színnel a mező
-  /// eltűnne. Ez a korábbi elrendezés inverze (ADR 0044 D45). A
-  /// radius a token-rétegben nullázódott (ADR 0044 D47).
-  InputDecoration _rowFieldDecoration(String label) {
+  Widget _nameField(
+    AppLocalizations l10n,
+    _PointControllers row, {
+    required String hint,
+  }) {
     final scheme = Theme.of(context).colorScheme;
-    return InputDecoration(
-      labelText: label,
-      isDense: true,
-      fillColor: scheme.surfaceContainer,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      border: foretackFieldBorder(scheme.outline),
-      enabledBorder: foretackFieldBorder(scheme.outline),
-      focusedBorder: foretackFieldBorder(scheme.primary, width: 1.5),
-      errorBorder: foretackFieldBorder(scheme.error, width: 1.5),
-      focusedErrorBorder: foretackFieldBorder(scheme.error, width: 1.5),
+    final style = supportTextStyle.copyWith(
+      fontSize: 15,
+      height: cardFieldLineHeight,
+      color: scheme.onSurface,
+    );
+    return TextFormField(
+      controller: row.nameController,
+      autofocus: row.shouldFocusName,
+      decoration: cardFieldDecoration(
+        context,
+        hint: hint,
+        style: style,
+        height: _nameHeight,
+      ),
+      style: style,
+      textInputAction: TextInputAction.next,
+      validator: (value) => _validateName(l10n, value),
     );
   }
 
@@ -220,14 +321,23 @@ class _RaceFormState extends State<RaceForm> {
     TextEditingController controller,
     GeoAxis axis,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final style = coordinateValueStyle.copyWith(
+      fontSize: 13,
+      height: cardFieldLineHeight,
+      color: scheme.onSurfaceVariant,
+    );
     return TextFormField(
       controller: controller,
-      decoration: _rowFieldDecoration(
-        axis == GeoAxis.latitude
+      decoration: cardFieldDecoration(
+        context,
+        hint: axis == GeoAxis.latitude
             ? l10n.setupLatitudeLabel
             : l10n.setupLongitudeLabel,
+        style: style,
+        height: _coordinateHeight,
       ),
-      style: coordinateValueStyle,
+      style: style,
       keyboardType: const TextInputType.numberWithOptions(
         signed: true,
         decimal: true,
@@ -236,126 +346,172 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
-  Widget _markRow(AppLocalizations l10n, int index) {
+  Widget _markCard(AppLocalizations l10n, int index) {
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
     final row = _markRows[index];
-    return MarkRow(
-      // A reorder a KÖZVETLEN gyerekeket mozgatja, ezért a
-      // sor-kulcs ide került, a korábbi Paddingről.
+    final isLast = index == _markRows.length - 1;
+    return Padding(
+      // A reorder a KÖZVETLEN gyerekeket mozgatja, ezért a kulcs itt ül.
       key: ObjectKey(row),
-      number: index + 1,
-      // Explicit drag-handle: a sor-szintű long-press ütközne a
-      // szövegmezőkkel, ezért csak innen indul a húzás.
-      dragHandle: ReorderableDragStartListener(
-        index: index,
-        child: Tooltip(
-          message: l10n.setupReorderHandle,
-          child: const Icon(Icons.drag_indicator, size: 20),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : _cardGap),
+      child: CoordinateCard(
+        rail: Column(
+          spacing: 8,
+          children: [
+            Text(
+              '${index + 1}'.padLeft(2, '0'),
+              style: numeralMicroStyle.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: tones.low,
+              ),
+            ),
+            // Explicit drag-handle: a kártya-szintű long-press ütközne a
+            // szövegmezőkkel, ezért csak innen indul a húzás.
+            ReorderableDragStartListener(
+              index: index,
+              child: Tooltip(
+                message: l10n.setupReorderHandle,
+                child: Icon(Icons.drag_indicator, size: 20, color: tones.low),
+              ),
+            ),
+          ],
         ),
+        nameField: _nameField(l10n, row, hint: l10n.setupMarkNameLabel),
+        latitudeField: _coordinateField(
+          l10n,
+          row.latitudeController,
+          GeoAxis.latitude,
+        ),
+        longitudeField: _coordinateField(
+          l10n,
+          row.longitudeController,
+          GeoAxis.longitude,
+        ),
+        removeTooltip: l10n.setupRemoveMark,
+        onRemove: _onRemoveFor(index),
       ),
-      nameField: TextFormField(
-        controller: row.nameController,
-        decoration: _rowFieldDecoration(l10n.setupMarkNameLabel),
-        textInputAction: TextInputAction.next,
-        validator: (value) => _validateName(l10n, value),
+    );
+  }
+
+  Widget _startPointSection(AppLocalizations l10n) {
+    final startPoint = _startPoint;
+    if (startPoint == null) {
+      return StartPointEmptyCard(
+        title: l10n.setupStartPointAdd,
+        libraryLabel: l10n.setupPickFromLibrary,
+        coordinatesLabel: l10n.setupStartPointCoordinates,
+        onPickFromLibrary: () => unawaited(_pickStartPointFromLibrary()),
+        onEnterCoordinates: _enterStartPointCoordinates,
+      );
+    }
+    final scheme = Theme.of(context).colorScheme;
+    return CoordinateCard(
+      // A rajthely nem pálya-elem: sorszám és fogantyú helyett zászló, és
+      // nem húzható a bóják közé (ADR 0055 D1).
+      rail: Icon(
+        Icons.flag_outlined,
+        size: 18,
+        color: scheme.onSecondaryContainer,
+      ),
+      railColor: scheme.secondaryContainer,
+      nameField: _nameField(
+        l10n,
+        startPoint,
+        hint: l10n.setupStartPointNameLabel,
       ),
       latitudeField: _coordinateField(
         l10n,
-        row.latitudeController,
+        startPoint.latitudeController,
         GeoAxis.latitude,
       ),
       longitudeField: _coordinateField(
         l10n,
-        row.longitudeController,
+        startPoint.longitudeController,
         GeoAxis.longitude,
       ),
-      removeTooltip: l10n.setupRemoveMark,
-      onRemove: _onRemoveFor(index),
+      removeTooltip: l10n.setupStartPointRemove,
+      onRemove: () => _replaceStartPoint(null),
     );
   }
 
-  /// A bója-blokk tetejét lezáró hairline (ADR 0044 D45).
+  /// A verseny neve: saját körvonalas mező (nem kártya), lebegő címkével,
+  /// amely gépeléskor a keret vonalába csúszik (felhasználói döntés, UF).
   ///
-  /// A sorok **csak alul** rajzolnak határt, hogy két
-  /// szomszédos sor között ne fusson dupla vonal; így viszont a blokk
-  /// teteje nyitva maradna, és a lista felül bevégzetlennek látszana.
-  Widget _blockTopLine() {
-    return SizedBox(
-      height: 1,
-      child: ColoredBox(
-        color: Theme.of(context).colorScheme.outlineVariant,
+  /// A keret és a kitöltés a téma `inputDecorationTheme`-jéből jön; mivel
+  /// a keret minden állapotban outline, a szöveg fókuszváltáskor nem ugrik.
+  Widget _raceNameField(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final style = supportTextStyle.copyWith(
+      fontSize: 15,
+      height: cardFieldLineHeight,
+      color: scheme.onSurface,
+    );
+    final vertical = cardFieldVerticalPadding(
+      context,
+      style: style,
+      height: _raceNameHeight,
+    );
+    return TextFormField(
+      controller: _nameController,
+      decoration: InputDecoration(
+        labelText: l10n.setupRaceNameLabel,
+        labelStyle: const TextStyle(fontSize: 15),
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: vertical,
+        ),
       ),
+      style: style,
+      textInputAction: TextInputAction.next,
+      validator: (value) => (value == null || value.trim().isEmpty)
+          ? l10n.setupRaceNameRequired
+          : null,
     );
   }
 
-  /// A „BÓJÁK” fejléc a darabszámmal (ADR 0044 D45).
-  ///
-  /// A szám ugyanazt a mono fokozatot viseli, amit a bója-sor
-  /// sorszám-sínje, mert ugyanarról a listáról beszél. Összekötő csík
-  /// **nincs**: sem a lista-, sem a detail-képernyő szakasz-címkéi nem
-  /// viselnek ilyet, és egy harmadik elválasztó-nyelv itt nem indokolt.
-  Widget _marksHeader(AppLocalizations l10n) {
-    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
-    final tones = Theme.of(context).extension<TextTones>()!;
-
-    return Padding(
-      // A fejléc függőlegesen KÖZÉPEN ül a két hairline között: a
-      // sávot a saját, szimmetrikus paddingje adja, nem a szomszédos
-      // SizedBoxok, amelyek külön-külön 14 és 6 dp-t adtak.
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(child: SectionLabel(text: l10n.setupMarksSection)),
-          Text(
-            '${_markRows.length}',
-            style: railNumberStyle.copyWith(color: tones.low),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// A bója nélküli mód kapcsoló-sora (ADR 0046 Addendum 1 D7).
-  ///
-  /// Fix helyen ül, a verseny-név alatt és a bója-blokk fölött: a bója
-  /// nélküliség a VERSENYRE vonatkozó tulajdonság, nem a bója-listára,
-  /// ezért a névvel egy szinten áll. Bekapcsolva a blokk eltűnik alatta,
-  /// a sor maga nem mozdul.
+  /// A bója nélküli mód kapcsoló-kártyája (ADR 0046 Addendum 1 D7, 33a).
   ///
   /// A magyarázó sor **kikapcsolva is látszik**: a következmény (nincs
   /// bearing, ETA és predikció) különben a vízen derülne ki.
-  Widget _marklessRow(AppLocalizations l10n) {
-    final theme = Theme.of(context);
+  Widget _marklessCard(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
     // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
-    final tones = theme.extension<TextTones>()!;
-    final line = BorderSide(color: theme.colorScheme.outlineVariant);
+    final tones = Theme.of(context).extension<TextTones>()!;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(top: line, bottom: line),
-      ),
+    return FormCard(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
+          spacing: 12,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 3,
                 children: [
                   Text(
                     l10n.setupNoMarksToggle,
-                    style: theme.textTheme.bodyLarge,
+                    style: supportTextStyle.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     l10n.setupNoMarksHint,
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    style: supportTextStyle.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
+                      height: 1.4,
                       color: tones.low,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
             ForetackSwitch(
               value: _isMarkless,
               onChanged: (value) => setState(() => _isMarkless = value),
@@ -366,59 +522,79 @@ class _RaceFormState extends State<RaceForm> {
     );
   }
 
+  Widget _padded(Widget child) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: _sideMargin),
+    child: child,
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheduledStartAt = _scheduledStartAt;
 
     return Form(
       key: _formKey,
       child: Column(
         children: [
+          // Nem lusta ListView: a Form.validate() csak a fában lévő mezőket
+          // futtatja, egy kigörgetett (lebontott) kártya pedig validálatlanul
+          // jutna a submitig. A kártyák száma kicsi, így az egyszerre
+          // felépített oszlop olcsó.
           Expanded(
-            child: ListView(
-              // Teljes szélességű törzs: a bója-sorok és a kapcsoló-sor
-              // hairline-jai a képernyő széléig futnak (ADR 0044 D45).
-              padding: const EdgeInsets.only(top: 8),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                  child: TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.setupRaceNameLabel,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _padded(_raceNameField(l10n)),
+                  const SizedBox(height: _cardGap),
+                  _padded(
+                    StartTimeCard(
+                      label: l10n.setupStartTimeLabel,
+                      value: scheduledStartAt == null
+                          ? null
+                          : formatScheduledStart(
+                              l10n,
+                              scheduledStartAt.toLocal(),
+                            ),
+                      emptyLabel: l10n.setupStartTimeEmpty,
+                      note: _startTimeNote(l10n),
+                      clearTooltip: l10n.setupStartTimeClear,
+                      onOpen: () => unawaited(_openStartTime()),
+                      onClear: _clearStartTime,
                     ),
-                    textInputAction: TextInputAction.next,
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? l10n.setupRaceNameRequired
-                        : null,
                   ),
-                ),
-                _marklessRow(l10n),
-                if (!_isMarkless) ...[
-                  _marksHeader(l10n),
-                  _blockTopLine(),
-                  // A bója-sorok átrendezhetők; a ReorderableListView a
-                  // külső ListView-on belül zsugorodik és nem görget külön.
-                  // A sorokat hairline választja el (ADR 0044 D45), ezért
-                  // köztük nincs rés, és a sor-kulcs a MarkRow-n ül.
-                  ReorderableListView(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    buildDefaultDragHandles: false,
-                    onReorder: _reorderMarkRow,
-                    children: [
-                      for (var i = 0; i < _markRows.length; i++)
-                        _markRow(l10n, i),
-                    ],
-                  ),
+                  const SizedBox(height: _cardGap),
+                  _padded(_marklessCard(l10n)),
+                  FormSectionHeader(label: l10n.setupStartPointSection),
+                  _padded(_startPointSection(l10n)),
+                  if (!_isMarkless) ...[
+                    FormSectionHeader(
+                      label: l10n.setupMarksSection,
+                      count: _markRows.length,
+                    ),
+                    // A kártyák átrendezhetők; a ReorderableListView a külső
+                    // görgetőn belül zsugorodik és nem görget külön.
+                    ReorderableListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _sideMargin,
+                      ),
+                      buildDefaultDragHandles: false,
+                      onReorder: _reorderMarkRow,
+                      children: [
+                        for (var i = 0; i < _markRows.length; i++)
+                          _markCard(l10n, i),
+                      ],
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-          // Bója nélküli módban nincs mit hozzáadni: a lista üres,
-          // és a sáv egyetlen, teljes szélességű Mentés gombra esik
-          // (ADR 0046 D4).
+          // Bója nélküli módban nincs mit hozzáadni: a sáv egyetlen, teljes
+          // szélességű Mentés gombra esik (ADR 0046 D4).
           FormActionBar(
             primaryLabel: l10n.setupSave,
             onPrimary: _submit,
@@ -433,7 +609,7 @@ class _RaceFormState extends State<RaceForm> {
                     FormBarAction(
                       label: l10n.setupPickFromLibrary,
                       icon: Icons.history,
-                      onTap: () => unawaited(_pickFromLibrary()),
+                      onTap: () => unawaited(_pickMarkFromLibrary()),
                     ),
                   ],
           ),
@@ -443,35 +619,39 @@ class _RaceFormState extends State<RaceForm> {
   }
 }
 
-/// Egy bója-sor szerkeszthető mezőinek kontroller-csoportja.
-class _MarkRowControllers {
-  _MarkRowControllers({
+/// Egy bója- vagy rajthely-kártya szerkeszthető mezőinek kontrollerei.
+class _PointControllers {
+  _PointControllers({
     String name = '',
     String latitude = '',
     String longitude = '',
+    this.shouldFocusName = false,
   }) : nameController = TextEditingController(text: name),
        latitudeController = TextEditingController(text: latitude),
        longitudeController = TextEditingController(text: longitude);
 
-  /// Egy meglévő bójából tölti fel a sort (edit-mód feltöltése).
-  factory _MarkRowControllers.fromMark(Mark mark) => _MarkRowControllers(
-    name: mark.name,
-    latitude: mark.position.latitude.toString(),
-    longitude: mark.position.longitude.toString(),
-  );
-
-  /// Egy könyvtárbeli bójából tölti fel a sort (picker-választás).
-  factory _MarkRowControllers.fromSavedMark(SavedMark mark) {
-    return _MarkRowControllers(
-      name: mark.name,
-      latitude: mark.position.latitude.toString(),
-      longitude: mark.position.longitude.toString(),
-    );
-  }
+  /// Egy meglévő bójából, rajthelyből vagy könyvtár-elemből tölt fel.
+  ///
+  /// A koordináta tizedes fokként kerül a mezőbe, mint a részleten (U6).
+  factory _PointControllers.fromPosition(String name, Coordinate position) =>
+      _PointControllers(
+        name: name,
+        latitude: position.latitude.toString(),
+        longitude: position.longitude.toString(),
+      );
 
   final TextEditingController nameController;
   final TextEditingController latitudeController;
   final TextEditingController longitudeController;
+
+  /// Igaz, ha a név-mező a megjelenéskor fókuszt kap („Koordináta" út).
+  final bool shouldFocusName;
+
+  /// A validált mezőkből a pozíció.
+  Coordinate position() => Coordinate.checked(
+    latitude: _degrees(latitudeController.text, GeoAxis.latitude),
+    longitude: _degrees(longitudeController.text, GeoAxis.longitude),
+  );
 
   void dispose() {
     nameController.dispose();

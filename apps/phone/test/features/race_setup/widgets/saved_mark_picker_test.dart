@@ -65,12 +65,9 @@ void main() {
     expect(find.text(l10nOf(tester).setupPickFromLibraryEmpty), findsOneWidget);
   });
 
-  // Az ADR 0044 D51 óta a koordináta IS látszik: ez az ADR 0032 L8
-  // „koordináta nélkül" kikötésének visszavonása, és a korábbi teszt
-  // épp az ellenkezőjét rögzítette.
-  testWidgets('soronként a nevet, a koordinátát és a forrás-versenyt mutatja', (
-    tester,
-  ) async {
+  // Az ADR 0044 D51 ota a koordinata IS latszik (az ADR 0032 L8
+  // visszavonasa); a 35c ota egy sorban, a nev mellett.
+  testWidgets('soronként a nevet és a koordinátát mutatja', (tester) async {
     // ARRANGE & ACT
     await pumpPicker(tester, marks);
 
@@ -81,22 +78,64 @@ void main() {
     expect(find.text('46.9318 · 18.0456'), findsOneWidget);
   });
 
-  testWidgets('a forrás-verseny verzállal áll a badge-ben', (tester) async {
+  testWidgets('a bójákat forrás-verseny szerint csoportosítja', (
+    tester,
+  ) async {
     // ARRANGE & ACT
     await pumpPicker(tester, marks);
 
-    // ASSERT — a nagybetűsítés a megjelenítésé, az adat érintetlen.
-    expect(find.text('KEDD ESTI'), findsOneWidget);
-    expect(find.text('Kedd esti'), findsNothing);
+    // ASSERT - a csoport-fejlec a verseny neve, a megadott alakban (a
+    // 35c nem verzaloz), es a legutobb mentett verseny all elol.
+    final keddY = tester.getTopLeft(find.text('Kedd esti')).dy;
+    final szerdaY = tester.getTopLeft(find.text('Szerda')).dy;
+    expect(keddY, lessThan(tester.getTopLeft(find.text('VK')).dy));
+    expect(tester.getTopLeft(find.text('VK')).dy, lessThan(szerdaY));
+    expect(szerdaY, lessThan(tester.getTopLeft(find.text('BS')).dy));
   });
 
-  testWidgets('a fejléc a könyvtár darabszámát mutatja', (tester) async {
+  testWidgets('a keresőmező a látható bóják számát mutatja', (tester) async {
     // ARRANGE & ACT
     await pumpPicker(tester, marks);
 
     // ASSERT
-    expect(find.text(l10nOf(tester).setupPickFromLibraryTitle), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expect(
+      find.text(l10nOf(tester).setupPickFromLibraryCount(2)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a csoport utolsó sora alatt a vonal él-től él-ig fut', (
+    tester,
+  ) async {
+    // ARRANGE - ket boja ugyanabbol a versenybol.
+    await pumpPicker(tester, [
+      marks.first,
+      SavedMark(
+        name: 'Z1',
+        position: const Coordinate(latitude: 46.9, longitude: 17.9),
+        sourceRaceName: 'Kedd esti',
+        savedAt: DateTime.utc(2026, 6, 2),
+      ),
+    ]);
+
+    // ACT - a sorok also vonalai (1 dp magas ColoredBox-ok a sorokban).
+    double lineLeftUnder(String name) {
+      final row = find.ancestor(
+        of: find.text(name),
+        matching: find.byType(InkWell),
+      );
+      final line = find.descendant(
+        of: row,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Positioned && widget.height == 1,
+        ),
+      );
+      return tester.getTopLeft(line).dx;
+    }
+
+    // ASSERT - a csoporton beluli vonal 20 dp-s betettel, a zaro a szelen.
+    expect(lineLeftUnder('VK'), 20);
+    expect(lineLeftUnder('Z1'), 0);
   });
 
   testWidgets('üres könyvtárnál nincs darabszám és nincs kereső', (
@@ -105,9 +144,8 @@ void main() {
     // ARRANGE & ACT
     await pumpPicker(tester, const []);
 
-    // ASSERT — a nulla darabszám kiírása zajt adna az üres-állapot mellé,
-    // és üres könyvtárban nincs mit szűrni.
-    expect(find.text('0'), findsNothing);
+    // ASSERT - ures konyvtarban nincs mit szurni, igy a mezo es vele a
+    // darabszam sem jelenik meg.
     expect(find.byType(TextField), findsNothing);
   });
 
@@ -126,14 +164,14 @@ void main() {
   testWidgets('a darabszám a szűrt listát követi', (tester) async {
     // ARRANGE
     await pumpPicker(tester, marks);
-    expect(find.text('2'), findsOneWidget);
+    final l10n = l10nOf(tester);
 
     // ACT
     await search(tester, 'vk');
 
     // ASSERT
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expect(find.text(l10n.setupPickFromLibraryCount(1)), findsOneWidget);
+    expect(find.text(l10n.setupPickFromLibraryCount(2)), findsNothing);
   });
 
   // Szűrés után a "Még nincs mentett bója." hazudna: van mentett bója,

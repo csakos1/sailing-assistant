@@ -6,11 +6,7 @@ import 'package:phone/features/race_list/widgets/list_action_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 void main() {
-  Future<void> pumpBar(
-    WidgetTester tester, {
-    required VoidCallback onNewRace,
-    VoidCallback? onFinished,
-  }) {
+  Future<void> pumpBar(WidgetTester tester, {required VoidCallback onNewRace}) {
     return tester.pumpWidget(
       MaterialApp(
         theme: foretackTheme,
@@ -21,7 +17,7 @@ void main() {
           body: Column(
             children: [
               const Spacer(),
-              ListActionBar(onNewRace: onNewRace, onFinished: onFinished),
+              ListActionBar(onNewRace: onNewRace),
             ],
           ),
         ),
@@ -32,35 +28,7 @@ void main() {
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(ListActionBar)))!;
 
-  testWidgets('disables the finished half without a callback', (tester) async {
-    // ARRANGE & ACT
-    await pumpBar(tester, onNewRace: () {});
-    final l10n = l10nOf(tester);
-
-    // ASSERT - a gomb ott van, csak nem kattinthato.
-    final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.logTitle),
-    );
-    expect(button.onPressed, isNull);
-  });
-
-  testWidgets('enables the finished half with a callback', (tester) async {
-    // ARRANGE
-    var taps = 0;
-    await pumpBar(tester, onNewRace: () {}, onFinished: () => taps++);
-    final l10n = l10nOf(tester);
-
-    // ACT
-    await tester.tap(
-      find.widgetWithText(TextButton, l10n.logTitle),
-    );
-    await tester.pump();
-
-    // ASSERT
-    expect(taps, 1);
-  });
-
-  testWidgets('reports a tap on the new race half', (tester) async {
+  testWidgets('reports a tap on the new race button', (tester) async {
     // ARRANGE
     var taps = 0;
     await pumpBar(tester, onNewRace: () => taps++);
@@ -74,26 +42,37 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('splits the bar into two halves of equal width', (tester) async {
+  testWidgets('spans the full width without a log half', (tester) async {
     // ARRANGE & ACT
-    await pumpBar(tester, onNewRace: () {}, onFinished: () {});
+    await pumpBar(tester, onNewRace: () {});
     final l10n = l10nOf(tester);
 
-    // ASSERT - a felezes akkor is all, ha a ket felirat kulonbozo hosszu.
-    final left = tester.getSize(
-      find.widgetWithText(TextButton, l10n.logTitle),
+    // ASSERT - a naplo a hej sajat fule lett (ADR 0056 D2).
+    expect(find.byType(TextButton), findsNothing);
+    expect(
+      tester.getSize(find.widgetWithText(FilledButton, l10n.listAddRace)).width,
+      tester.getSize(find.byType(ListActionBar)).width,
     );
-    final right = tester.getSize(
-      find.widgetWithText(FilledButton, l10n.listAddRace),
-    );
-    expect(left.width, right.width);
   });
 
-  testWidgets('keeps the bar sixty logical pixels tall', (tester) async {
+  testWidgets('keeps the bar 56 logical pixels tall', (tester) async {
     // ARRANGE & ACT
     await pumpBar(tester, onNewRace: () {});
 
+    // ASSERT - makett 31a.
+    expect(tester.getSize(find.byType(ListActionBar)).height, 56);
+  });
+
+  testWidgets('labels the button at 15 / w700', (tester) async {
+    // ARRANGE & ACT
+    await pumpBar(tester, onNewRace: () {});
+    final l10n = l10nOf(tester);
+
     // ASSERT
-    expect(tester.getSize(find.byType(ListActionBar)).height, 60);
+    final style = DefaultTextStyle.of(
+      tester.element(find.text(l10n.listAddRace)),
+    ).style;
+    expect(style.fontSize, 15);
+    expect(style.fontWeight, FontWeight.w700);
   });
 }

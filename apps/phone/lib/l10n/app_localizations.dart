@@ -94,18 +94,6 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('hu')];
 
-  /// Gomb a race-detailen: az élő verseny-képernyő megnyitása.
-  ///
-  /// In hu, this message translates to:
-  /// **'Élő nézet'**
-  String get liveOpen;
-
-  /// Az élő képernyő üres állapota: nincs aktív verseny.
-  ///
-  /// In hu, this message translates to:
-  /// **'Nincs aktív verseny'**
-  String get liveNoActiveRace;
-
   /// Státuszsor chip: az adat túl régi (csatlakozott, de nem frissül).
   ///
   /// In hu, this message translates to:
@@ -130,12 +118,6 @@ abstract class AppLocalizations {
   /// **'TARTOTT'**
   String get liveTwdHeld;
 
-  /// Cella-címke: irány a bójához (abszolút bearing).
-  ///
-  /// In hu, this message translates to:
-  /// **'BEARING'**
-  String get liveBearing;
-
   /// Cella-címke: kormányzási korrekció a bójához.
   ///
   /// In hu, this message translates to:
@@ -153,6 +135,72 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'ETA'**
   String get liveEta;
+
+  /// A navigációs sáv bal fülének felirata (ADR 0056 D2).
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenyek'**
+  String get navRaces;
+
+  /// A navigációs sáv középső fülének felirata: az élő adatok.
+  ///
+  /// In hu, this message translates to:
+  /// **'Műszerek'**
+  String get navInstruments;
+
+  /// A navigációs sáv jobb fülének felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenynapló'**
+  String get navLog;
+
+  /// Címke a Műszerek fülön, ha aktív verseny fut (mono verzál).
+  ///
+  /// In hu, this message translates to:
+  /// **'ÉLŐ'**
+  String get navLive;
+
+  /// A Versenyek fül ⋮ menüjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Menü'**
+  String get homeMenuTooltip;
+
+  /// A ⋮ menü debug-csoportjának címkéje (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'FEJLESZTÉS'**
+  String get homeMenuDebugSection;
+
+  /// A ⋮ menü sora: a nyers NMEA-néző (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nyers NMEA'**
+  String get homeMenuRawNmea;
+
+  /// A ⋮ menü sora: az engine-debug képernyő (csak debug-buildben).
+  ///
+  /// In hu, this message translates to:
+  /// **'Engine debug'**
+  String get homeMenuEngineDebug;
+
+  /// A Versenynapló fül üres állapotának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Még nincs befejezett verseny'**
+  String get logEmptyTitle;
+
+  /// A Versenynapló fül üres állapotának magyarázata.
+  ///
+  /// In hu, this message translates to:
+  /// **'A célba ért versenyek itt jelennek meg, évenként és hónaponként, a vízen töltött idővel és a távval.'**
+  String get logEmptyMessage;
+
+  /// A napló betöltés közbeni fejléce (makett 35f).
+  ///
+  /// In hu, this message translates to:
+  /// **'BETÖLTÉS'**
+  String get logLoadingCaps;
 
   /// Tooltip: az élő követés leállítása (AppBar ikon).
   ///
@@ -196,13 +244,7 @@ abstract class AppLocalizations {
   /// **'Bója megkerülve?'**
   String get liveRoundMarkTitle;
 
-  /// A kézi boja-megkerulés dialogus szovege a célboja nevevel.
-  ///
-  /// In hu, this message translates to:
-  /// **'Megjelölöd a(z) {mark} át megkerültnek?'**
-  String liveRoundMarkMessage(String mark);
-
-  /// A dialogus szovege, ha a célboja neve nem ismert (pl. nincs GPS-pozicio).
+  /// A kézi bója-megkerülés dialógusának szövege; a bója sorszáma és neve, ha ismert, az adatcellában áll.
   ///
   /// In hu, this message translates to:
   /// **'Megjelölöd a jelenlegi bóját megkerültnek?'**
@@ -460,17 +502,95 @@ abstract class AppLocalizations {
   /// **'Befejezve'**
   String get raceStatusFinished;
 
-  /// Gomb: a verseny elindítása (notStarted -> active).
+  /// A részlet alsó sávja: a kézi rajt rajtidő nélküli versenyen (32c).
   ///
   /// In hu, this message translates to:
-  /// **'Indítás'**
+  /// **'Rajt'**
   String get detailStart;
 
-  /// Gomb: a verseny befejezése (active -> finished).
+  /// A részlet alsó sávja: a verseny befejezése (32b).
   ///
   /// In hu, this message translates to:
-  /// **'Befejezés'**
+  /// **'Cél'**
   String get detailFinish;
+
+  /// A részlet alsó sávja: a kézi rajt egy tervezett rajtú versenyen (32a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most'**
+  String get detailStartNow;
+
+  /// A részlet alsó sávjának bal cellája: az engine a rajtidőben magától indít.
+  ///
+  /// In hu, this message translates to:
+  /// **'AUTOMATIKUS'**
+  String get detailAutomaticStart;
+
+  /// A részlet státuszcsíkja: a tervezett rajt felirata a nap és az idő előtt.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT'**
+  String get detailScheduledStartLabel;
+
+  /// A részlet státuszcsíkja rajtidő nélküli, el nem indult versenyen.
+  ///
+  /// In hu, this message translates to:
+  /// **'NINCS TERVEZETT RAJT'**
+  String get detailNoScheduledStart;
+
+  /// A részlet pálya-listájának első sora: a rajthely neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely — {name}'**
+  String detailStartPointName(String name);
+
+  /// A rajthely-sor keretes címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJTHELY'**
+  String get detailStartPointTag;
+
+  /// A rajthely-sor elindult versenyen: a tényleges rajt ideje, pl. RAJT 09:00:00.
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT {time}'**
+  String detailStartedAt(String time);
+
+  /// Az aktív bója sorának kitöltött címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'AKTÍV'**
+  String get detailActiveMarkTag;
+
+  /// A rajt-dialógus szövege tervezett rajtú versenyen; a time pl. 09:00 vagy okt. 13. 09:00.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most indul a tervezett {time} helyett: a rajtidő ez a pillanat, és elkezdődik a rögzítés.'**
+  String detailStartScheduledMessage(String time);
+
+  /// A cél-megerősítő dialógus címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Cél?'**
+  String get detailFinishTitle;
+
+  /// A cél-megerősítő dialógus szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most véget ér: a rögzítés leáll, és a track lezárul.'**
+  String get detailFinishMessage;
+
+  /// A cél-dialógus megszakító gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get detailFinishCancel;
+
+  /// A cél-dialógus megerősítő (romboló) gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Cél'**
+  String get detailFinishConfirm;
 
   /// Tooltip: a verseny törlése (AppBar ikon).
   ///
@@ -481,13 +601,13 @@ abstract class AppLocalizations {
   /// A törlés-megerősítő dialógus címe.
   ///
   /// In hu, this message translates to:
-  /// **'Verseny törlése'**
+  /// **'Törlöd a versenyt?'**
   String get detailDeleteTitle;
 
   /// A törlés-megerősítő dialógus szövege.
   ///
   /// In hu, this message translates to:
-  /// **'Biztosan törlöd ezt a versenyt?'**
+  /// **'A track, a bóják és a statisztika véglegesen törlődik.'**
   String get detailDeleteMessage;
 
   /// A törlés-dialógus megszakító gombja.
@@ -502,17 +622,65 @@ abstract class AppLocalizations {
   /// **'Törlés'**
   String get detailDeleteConfirm;
 
-  /// A versenylista (home) képernyő címsora.
+  /// A törlés utáni snackbar szövege (makett 35e).
   ///
   /// In hu, this message translates to:
-  /// **'VERSENYEK'**
+  /// **'Verseny törölve'**
+  String get detailDeletedMessage;
+
+  /// A törlés-snackbar akciója; a snackbar verzálosítja (makett 35e).
+  ///
+  /// In hu, this message translates to:
+  /// **'Visszavonás'**
+  String get detailDeleteUndo;
+
+  /// A Versenyek fül címsora (makett 31a).
+  ///
+  /// In hu, this message translates to:
+  /// **'Versenyek'**
   String get listTitle;
 
-  /// A lista üres állapotának üzenete.
+  /// Az üres lista címe (makett 31b).
   ///
   /// In hu, this message translates to:
-  /// **'Még nincs verseny. Indíts egyet az Új verseny gombbal.'**
-  String get listEmpty;
+  /// **'Még nincs verseny'**
+  String get listEmptyTitle;
+
+  /// Az üres lista magyarázata (makett 31b); az {action} a gomb felirata, félkövéren.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hozz létre egyet az {action} gombbal: név, rajt, bóják. A tervezett és a futó versenyek itt sorakoznak.'**
+  String listEmptyMessage(String action);
+
+  /// A lista-sor meta-sora: a ma tervezett rajt napja.
+  ///
+  /// In hu, this message translates to:
+  /// **'MA'**
+  String get listMetaToday;
+
+  /// A lista-sor meta-sora: a rajt napja az idei évben, pl. OKT. 11.
+  ///
+  /// In hu, this message translates to:
+  /// **'{month} {day}.'**
+  String listMetaDay(String month, int day);
+
+  /// A lista-sor meta-sora: a rajt napja más évben, pl. 2027. JAN. 3.
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month} {day}.'**
+  String listMetaDayWithYear(int year, String month, int day);
+
+  /// A lista-sor meta-sora bója nélküli versenyen.
+  ///
+  /// In hu, this message translates to:
+  /// **'bója nélkül'**
+  String get listMetaNoMarks;
+
+  /// A folyamatban lévő verseny meta-sora: hányadik bójára tart, és a neve.
+  ///
+  /// In hu, this message translates to:
+  /// **'{index} / {total} · {mark}'**
+  String listMetaActiveMark(int index, int total, String mark);
 
   /// A lista hiba-állapotának üzenete.
   ///
@@ -544,31 +712,31 @@ abstract class AppLocalizations {
   /// **'{month}'**
   String logMonth(DateTime month);
 
-  /// Verseny-darabszám a napló fejlécén és hónap-fejlécein (verzál).
+  /// Verseny-darabszám a napló fejrészében és hónap-fejlécein (verzál).
   ///
   /// In hu, this message translates to:
   /// **'{count} VERSENY'**
   String logRaceCountCaps(int count);
 
-  /// Az év-választó lap fejléc-felirata; a widget verzálosítja.
+  /// A versenyszám helye a napló fejrészében, amíg a napló töltődik (makett 35f).
   ///
   /// In hu, this message translates to:
-  /// **'Év'**
-  String get logYearSheetTitle;
+  /// **'–– VERSENY'**
+  String get logRaceCountPendingCaps;
 
-  /// A napló stat-csík első cellája: vízen töltött idő.
+  /// Az évsáv első statja: vízen töltött idő.
   ///
   /// In hu, this message translates to:
   /// **'VÍZEN TÖLTÖTT'**
   String get logStatTimeCaps;
 
-  /// A napló stat-csík második cellája: az év össztávja.
+  /// Az évsáv második statja: az év össztávja.
   ///
   /// In hu, this message translates to:
   /// **'ÖSSZ. TÁV'**
   String get logStatDistanceCaps;
 
-  /// A napló stat-csík harmadik cellája: sebesség-rekord.
+  /// Az évsáv harmadik statja: sebesség-rekord.
   ///
   /// In hu, this message translates to:
   /// **'REKORD'**
@@ -622,11 +790,11 @@ abstract class AppLocalizations {
   /// **'Korábbi bóják'**
   String get setupPickFromLibrary;
 
-  /// A bója-választó (modal sheet) címe.
+  /// A bója-választó keresőmezőjében a látható bóják száma (35c), pl. 63 BÓJA.
   ///
   /// In hu, this message translates to:
-  /// **'KORÁBBI BÓJÁK'**
-  String get setupPickFromLibraryTitle;
+  /// **'{count} BÓJA'**
+  String setupPickFromLibraryCount(int count);
 
   /// A bója-választó üres állapota: a könyvtár üres.
   ///
@@ -645,6 +813,150 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Nincs találat erre a névre.'**
   String get setupPickFromLibraryNoMatch;
+
+  /// A verseny-űrlap rajtidő-kártyájának címkéje (33a).
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJT IDŐPONTJA'**
+  String get setupStartTimeLabel;
+
+  /// A rajtidő-kártya üres állapota (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs tervezett rajt — kézzel indul'**
+  String get setupStartTimeEmpty;
+
+  /// A rajtidő-kártya ürítő gombjának tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajtidő törlése'**
+  String get setupStartTimeClear;
+
+  /// Halk jelzés: az elmúlt rajtidő még a mai késési ablakon belül van (ADR 0055 D7).
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez az időpont már elmúlt — a verseny visszamenőleg indul.'**
+  String get setupStartTimePastRetroactive;
+
+  /// Halk jelzés: az elmúlt rajtidő az automatikus rajt ablakán kívül esik.
+  ///
+  /// In hu, this message translates to:
+  /// **'Ez az időpont már elmúlt — a verseny magától nem indul, csak kézzel.'**
+  String get setupStartTimePastManual;
+
+  /// A verseny-űrlap rajthely-szakaszának címkéje (33a).
+  ///
+  /// In hu, this message translates to:
+  /// **'RAJTHELY'**
+  String get setupStartPointSection;
+
+  /// Az üres rajthely-kártya felső sora (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely hozzáadása'**
+  String get setupStartPointAdd;
+
+  /// Az üres rajthely-kártya útja: a rajthely kézi megadása (33b).
+  ///
+  /// In hu, this message translates to:
+  /// **'Koordináta'**
+  String get setupStartPointCoordinates;
+
+  /// A rajthely név-mezőjének helyőrzője.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely neve'**
+  String get setupStartPointNameLabel;
+
+  /// A rajthely-kártya törlés-gombjának tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajthely törlése'**
+  String get setupStartPointRemove;
+
+  /// A rajtidő-választó (33c) címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt időpontja'**
+  String get startTimeSheetTitle;
+
+  /// A rajtidő-választó hónap-léptetőjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Előző hónap'**
+  String get startTimeSheetPreviousMonth;
+
+  /// A rajtidő-választó hónap-léptetőjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Következő hónap'**
+  String get startTimeSheetNextMonth;
+
+  /// A naptár oszlopfejlécei hétfővel kezdve, |-vel elválasztva.
+  ///
+  /// In hu, this message translates to:
+  /// **'H|K|Sze|Cs|P|Szo|V'**
+  String get startTimeSheetWeekdays;
+
+  /// A hónapok teljes neve |-vel elválasztva, a naptár hónap-sorához.
+  ///
+  /// In hu, this message translates to:
+  /// **'január|február|március|április|május|június|július|augusztus|szeptember|október|november|december'**
+  String get startTimeSheetMonths;
+
+  /// A naptár hónap-sora, pl. 2026. október (a kód verzáloz).
+  ///
+  /// In hu, this message translates to:
+  /// **'{year}. {month}'**
+  String startTimeSheetMonth(int year, String month);
+
+  /// A rajtidő-választó idő-sorának címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'IDŐPONT'**
+  String get startTimeSheetTime;
+
+  /// A rajtidő-választó idő-sorának alcíme.
+  ///
+  /// In hu, this message translates to:
+  /// **'24 órás'**
+  String get startTimeSheetClock24;
+
+  /// Az óra-léptető fel-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Óra növelése'**
+  String get startTimeSheetHourUp;
+
+  /// Az óra-léptető le-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Óra csökkentése'**
+  String get startTimeSheetHourDown;
+
+  /// A perc-léptető fel-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Perc növelése'**
+  String get startTimeSheetMinuteUp;
+
+  /// A perc-léptető le-nyilának akadálymentes felirata.
+  ///
+  /// In hu, this message translates to:
+  /// **'Perc csökkentése'**
+  String get startTimeSheetMinuteDown;
+
+  /// A rajtidő-választó ürítő gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Nincs rajtidő'**
+  String get startTimeSheetClear;
+
+  /// A rajtidő-választó jóváhagyó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Kész'**
+  String get startTimeSheetDone;
 
   /// A bója-lista verzál szakasz-címkéje a detail-képernyőn.
   ///
@@ -1240,12 +1552,6 @@ abstract class AppLocalizations {
   /// **'Ez a telefon a(z) {current} szerveren van regisztrálva. Lecseréled erre: {next}?'**
   String webReplaceForeignMessage(String current, String next);
 
-  /// A főképernyő ⋮ menüjének tooltipje (ADR 0051 Addendum 10 Z6).
-  ///
-  /// In hu, this message translates to:
-  /// **'Webes hozzáférés'**
-  String get webMenuTooltip;
-
   /// A ⋮ menü szekció-címkéje, verzál (makett 18a-2).
   ///
   /// In hu, this message translates to:
@@ -1839,6 +2145,120 @@ abstract class AppLocalizations {
   /// In hu, this message translates to:
   /// **'Új helyreállító kódok'**
   String get webPromptCodesTitle;
+
+  /// Szabad mód (34a) sebesség-cellája: víz szerinti sebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'STW'**
+  String get liveStw;
+
+  /// Szabad mód (34a) sebesség-cellája STW hiányában: föld szerinti sebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'SOG'**
+  String get liveSog;
+
+  /// Szabad mód (34a) sín-cellája: a vízhez mért szélirány-szög, oldal-jellel.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWA'**
+  String get liveTwa;
+
+  /// Szabad mód (34a) sín-cellája: a vízhez mért szélsebesség csomóban.
+  ///
+  /// In hu, this message translates to:
+  /// **'TWS'**
+  String get liveTws;
+
+  /// Műszerek csík (34a-1): a próba keresi a hajót, vagy az engine még kapcsolódik.
+  ///
+  /// In hu, this message translates to:
+  /// **'Hajó keresése…'**
+  String get instrumentsSearching;
+
+  /// Műszerek csík: az engine áll (kézi leállítás után); a keresés a következő megnyitáskor indul.
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítva'**
+  String get instrumentsStopped;
+
+  /// Műszerek csík (34a-3): az utolsó adat korának felirata megszakadt kapcsolatnál.
+  ///
+  /// In hu, this message translates to:
+  /// **'ADAT'**
+  String get instrumentsDataLabel;
+
+  /// Az utolsó adat kora egy óra alatt; az age perc:mp alakú (1:12).
+  ///
+  /// In hu, this message translates to:
+  /// **'{age} perce'**
+  String instrumentsDataAgeMinutes(String age);
+
+  /// Az utolsó adat kora egy óra felett; az age óra:perc alakú (1:05).
+  ///
+  /// In hu, this message translates to:
+  /// **'{age} órája'**
+  String instrumentsDataAgeHours(String age);
+
+  /// A Műszerek csík ⋮ menüjének tooltipje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Menü'**
+  String get instrumentsMenuTooltip;
+
+  /// A szabad mód Leállítás-dialógusának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Műszerek leállítása'**
+  String get instrumentsStopTitle;
+
+  /// A szabad mód Leállítás-dialógusának szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'Leállítod a háttér-engine-t? A hajó keresése az app következő megnyitásakor indul újra.'**
+  String get instrumentsStopMessage;
+
+  /// A Műszerek rajt előtti nézetének (34b) alsó gombja.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most'**
+  String get instrumentsStartNow;
+
+  /// A „Rajt most” megerősítő dialógusának címe.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt most?'**
+  String get instrumentsStartTitle;
+
+  /// A „Rajt most” megerősítő dialógusának szövege.
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny most indul: a rajtidő ez a pillanat, és elkezdődik a rögzítés.'**
+  String get instrumentsStartMessage;
+
+  /// A „Rajt most” dialógusának elvetése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Mégse'**
+  String get instrumentsStartCancel;
+
+  /// A „Rajt most” dialógusának megerősítése.
+  ///
+  /// In hu, this message translates to:
+  /// **'Rajt'**
+  String get instrumentsStartConfirm;
+
+  /// A Műszerek váltójának (34b-2a) fejléce.
+  ///
+  /// In hu, this message translates to:
+  /// **'MAI VERSENYEK'**
+  String get instrumentsTodayRaces;
+
+  /// A Műszerek csíkjában a versenynév-váltó képernyőolvasó-címkéje.
+  ///
+  /// In hu, this message translates to:
+  /// **'Verseny váltása'**
+  String get instrumentsSwitchRace;
 }
 
 class _AppLocalizationsDelegate

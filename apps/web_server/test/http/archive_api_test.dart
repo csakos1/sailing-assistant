@@ -20,6 +20,7 @@ import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/json_response.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
 import 'package:web_server/src/http/polar_handler.dart';
+import 'package:web_server/src/http/race_deletion_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
 import 'package:web_server/src/http/race_result_handler.dart';
@@ -31,6 +32,7 @@ import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_detail_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
 import 'package:web_server/src/race/race_summary_service.dart';
+import 'package:web_server/src/race/telemetry_race_deletion_service.dart';
 import 'package:web_server/src/serial_lock.dart';
 import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
@@ -135,6 +137,17 @@ void main() {
           manualRaces: manualRaces,
           tracks: tracks,
           resolveStats: resolveStats,
+          log: logLines.add,
+        ),
+      ),
+      raceDeletion: RaceDeletionHandler(
+        TelemetryRaceDeletionService(
+          races: races,
+          results: results,
+          stats: stats,
+          polar: PolarStatsRepository(web),
+          runInWebTransaction: web.transaction,
+          lock: lock,
           log: logLines.add,
         ),
       ),
@@ -384,6 +397,67 @@ void main() {
 
       expect(response.statusCode, 404);
       expect(await errorOf(response), const RaceNotFound('missing'));
+    });
+  });
+
+  group('DELETE $racesPath/{id}', () {
+    test('deletes a telemetry race with its result and answers 204', () async {
+      // ARRANGE
+      await seedArchiveRace(databases.archive, finishedArchiveRace('r1'));
+      await putResult('r1', {'overallPlace': 3});
+
+      // ACT
+      final response = await send(
+        'DELETE',
+        racePath('r1'),
+        headers: _webClient,
+      );
+
+      // ASSERT
+      expect(response.statusCode, 204);
+      expect(await response.readAsString(), isEmpty);
+      expect(await RaceResultRepository(databases.web).get('r1'), isNull);
+      expect((await send('GET', racePath('r1'))).statusCode, 404);
+      expect(await listRaces(), isEmpty);
+    });
+
+    test('answers 404 for a manual race and keeps it', () async {
+      // ARRANGE
+      await postManual(encodeManualRaceRequest(lelleRequest()));
+
+      // ACT
+      final response = await send(
+        'DELETE',
+        racePath('manual-1'),
+        headers: _webClient,
+      );
+
+      // ASSERT
+      expect(response.statusCode, 404);
+      expect(await errorOf(response), const RaceNotFound('manual-1'));
+      expect((await listRaces()).single.id, 'manual-1');
+    });
+
+    test('answers 404 for an unknown race', () async {
+      final response = await send(
+        'DELETE',
+        racePath('missing'),
+        headers: _webClient,
+      );
+
+      expect(response.statusCode, 404);
+    });
+
+    test('requires the client header', () async {
+      // ARRANGE
+      await seedArchiveRace(databases.archive, finishedArchiveRace('r1'));
+
+      // ACT
+      final response = await send('DELETE', racePath('r1'));
+
+      // ASSERT
+      expect(response.statusCode, 403);
+      expect((await listRaces()).single.id, 'r1');
     });
   });
 

@@ -448,7 +448,8 @@ fájlban élnek (ADR 0047 C3).
   (2026-10-02):** az ADR 0049 dönti el, az S8 deploy előtt;
 - a régi versenyek trackjének importját a `polar.csv` fedélzeti
   naplóból (2021–2026);
-- a telemetriás versenyek törlését;
+- a telemetriás versenyek törlését; **utólagos pontosítás
+  (2026-10-12):** az ADR 0057 dönti el;
 - a szűrt csúcssebességet.
 
 ## Addendum 1 — A makett 14. köre (D8-kiegészítés)

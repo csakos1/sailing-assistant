@@ -33,6 +33,12 @@ to M2 (distance to M2 then decreasing). The run is short, so the wind-shift tren
 confidence stays low and predicted TWA may read as unavailable — expected; this
 fixture verifies the *rounding step*, not prediction accuracy.
 
+The engine replay tests (`packages/data/test/engine/race_engine_replay_test.dart`
+and `race_engine_scheduled_start_replay_test.dart`) read this fixture and expect
+the rounding between 60 s and 66 s; the scheduled-start test also places a start
+point on the track at `47.5845, 18.8551` (~94 m ahead of the first fix) —
+regenerate the fixture only together with those tests.
+
 To verify on-device: create a race in the app with M1 and M2 at the coordinates
 above, press Start, then replay this fixture (below). Watch the active-mark name
 and bearing/distance switch from M1 to M2 mid-replay.

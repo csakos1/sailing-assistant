@@ -808,6 +808,12 @@ abstract class WebLocalizations {
   /// **'A kézi verseny minden adata törlődik az archívumból. A törlés végleges, nem vonható vissza.'**
   String get editDeleteMessage;
 
+  /// A telemetriás verseny törlésének megerősítő szövege az eredmény-szerkesztőben (ADR 0057).
+  ///
+  /// In hu, this message translates to:
+  /// **'A verseny telemetriája, trackje, eredménye és statisztikája véglegesen törlődik a webes archívumból. A telefonon megmarad: ha onnan újra feltöltöd, visszakerül.'**
+  String get editDeleteTelemetryMessage;
+
   /// A törlés-dialógus biztonságos akciója.
   ///
   /// In hu, this message translates to:

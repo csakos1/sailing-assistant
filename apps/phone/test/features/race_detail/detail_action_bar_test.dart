@@ -1,4 +1,3 @@
-import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foretack_ui/foretack_ui.dart';
@@ -7,12 +6,7 @@ import 'package:phone/features/race_detail/widgets/detail_action_bar.dart';
 import 'package:phone/l10n/app_localizations.dart';
 
 void main() {
-  Future<void> pumpBar(
-    WidgetTester tester,
-    RaceStatus status, {
-    VoidCallback? onOpenLive,
-    VoidCallback? onStatusAction,
-  }) {
+  Future<void> pumpBar(WidgetTester tester, DetailActionBar bar) {
     return tester.pumpWidget(
       MaterialApp(
         theme: foretackTheme,
@@ -20,14 +14,7 @@ void main() {
         localizationsDelegates: phoneLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: Align(
-            alignment: Alignment.bottomCenter,
-            child: DetailActionBar(
-              status: status,
-              onOpenLive: onOpenLive ?? () {},
-              onStatusAction: onStatusAction ?? () {},
-            ),
-          ),
+          body: Align(alignment: Alignment.bottomCenter, child: bar),
         ),
       ),
     );
@@ -36,120 +23,108 @@ void main() {
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(DetailActionBar)))!;
 
-  // Egy sor hattere: a Material szinet olvassuk, mert a kitoltest az adja.
+  // Egy cella hattere: a Material szinet olvassuk, mert a kitoltest az adja.
   Color backgroundOf(WidgetTester tester, String label) {
-    final row = find.ancestor(
+    final cell = find.ancestor(
       of: find.text(label),
       matching: find.byType(Material),
     );
-    return tester.widget<Material>(row.first).color!;
+    return tester.widget<Material>(cell.first).color!;
   }
 
-  testWidgets('emphasises the start row before the race', (tester) async {
+  testWidgets('splits the scheduled start into the time and start now', (
+    tester,
+  ) async {
     // ARRANGE & ACT
-    await pumpBar(tester, RaceStatus.notStarted);
-
-    // ASSERT
-    final l10n = l10nOf(tester);
-    final scheme = foretackTheme.colorScheme;
-    expect(backgroundOf(tester, l10n.detailStart), scheme.primary);
-    expect(backgroundOf(tester, l10n.liveOpen), scheme.surfaceContainer);
-  });
-
-  testWidgets('emphasises the live row while the race runs', (tester) async {
-    // ARRANGE & ACT
-    await pumpBar(tester, RaceStatus.active);
-
-    // ASSERT - futas kozben a visszaugras az elo nezetre a gyakori akcio.
-    final l10n = l10nOf(tester);
-    final scheme = foretackTheme.colorScheme;
-    expect(backgroundOf(tester, l10n.liveOpen), scheme.primary);
-    expect(backgroundOf(tester, l10n.detailFinish), scheme.surfaceContainer);
-  });
-
-  testWidgets('fills exactly one row in either state', (tester) async {
-    // ARRANGE & ACT & ASSERT - ez a sav lenyege: ket teal sav nem
-    // rangsorolna, ket semleges pedig semmit nem ajanlana.
-    final scheme = foretackTheme.colorScheme;
-    final filled = find.byWidgetPredicate(
-      (widget) => widget is Material && widget.color == scheme.primary,
-    );
-
-    await pumpBar(tester, RaceStatus.notStarted);
-    expect(filled, findsOneWidget);
-
-    await pumpBar(tester, RaceStatus.active);
-    expect(filled, findsOneWidget);
-  });
-
-  testWidgets('swaps the status label with the status', (tester) async {
-    // ARRANGE & ACT
-    await pumpBar(tester, RaceStatus.notStarted);
-
-    // ASSERT
-    final l10n = l10nOf(tester);
-    expect(find.text(l10n.detailStart), findsOneWidget);
-    expect(find.text(l10n.detailFinish), findsNothing);
-
-    // ACT
-    await pumpBar(tester, RaceStatus.active);
-
-    // ASSERT
-    expect(find.text(l10n.detailFinish), findsOneWidget);
-    expect(find.text(l10n.detailStart), findsNothing);
-  });
-
-  testWidgets('stands 121 dp tall with 60 dp rows', (tester) async {
-    // ARRANGE & ACT
-    await pumpBar(tester, RaceStatus.notStarted);
-
-    // ASSERT - 60 + 1 valaszto + 60; felso hairline nincs, azt a fenti
-    // boja-sor sajat vonala adja.
-    expect(tester.getSize(find.byType(DetailActionBar)).height, 121);
-    for (final label in [l10nOf(tester).liveOpen, l10nOf(tester).detailStart]) {
-      final box = find.ancestor(
-        of: find.text(label),
-        matching: find.byType(SizedBox),
-      );
-      expect(tester.getSize(box.first).height, 60, reason: label);
-    }
-  });
-
-  testWidgets('routes each row to its own callback', (tester) async {
-    // ARRANGE
-    var liveTaps = 0;
-    var actionTaps = 0;
     await pumpBar(
       tester,
-      RaceStatus.active,
-      onOpenLive: () => liveTaps++,
-      onStatusAction: () => actionTaps++,
+      DetailActionBar.scheduled(automaticStartLabel: '09:00', onStart: () {}),
     );
     final l10n = l10nOf(tester);
 
-    // ACT
-    await tester.tap(find.text(l10n.liveOpen));
+    // ASSERT - 32a: a bal cella csak tajekoztat, a jobb a kitoltott rajt.
+    expect(find.text(l10n.detailAutomaticStart), findsOneWidget);
+    expect(find.text('09:00'), findsOneWidget);
+    expect(
+      backgroundOf(tester, l10n.detailStartNow),
+      foretackTheme.colorScheme.primary,
+    );
+    final startNow = tester.getRect(
+      find
+          .ancestor(
+            of: find.text(l10n.detailStartNow),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    // 10 : 13 aranyban: 800 * 13 / 23.
+    expect(startNow.width, closeTo(800 * 13 / 23, 1));
+  });
+
+  testWidgets('routes a tap on start now to the start', (tester) async {
+    // ARRANGE
+    var starts = 0;
+    await pumpBar(
+      tester,
+      DetailActionBar.scheduled(
+        automaticStartLabel: '09:00',
+        onStart: () => starts++,
+      ),
+    );
+
+    // ACT - a tajekoztato cella nem indit.
+    await tester.tap(find.text('09:00'));
+    await tester.tap(find.text(l10nOf(tester).detailStartNow));
     await tester.pump();
 
     // ASSERT
-    expect(liveTaps, 1);
-    expect(actionTaps, 0);
+    expect(starts, 1);
+  });
+
+  testWidgets('fills the manual start without a scheduled start', (
+    tester,
+  ) async {
+    // ARRANGE
+    var starts = 0;
+    await pumpBar(tester, DetailActionBar.start(onStart: () => starts++));
+    final l10n = l10nOf(tester);
+
+    // ACT
+    await tester.tap(find.text(l10n.detailStart));
+    await tester.pump();
+
+    // ASSERT - 32c
+    expect(
+      backgroundOf(tester, l10n.detailStart),
+      foretackTheme.colorScheme.primary,
+    );
+    expect(find.text(l10n.detailAutomaticStart), findsNothing);
+    expect(starts, 1);
+  });
+
+  testWidgets('keeps the finish neutral while the race runs', (tester) async {
+    // ARRANGE
+    var finishes = 0;
+    await pumpBar(tester, DetailActionBar.finish(onFinish: () => finishes++));
+    final l10n = l10nOf(tester);
 
     // ACT
     await tester.tap(find.text(l10n.detailFinish));
     await tester.pump();
 
-    // ASSERT
-    expect(actionTaps, 1);
-    expect(liveTaps, 1);
+    // ASSERT - 32b: semleges, hogy a vizen egy veletlen erintes ne hivja.
+    expect(
+      backgroundOf(tester, l10n.detailFinish),
+      foretackTheme.colorScheme.surfaceContainer,
+    );
+    expect(finishes, 1);
   });
 
-  testWidgets('refuses to render for a finished race', (tester) async {
+  testWidgets('stands 62 dp tall', (tester) async {
     // ARRANGE & ACT
-    await pumpBar(tester, RaceStatus.finished);
+    await pumpBar(tester, DetailActionBar.start(onStart: () {}));
 
-    // ASSERT - befejezett versenyen nincs also sav, es a widget ezt nem
-    // csendben nyeli le.
-    expect(tester.takeException(), isAssertionError);
+    // ASSERT
+    expect(tester.getSize(find.byType(DetailActionBar)).height, 62);
   });
 }

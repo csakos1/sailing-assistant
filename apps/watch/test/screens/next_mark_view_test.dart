@@ -158,6 +158,23 @@ void main() {
     ); // a hero tompított nyila
   });
 
+  testWidgets('free mode: empty mark fields render as placeholders', (
+    tester,
+  ) async {
+    // Without a race the engine sends no prediction (ADR 0054 D2): every
+    // mark field is null, only the speed is there.
+    final freeMode = WatchPayload(
+      timestamp: DateTime.utc(2026, 6, 2, 10, 30),
+      sogKnots: 6.2,
+    );
+
+    await tester.pumpWidget(hostFor(freeMode, ambient: false));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('$missingValue · $missingValue'), findsOneWidget);
+    expect(find.text(missingValue), findsWidgets);
+  });
+
   testWidgets('kis viewporton nincs túlcsordulás (42 mm-arány)', (
     tester,
   ) async {

@@ -114,6 +114,26 @@ void main() {
 
       expect(_decorationOf(tester, RailCell).border, isNotNull);
     });
+
+    testWidgets('renders its own value widget in place of the text', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const RailCell.child(label: 'TWA', valueChild: Text('42 jobb')),
+      );
+
+      expect(find.text('TWA'), findsOneWidget);
+      expect(find.text('42 jobb'), findsOneWidget);
+      // A sajat ertek is a cella FittedBox-aban skalazodik.
+      expect(
+        find.ancestor(
+          of: find.text('42 jobb'),
+          matching: find.byType(FittedBox),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   group('DataRail', () {

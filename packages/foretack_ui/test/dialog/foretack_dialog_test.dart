@@ -105,5 +105,73 @@ void main() {
       // ASSERT
       expect(answers, [false]);
     });
+
+    testWidgets('shows the subject cell 42 high with all three parts', (
+      tester,
+    ) async {
+      // ARRANGE
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: foretackTheme,
+          home: const Scaffold(
+            body: ForetackDialog<bool>(
+              title: 'Boja megkerulve?',
+              message: 'Megjelolod a jelenlegi bojat megkerultnek?',
+              subject: (leading: '02', name: 'Tihany', trailing: '4 BOJA'),
+              actions: actions,
+            ),
+          ),
+        ),
+      );
+
+      // ASSERT
+      expect(find.text('02'), findsOneWidget);
+      expect(find.text('Tihany'), findsOneWidget);
+      expect(find.text('4 BOJA'), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(ForetackDialogSubjectCell)).height,
+        ForetackDialogSubjectCell.height,
+      );
+    });
+
+    testWidgets('leaves out the subject cell without a subject', (
+      tester,
+    ) async {
+      // ACT
+      await pumpOpener(tester);
+
+      // ASSERT
+      expect(find.byType(ForetackDialogSubjectCell), findsNothing);
+    });
+
+    testWidgets('keeps both mono parts visible next to a long name', (
+      tester,
+    ) async {
+      // ARRANGE — a nev hosszabb, mint a 364 dp-s doboz.
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: foretackTheme,
+          home: Scaffold(
+            body: Center(
+              child: ForetackDialog<bool>(
+                title: 'Torlod a versenyt?',
+                message: 'A torles vegleges.',
+                subject: (
+                  leading: '31',
+                  name: 'Horvath Boldizsar emlekverseny ' * 3,
+                  trailing: '155,0 KM',
+                ),
+                actions: actions,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // ASSERT — nincs tulcsordulas, a ket mono resz a helyen.
+      expect(tester.takeException(), isNull);
+      expect(find.text('31'), findsOneWidget);
+      expect(find.text('155,0 KM'), findsOneWidget);
+    });
   });
 }

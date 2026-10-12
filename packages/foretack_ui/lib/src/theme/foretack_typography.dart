@@ -145,6 +145,29 @@ const TextStyle homeTitleStyle = TextStyle(
   height: 1,
 );
 
+/// A héj füleinek képernyőcíme: Versenyek, Versenynapló (ADR 0056,
+/// makett 31a).
+///
+/// Saját fokozat, nem a `homeTitleStyle` átírása: azt a webes belépő
+/// képernyő és a telefon webes képernyői tartalom-címként használják. Az
+/// AppBar-cím kisbetűs, ritkítás nélkül.
+const TextStyle tabTitleStyle = TextStyle(
+  fontFamily: uiFontFamily,
+  fontSize: 24,
+  fontWeight: FontWeight.w700,
+  height: 1,
+);
+
+/// A lajstrom-sor meta-sora: „MA · 09:00 · 4 bója" (makett 31a).
+///
+/// Saját fokozat, nem a `numeralCaptionStyle` (10,5): a meta-sor a név
+/// alatti második olvasási szint, nem egy jelölő felirata.
+const TextStyle listMetaStyle = TextStyle(
+  fontFamily: numeralFontFamily,
+  fontSize: 11.5,
+  fontWeight: FontWeight.w500,
+);
+
 /// A boja neve a detail-kepernyo palya-listajan (ADR 0044 D24).
 ///
 /// Sajat fokozat, nem a `listItemTitleStyle` ujrahasznalasa: az a VERSENY

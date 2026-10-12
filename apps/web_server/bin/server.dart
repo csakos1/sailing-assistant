@@ -24,6 +24,7 @@ import 'package:web_server/src/http/import_handler.dart';
 import 'package:web_server/src/http/import_upload_receiver.dart';
 import 'package:web_server/src/http/manual_race_handler.dart';
 import 'package:web_server/src/http/polar_handler.dart';
+import 'package:web_server/src/http/race_deletion_handler.dart';
 import 'package:web_server/src/http/race_detail_handler.dart';
 import 'package:web_server/src/http/race_list_handler.dart';
 import 'package:web_server/src/http/race_result_handler.dart';
@@ -37,6 +38,7 @@ import 'package:web_server/src/polar/polar_table_service.dart';
 import 'package:web_server/src/race/archive_read_services.dart';
 import 'package:web_server/src/race/manual_race_service.dart';
 import 'package:web_server/src/race/race_result_service.dart';
+import 'package:web_server/src/race/telemetry_race_deletion_service.dart';
 import 'package:web_server/src/serial_lock.dart';
 import 'package:web_server/src/stats/legacy_track_stats_refresher.dart';
 import 'package:web_server/src/stats/race_stats_calculator.dart';
@@ -300,6 +302,17 @@ Future<void> main(List<String> arguments) async {
     requireAccess: auth.requireAccess,
     raceList: RaceListHandler(reads.summaries),
     raceDetail: RaceDetailHandler(reads.details),
+    raceDeletion: RaceDeletionHandler(
+      TelemetryRaceDeletionService(
+        races: races,
+        results: results,
+        stats: stats,
+        polar: polarRepository,
+        runInWebTransaction: webDatabase.transaction,
+        lock: writeLock,
+        log: _log,
+      ),
+    ),
     raceResult: RaceResultHandler(
       service: RaceResultService(
         races: races,

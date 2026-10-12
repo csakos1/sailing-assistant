@@ -115,4 +115,59 @@ void main() {
     // ASSERT
     expect(result, isA<Err<void, ApiFailure>>());
   });
+
+  test('deletes a telemetry race and refreshes the race log', () async {
+    // ARRANGE
+    final container = containerWithServer();
+    // Az ervenytelenites mas GET-et is indithat (pl. a szezon-polar),
+    // ezert csak a DELETE-et rogzitjuk.
+    final deletes = <http.Request>[];
+    writeAnswer = (request) {
+      if (request.method == 'DELETE') deletes.add(request);
+      return http.Response('', 204);
+    };
+    await container.read(raceSummariesProvider.future);
+
+    // ACT
+    final result = await container
+        .read(raceRecordEditorProvider)
+        .deleteTelemetryRace('r1');
+    await container.read(raceSummariesProvider.future);
+
+    // ASSERT
+    expect(result, isA<Ok<void, ApiFailure>>());
+    expect(deletes.single.url.path, racePath('r1'));
+    expect(listRequests, 2);
+  });
+
+  test('treats a telemetry race that is already gone as deleted', () async {
+    // ARRANGE
+    final container = containerWithServer();
+    writeAnswer = (_) => errorAnswer(const RaceNotFound('r1'));
+
+    // ACT
+    final result = await container
+        .read(raceRecordEditorProvider)
+        .deleteTelemetryRace('r1');
+
+    // ASSERT
+    expect(result, isA<Ok<void, ApiFailure>>());
+  });
+
+  test('reports a failed telemetry race deletion', () async {
+    // ARRANGE
+    final container = containerWithServer();
+    writeAnswer = (_) => errorAnswer(const InternalError());
+    await container.read(raceSummariesProvider.future);
+
+    // ACT
+    final result = await container
+        .read(raceRecordEditorProvider)
+        .deleteTelemetryRace('r1');
+    await container.read(raceSummariesProvider.future);
+
+    // ASSERT
+    expect(result, isA<Err<void, ApiFailure>>());
+    expect(listRequests, 1);
+  });
 }

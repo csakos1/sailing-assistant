@@ -12,6 +12,8 @@ import 'package:phone/app/geolocator_gnss_clock.dart';
 import 'package:phone/app/true_time.dart';
 import 'package:phone/app/true_time_manager.dart';
 import 'package:phone/engine/engine_gateway_host.dart';
+import 'package:phone/engine/engine_notification.dart';
+import 'package:phone/engine/free_mode_idle_watch.dart';
 import 'package:phone/engine/phone_wearable_bridge.dart';
 import 'package:phone/features/live_race/warning_l10n.dart';
 import 'package:phone/features/watch_sync/watch_payload_builder.dart';
@@ -33,8 +35,9 @@ void startCallback() {
 /// domain-compute + telemetria), de NEM indítja — előbb egy `{type:'ready'}`
 /// jelet küld a hostnak (ready-kézfogás, ADR 0017 A13). A host erre küldi a
 /// teljes [Race] initet (`{type:'init', race:…}`), amire az engine elindul;
-/// futás közben a `{type:'start'|'finish', at}` parancsokat a saját `_race`-én
-/// alkalmazza.
+/// a `race: null` szabad módot jelent (ADR 0054 D1). Futás közben a
+/// `{type:'start'|'finish', at}` parancsokat a saját `_race`-én alkalmazza,
+/// a `{type:'race', race:…}` paranccsal pedig versenyt cserél (D6).
 ///
 /// A telemetria a háttér-engine **saját, WAL-módú** [AppDatabase.secondary]
 /// kapcsolatára íródik (ADR 0017 D6): az izolátum a composition root, ezért itt
@@ -75,6 +78,13 @@ class RaceEngineTaskHandler extends TaskHandler {
   // A critical warningokat itt lokalizáljuk (widget-fa nélkül, ADR 0015 D4);
   // v1 magyar.
   final AppLocalizations _l10n = lookupAppLocalizations(const Locale('hu'));
+
+  // Szabad módban 10 perc kapcsolat nélkül leállítja a service-t
+  // (ADR 0054 D5). Itt fut, nem a UI-ban: kijelző-off mellett is ketyeg.
+  late final FreeModeIdleWatch _idleWatch = FreeModeIdleWatch(
+    timeout: freeModeIdleTimeout,
+    onIdle: _stopAfterIdle,
+  );
 
   // Dup-init guard: az első init-parancs indítja az engine-t, a továbbiakat
   // (pl. egy ismételt ready-kézfogás után) elnyeljük.
@@ -145,20 +155,39 @@ class RaceEngineTaskHandler extends TaskHandler {
           return;
         }
         _started = true;
-        final race = raceFromJson(map['race'] as Map<String, dynamic>);
+        final race = _raceOrNull(map['race'] as Map<String, dynamic>?);
         final polarJson = map['polar'] as Map<String, dynamic>?;
         final polar = polarJson == null ? null : polarFromJson(polarJson);
         _isPolarMissing = polar == null;
         final engine = _engine;
         if (engine != null) {
-          unawaited(engine.start(race, polar: polar));
+          _idleWatch.begin(isFreeMode: race == null);
+          unawaited(engine.start(race: race, polar: polar));
         }
+      case 'race':
+        _applyRaceCommand(_raceOrNull(map['race'] as Map<String, dynamic>?));
       case 'start':
         _engine?.applyStartCommand(_atFromMillis(map['at'] as int));
       case 'finish':
         _engine?.applyFinishCommand(_atFromMillis(map['at'] as int));
       case 'roundMark':
         _engine?.applyRoundMarkCommand();
+    }
+  }
+
+  // A versenycsere (ADR 0054 D6). Aktív verseny közben az engine eldobja;
+  // ezt naplózzuk, mert a UI-nak ilyenkor nem szabadna küldenie.
+  void _applyRaceCommand(Race? race) {
+    final engine = _engine;
+    if (engine == null) {
+      return;
+    }
+    if (!engine.applyRaceCommand(race)) {
+      developer.log(
+        'race command ignored: a race is active',
+        name: 'RaceEngine',
+        level: 900,
+      );
     }
   }
 
@@ -174,6 +203,7 @@ class RaceEngineTaskHandler extends TaskHandler {
       'RaceEngine leállt (timeout: $isTimeout)',
       name: 'RaceEngine',
     );
+    _idleWatch.end();
     await _snapshotSub?.cancel();
     await _roundMarkSub?.cancel();
     // Az óra-push leállítása a telemetria-flush ELŐTT: ne épüljön/küldjön
@@ -192,14 +222,28 @@ class RaceEngineTaskHandler extends TaskHandler {
   void _onSnapshot(RaceSnapshot snapshot) {
     unawaited(
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Foretack — verseny aktív',
+        notificationTitle: engineNotificationTitle(snapshot.raceStatus),
         notificationText: 'Események: ${snapshot.eventCount}',
       ),
     );
     FlutterForegroundTask.sendDataToMain(jsonEncode(snapshot.toJson()));
+    _idleWatch.observe(
+      raceStatus: snapshot.raceStatus,
+      connectionStatus: snapshot.connectionStatus,
+    );
 
     _latestSnapshot = snapshot;
     _watchSync?.onTick();
+  }
+
+  // Szabad módban 10 perc kapcsolat nélkül: jelez a UI-nak (ha épp
+  // hallgatja), és leállítja a service-t; a teardown az onDestroy-ban fut.
+  void _stopAfterIdle() {
+    developer.log('idle stop: no gateway for 10 min', name: 'RaceEngine');
+    FlutterForegroundTask.sendDataToMain(
+      jsonEncode(<String, Object>{'type': 'idleStop'}),
+    );
+    unawaited(FlutterForegroundTask.stopService());
   }
 
   // A legutóbbi snapshotból + a service-izolátumbeli true-time-ból építi az
@@ -216,7 +260,9 @@ class RaceEngineTaskHandler extends TaskHandler {
       connectionStatus: snapshot.connectionStatus,
       boatState: snapshot.boatState,
       windShiftTrend: snapshot.windShiftTrend,
-      raceStatus: snapshot.raceStatus,
+      // Szabad módban (null, ADR 0054 D2) a versenyhez kötött warning nem
+      // jön: az EvaluateWarnings a notStarted-et kapja.
+      raceStatus: snapshot.raceStatus ?? RaceStatus.notStarted,
       isTimeUnsynced: trueTime.source == TrueTimeSource.wallClockUnsynced,
       timeStreamDrift: _timeStreamDrift(trueTime, snapshot.boatState),
       isPolarMissing: _isPolarMissing,
@@ -250,6 +296,10 @@ class RaceEngineTaskHandler extends TaskHandler {
     }
     return utc.difference(instrumentUtc);
   }
+
+  // A wire-en a verseny opcionális: a `null` szabad módot jelent.
+  Race? _raceOrNull(Map<String, dynamic>? json) =>
+      json == null ? null : raceFromJson(json);
 
   // Epoch-millis (UTC) → DateTime a parancs-időbélyegekhez (A13 wire-konvenció).
   DateTime _atFromMillis(int millis) =>

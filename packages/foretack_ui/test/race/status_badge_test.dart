@@ -41,8 +41,11 @@ void main() {
     final decoration = markerDecoration(tester);
     expect(find.text('NEM INDULT'), findsOneWidget);
     expect(decoration.color, isNull);
-    expect(decoration.border, isNotNull);
-    expect(labelColorOf(tester, 'NEM INDULT'), tones.low);
+    expect(
+      decoration.border,
+      Border.all(color: scheme.onSurfaceVariant, width: 1.5),
+    );
+    expect(labelColorOf(tester, 'NEM INDULT'), scheme.onSurfaceVariant);
   });
 
   testWidgets('fills the active marker with the primary tone', (tester) async {

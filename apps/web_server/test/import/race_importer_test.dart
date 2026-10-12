@@ -126,14 +126,36 @@ void main() {
       expect(await countRows(archive, 'telemetry_records', 'b1'), 3);
     });
 
+    test('the scheduled start and the start point of a race', () async {
+      // ARRANGE: a v6-os mezok (ADR 0055 D3) egy befejezett versenyen.
+      const startPoint = StartPoint(
+        name: 'Fured rajt',
+        position: Coordinate(latitude: 46.9512, longitude: 17.8901),
+      );
+      final phone = phoneFile('phone');
+      await writePhoneDatabase(phone, [
+        finishedFixtureRace('r1').copyWith(
+          scheduledStartAt: fixtureStart,
+          startPoint: startPoint,
+        ),
+      ]);
+
+      // ACT
+      reportOf(await importer(database: phone));
+
+      // ASSERT: az ArchiveMerger minden oszlopot masol, a web v1-ben nem
+      // mutatja oket, de az archivumban megmaradnak (ADR 0055 D4).
+      final stored = await RaceRepositoryImpl(archive).getRace('r1');
+      expect(stored?.scheduledStartAt?.isAtSameMomentAs(fixtureStart), isTrue);
+      expect(stored?.startPoint, startPoint);
+    });
+
     test('an older schema after migrating the staged copy', () async {
-      // ARRANGE: v4-es telefon-DB szimulacioja, mint a data migracios
-      // tesztjeiben: a v5-os tabla eldobva, user_version = 4.
+      // ARRANGE: v4-es telefon-DB szimulacioja (downgradeToSchemaV4).
       final phone = phoneFile('phone-v4');
       final database = AppDatabase(NativeDatabase(phone));
       await seedRaces(database, [finishedFixtureRace('r1')]);
-      await database.customStatement('DROP TABLE race_track_stats');
-      await database.customStatement('PRAGMA user_version = 4');
+      await downgradeToSchemaV4(database);
       await database.close();
 
       // ACT
@@ -274,8 +296,7 @@ void main() {
       final phone = phoneFile('phone-v4');
       final database = AppDatabase(NativeDatabase(phone));
       await seedRaces(database, [finishedFixtureRace('r1')]);
-      await database.customStatement('DROP TABLE race_track_stats');
-      await database.customStatement('PRAGMA user_version = 4');
+      await downgradeToSchemaV4(database);
       await database.close();
       final before = await phone.readAsBytes();
 

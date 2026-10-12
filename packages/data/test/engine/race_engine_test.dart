@@ -66,7 +66,7 @@ void main() {
 
     test('mélység nélkül nincs riasztás', () async {
       // ARRANGE
-      await engine.start(race);
+      await engine.start(race: race);
 
       // ACT
       tick.add(tickAt(0));
@@ -78,7 +78,7 @@ void main() {
     });
 
     test('a küszöb felett nincs riasztás', () async {
-      await engine.start(race);
+      await engine.start(race: race);
 
       await feedDepth(2.6, tickAt(0));
 
@@ -88,7 +88,7 @@ void main() {
 
     test('belépés, új mélypont, ratchet, majd feloldás', () async {
       // ARRANGE
-      await engine.start(race);
+      await engine.start(race: race);
 
       // ACT & ASSERT: belépés a 2,5 m-es küszöb alatt.
       await feedDepth(2.4, tickAt(0));
@@ -114,7 +114,7 @@ void main() {
 
     test('disconnect alatt reset, de a számláló megmarad', () async {
       // ARRANGE: aktív epizód.
-      await engine.start(race);
+      await engine.start(race: race);
       await feedDepth(2.4, tickAt(0));
       expect(snapshots.last.depthBuzzCounter, 1);
 
@@ -154,7 +154,7 @@ void main() {
     test('polár + szél, de nem-live TWD → vmgSteerCorrection null', () async {
       // ARRANGE — van polár + water-szél (a target VMG kiszámolható),
       // de a hajó nem mozog (nincs COG/SOG) → a TWD-minőség nem `live`.
-      await engine.start(race, polar: polar);
+      await engine.start(race: race, polar: polar);
       source.emitEvent(WindEvent(windAt(30)));
       await pumpEventQueue();
 
@@ -170,7 +170,7 @@ void main() {
 
     test('polár + szél → a snapshot a polár-cellát adja', () async {
       // ARRANGE — TWA 30° (axis-pont), TWS 3 m/s (≈ 5.83 kn, [4,6]).
-      await engine.start(race, polar: polar);
+      await engine.start(race: race, polar: polar);
       source.emitEvent(WindEvent(windAt(30)));
       await pumpEventQueue();
 
@@ -184,7 +184,7 @@ void main() {
 
     test('polár nélkül a cél-sebesség null', () async {
       // ARRANGE — start polár nélkül, de van szél.
-      await engine.start(race);
+      await engine.start(race: race);
       source.emitEvent(WindEvent(windAt(30)));
       await pumpEventQueue();
 
@@ -198,7 +198,7 @@ void main() {
 
     test('no-go (TWA < 25°) alatt a cél-sebesség null', () async {
       // ARRANGE — TWA 10°, a no-go küszöb (25°) alatt.
-      await engine.start(race, polar: polar);
+      await engine.start(race: race, polar: polar);
       source.emitEvent(WindEvent(windAt(10)));
       await pumpEventQueue();
 
@@ -212,10 +212,11 @@ void main() {
   });
 
   test(
-    'minden tick a snapshot-loggernek adja a snapshotot a raceId-vel',
+    'active alatt minden tick a snapshot-loggernek adja a snapshotot',
     () async {
-      // ARRANGE — aktív race + pozíció, hogy a tick snapshotot adjon.
-      await engine.start(race);
+      // ARRANGE — aktív race + pozíció, hogy a tick snapshotot adjon. A log
+      // csak active alatt irodik (ADR 0054 D3).
+      await engine.start(race: race.start(at: eventTime));
       source.emitEvent(PositionEvent(boatPosition, eventTime));
       await pumpEventQueue();
 
@@ -237,12 +238,12 @@ void main() {
   );
 
   test('start csatlakozik a forráshoz', () async {
-    await engine.start(race);
+    await engine.start(race: race);
     expect(source.connectCalled, isTrue);
   });
 
   test('a tick a foldolt állapotból prediction-snapshotot emittál', () async {
-    await engine.start(race);
+    await engine.start(race: race);
     source.emitEvent(PositionEvent(boatPosition, eventTime));
     await pumpEventQueue();
 
@@ -255,6 +256,7 @@ void main() {
     expect(snap.boatState.position, boatPosition);
     expect(snap.tickTime, tickTime);
     expect(snap.raceStatus, RaceStatus.notStarted);
+    expect(snap.raceId, race.id);
     // Aktív bója + pozíció van → a prediction nem null, az aktív bójára szól.
     expect(snap.prediction?.mark, race.marks.first);
     expect(snap.prediction?.distanceToMark, isNotNull);
@@ -263,7 +265,7 @@ void main() {
   test(
     'snapshot csak tickre keletkezik; az eventCount a foldolt eseményeké',
     () async {
-      await engine.start(race);
+      await engine.start(race: race);
       source
         ..emitEvent(PositionEvent(boatPosition, eventTime))
         ..emitEvent(SpeedEvent(const Speed(metersPerSecond: 3), eventTime));
@@ -281,7 +283,8 @@ void main() {
   test(
     'a nyers sorokat telemetriaként logolja, az üreseket kihagyja',
     () async {
-      await engine.start(race);
+      // Active race: telemetry is written only during a race (ADR 0054 D3).
+      await engine.start(race: race.start(at: eventTime));
       source
         ..emitRaw('sentence-1')
         ..emitRaw('') // üres → skip
@@ -295,7 +298,7 @@ void main() {
   );
 
   test('dispose lekapcsolja a forrást és lezárja a loggert', () async {
-    await engine.start(race);
+    await engine.start(race: race);
     await engine.dispose();
 
     expect(source.disconnectCalled, isTrue);
@@ -336,7 +339,7 @@ void main() {
 
     test('a hajó körözi a bóját, a következő bójára lép', () async {
       // ARRANGE
-      await engine.start(activeRace);
+      await engine.start(race: activeRace);
 
       // ACT — közelít a küszöbön belülre, majd a hiszterézist meghaladva
       // távolodik.
@@ -357,7 +360,7 @@ void main() {
         name: 'Rounding',
         marks: const [mark1, mark2],
       );
-      await engine.start(notStarted);
+      await engine.start(race: notStarted);
 
       // ACT — ugyanaz a közelít-távolodik profil.
       await emitAtThenTick(40, tickTime);
@@ -401,7 +404,7 @@ void main() {
 
     test('applyStartCommand active-ra vált → a mark-rounding lép', () async {
       // ARRANGE — notStarted race; a parancs előtt nincs léptetés.
-      await engine.start(notStartedRace);
+      await engine.start(race: notStartedRace);
 
       // ACT — start parancs, majd közelít a küszöbön belülre és távolodik.
       engine.applyStartCommand(eventTime);
@@ -416,7 +419,7 @@ void main() {
 
     test('applyStartCommand no-op, ha már active (nem dob)', () async {
       // ARRANGE — már active race.
-      await engine.start(notStartedRace.start(at: eventTime));
+      await engine.start(race: notStartedRace.start(at: eventTime));
 
       // ACT & ASSERT — a guard miatt a Race.start assertje nem fut le.
       expect(() => engine.applyStartCommand(eventTime), returnsNormally);
@@ -424,7 +427,7 @@ void main() {
 
     test('applyFinishCommand a predikciót null-ra viszi', () async {
       // ARRANGE — active race, egy tick még az 1. bóját célozza.
-      await engine.start(notStartedRace.start(at: eventTime));
+      await engine.start(race: notStartedRace.start(at: eventTime));
       await emitAtThenTick(40, tickTime);
       expect(snapshots.last.prediction?.mark, mark1);
 
@@ -438,7 +441,7 @@ void main() {
 
     test('applyFinishCommand no-op, ha nem active (notStarted)', () async {
       // ARRANGE — notStarted race.
-      await engine.start(notStartedRace);
+      await engine.start(race: notStartedRace);
 
       // ACT — finish parancs notStartedre (guard), majd egy tick.
       engine.applyFinishCommand(eventTime);
@@ -487,7 +490,7 @@ void main() {
 
     test('active-ban a következő bójára lép', () async {
       // ARRANGE — active race; 200 m-en a detektor magától nem lépne.
-      await engine.start(notStartedRace.start(at: eventTime));
+      await engine.start(race: notStartedRace.start(at: eventTime));
       await emitNorthOfThenTick(mark1, 200, tickTime);
       expect(snapshots.last.prediction?.mark, mark1);
 
@@ -505,7 +508,7 @@ void main() {
 
     test('léptet, majd a 2. bóját auto-körözi (reset)', () async {
       // ARRANGE — active race; az 1. bóját kézzel körözzük → 2. bója.
-      await engine.start(notStartedRace.start(at: eventTime));
+      await engine.start(race: notStartedRace.start(at: eventTime));
       engine.applyRoundMarkCommand();
 
       // ACT — a 2. bója köré közelít-távolodik. A reset után a detektor
@@ -529,7 +532,7 @@ void main() {
 
     test('no-op, ha nem active (notStarted) — nem dob, nem lép', () async {
       // ARRANGE — notStarted race.
-      await engine.start(notStartedRace);
+      await engine.start(race: notStartedRace);
 
       // ACT & ASSERT — a guard miatt a Race.roundCurrentMark assertje nem fut.
       expect(engine.applyRoundMarkCommand, returnsNormally);
@@ -540,7 +543,7 @@ void main() {
     test('no-op bója nélküli versenyben (ADR 0046 D2)', () async {
       // ARRANGE — elindított, de üres pályájú verseny.
       final markless = Race.create(id: 'rm0', name: 'Túra', marks: const []);
-      await engine.start(markless.start(at: eventTime));
+      await engine.start(race: markless.start(at: eventTime));
 
       // ACT & ASSERT — a `returnsNormally` itt a teherhordó állítás: őr
       // nélkül a `Race.roundCurrentMark` dokumentáló assertje dobna. Az
@@ -555,11 +558,281 @@ void main() {
     });
   });
 
+  group('free mode without a race (ADR 0054 D1)', () {
+    test('emits snapshots with a null status and no prediction', () async {
+      // ARRANGE
+      await engine.start();
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT: the live state is there, the race-bound parts are not.
+      final snap = snapshots.single;
+      expect(snap.raceStatus, isNull);
+      expect(snap.raceId, isNull);
+      expect(snap.prediction, isNull);
+      expect(snap.eventCount, 1);
+      expect(snap.boatState.position, boatPosition);
+    });
+
+    test('still computes the polar target speed', () async {
+      // ARRANGE: the TWA=30 row is 5.0 kn in every TWS column.
+      final polar = Polar(
+        twaAxis: const [0, 30, 60],
+        twsAxis: const [4, 6],
+        grid: const [
+          [null, null],
+          [5.0, 5.0],
+          [4.5, 5.6],
+        ],
+      );
+      await engine.start(polar: polar);
+      source
+        ..emitEvent(SpeedEvent(const Speed(metersPerSecond: 3), eventTime))
+        ..emitEvent(
+          WindEvent(
+            WindData(
+              apparentAngle: const Angle(degrees: 30),
+              apparentSpeed: const Speed(metersPerSecond: 6),
+              timestamp: eventTime,
+              trueAngleWater: const Angle(degrees: 30),
+              trueSpeedWater: const Speed(metersPerSecond: 3),
+            ),
+          ),
+        );
+      await pumpEventQueue();
+
+      // ACT
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.targetSpeedKnots, closeTo(5, 1e-9));
+      expect(snapshots.single.vmgKnots, isNotNull);
+    });
+
+    test('records neither telemetry nor snapshots', () async {
+      // ARRANGE
+      await engine.start();
+
+      // ACT
+      source.emitRaw('sentence-1');
+      await pumpEventQueue();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT: the snapshot goes out, but nothing reaches the database.
+      expect(snapshots, hasLength(1));
+      expect(logger.records, isEmpty);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('ignores the start, finish and round-mark commands', () async {
+      // ARRANGE
+      await engine.start();
+
+      // ACT
+      engine
+        ..applyStartCommand(eventTime)
+        ..applyFinishCommand(eventTime)
+        ..applyRoundMarkCommand();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, isNull);
+    });
+  });
+
+  group('race command (ADR 0054 D6)', () {
+    Future<void> positionThenTick(DateTime at) async {
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('switches from free mode to a pre-start race', () async {
+      // ARRANGE
+      await engine.start();
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(race);
+      await positionThenTick(tickTime);
+
+      // ASSERT: the engine now guides to the first mark of the race.
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+      expect(snapshots.single.prediction?.mark, race.marks.first);
+    });
+
+    test('a null race returns the engine to free mode', () async {
+      // ARRANGE
+      await engine.start(race: race);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(null);
+      await positionThenTick(tickTime);
+
+      // ASSERT
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, isNull);
+      expect(snapshots.single.prediction, isNull);
+    });
+
+    test('a finished race also means free mode', () async {
+      // ARRANGE
+      await engine.start();
+      final finished = race.start(at: eventTime).finish(at: tickTime);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(finished);
+      await positionThenTick(tickTime);
+
+      // ASSERT
+      expect(isApplied, isTrue);
+      expect(snapshots.single.raceStatus, isNull);
+    });
+
+    test('is ignored while a race is active', () async {
+      // ARRANGE
+      final activeRace = race.start(at: eventTime);
+      await engine.start(race: activeRace);
+      final other = Race.create(id: 'r2', name: 'Masik', marks: const []);
+
+      // ACT
+      final isApplied = engine.applyRaceCommand(other);
+      source.emitRaw('sentence-1');
+      await positionThenTick(tickTime);
+
+      // ASSERT: the active race keeps running and recording.
+      expect(isApplied, isFalse);
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshotLogger.entries.single.raceId, activeRace.id);
+      expect(logger.records.single.raceId, activeRace.id);
+    });
+  });
+
+  group('recording only during an active race (ADR 0054 D3)', () {
+    test('records nothing before the start', () async {
+      // ARRANGE: a race that has not started yet.
+      await engine.start(race: race);
+
+      // ACT
+      source.emitRaw('sentence-1');
+      await pumpEventQueue();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ASSERT: pre-start guidance is visible, but not recorded.
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+      expect(logger.records, isEmpty);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('starts recording when the start command arrives', () async {
+      // ARRANGE
+      await engine.start(race: race);
+      source.emitRaw('before-start');
+      await pumpEventQueue();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ACT
+      engine.applyStartCommand(eventTime);
+      source.emitRaw('after-start');
+      await pumpEventQueue();
+      tick.add(tickTime.add(const Duration(seconds: 1)));
+      await pumpEventQueue();
+
+      // ASSERT: only what came after the start is recorded.
+      expect(logger.records.single.rawSentence, 'after-start');
+      expect(logger.records.single.raceId, race.id);
+      expect(snapshotLogger.entries.single.raceId, race.id);
+      expect(
+        snapshotLogger.entries.single.snapshot.raceStatus,
+        RaceStatus.active,
+      );
+    });
+
+    test('stops recording after the finish command', () async {
+      // ARRANGE
+      await engine.start(race: race.start(at: eventTime));
+      source.emitRaw('during-race');
+      await pumpEventQueue();
+      tick.add(tickTime);
+      await pumpEventQueue();
+
+      // ACT
+      engine.applyFinishCommand(tickTime);
+      source.emitRaw('after-finish');
+      await pumpEventQueue();
+      tick.add(tickTime.add(const Duration(seconds: 1)));
+      await pumpEventQueue();
+
+      // ASSERT: the engine keeps emitting, but records nothing more.
+      expect(snapshots, hasLength(2));
+      expect(snapshots.last.raceStatus, RaceStatus.finished);
+      expect(logger.records.single.rawSentence, 'during-race');
+      expect(snapshotLogger.entries, hasLength(1));
+    });
+
+    test(
+      'does not log the tick that finishes the race on the last mark',
+      () async {
+        // ARRANGE: a one-mark active race; the boat approaches the mark
+        // inside the 50 m threshold and then moves away.
+        const metersPerDegLat = 6371000 * pi / 180;
+        const lastMark = Mark(
+          sequence: 1,
+          name: 'Cel',
+          position: Coordinate(latitude: 46.9, longitude: 18),
+        );
+        final oneMarkRace = Race.create(
+          id: 'one',
+          name: 'Egy bója',
+          marks: const [lastMark],
+        ).start(at: eventTime);
+        await engine.start(race: oneMarkRace);
+
+        Future<void> emitNorthThenTick(double metersNorth, int second) async {
+          source.emitEvent(
+            PositionEvent(
+              Coordinate(
+                latitude:
+                    lastMark.position.latitude + metersNorth / metersPerDegLat,
+                longitude: lastMark.position.longitude,
+              ),
+              eventTime,
+            ),
+          );
+          await pumpEventQueue();
+          tick.add(tickTime.add(Duration(seconds: second)));
+          await pumpEventQueue();
+        }
+
+        // ACT
+        await emitNorthThenTick(40, 0);
+        await emitNorthThenTick(10, 1);
+        await emitNorthThenTick(20, 2);
+
+        // ASSERT: the third tick rounds the last mark and finishes the race;
+        // that snapshot is emitted but not logged.
+        expect(snapshots, hasLength(3));
+        expect(snapshots.last.raceStatus, RaceStatus.finished);
+        expect(snapshotLogger.entries, hasLength(2));
+      },
+    );
+  });
+
   group('TWD-minőség a snapshotban (ADR 0020 D7)', () {
     test('live: COG+SOG mozgásban + bow TWA → twdQuality live', () async {
       // ARRANGE — előbb a COG/SOG (a derive a _boatState-ből veszi), majd
       // a szél; a derive a WindEvent ágában fut.
-      await engine.start(race);
+      await engine.start(race: race);
       const cog = Bearing.true_(95);
       final wind = WindData(
         apparentAngle: const Angle(degrees: 30),
@@ -603,7 +876,7 @@ void main() {
         trueAngleWater: const Angle(degrees: 40),
         trueSpeedWater: const Speed(metersPerSecond: 3),
       );
-      await engine.start(race, polar: polar);
+      await engine.start(race: race, polar: polar);
       source
         ..emitEvent(
           CogSogEvent(cog, const Speed(metersPerSecond: 3), eventTime),
@@ -621,7 +894,7 @@ void main() {
     });
     test('unavailable: csak pozíció, nincs szél → default marad', () async {
       // ARRANGE — WindEvent nélkül a derive sosem fut → marad a default.
-      await engine.start(race);
+      await engine.start(race: race);
       source.emitEvent(PositionEvent(boatPosition, eventTime));
       await pumpEventQueue();
 
@@ -631,6 +904,158 @@ void main() {
 
       // ASSERT
       expect(snapshots.single.twdQuality, TwdQuality.unavailable);
+    });
+  });
+
+  group('scheduled start (ADR 0055 D6, D7)', () {
+    const startPoint = StartPoint(
+      name: 'Rajtvonal',
+      position: Coordinate(latitude: 46.92, longitude: 18.02),
+    );
+    final scheduledStartAt = tickTime.add(const Duration(seconds: 10));
+    final scheduledRace = Race.create(
+      id: 'scheduled',
+      name: 'Tervezett',
+      marks: race.marks,
+      scheduledStartAt: scheduledStartAt,
+      startPoint: startPoint,
+    );
+
+    // The position goes in after engine.start (the engine only listens
+    // from then on, and start resets the boat state), then the tick.
+    Future<void> tickAt(DateTime at) async {
+      source.emitEvent(PositionEvent(boatPosition, eventTime));
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('leads to the start point and records nothing before it', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      source.emitRaw('before-start');
+      await pumpEventQueue();
+
+      // ACT
+      await tickAt(scheduledStartAt.subtract(const Duration(seconds: 1)));
+
+      // ASSERT
+      final snapshot = snapshots.single;
+      expect(snapshot.raceStatus, RaceStatus.notStarted);
+      expect(snapshot.raceStartedAt, isNull);
+      expect(snapshot.prediction?.mark, startPoint.asGuidanceMark());
+      expect(logger.records, isEmpty);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('starts on its own at the scheduled time', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+      source.emitRaw('after-start');
+      await pumpEventQueue();
+
+      // ASSERT: the start time is the scheduled one, the guidance moves
+      // to the first mark, and the recording starts.
+      final snapshot = snapshots.single;
+      expect(snapshot.raceStatus, RaceStatus.active);
+      expect(snapshot.raceStartedAt, scheduledStartAt);
+      expect(snapshot.prediction?.mark, race.marks.first);
+      expect(snapshotLogger.entries.single.raceId, 'scheduled');
+      expect(logger.records.single.rawSentence, 'after-start');
+    });
+
+    test('a late tick starts it with the scheduled time', () async {
+      // ARRANGE: the engine gets the race an hour after the start.
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt.add(const Duration(hours: 1)));
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshots.single.raceStartedAt, scheduledStartAt);
+    });
+
+    test('just inside the late start window it still starts', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      final lastMoment = scheduledStartAt
+          .add(SelectInstrumentsRace.defaultLateStartWindow)
+          .subtract(const Duration(seconds: 1));
+
+      // ACT
+      await tickAt(lastMoment);
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+    });
+
+    test('beyond the late start window it stays before the start', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+
+      // ACT
+      await tickAt(
+        scheduledStartAt.add(SelectInstrumentsRace.defaultLateStartWindow),
+      );
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+      expect(snapshots.single.raceStartedAt, isNull);
+      expect(snapshotLogger.entries, isEmpty);
+    });
+
+    test('a race without a scheduled start never starts on its own', () async {
+      // ARRANGE
+      await engine.start(race: race);
+
+      // ACT
+      await tickAt(tickTime.add(const Duration(hours: 1)));
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.notStarted);
+    });
+
+    test('a manual start before the schedule keeps its own time', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace);
+      engine.applyStartCommand(tickTime);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+
+      // ASSERT
+      expect(snapshots.single.raceStatus, RaceStatus.active);
+      expect(snapshots.single.raceStartedAt, tickTime);
+    });
+
+    test('a race command with a scheduled race starts it on time', () async {
+      // ARRANGE: free mode first, then the day's race arrives.
+      await engine.start();
+      await tickAt(tickTime);
+      engine.applyRaceCommand(scheduledRace);
+
+      // ACT
+      await tickAt(scheduledStartAt);
+
+      // ASSERT
+      expect(snapshots.first.raceStatus, isNull);
+      expect(snapshots.last.raceStatus, RaceStatus.active);
+      expect(snapshots.last.raceStartedAt, scheduledStartAt);
+    });
+
+    test('without a start point it leads to the first mark', () async {
+      // ARRANGE
+      await engine.start(race: scheduledRace.copyWith(clearStartPoint: true));
+
+      // ACT
+      await tickAt(tickTime);
+
+      // ASSERT
+      expect(snapshots.single.prediction?.mark, race.marks.first);
     });
   });
 }

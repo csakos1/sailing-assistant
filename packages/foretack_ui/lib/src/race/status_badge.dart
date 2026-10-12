@@ -37,11 +37,14 @@ class StatusBadge extends StatelessWidget {
     // A jelölő és a felirat színe szándékosan külön ág: befejezett
     // versenynél a jelölő tompított, a felirat viszont olvasható marad.
     final (label, markerColor, isFilled, labelColor) = switch (status) {
+      // A nem indult verseny jelölője és felirata a makett 31a szerint
+      // `onSurfaceVariant`: a lajstromban ez a legtöbb sor állapota, a
+      // `TextTones.low` túl halk volt rá (ADR 0056, U5).
       RaceStatus.notStarted => (
         l10n.listStatusNotStarted,
-        tones.low,
+        scheme.onSurfaceVariant,
         false,
-        tones.low,
+        scheme.onSurfaceVariant,
       ),
       RaceStatus.active => (
         l10n.listStatusActive,

@@ -2,9 +2,9 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:foretack_ui/foretack_ui.dart';
+import 'package:phone/features/race_setup/saved_mark_groups.dart';
 import 'package:phone/l10n/app_localizations.dart';
 import 'package:phone/providers/mark_library_provider.dart';
-import 'package:phone/widgets/section_label.dart';
 
 /// A lap magassága a maradék képernyőhöz mérve (ADR 0044 D51).
 ///
@@ -14,32 +14,27 @@ import 'package:phone/widgets/section_label.dart';
 /// billentyűzetnél se lógjon ki.
 const double _heightFactor = 0.74;
 
-/// A sor-belső margók.
-const EdgeInsets _rowPadding = EdgeInsets.symmetric(
-  horizontal: 20,
-  vertical: 12,
-);
+/// Egy bója-sor magassága (35c).
+const double _rowHeight = 50;
 
-/// A forrás-verseny badge legnagyobb szélessége: hosszú verseny-név
-/// nélküle felfalná a nevet és a koordinátát.
-const double _badgeMaxWidth = 140;
+/// Az oldalsó margó, a csoporton belüli elválasztók betéte is (35c).
+const double _sideMargin = 20;
 
-/// A korábbi bóják választója (ADR 0044 D51, D52) — a modal sheet tartalma.
+/// A keresőmező magassága (35c).
+const double _searchHeight = 48;
+
+/// A korábbi bóják választója (ADR 0044 D51, D52, ADR 0056 35c) — a modal
+/// sheet tartalma.
 ///
-/// Read-only: a `markLibraryProvider`-t figyeli (savedAt csökkenőben), és
-/// soronként a bója **nevét, koordinátáját és a forrás-versenyt** mutatja.
-/// Tap → a kiválasztott [SavedMark]-kal popol. A könyvtár-sor törlése és
-/// szerkesztése továbbra sincs benne.
+/// Read-only: a `markLibraryProvider`-t figyeli (savedAt csökkenőben), és a
+/// bójákat **forrás-verseny szerint csoportosítva** mutatja: csoportonként
+/// egy fejléc a verseny nevével és a darabszámmal, alatta egysoros sorok
+/// (név + tizedes koordináta). Tap → a kiválasztott [SavedMark]-kal popol.
+/// A rajthelyhez és a bójákhoz ugyanez a lap nyílik.
 ///
-/// A koordináta megjelenítése az ADR 0032 L8 „koordináta nélkül"
-/// kikötésének **visszavonása**: a könyvtár előfordulás-napló, tehát
-/// ugyanaz a név más versenyben más koordinátával is szerepelhet, és a
-/// név önmagában nem mindig dönti el, melyik sor kell.
-///
-/// A szűrés **kliens-oldali**, a már betöltött listán (D52): új lekérdezés,
-/// index és repository-metódus nem születik, a `markLibraryProvider` pedig
-/// `autoDispose` marad — a keresés lokális állapot, a stream élettartamát
-/// nem érinti.
+/// A darabszám a keresőmezőben áll („63 BÓJA"), és a **látható** listát
+/// követi. A szűrés **kliens-oldali**, a már betöltött listán (D52); a
+/// `markLibraryProvider` `autoDispose` marad.
 class SavedMarkPicker extends ConsumerStatefulWidget {
   /// A választót modal bottom sheetben jelenítjük meg; tap → `pop(SavedMark)`.
   const SavedMarkPicker({super.key});
@@ -80,9 +75,6 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
       _ => const <SavedMark>[],
     };
     final visible = _filter(all);
-    // A darabszám a LÁTHATÓ listát követi: szűrés után a teljes könyvtár
-    // mérete olyan számot mutatna, aminek a lapon nincs megfelelője.
-    final count = visible.isEmpty ? null : visible.length;
 
     // A billentyűzet fölé a lapot a hívó emeli (a sheet builder-e), a
     // magasságot viszont itt kell a maradék képernyőhöz mérni.
@@ -98,34 +90,18 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
+            // Üres könyvtárnál nincs mit szűrni; ha viszont a szűrés fut ki
+            // nullára, a mező marad, különben nem lenne mivel visszalépni.
+            if (all.isNotEmpty)
+              _SearchField(
+                controller: _searchController,
+                hint: l10n.setupPickFromLibrarySearch,
+                // A nulla darabszám az üres-állapot szövege mellett zaj.
+                countLabel: visible.isEmpty
+                    ? null
+                    : l10n.setupPickFromLibraryCount(visible.length),
+                onChanged: (value) => setState(() => _query = value),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _PickerHeader(
-                    title: l10n.setupPickFromLibraryTitle,
-                    count: count,
-                  ),
-                  // Üres könyvtárnál nincs mit szűrni; ha viszont a szűrés
-                  // fut ki nullára, a mező marad, különben nem lenne mivel
-                  // visszalépni a teljes listára.
-                  if (all.isNotEmpty)
-                    _SearchField(
-                      controller: _searchController,
-                      hint: l10n.setupPickFromLibrarySearch,
-                      onChanged: (value) => setState(() => _query = value),
-                    ),
-                ],
-              ),
-            ),
             Expanded(
               child: marks.when(
                 loading: () => const _PickerSpinner(),
@@ -133,25 +109,14 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
                     _EmptyState(text: l10n.setupPickFromLibraryEmpty),
                 data: (_) {
                   if (all.isEmpty) {
-                    return _EmptyState(
-                      text: l10n.setupPickFromLibraryEmpty,
-                    );
+                    return _EmptyState(text: l10n.setupPickFromLibraryEmpty);
                   }
                   if (visible.isEmpty) {
                     return _EmptyState(
                       text: l10n.setupPickFromLibraryNoMatch,
                     );
                   }
-                  return ListView.builder(
-                    itemCount: visible.length,
-                    itemBuilder: (context, index) {
-                      final mark = visible[index];
-                      return _SavedMarkRow(
-                        mark: mark,
-                        onTap: () => Navigator.of(context).pop(mark),
-                      );
-                    },
-                  );
+                  return _GroupedList(groups: groupSavedMarks(visible));
                 },
               ),
             ),
@@ -162,62 +127,114 @@ class _SavedMarkPickerState extends ConsumerState<SavedMarkPicker> {
   }
 }
 
-/// A lap fejléce: verzál felirat balra, darabszám jobbra.
-///
-/// Ugyanaz a páros, ami a setup-űrlap „BÓJÁK" fejlécében is áll — a
-/// darabszám mono fokozatú, mert ugyanarról a listáról beszél.
-class _PickerHeader extends StatelessWidget {
-  const _PickerHeader({required this.title, required this.count});
+/// A csoportosított lista egy eleme: fejléc vagy bója-sor.
+sealed class _Entry {
+  const _Entry();
+}
 
-  final String title;
-  final int? count;
+final class _HeaderEntry extends _Entry {
+  const _HeaderEntry(this.group);
+
+  final SavedMarkGroup group;
+}
+
+final class _MarkEntry extends _Entry {
+  const _MarkEntry(this.mark, {required this.isLastInGroup});
+
+  final SavedMark mark;
+  final bool isLastInGroup;
+}
+
+/// A csoportok lapított, lusta listája.
+///
+/// Egy `ListView.builder` fut a fejlécek és a sorok közös listáján, hogy
+/// egy nagy könyvtárnál se épüljön fel minden sor egyszerre.
+class _GroupedList extends StatelessWidget {
+  const _GroupedList({required this.groups});
+
+  final List<SavedMarkGroup> groups;
 
   @override
   Widget build(BuildContext context) {
-    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
-    final tones = Theme.of(context).extension<TextTones>()!;
-    final count = this.count;
+    final entries = <_Entry>[
+      for (final group in groups) ...[
+        _HeaderEntry(group),
+        for (var index = 0; index < group.marks.length; index++)
+          _MarkEntry(
+            group.marks[index],
+            isLastInGroup: index == group.marks.length - 1,
+          ),
+      ],
+    ];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      child: Row(
-        children: [
-          Expanded(child: SectionLabel(text: title)),
-          if (count != null)
-            Text('$count', style: railNumberStyle.copyWith(color: tones.low)),
-        ],
-      ),
+    return ListView.builder(
+      itemCount: entries.length,
+      itemBuilder: (context, index) => switch (entries[index]) {
+        _HeaderEntry(:final group) => _GroupHeader(group: group),
+        _MarkEntry(:final mark, :final isLastInGroup) => _SavedMarkRow(
+          mark: mark,
+          isLastInGroup: isLastInGroup,
+          onTap: () => Navigator.of(context).pop(mark),
+        ),
+      },
     );
   }
 }
 
-/// A név szerinti szűrő mezője (ADR 0044 D52).
+/// A név szerinti szűrő mezője, jobbra a látható darabszámmal (35c).
 class _SearchField extends StatelessWidget {
   const _SearchField({
     required this.controller,
     required this.hint,
+    required this.countLabel,
     required this.onChanged,
   });
 
   final TextEditingController controller;
   final String hint;
+  final String? countLabel;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
+    final countLabel = this.countLabel;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: hint,
-          isDense: true,
-          prefixIcon: const Icon(Icons.search, size: 18),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 14,
+      padding: const EdgeInsets.fromLTRB(_sideMargin, 8, _sideMargin, 4),
+      child: SizedBox(
+        height: _searchHeight,
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          textInputAction: TextInputAction.search,
+          textAlignVertical: TextAlignVertical.center,
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            // A lap `surfaceContainer`-éből a mező a felülettel emelkedik
+            // ki (35c), ezért a téma kitöltését itt felülírjuk.
+            fillColor: scheme.surface,
+            prefixIcon: Icon(Icons.search, size: 18, color: tones.low),
+            // A `suffix` csak fókuszban látszana; a darabszám mindig kell.
+            suffixIcon: countLabel == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(right: 14),
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        countLabel,
+                        style: numeralCaptionStyle.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: tones.low,
+                        ),
+                      ),
+                    ),
+                  ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
           ),
         ),
       ),
@@ -225,16 +242,80 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// Egy könyvtár-sor: név, alatta koordináta, jobbra a forrás-verseny.
+/// Egy csoport fejléce: a verseny neve, vonal, darabszám (35c).
+///
+/// A címke nem rugalmas, a vonal kitölti a maradékot: egy `Flexible`
+/// címke mellett az `Expanded` vonal csak a felét kapná a szabad
+/// helynek (a `WebSectionHeader` tanulsága).
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({required this.group});
+
+  final SavedMarkGroup group;
+
+  /// A címke legfeljebb ekkora részt foglalhat a sorból.
+  static const double _maximumLabelShare = 0.7;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // A foretackTheme regisztrálja a TextTones-t → a fában mindig jelen van.
+    final tones = Theme.of(context).extension<TextTones>()!;
+    final labelStyle = numeralCaptionStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.05,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_sideMargin, 16, _sideMargin, 6),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          spacing: 10,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * _maximumLabelShare,
+              ),
+              child: Text(
+                group.raceName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: labelStyle.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            Expanded(
+              child: SizedBox(
+                height: 1,
+                child: ColoredBox(color: scheme.outlineVariant),
+              ),
+            ),
+            Text(
+              '${group.marks.length}',
+              style: labelStyle.copyWith(color: tones.low, letterSpacing: 0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Egy könyvtár-sor: név balra, tizedes koordináta jobbra, egy sorban.
+///
+/// A csoporton belüli elválasztó 20 dp-s betéttel fut, a csoport utolsó
+/// sora alatt él-től él-ig (35c).
 class _SavedMarkRow extends StatelessWidget {
-  const _SavedMarkRow({required this.mark, required this.onTap});
+  const _SavedMarkRow({
+    required this.mark,
+    required this.isLastInGroup,
+    required this.onTap,
+  });
 
   final SavedMark mark;
+  final bool isLastInGroup;
   final VoidCallback onTap;
 
-  /// Tizedes fok, négy jeggyel, a 4e lap `·` elválasztójával. A formátum
-  /// a `detail_mark_row` precedensét követi (ADR 0044 D25, D51): ugyanaz
-  /// a bója ne mondjon mást a két képernyőn.
+  /// Tizedes fok, négy jeggyel, `·` elválasztóval — a 35c és a részlet
+  /// (ADR 0044 D25) formája, hogy ugyanaz a bója ne mondjon mást.
   String get _position =>
       '${mark.position.latitude.toStringAsFixed(4)} · '
       '${mark.position.longitude.toStringAsFixed(4)}';
@@ -242,71 +323,48 @@ class _SavedMarkRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final inset = isLastInGroup ? 0.0 : _sideMargin;
 
-    return DecoratedBox(
-      // Előtér-dekoráció: a sor háttere (a ripple felülete) különben
-      // eltakarná a hairline-t.
-      position: DecorationPosition.foreground,
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: _rowPadding,
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(mark.name, style: markNameStyle),
-                    const SizedBox(height: 3),
-                    Text(
-                      _position,
-                      style: coordinateValueStyle.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: _rowHeight,
+        child: Stack(
+          // A sor a teljes 50 dp-t kitölti, így a tartalom függőlegesen
+          // középen áll, a vonal pedig a sor aljára kerül.
+          fit: StackFit.expand,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _sideMargin),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      mark.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: markNameStyle.copyWith(color: scheme.onSurface),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    _position,
+                    style: coordinateValueStyle.copyWith(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              _SourceBadge(label: mark.sourceRaceName),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A forrás-verseny provenance-címkéje.
-///
-/// A felirat verzál, mert a badge nem mondat, hanem jelölés — a 4e lap
-/// ezt így szedi. A szélesség korlátos: egy hosszú verseny-név különben
-/// elszívná a helyet a név és a koordináta elől.
-class _SourceBadge extends StatelessWidget {
-  const _SourceBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: _badgeMaxWidth),
-      child: DecoratedBox(
-        decoration: BoxDecoration(border: Border.all(color: scheme.outline)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            label.toUpperCase(),
-            style: statusLabelStyle.copyWith(color: scheme.onSurfaceVariant),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+            ),
+            Positioned(
+              left: inset,
+              right: inset,
+              bottom: 0,
+              height: 1,
+              child: ColoredBox(color: scheme.outlineVariant),
+            ),
+          ],
         ),
       ),
     );
@@ -337,7 +395,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      padding: const EdgeInsets.fromLTRB(_sideMargin, 24, _sideMargin, 24),
       child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
     );
   }

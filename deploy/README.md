@@ -749,10 +749,11 @@ ls -lt /opt/foretack/releases/          # az utolsó három
 sudo /usr/local/sbin/foretack-activate <régi hash>
 ```
 
-**Figyelem:** a DB-migrációk egyirányúak. Ha az újabb kiadás migrálta a
-`web.sqlite`-ot vagy az `auth.sqlite`-ot (a commit üzenete és az ADR
-jelzi), a régi kiadás nem nyitja meg; ilyenkor a migráció előtti
-mentést is vissza kell tenni (13. pont).
+**Figyelem:** a DB-migrációk egyirányúak. Ha az újabb kiadás migrálta az
+`archive.sqlite`-ot (pl. a séma v6, ADR 0055 D4), a `web.sqlite`-ot vagy
+az `auth.sqlite`-ot (a commit üzenete és az ADR jelzi), a régi kiadás nem
+nyitja meg; ilyenkor a migráció előtti mentést is vissza kell tenni
+(13. pont).
 
 ### A szerver-oldali konfiguráció frissítése [gép + VPS]
 
