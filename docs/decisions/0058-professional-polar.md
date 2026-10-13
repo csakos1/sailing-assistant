@@ -214,6 +214,34 @@ az eredmény egy újabb pontosításba kerül.
   (`withArchiveCopies`) és a gyűjtő összeállítása
   (`archiveSampleCollector`) a riporté és a builderé is.
 
+### Az első futás után (P.3, 2026-10-13)
+
+Az összesítő az összes szezonból 2021–2026-ig. A 4–16 csomós sáv
+40–135°-os soraiban a kész érték szinte mindenhol ±3%-on belül van a
+nyers p90-től; a 60 kiemelt eltérés a gyenge szeles hátszélben, a 25°-os
+peremen és a néhány perces erős szeles cellákban van.
+
+- **Lehetetlen minták a gyenge szeles hátszélben:** 140–170°-on 2–4 kn
+  szélben a nyers p90 mindenhol kb. 6,8 kn; a számolt látszólagos
+  szélszög ezeknél 20° körüli vagy kisebb, amivel vitorlával nem lehet
+  haladni (motoros szakasz vagy szélmérési hiba). A D6 a motor-szabályt
+  azzal ejtette el, hogy versenyablakban nem motoroznak; a telefonos
+  versenynél hivatalos eredmény nélkül viszont a rögzítési ablak számít.
+  **Felhasználói döntés:** előbb diagnosztika. Az összesítő 7. szakasza a
+  polárba került minták idejét a számolt AWA szerint mutatja (10°, 15°,
+  20° alatti sávok; kreuz és hátszél, szezon és forrás, illetve
+  TWS-oszlop szerint), és a gyanús minták STW-mediánját; a szűrő ebből
+  dől el.
+- **A no-go marad 25° (felhasználói döntés):** a 20°-os TWA-sor felmerült
+  (a hajó néha tud olyan élesen menni), de a küszöb a domainben, a weben,
+  az élő %-ban és a VMG-keresésben is változna; marad.
+- **Hangolási kapcsolók (felhasználói döntés):** a builder
+  `--steady-range` (12°), `--twa-bandwidth` (15°) és `--min-cell-seconds`
+  (120 mp) kapcsolóval fut; az összesítő kiírja a használt értékeket.
+- Az állandósult szél szűrője az érvényes idő kb. 45–50%-át dobja ki,
+  a régi naplóból is; a régi builder ugyanezzel a szabállyal épült. A
+  hatását a kapcsolóval futtatott változatok mutatják meg.
+
 ## Mit ír felül
 
 - ADR 0028 Addendum 1 A3 (2 csomós TWS-vödrök 2–24 kn) → D4.
