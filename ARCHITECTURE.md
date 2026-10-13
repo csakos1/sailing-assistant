@@ -4985,6 +4985,13 @@ arra, hogy mi nem felejtődik el, csak nem a most aktív commit témája.
 Egy item akkor zárul, ha a kapcsolódó commit megtörtént; a `Done`
 szekció egy idő után törölhető, mert a git history visszakereshető.
 
+### A fázisok utáni sorrend
+
+A v1 fázisai és a webes archívum (§20) után a **következő munkák sorrendjét**
+a `docs/PLAN.md` adja (blokkok, függőségek, nyitott döntések), a termék hosszú
+távú képét a `docs/VISION.md`. Egy blokk tételéhez az ADR és az e fájlbeli
+szinkron a megszokott módon, a kód előtt készül.
+
 ---
 
 ## 15. Arch Linux fejlesztői környezet

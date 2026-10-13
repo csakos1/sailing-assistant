@@ -765,6 +765,24 @@ A 2026-10-09–10-i tervezésből tudatosan kihagyott tételek.
 
 ---
 
+## Telefon: platform-viselkedés
+
+### Beragadó ablak háttérbe menés után nyitott billentyűzettel
+- **Mi**: ha egy szövegmező fókuszban van és a billentyűzet nyitva, a
+  Home gombbal háttérbe tett app visszatéréskor a billentyűzet nélkül is
+  összenyomott elrendezést mutat, és ez minden képernyőre átöröklődik
+  (2026-08-17-én a RaceSetupon és a verseny-listán látva).
+- **Mikor**: `docs/PLAN.md` Blokk U (U.1).
+- **Miért halasztva**: felhasználói döntés („nem olyan hatalmas hiba");
+  előbb reprodukció a mai kódon, utána mitigáció.
+- **Hivatkozás**: `docs/otlet-leltar-2026-09-20.md` §1 (tünet,
+  hipotézis: beragadt `MediaQuery.viewInsets.bottom`; a javasolt út a
+  fókusz elvétele `AppLifecycleState.paused`-kor egy app-szintű
+  `WidgetsBindingObserver`-rel, widget-teszttel);
+  `apps/phone/lib/app/app.dart`.
+
+---
+
 ## Done
 
 Itt jelennek meg a már bekerült item-ek a kapcsolódó commit hash-csel,

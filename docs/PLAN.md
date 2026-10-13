@@ -1,30 +1,35 @@
 # Foretack — Szezonközi munkaterv (2026 ősz → 2027 tavasz)
 
-> **Mire való ez a fájl.** Ez az **operatív** réteg a dokumentum-hierarchiában: azt
-> mondja meg, **mit fejlessz legközelebb és miért éppen azt**. Nem cserél le semmit
-> — az `ARCHITECTURE.md` továbbra is a rendszer észak-csillaga, a `VISION.md` a
-> termék végállapota, az ADR-ek a döntés-rekordok, a `docs/deferred.md` a halasztott
-> apró munka. Ez a fájl **sorrendet** ad nekik.
+> **Mire való ez a fájl.** Ez az **operatív** réteg a dokumentum-hierarchiában:
+> azt mondja meg, **mit fejlesszünk legközelebb és miért éppen azt**. Nem cserél
+> le semmit — az `ARCHITECTURE.md` továbbra is a rendszer észak-csillaga, a
+> `VISION.md` a termék végállapota, az ADR-ek a döntés-rekordok, a
+> `docs/deferred.md` a halasztott apró munka. Ez a fájl **sorrendet** ad nekik.
 >
 > **Nincsenek benne határidők.** Blokkok vannak, függőségi sorrendben, becsült
-> mérettel és nehézséggel. A tempót te adod.
+> mérettel és nehézséggel. A tempót a felhasználó adja.
 
 ---
 
 ## Tartalom
 
 - [0. Hogyan használd ezt a fájlt](#0-hogyan-használd-ezt-a-fájlt)
-- [1. A terv három kényszere](#1-a-terv-három-kényszere)
+- [1. A terv kényszerei](#1-a-terv-kényszerei)
 - [2. Jelölések](#2-jelölések)
 - [3. Állapot-összefoglaló](#3-állapot-összefoglaló)
-- [4. Blokk 0 — Tiszta kiindulás](#blokk-0--tiszta-kiindulás)
-- [5. Blokk 1 — Az UI-redesign lezárása](#blokk-1--az-ui-redesign-lezárása)
-- [6. Blokk 2 — Adat-higiénia és adósság](#blokk-2--adat-higiénia-és-adósság)
-- [7. Blokk 3 — Post-race elemzés (a tökéletes téli munka)](#blokk-3--post-race-elemzés-a-tökéletes-téli-munka)
-- [8. Blokk 4 — Taktikai réteg (a v2 húzófunkciói)](#blokk-4--taktikai-réteg-a-v2-húzófunkciói)
-- [9. Blokk 5 — Óra és energia](#blokk-5--óra-és-energia)
-- [10. Blokk 6 — Vízre-készülés](#blokk-6--vízre-készülés)
-- [11. Blokk 7 — Amit NEM csinálunk idén télen](#blokk-7--amit-nem-csinálunk-idén-télen)
+- [Blokk P — Profi polár](#blokk-p--profi-polár)
+- [Blokk T — A next-mark TWA predikció](#blokk-t--a-next-mark-twa-predikció)
+- [Blokk U — UI-maradék és telefonos
+  hibák](#blokk-u--ui-maradék-és-telefonos-hibák)
+- [Blokk 2 — Adat-higiénia és adósság](#blokk-2--adat-higiénia-és-adósság)
+- [Blokk D — On-device tesztkörnyezet](#blokk-d--on-device-tesztkörnyezet)
+- [Blokk 4 — Taktikai réteg](#blokk-4--taktikai-réteg)
+- [Blokk 5 — Óra és energia](#blokk-5--óra-és-energia)
+- [Blokk 3 — Post-race elemzés](#blokk-3--post-race-elemzés)
+- [Blokk 6 — Vízre-készülés](#blokk-6--vízre-készülés)
+- [Blokk 7 — Amit NEM csinálunk idén
+  télen](#blokk-7--amit-nem-csinálunk-idén-télen)
+- [Lezárt blokkok (0 és 1)](#lezárt-blokkok-0-és-1)
 - [12. Nyitott döntések](#12-nyitott-döntések)
 - [13. Haladás-követés](#13-haladás-követés)
 - [14. Változásnapló](#14-változásnapló)
@@ -33,34 +38,30 @@
 
 ## 0. Hogyan használd ezt a fájlt
 
-**Ha nem tudod, mit csinálj:** görgess a [3. Állapot-összefoglalóhoz](#3-állapot-összefoglaló),
-keresd meg az első blokkot, ami nincs kipipálva, és azon belül az első tételt, ami
-nincs kipipálva és nincs 🔴 jelölve. **Ez a következő munkád.** Ha 🔴, akkor a
-[12. Nyitott döntések](#12-nyitott-döntések) mondja meg, mit kell előbb eldönteni.
+**Ha nem tudod, mit csinálj:** a [3.
+Állapot-összefoglaló](#3-állapot-összefoglaló) sorrendjében keresd meg az első
+blokkot, ami nincs kész, és azon belül az első tételt, ami nincs kipipálva és
+nincs 🔴 jelölve. **Ez a következő munka.** Ha 🔴, a [12. Nyitott
+döntések](#12-nyitott-döntések) mondja meg, mit kell előbb eldönteni.
 
-**Ha kész egy tétel:** pipáld ki a blokk tábláján (`[ ]` → `[x]`), és írd mellé a
-commit-hasht vagy az ADR-számot. Ha a tétel menet közben nőtt vagy zsugorodott,
-javítsd a becslést — a következő önmagad hálás lesz érte.
+**Ha kész egy tétel:** pipáld ki a blokk tábláján (`[ ]` → `[x]`), és írd mellé
+a commit-hasht vagy az ADR-számot. Ha a tétel menet közben nőtt vagy
+zsugorodott, javítsd a becslést.
 
-**Ha új ötlet jön:** az `otlet-leltar-2026-09-20.md`-be kerül, **nem ide**. Ez a fájl
-csak azt tartalmazza, ami **be van ütemezve**. Amikor egy leltár-tétel sorra kerül,
-átköltözik ide egy blokkba.
+**Ha új ötlet jön:** a `otlet-leltar-2026-09-20.md` egy 2026-09-20-i
+pillanatkép, nem bővül tovább. Az új ötlet vagy ide kerül egy blokkba (ha be van
+ütemezve), vagy a `docs/deferred.md`-be (ha tudatosan halasztott).
 
-**Chat-kezdéskor:** ennek a fájlnak a blokk-táblája + a `docs/deferred.md` +
-az érintett ADR adja a teljes kontextust. Nem kell újra összegyűjteni.
+**Chat-kezdéskor:** ennek a fájlnak a blokk-táblája + a `docs/deferred.md` + az
+érintett ADR adja a teljes kontextust.
 
 ---
 
-## 1. A terv három kényszere
+## 1. A terv kényszerei
 
-Ez a három tény határozza meg a sorrendet. Ha bármelyik megváltozik, a terv is
-átrendeződik.
+### 1.1 A víz-ablak bezárult
 
-### 1.1 A víz-ablak bezárult — és ez átrendezi a függőségi gráfot
-
-Eddig a fejlesztés ritmusa az volt, hogy egy funkció akkor volt kész, ha **vízen**
-igazoltuk. Ez most nem lehetséges. **Ez nem lassítás, hanem átrendezés:** a
-verifikáció három külön dologra esik szét, és ezek **külön ütemezhetők**.
+A verifikáció három külön dologra esik szét, és ezek **külön ütemezhetők**:
 
 | Verifikáció | Mit igényel | Elérhető most? |
 |---|---|---|
@@ -68,52 +69,33 @@ verifikáció három külön dologra esik szét, és ezek **külön ütemezhető
 | 📱 **Eszköz** | Pixel vagy óra a kézben, otthon | **IGEN, korlátlanul** |
 | ⛵ **Víz** | hajó, élő NMEA, valódi szél | **NEM, kb. áprilisig** |
 
-**Két gyakorlati következmény.**
-
-**(a)** Minden olyan munka, ami 💻 vagy 📱, most **teljes sebességgel** mehet — és
-ebből van a legtöbb. A post-race elemzés (Blokk 3) különösen: az összes adat már a
-telefonon van, 178 589 sor snapshot és öt év YDVR-archívum. Ez a blokk **egyáltalán
-nem igényel vizet**, és pont ez az, amit a szezon alatt sosem volt idő megcsinálni.
-
-**(b)** Ami ⛵, azt **most kell megépíteni, hogy májusban csak igazolni kelljen.**
-A rajt-időzítő (Blokk 4) geometriája unit-tesztelhető, de a valódi UX-e csak vízen
-dől el. Ha márciusban kész van, az áprilisi-májusi beállás a finomhangolásról szól.
-Ha májusban kezded, a szezon első fele megy rá.
-
-**A tervezési szabály ebből:** *a ⛵-függő funkciók kódja a tél közepére legyen kész;
+**A tervezési szabály:** *a ⛵-függő funkciók kódja a tél közepére legyen kész;
 a tél második fele a 💻-munkáé és a felkészülésé.*
 
-### 1.2 A vízió nem a téli terv — és ezt ki kell mondani
+### 1.2 A vízió nem a téli terv
 
-A `VISION.md` egy **több éves** termék képe: több hajó, több gateway, iOS, Apple
-Watch, offline vektoros térkép, módok, felhő, monetizáció. A tent-pole-jai (J16
-forrás-absztrakció, J12 geo-alrendszer, §4 módok) mindegyike **egy-egy teljes tél**
-önmagában.
+A `VISION.md` egy **több éves** termék képe (több hajó, több gateway, iOS,
+offline vektoros térkép, módok, felhő). A téli cél: *a lehető legjobb
+verseny-asszisztens a saját hajóra a következő szezonra* — nem a publikálható
+termék. A vízió marad észak-csillagnak (lásd [Blokk
+7](#blokk-7--amit-nem-csinálunk-idén-télen)).
 
-**És egyiknek sincs semmilyen értéke a következő szezonodban.** Te vagy az egyetlen
-felhasználó, egy hajód van, egy gateway-ed, egy tavad, Android telefonod és Wear OS
-órád. A több-hajó-támogatás nulla értéket ad neked májusban — a rajt-időzítő minden
-egyes rajtnál értéket ad.
+### 1.3 A fő funkció a mérce
 
-**A javasolt téli cél tehát:** *a lehető legjobb verseny-asszisztens a TE hajódra a
-következő szezonra* — nem *a publikálható termék*. A vízió marad észak-csillagnak, és
-a téli munka nem sérti (a Clean Architecture fegyelme miatt a taktikai réteg úgyis
-pure domain, ami később bármelyik módban újrahasznosul).
+A Foretack magja a **next-mark TWA predikció**, és mellette a polár-alapú
+célsebesség, VMG és target-%. Ami ezeket pontosabbá teszi, az előz minden mást
+(felhasználói döntés, 2026-10-13). Ezért áll a sor elején a [Blokk
+P](#blokk-p--profi-polár) és a [Blokk T](#blokk-t--a-next-mark-twa-predikció).
 
-**Egyetlen kivétel** van, és az a Blokk 2: az adat-higiénia. A kalibrációs epocha és
-a retention azért nem halasztható, mert **minden további vitorlázás rossz adatot
-termel nélkülük** — és a rossz adat visszamenőleg nem javítható.
+### 1.4 A munkamódszer marad
 
-### 1.3 A befejezetlen munka a legdrágább
+A fejlesztés **chatből** megy tovább, a bevált módon: Claude elemez, tervez és
+patch-tarballt ad, a felhasználó alkalmazza, futtatja a pre-flightot, commitol,
+pusholja az ágat, és PR-ral merge-el. A korábban tervezett autonóm
+(cloud-sessionös) fejlesztést a felhasználó 2026-10-13-án elengedte.
 
-A `feature/ui-redesign` branchen **11–12 pusholatlan commit** ül, a `main`-nel nincs
-mergelve, és **három párhuzamos munkaszál** létezik (no-go clamp, layline, UI). Minden
-nap, amit nyitva tölt, növeli a konfliktus-felületet az `ARCHITECTURE.md`-ben és a
-`docs/deferred.md`-ben.
-
-**Ezért a Blokk 1 első, és ezért vág három rövid branchre** ahelyett, hogy a mai hosszú
-branch tovább nőne. Egy rövid életű branch olcsó; egy három hónapos branch a saját
-külön projektje lesz.
+Minden munka **saját ágon** megy, a végén egy PR-ral; a `main` mindig zöld, és
+közvetlenül nem pusholunk rá.
 
 ---
 
@@ -125,7 +107,8 @@ külön projektje lesz.
 |---|---|
 | 💻 | Kanapéról befejezhető — unit/widget/replay teszt elég |
 | 📱 | Fizikai eszköz kell (Pixel vagy óra), de nem hajó |
-| ⛵ | Csak vízen igazolható — a kód télen kész, a verifikáció májusban |
+| ⛵ | Csak vízen igazolható — a kód télen kész, a verifikáció tavasszal |
+| 🗄 | A felhasználó gépén futó adat-munka (YDVR-archívum, a telefon DB-je) |
 
 ### Státusz
 
@@ -135,458 +118,420 @@ külön projektje lesz.
 | `[x]` | kész (mellé a commit-hash vagy ADR-szám) |
 | 🔴 | **döntés kell**, mielőtt indulhat — lásd [12. szakasz](#12-nyitott-döntések) |
 | 🟠 | makett vagy mérés kell, mielőtt indulhat |
-| ⚪ | tudatosan kihagyva |
+| ⚪ | tudatosan kihagyva vagy kiváltva |
 
 ### Méret
 
-**1 szelet ≈ 1 logikai commit** — egy edit-script vagy tarball, teljes pre-flighttal.
-A tapasztalat szerint egy sűrű session **4–9 UI-szeletet** vagy **2–4 domain-szeletet**
-visz el. A becslések a sajátjaim, nem mérések; ha egy tétel elcsúszik, írd át.
+**1 szelet ≈ 1 logikai commit**, teljes pre-flighttal. **Nehézség:** *alacsony*
+= ismert minta ismétlése · *közepes* = új tervezési döntés vagy új API · *magas*
+= új domain-alrendszer, vagy sok ismeretlen. A becslések nem mérések.
 
-**Nehézség:** *alacsony* = ismert minta ismétlése · *közepes* = új tervezési döntés
-vagy új API · *magas* = új domain-alrendszer, vagy sok ismeretlen.
+**ADR-számok:** a következő szabad szám a **0058**; a **0043** a rajt-időzítőnek
+van fenntartva. A blokkok új ADR-jei sorban kapják a számot, amikor elkészülnek.
 
 ---
 
 ## 3. Állapot-összefoglaló
 
-| Blokk | Tartalom | Szelet | Domináns igény | Állapot |
-|---|---|---|---|---|
-| **0** | Tiszta kiindulás | 2–3 | 💻 | `[ ]` |
-| **1** | Az UI-redesign lezárása és merge | 32–42 | 📱 | `[ ]` |
-| **2** | Adat-higiénia és adósság | 12–18 | 💻 | `[ ]` |
-| **3** | Post-race elemzés | 16–24 | 💻 | `[ ]` |
-| **4** | Taktikai réteg (layline, rajt) | 20–30 | ⛵ (kód 💻) | `[ ]` |
-| **5** | Óra és energia | 6–12 | 📱 | `[ ]` |
-| **6** | Vízre-készülés | 4–8 | ⛵ | `[ ]` |
-| **7** | Vízió-alapozás | — | — | ⚪ idén nem |
+| Sorrend | Blokk | Tartalom | Szelet | Domináns igény | Állapot |
+|---|---|---|---|---|---|
+| 1 | **P** | Profi polár | 9–14 | 🗄 💻 | `[ ]` **következik** |
+| 2 | **T** | Next-mark TWA predikció: kiértékelés, audit, jobb modell | 12–18 | 🗄 💻 (⛵) | `[ ]` |
+| — | **U** | UI-maradék és telefonos hibák (töltelék) | 12–17 | 📱 | `[ ]` |
+| — | **2** | Adat-higiénia és adósság (töltelék) | 8–12 | 💻 | `[ ]` |
+| 3 | **D** | On-device tesztkörnyezet (vezetett futtató) | 3–4 | 📱 | `[ ]` |
+| 4 | **4** | Taktikai réteg (layline, óra-gomb, rajt) | 9–20 | ⛵ (kód 💻) | `[ ]` |
+| 5 | **5** | Óra és energia | 6–12 | 📱 | `[ ]` |
+| — | **3** | Post-race elemzés (töltelék) | 14–20 | 💻 | `[ ]` |
+| 6 | **6** | Vízre-készülés | 4–8 | ⛵ | `[ ]` |
+| — | **7** | Vízió-alapozás | — | — | ⚪ idén nem |
+| ✓ | **0, 1** | Tiszta kiindulás; UI-redesign | — | — | `[x]` lezárva |
 
-**Összesen kb. 95–135 szelet.** Ez sok, de nem irreális: az Addendum 5 önmagában
-kilenc szelet volt egyetlen sessionben. A blokkok **egymás után** mennek, de a 3. és
-a 4. **átfedhet** — ha egy taktikai szelet elakad egy döntésen, a post-race munka
-mindig folytatható.
+A „—" sorrendű blokkok **töltelékek**: akkor jönnek, ha egy fő blokk adatra,
+mérésre vagy döntésre vár.
 
-### A sorrend indoklása egy bekezdésben
+### A sorrend indoklása
 
-A **Blokk 0** azért első, mert ismeretlen git-állapotból nem lehet tervezni. A
-**Blokk 1** azért második, mert nyitott branch minden más munkát drágít, és mert a
-dialógus-nyelv előfeltétele az 1k-nak. A **Blokk 2** azért előzi meg az elemzést,
-mert a kalibrációs epocha nélkül minden statisztika hazudik — nincs értelme
-elemző-funkciót építeni hibás alapra. A **Blokk 3** a tél szíve: teljesen
-víz-független, és ez az, amire szezon közben sosem volt idő. A **Blokk 4** azért van
-utána és nem előtte, mert ⛵-függő, tehát a tél közepén kell elkészülnie, nem az
-elején — és mert a Blokk 3 manőver-elemzése olyan tudást ad a saját vitorlázásodról,
-ami a taktikai funkciók hangolásához közvetlenül felhasználható. A **Blokk 5**
-bármikor beilleszthető, de a mérés jó, ha megvan, mielőtt az óra új nézetet kap
-(rajt-nézet, E17). A **Blokk 6** a víz-ablak nyílásakor.
+A **P** az első, mert a polár minden sebesség-alapú számot meghatároz (target-%,
+VMG, a webes polár-teljesítmény), az idei szezon jól sikerült, és a felhasználó
+döntése, hogy **az idei teljesítmény legyen az elvárt célsebesség**. A **T** a
+második, mert a fő funkció minőségét eddig senki nem mérte egy teljes szezonon,
+és a jobb szélmodell (lásd a T-ben) egyben a layline és a szélfordulás-taktika
+alapja is. A **D** a Blokk 4 előtt jön, mert onnantól sok lesz a készülékes kör.
+A **4** kódjának a tél közepére kell elkészülnie. Az **5** mérése megelőzi, hogy
+az óra új nézetet kapjon.
 
 ---
 
-## Blokk 0 — Tiszta kiindulás
+## Blokk P — Profi polár
 
-**Cél:** ne legyen ismeretlen állapot. 2–3 szelet, 💻, egy fél session.
+**Cél:** a polár a hajó valódi, **idei** teljesítményét írja le, a teljes
+szél-tartományban, simán és hézag nélkül, olyan formában, ahogy egy profi
+polár-táblázat kinéz. **9–14 szelet + adat-körök a felhasználónál.**
+
+### A mai polár (verifikált tények)
+
+- `apps/phone/assets/polars/foretack.pol`, utoljára 2026-07-17 (`24b7dc2`). Az
+  `ADR 0028` Addendum 1 szerint épül: YDVR `.DAT` → YDVRCONV → CSV (10 s) →
+  `polar_builder` (a repón kívül), a versenyablakokból.
+- **Rács:** TWA 0–180° 5°-onként, TWS-oszlopok **4, 6, 8, 10, 12, 14, 16, 20**
+  csomó. A cella a vödör **STW p90**-e, `MIN_SAMPLES ≥ 20`; az üres vödör
+  `0.00` (a domainben `null`).
+- **Lookup** (`LookupTargetSpeed`): `|TWA|`-hajtás, no-go 25° alatt, **a
+  tengelyen kívül clamp**, bilineáris interpoláció. Ezért **2 és 4 csomó között
+  minden szélben ugyanaz a célsebesség**: ez nem szándékos érték, hanem a 4
+  csomós oszlop kiterjesztése. 20 csomó fölött ugyanígy a 20-as oszlop él.
+- **Zaj:** a sorok nem simák és nem monotonok, mert minden cella egy önálló
+  vödör-percentilis. Például a 30°-os sorban 16 csomónál 8,02, 20 csomónál
+  6,95; a 120°-os sorban 20 csomónál 10,81, a 125°-osban 10,08. Hátszélben, 20
+  csomónál és 180°-nál lyukak vannak.
+- **Skála:** a polár a **régi** szenzor skáláján készült. A triducer-csere óta
+  az STW kb. 8,1%-kal alacsonyabb értéket mér. A web ezt versenyenként
+  korrigálja (ADR 0049, a szerver STW-korrekciós fájlja), **a telefon élő
+  target-%-a nem** — a csere utáni versenyeken az élő target-% ezért kb.
+  8%-kal alacsonyabb a valósnál.
+- Nincs a táblában **kreuz- és hátszél-optimum** (a VMG-optimális TWA és
+  sebesség szélerőnként), amit a profi polárok külön sorként adnak.
+
+### Mitől lesz „profi"
+
+1. **Sűrűbb TWS-tengely gyenge szélben** (a Balaton jellemzően gyenge szelű):
+   pl. 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (25) csomó — ahol az adat
+   elbírja.
+2. **Horgony 0 csomónál** (célsebesség 0), hogy a legalsó oszlop alatt az
+   interpoláció a nulla felé menjen, ne clampeljen.
+3. **Simítás:** szélerőnként sima görbe a TWA mentén, és a TWS mentén
+   fizikailag értelmes (egy határig nem csökkenő) menet; a lyukakat az
+   illesztett felület tölti, nem a szomszéd-interpoláció. A cellák mintaszáma
+   metaadatként megmarad (megbízhatóság).
+4. **Kreuz- és hátszél-optimum** szélerőnként (cél-TWA + célsebesség): ez kell a
+   layline-hoz (ADR 0040) és a VMG-kormányzáshoz.
+5. **Az idei adat súlya:** a cél az idei teljesítmény. Az idei versenyeket az
+   app 1 Hz-en rögzítette (`snapshot_logs`: TWA, TWS, STW) — ez sűrűbb és
+   pontosabb forrás a YDVR 10 s-os CSV-jénél.
+6. **Verzió:** a polár kap egy verzió-azonosítót, és a builder reprodukálható.
+
+**A felhasználói döntés (2026-10-13):** a számok mindenhol változhatnak (web,
+napló, élő), a régi versenyek is az új polárhoz mérődnek. Ezért **versenyenkénti
+polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B0.1 | Git-verifikáció: `fetch`, `status -sb`, `log`, a 12. commit megléte, push-állapot | 0 | alacsony | 💻 | `[ ]` |
-| B0.2 | A billentyűzet-hiba feljegyzése a `docs/deferred.md`-be 🔴 D1 | 1 | alacsony | 💻 | `[ ]` |
-| B0.3 | Ez a terv + az ötlet-leltár a repóba 🔴 D2 | 1 | alacsony | 💻 | `[ ]` |
+| P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) | 1–2 | közepes | 🗄 💻 | `[ ]` |
+| P.2 | **Polár-ADR** (új ADR vagy ADR 0028 Addendum): módszer, tengelyek, simítás, optimum-sorok, adatforrás, súlyozás, percentilis 🔴 P-D1…P-D5 | 1–2 | közepes | 💻 | `[ ]` |
+| P.3 | **Polár-builder** az új módszerrel (forrás: idei telemetria + YDVR), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` |
+| P.4 | Domain: a `.pol`-dialektus bővítése (optimum-sorok, verzió), a 0 csomós horgony a lookupban | 1–2 | közepes | 💻 | `[ ]` |
+| P.5 | **Élő STW-korrekció a telefonon** 🔴 P-D6 | 1–2 | közepes | 💻 📱 | `[ ]` |
+| P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[ ]` |
+| P.7 | Ellenőrzés replay-ből: az idei versenyek target-% eloszlása jó körülmények között 100% körül | 1 | alacsony | 💻 | `[ ]` |
+| P.8 | Kiadás: szerver (`deploy/deploy.sh`) + legénységi APK (ADR 0053) | 0 | alacsony | 📱 | `[ ]` |
 
-**B0.1 részletei.** A döntő grep a 12. commitra: `_heightFactor` (várt 1),
-`viewInsetsOf(sheetContext)` (várt 1), `_maxHeightFactor` (várt 0). Ha nem futott le,
-a `~/Downloads/apply_sheet_height_fix.py` idempotens, `--check`-kel próbálható.
-A push az S7a után „ahead by 5" volt — azóta nincs információ.
+**Adat és titokvédelem:** a nyers adat (YDVR, telemetria, versenyablakok) **soha
+nem kerül a repóba**. A builder kódja igen (ha a P-D1 így dönt), az adatot a
+felhasználó gépén futtatja, és csak az összesített riport jön vissza a chatbe.
 
 ---
 
-## Blokk 1 — Az UI-redesign lezárása
+## Blokk T — A next-mark TWA predikció
 
-**Cél:** a `feature/ui-redesign` branch bezárul, a telefon-UI egységes, minden
-képernyő ugyanazt a nyelvet beszéli. **32–42 szelet, 7–10 session.**
+**Cél:** a fő funkció mérhetően a lehető legpontosabb legyen a balatoni szélben.
+Előbb **mérés** a teljes idei szezonon, aztán **kód-audit**, aztán **jobb
+modell**, amit egy backtest választ ki, nem a megérzés. **12–18 szelet.**
 
-**A választott makettek (2026-09-20):** `11a` dialógus · `11b` snackbar · `11c`
-betöltés · `11d` rendszerelem-lap · `9e` RaceSetup · `10a` Korábbi bóják sheet ·
-`7c` Versenynapló évváltó · `12a` Versenyek üres állapot.
+### A mai modell (verifikált tények)
 
-**⚠️ Ezek négy lezárt döntést fordítanak meg** (lásd az egyes szeleteknél), ezért
-mindegyik **docs-first addendumot** kér, mielőtt kód születik.
+- A TWD a COG-ból és a csúcs-TWA-ból származik (ADR 0020); a predikció a
+  következő szár irányával számol (ADR 0021); a hibasáv és a konfidencia az
+  ADR 0023 szerint; settle-ablak és horgony-lead (ADR 0026, 0027).
+- A szélfordulás-trend (`CalculateWindShiftTrend`): **csúszóablakos lineáris
+  regresszió** a TWD-történetre, kb. percenkénti mintákból, legalább 10 minta;
+  a meredekség adja a fordulás rátáját, az r² a konfidenciát.
+- A polár-alapú next-mark TWA korrekció (ADR 0030) **javasolt, nincs
+  implementálva**.
+- Kiértékelő eszközök: `tools/race_analyzer` (predikált vs. tényleges TWA a
+  `snapshot_logs`-ból, ADR 0025–0027) és `tools/prediction_probe`.
 
-**A blokk kulcs-felismerése: a 11d a rendszer-nyelv, nem dialógus-lap.** Benne van a
-mező négy állapota, a kapcsoló, a jelölőnégyzet, a gombok, a betöltés négy fokozata
-és a színszerep-tábla — és a **9e, 10a, 7c, 12a mind ezt fogyasztja**. Ha a
-képernyőkkel kezdünk, négyszer találjuk ki ugyanazt a mezőt. Ezért: **rendszer-réteg
-először.**
+### Miért lehet jobb
 
-**Branch-stratégia:** rövid branchek egy hosszú helyett. Az 1a+1b együtt megy fel és
-mergelődik, utána minden további kör friss branchen indul.
+A balatoni szél **oszcillál** (perces-tízperces lengések) és **tartósan is
+fordul** (napszak, termik). A lineáris trend egy lengés felszálló ágát is
+tartós fordulásnak olvassa, és a bója-érkezésig kivetíti — egy 20–40 perces
+horizonton ez akár rosszabb is lehet, mint ha nem jósolnánk fordulást.
+A jelöltek:
 
-### 1a — Rendszer-réteg (11a–11d), a mai branchen
+1. **Perzisztencia** (alapvonal): a TWD marad a mostani. Minden modellnek ezt
+   kell megvernie.
+2. **Lineáris** (a mai): több ablakhosszal.
+3. **Csillapított lineáris:** a meredekség hatása a horizonttal csökken.
+4. **Harmonikus (szinuszos) illesztés + trend:** periódus, amplitúdó és fázis a
+   hosszabb ablakból; rövid horizonton a lengés fázisa, hosszún a lengés
+   közepe + a tartós trend.
+5. **Állapottér-modell (Kalman):** trend + oszcillátor, saját bizonytalansággal.
 
-| # | Tétel | Szelet | Nehézség | Igény | Állapot |
-|---|---|---|---|---|---|
-| B1.1 | **ADR 0047 — rendszerelemek** (dialógus, snackbar, betöltés, mezőállapotok, színszerepek) 🔴 K4 | 1–2 | közepes | 💻 | `[ ]` |
-| B1.2 | Színszerep-bővítés: `#E0574F`, `#D9A441`, `#16202B` a token-rétegbe 🔴 K4 | 1 | közepes | 💻 | `[ ]` |
-| B1.3 | **Mező-nyelv (11d)**: `InputDecorationTheme` átírása — alap / fókusz (caps címke a kereten) / hiba (keret + súgósor) / tiltott (45%) 🔴 K2 | 2–3 | közepes-magas | 📱 | `[ ]` |
-| B1.4 | **Dialógus (11a)**: `dialogTheme` r0 + 364 dp + kétcellás akciósor, destruktív jobbra `#E0574F` | 2 | közepes | 📱 | `[ ]` |
-| B1.5 | **Snackbar (11b)**: `snackBarTheme` fixed + 8 dp státusznégyzet + akciócella + 2 dp visszaszámláló sáv | 2 | közepes | 📱 | `[ ]` |
-| B1.6 | **Betöltés (11c/11d)**: szögletes forgó widget + csontváz-sor + a négy fokozat | 2 | közepes | 📱 | `[ ]` |
-| B1.7 | Halott kód: `finished_races_sheet` + `RaceStatusChip` + `listMarkCount` + halott megkerülés-lánc | 2 | alacsony | 💻 | `[ ]` |
-| B1.8 | A D12 záró nyoma az ADR 0044-ben (a chip-állítás megdőlt) 🔴 K8 | 1 | alacsony | 💻 | `[ ]` |
-| B1.9 | AppBar-nyelv egységesítése 🔴 K9 | 1 | alacsony | 📱 | `[ ]` |
-| B1.10 | **Merge a `main`-be** | 0 | közepes | 📱 | `[ ]` |
-
-**A 11c megválaszolta a betöltés-kérdést (3.301).** Nincs szükség mérésre: csontváz-
-sorok **valódi sormagassággal**, `––` a hero számainál (a layout nem ugrik),
-hónapfejléc helyén „BETÖLTÉS" + szögletes forgó. **Nincs kör-spinner és nincs
-shimmer.** A `deferred.md` tétele ezzel lezárható.
-
-**⚠️ A 11d katalógus, nem munkarendelés.** Van rajta elem nem létező funkcióhoz:
-egység-választó dialógus (VISION J18), engedélykérő, kontextmenü átnevezéssel és
-**GPX-exporttal** (J22), állapotsáv műhold-számmal. **Ezeket nem építjük fogyasztó
-nélkül** — a nyelv viszont készen áll rájuk, amikor sorra kerülnek.
-
-### 1b — A négy képernyő-makett (új branch)
+**A mérce:** a jósolt és a megérkezéskori tényleges TWA eltérése horizont-sávok
+szerint (0–5, 5–15, 15–30, 30+ perc), és a hibasáv kalibráltsága (a névleges
+találati arány tényleg annyi-e). Ha egy modell nem veri a perzisztenciát egy
+horizonton, ott a kijelzés legyen óvatosabb (szélesebb sáv, alacsonyabb
+konfidencia).
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B1.11 | **9e docs**: ADR 0044 Addendum 6 — a D45 megfordítása, új geometria-tábla 🔴 K1 | 1–2 | közepes | 💻 | `[ ]` |
-| B1.12 | **9e kód**: betétes dobozok, 40 dp sín `border-right`-tal, cellás koordináta-pár | 4–5 | közepes-magas | 📱 | `[ ]` |
-| B1.13 | **10a docs**: a 4e → csoportosítás, a D51/D52 megfordítása 🔴 K3 | 1 | közepes | 💻 | `[ ]` |
-| B1.14 | **10a kód**: csoportosítás forrás-verseny szerint, badge törlése, fejrész tömörítése | 2–3 | közepes | 📱 | `[ ]` |
-| B1.15 | **7c docs**: az év-sáv és az év-lap leváltása szomszéd-év választóra 🔴 K6 | 1 | alacsony | 💻 | `[ ]` |
-| B1.16 | **7c kód**: hero-blokk, stat-sor átrendezése, `RaceLogYearSheet` törlése | 2–3 | közepes | 📱 | `[ ]` |
-| B1.17 | **12a**: üres-állapot blokk + „befejezettek a naplóban" sor darabszámmal | 2–3 | közepes | 📱 | `[ ]` |
-| B1.18 | On-device vizuális audit egy körben + javítások | 1–3 | alacsony | 📱 | `[ ]` |
-| B1.19 | **Merge a `main`-be** | 0 | közepes | 📱 | `[ ]` |
+| T.1 | **Kiértékelés az idei versenyeken**: `race_analyzer` a telefon DB-jén, összesített riport (versenyenként, horizont szerint) | 1 | közepes | 🗄 💻 | `[ ]` |
+| T.2 | **Kód-audit** a teljes láncon (TWD-származtatás → szél-történet → trend → predikció → sáv → kijelzés), független review-val | 1–2 | közepes | 💻 | `[ ]` |
+| T.3 | **Backtest-keret**: több modell ugyanazon az adaton, a fenti mércével (`tools/race_analyzer` bővítése) | 2–3 | magas | 💻 | `[ ]` |
+| T.4 | A modell-jelöltek (2–5) pure domainben, tesztekkel, a backtestben összevetve | 3–5 | magas | 💻 | `[ ]` |
+| T.5 | **Modell-ADR** a backtest eredményével 🔴 T-D1 | 1 | közepes | 💻 | `[ ]` |
+| T.6 | A választott modell az engine-ben + replay-teszt; ha kell, a konfidencia/sáv kijelzése | 2–4 | közepes-magas | 💻 📱 | `[ ]` |
+| T.7 | Az ADR 0030 (polár-alapú korrekció) újranyitása az új polárral 🔴 T-D2 | 1–2 | közepes | 💻 | `[ ]` |
+| T.8 | Vízi igazolás (Blokk 6) | 0 | — | ⛵ | `[ ]` |
 
-**B1.12 — mit jelent pontosan.** A 9e visszahozza a keretes dobozt, de **szögletesen,
-hairline-nal**: a név-mező, a kapcsoló és minden bója külön 20 dp-es betétben ül,
-10 dp közökkel. A bója-dobozon belül **nincs külön mező-keret** — a név-sor és a két
-koordináta-cella a doboz belső hairline-jaival válik el. A sín 40 dp,
-`border-right: #2A3B4E`. **Ez az S4/S5/S7 geometriájának újraírása**, nem hangolása.
+**Függés:** a T.1–T.4 nem vár a Blokk P-re; a T.6–T.7 az új polár után jön,
+mert a következő szár iránya és a VMG-optimum a polárból számol.
 
-**B1.14 — a csoportosítás következményei.** A forrás-verseny a sorból a
-**csoport-fejlécbe** költözik (teljes hosszban kiírva, verzál), tehát a `_SourceBadge`
-törlődik és a levágódó név problémája (3.333) magától megszűnik. A rendezés
-`savedAt` szerintiről **csoport szerintire** vált, a szűrés pedig üres csoportokat
-rejt el. A 45 duplikátumos bója így értelmet nyer: minden verseny a saját készletét
-mutatja.
+---
 
-**B1.17 — új adatfüggés.** A 12a a befejezett versenyek darabszámát mutatja a
-lajstrom üres állapotában — ehhez a lista-képernyőnek a napló-projekcióhoz is hozzá
-kell férnie. Ha nulla, a sor elmarad.
+## Blokk U — UI-maradék és telefonos hibák
 
-### 1c — `flutter_map` 7.0.2 → 8.3.1 (új branch)
+**Cél:** a régi Blokk 1 maradéka (a telefonos UI v1 nem érintette) és a nyitott
+telefonos hibák. **Töltelék-blokk, 12–17 szelet.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B1.20 | A bump + a hat `_toLatLng` hívóhely + `TrackMap` + `SafetyMapScreen` API-illesztés | 3–5 | közepes-magas | 📱 | `[ ]` |
-| B1.21 | A `Coordinate → LatLng` hatszoros duplikáció felszámolása (ugyanabban a körben) | 1 | alacsony | 💻 | `[ ]` |
+| U.1 | **Beragadó ablak háttérbe menés után** nyitott billentyűzettel (`docs/deferred.md`) | 1–2 | közepes | 📱 | `[ ]` |
+| U.2 | Halott kód: `RaceStatusChip` + teszt, `markRoundingMonitorProvider` + teszt (a `lib/`-ben nincs hívójuk) | 1 | alacsony | 💻 | `[ ]` |
+| U.3 | `flutter_map` `^7.0.0` → 8.x (`apps/phone`, `packages/foretack_ui`) + a `Coordinate → LatLng` duplikáció | 3–5 | közepes-magas | 📱 | `[ ]` |
+| U.4 | `FullScreenTrackMapScreen` (1k) az új dizájn-nyelvre 🟠 K7 | 2–3 | alacsony-közepes | 📱 | `[ ]` |
+| U.5 | `SafetyMapScreen` (1j) az új dizájn-nyelvre 🟠 K7 | 4–5 | közepes | 📱 | `[ ]` |
+| U.6 | A `docs/deferred.md` „Telefonos UI v1" tételei közül, amit a felhasználó kér (pl. fok-perces koordináta-bevitel, egyszerűsített óranézet szabad módban, tervezett rajt a weben) | 1–3 | változó | 📱 | `[ ]` |
 
-**Miért itt, és nem később.** A bump **breaking**, és pont a két térkép-képernyőt
-érinti, amit az 1d-ben átrajzolunk. Ha előbb rajzolunk és utána bumpolunk, ugyanazt
-a fájlt kétszer nyitjuk meg.
-
-### 1d — A két térkép-képernyő (új branch)
-
-| # | Tétel | Szelet | Nehézség | Igény | Állapot |
-|---|---|---|---|---|---|
-| B1.22 | ADR 0044 1k szakasz (docs, D53–) 🟠 K7 | 1 | közepes | 💻 | `[ ]` |
-| B1.23 | `FullScreenTrackMapScreen` migráció | 2–3 | alacsony-közepes | 📱 | `[ ]` |
-| B1.24 | ADR 0044 1j szakasz (docs) 🟠 K7 | 1 | közepes | 💻 | `[ ]` |
-| B1.25 | `SafetyMapScreen` migráció | 4–5 | közepes | 📱 | `[ ]` |
-
-**🟠 A makett megvan, de elavult.** Az 1j és 1k a design-dokumentum **1. körében**
-született: lekerekített sarkok (`radius:14`), pill-formák, kerekített gomb-blokkok.
-A 11. kör záró szabálya viszont: *„semmi lekerekítés, semmi árnyék, semmi shimmer."*
-Két út: **(a)** frissített makett a mai nyelven, vagy **(b)** felhatalmazás, hogy a
-meglévő 1j/1k elrendezést a 9e/11d nyelvére fordítsuk (r0, hairline, mono caps).
-Lásd [K7](#12-nyitott-döntések).
+**Sorrend:** a `flutter_map` bump megelőzi a két térkép-képernyőt, mert
+breaking, és pont azokat a fájlokat érinti.
 
 ---
 
 ## Blokk 2 — Adat-higiénia és adósság
 
-**Cél:** az adatbázis ne nőjön kezelhetetlenné, és a rögzített adat legyen
-**értelmezhető**. **12–18 szelet, 3–4 session, szinte teljesen 💻.**
-
-**Miért ilyen korán.** Nem „takarítás" — ez a Blokk 3 **előfeltétele**. Minden
-elemző-funkció, amit hibás vagy összehasonlíthatatlan adatra építünk, kétszer készül
-el.
+**Cél:** a telefon DB-je ne nőjön kezelhetetlenné, és ne maradjon csendes hiba
+az írási úton. **8–12 szelet, szinte teljesen 💻.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B2.1 | **Kalibrációs epocha + polár-verzió a `Race`-en** (ADR + séma + migráció) | 3–4 | közepes | 💻 | `[ ]` |
-| B2.2 | **Snapshot-retention / rollup** (ADR + politika + batch) | 4–6 | közepes-magas | 💻 | `[ ]` |
-| B2.3 | DB `VACUUM` (a retention után, nem előtte) | 1 | alacsony | 📱 | `[ ]` |
+| B2.1 | ~~Kalibrációs epocha + polár-verzió a `Race`-en~~ — a polár-fele ⚪ (P blokk, felhasználói döntés); az STW-fele a P.5 | — | — | — | ⚪ |
+| B2.2 | **Snapshot-retention / rollup** (ADR + politika + batch) 🔴 D10 | 4–6 | közepes-magas | 💻 | `[ ]` |
+| B2.3 | DB `VACUUM` (a retention után) | 1 | alacsony | 📱 | `[ ]` |
 | B2.4 | Telemetria elkapatlan `SqliteException` (`database is locked`) | 1 | alacsony | 💻 | `[ ]` |
-| B2.5 | A `race_engine.dart` 42 U+FFFD karaktere ⚪ opcionális | 1 | közepes, kockázatos | 💻 | `[ ]` |
-| B2.6 | A hamis `ADR 0016 D6` hivatkozás (két helyen) | 1 | alacsony | 💻 | `[ ]` |
-| B2.7 | `ARCHITECTURE.md` nem létező `Polars` tábla 🔴 D6 | 1 | alacsony | 💻 | `[ ]` |
-| B2.8 | Apró doksi-sync batch (§4.1 fájl-fa, §8.10, `l10n.yaml`, `_withDecimalComma`) | 1–2 | alacsony | 💻 | `[ ]` |
-| B2.9 | A `data` integrációs teszt flakysége | 1–2 | közepes, nyitott végű | 💻 | `[ ]` |
+| B2.5 | Lassú lista-frissítés nehéz track-olvasás közben (előbb mérés profile builddel) | 1–2 | közepes | 📱 | `[ ]` |
+| B2.6 | A hamis `ADR 0016 D6` hivatkozás (`race_engine.dart`, `active_race_provider.dart`) | 1 | alacsony | 💻 | `[ ]` |
+| B2.7 | `ARCHITECTURE.md` nem létező `Polars` tábla (§9) 🔴 D6 | 1 | alacsony | 💻 | `[ ]` |
+| B2.8 | A `data` integrációs teszt flakysége | 1–2 | közepes | 💻 | `[ ]` |
 
-### B2.1 — Kalibrációs epocha: miért ez a blokk legfontosabb tétele
-
-A triducer-csere óta az STW mérhetően eltér a korábbitól. A `race_track_stats` cache
-és a napló stat-csíkja **már ma is** ezt az adatot mutatja, tehát a csere két oldalán
-lévő futamok számai **nem összehasonlíthatók** — és ez ma sehol nincs jelölve.
-
-Amit rögzíteni kell a `Race`-en: melyik kalibrációs epochában (szenzor-készlet +
-korrekciós faktorok) készült, és melyik polár-verzióval számoltunk. Ettől kezdve
-minden elemzés tudja, mit hasonlít mihez, és a régi futamok visszamenőleg
-megjelölhetők.
-
-**Ez időérzékeny:** minden további vitorlázás nélküle is gyűjt adatot, de az adat
-epocha-jelölés nélkül marad, és utólag csak dátum-alapú találgatással pótolható.
-
-### B2.2 — Retention: a `VACUUM` tünet, ez az ok
-
-A telefonon lévő DB **1,48 GB**, a `snapshot_logs` **178 589 sor**. A `VACUUM`
-egyszer felszabadít helyet, aztán ugyanúgy nő tovább. A politika, amit el kell
-dönteni: meddig tartjuk a nyers 1 Hz-es adatot, és mi marad utána (aggregátum,
-ritkított track, semmi). A minta már megvan: a `race_track_stats` materializált cache
-pontosan ezt a szerkezetet követi.
-
-**Sorrend számít:** előbb a politika és a rollup (B2.2), csak utána a `VACUUM`
-(B2.3) — fordítva a felszabadított hely azonnal visszatelik.
+**Retention:** a 2026-09-i állapot szerint a telefon DB-je 1,48 GB, a
+`snapshot_logs` 178 589 sor volt. **Fontos:** a Blokk T backtestje és a Blokk P
+buildere épp a nyers 1 Hz-es adatból dolgozik — a retention-politika előtt a
+nyers adatot le kell menteni (a webes archívum és az export ezt részben
+megoldja; ezt az ADR-ben kell igazolni).
 
 ---
 
-## Blokk 3 — Post-race elemzés (a tökéletes téli munka)
+## Blokk D — On-device tesztkörnyezet
 
-**Cél:** a rögzített öt szezonnyi adatból **tanulható** visszajelzés.
-**16–24 szelet, 4–6 session, 100%-ban 💻.**
-
-**Miért ez a tél szíve.** Ez az egyetlen blokk, ami **semmilyen** módon nem függ a
-víztől: minden bemenet már a telefonon és az archívumban van. Ez az a munka, amire
-szezon közben sosem volt idő, és ami a következő szezonban a legtöbbet adja —
-nem a vízen, hanem a vízre készülésben.
+**Cél:** egy kiadás kézi ellenőrzése (ma kb. 3 óra, kb. 45 pont) rövidebb és
+megbízhatóbb legyen. **3–4 szelet az első lépés.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B3.1 | **ADR 0045 implementálása** — megkerülési idők a DB-be 🔴 D7 | 7 | magas | 💻 | `[ ]` |
-| B3.2 | **Manőver-elemzés** (fordulók/halzolások detektálása + veszteség) | 5–7 | közepes-magas | 💻 | `[ ]` |
-| B3.3 | **In-app polár-statisztika** (ma külső SQL + Python) | 3–5 | közepes | 💻 | `[ ]` |
-| B3.4 | Szár-bontás (leg-by-leg VMG / target% / idő) — B3.1 után | 3–4 | közepes | 💻 | `[ ]` |
-| B3.5 | ADR 0033 v2 — keresés és törlés a naplóban | 3–4 | közepes | 💻 | `[ ]` |
-| B3.6 | Track-pont koppintás a fullscreen nézeten (régi kérés) | 2 | közepes | 📱 | `[ ]` |
-| B3.7 | Menetidő a befejezett csíkon 🔴 D8 | 1 | alacsony | 💻 | `[ ]` |
-| B3.8 | Pálya-hossz a státusz-csíkon (domain use case + megjelenítés) | 2 | közepes | 💻 | `[ ]` |
-| B3.9 | Track-stat formázók egységesítése | 1 | alacsony | 💻 | `[ ]` |
+| D.1 | Kérdéskör + ADR: terjedelem, `integration_test` vs. Patrol, teszt-flavor, óra 🔴 D-D1 | 1 | közepes | 💻 | `[ ]` |
+| D.2 | **Vezetett futtató** (host-oldali Dart CLI, javasolt hely: `tools/device_test/`): build, telepítés, replay, `dumpsys`, Doze, időzítés; a UI-pontoknál rákérdez, az eredményt az útmutató táblájába írja | 2–3 | közepes | 📱 | `[ ]` |
+| D.3 | (Később, ha megéri) automatizált UI-tesztek, teszt-flavor, riport — a teljes terv becslése kb. 29 óra | — | magas | 📱 | ⚪ később |
 
-### B3.1 — Az ADR 0045 újranyitása
-
-Ma „Javasolt — NEM implementált" státusszal ül a repóban, és a döntésed az volt, hogy
-egyelőre így marad. **Javaslom a felülvizsgálatot**, két okból: (a) a megkerülési idő
-a detail-soron **kódban kész, de vak** — az adat hiányzik; (b) enélkül a szár-bontás
-(B3.4) nem építhető meg, ami a post-race elemzés legtanulságosabb nézete lenne.
-
-A terv kész, hét szelet, a kockázata az, hogy az engine-izolátum és az UI-izolátum
-közti írás-útvonalat érinti — pont azt, ahol a `database is locked` (B2.4) is
-jelentkezik. **Ezért van a Blokk 2 előtte.**
-
-### B3.2 — Manőver-elemzés: a legnagyobb megtérülés ebben a blokkban
-
-A `snapshot_logs`-ból fordulók és halzolások detektálhatók (heading/COG-ugrás +
-sebesség-esés mintázat), és fordulónként számolható a veszteség: mennyi időt és
-távolságot ad le a hajó egy manőverre, és mennyi idő alatt épül vissza a sebesség.
-
-**Miért éri meg.** Ez az egyetlen funkció a listán, ami **a vitorlázásodról** mond
-valamit, nem a hajóról. Új adatforrás nem kell, domain-tiszta pure számítás,
-replay-ből tesztelhető, és **nem függ az ADR 0045-től** (a manőver a trackből
-detektálható, nem a bója-megkerülésből), tehát a B3.1 elakadása nem blokkolja.
-
-### B3.3 — A polár-statisztika bevitele az appba
-
-Ma külső SQL + Python fut rajta. A bevitel nem új számítás, hanem a meglévő logika
-átköltöztetése a domainbe + egy nézet. **B2.1 után**, különben a statisztika a
-kalibrációs határon hibás értéket mutat.
+A vezetett futtató becsült hatása: a kb. 3 órás kézi körből kb. 1 óra lesz, és
+ez a teljes automatizálás első darabja is.
 
 ---
 
-## Blokk 4 — Taktikai réteg (a v2 húzófunkciói)
+## Blokk 4 — Taktikai réteg
 
-**Cél:** a két olyan funkció, ami a következő szezonban minden versenyen értéket ad.
-**20–30 szelet, 5–8 session. A kód 💻, a hangolás ⛵.**
-
-**Időzítési szabály:** ennek a blokknak a **kódja a tél közepére** legyen kész, hogy
-áprilisban-májusban csak a vízi hangolás maradjon. Ha ez a blokk májusban kezdődik,
-a szezon első fele megy rá.
+**Cél:** a következő szezonban minden versenyen értéket adó taktikai funkciók.
+**A kód 💻, a hangolás ⛵; a kódnak a tél közepére kell elkészülnie.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B4.1 | **ADR 0040 — layline-visszaszámláló** (docs kész, kód nulla) | 7 | magas | ⛵ | `[ ]` |
-| B4.2 | ADR 0046 S7 — az óra megkerülés-gombja 🔴 D9 | 1–2 | alacsony | 📱 | `[ ]` |
-| B4.3 | **ADR 0043 — rajt-időzítő + vonal-bias** (nulláról, teljes ADR) | 10–14 | magas | ⛵ | `[ ]` |
-| B4.4 | E17 — ütemezett rajt-szekvencia + óra auto-nézetváltás | 4–6 | közepes-magas | ⛵ | `[ ]` |
-| B4.5 | Szélfordulás-taktika (lift/knock a meglévő trendből, VISION J4) ⚪ opcionális | 3–4 | közepes | ⛵ | `[ ]` |
+| B4.1 | **ADR 0040 — layline-visszaszámláló** (docs kész, kód nulla); az új polár optimum-soraival | 7 | magas | ⛵ | `[ ]` |
+| B4.2 | ADR 0046 S7 — az óra megkerülés-gombja bója nélküli versenyben 🔴 D9 | 1–2 | alacsony | 📱 | `[ ]` |
+| B4.3 | ADR 0043 — rajt-időzítő + vonal-bias 🔴 R1 | 0–10 | magas | ⛵ | `[ ]` |
+| B4.4 | E17 maradéka — rajt-nézet az órán 🔴 R1 | 0–4 | közepes-magas | ⛵ | `[ ]` |
+| B4.5 | Szélfordulás-taktika (lift/knock, VISION J4) — a Blokk T szélmodelljére építve | 3–4 | közepes | ⛵ | `[ ]` |
 
-### Miért a layline először, és nem a rajt
+**Ami közben elkészült:** az E17 egy része — tervezett rajtidő, rajthely,
+rávezetés és automatikus rajt — az ADR 0055-tel élesben van.
 
-Két érv szól a layline mellett, és ezek erősebbek, mint a rajt magasabb
-verseny-értéke:
+**🔴 R1 — ellentmondás:** a 2026-10-09-i döntések szerint a visszaszámláló a
+rajtig „nem kell", a rajtvonal két ponttal „v2" (`docs/deferred.md`). A B4.3 és
+a B4.4 ezért vagy kikerül a télből, vagy a felhasználó újra dönt róluk.
 
-1. **A docs kész** — öt commit a `main`-en, D1–D17. Ez **két session megtakarítás**
-   a rajthoz képest, aminek a teljes ADR-je nulláról születik.
-2. **Replay-ből igazolható.** A layline a meglévő szél- és pozíció-adatból számol,
-   tehát a felvett logokon **télen validálható**. A rajt-időzítő magja
-   (vonal-geometria, bias, time-to-burn) unit-tesztelhető, de a *használhatósága* —
-   hogy a rajt előtti két percben olvasható-e a csuklón — csak vízen dől el.
-
-Tehát: layline télen épül **és** télen igazolódik; a rajt télen épül, de májusig
-nyitva marad a hangolása. Ebben a sorrendben a tél végén mindkettő kész, és csak az
-egyik vár vízre.
-
-### B4.3 — A rajt-időzítő hatóköre
-
-Ez a blokk legnagyobb egyedi tétele. Ami benne van: a vonal két végének rögzítése
-(GPS-„ping"), a bias-számítás a TWD-ből, a vonaltól mért távolság, a time/distance to
-burn, és a szinkronizált visszaszámláló az órán. A `VISION.md` J1 blokkja megadja a
-kiindulást; az ADR 0043 száma **lefoglalva, a fájl még nem létezik**.
-
-A B4.4 (E17) **külön tétel és külön ADR**, mert az egy vezérlési réteg a J1 fölött:
-rajt-fázis állapotgép (*idle → armed → countdown → started → normal*) + óra
-auto-nézetváltás. Építhető közvetlenül a B4.3 után, de nem keverendő bele.
+**Miért a layline az első:** a docs kész, és a felvett logokon **télen
+validálható**; a rajt használhatósága csak vízen dől el.
 
 ---
 
 ## Blokk 5 — Óra és energia
 
-**Cél:** tudjuk, meddig bírja az óra, mielőtt egy 20+ órás futamon kiderül.
-**6–12 szelet, 2–3 session, 📱.**
+**Cél:** tudjuk, meddig bírja az óra egy 20+ órás, éjszakai futamon, mielőtt a
+vízen derül ki. **6–12 szelet, 📱.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B5.1 | **Ambient-ébresztés mérés** (régi explicit kérés, nem indult el) | 0 | közepes | 📱 | `[ ]` |
-| B5.2 | **Energia-költségvetés mérés** mindkét órán, teljes futam-szimulációval | 0 | közepes | 📱 | `[ ]` |
-| B5.3 | Energia-ADR a mérés alapján 🟠 mérés | 1 | közepes | 💻 | `[ ]` |
-| B5.4 | Optimalizációk a mérés szerint (ambient render, payload-ritkítás) | 2–5 | közepes | 📱 | `[ ]` |
+| B5.1 | Ambient-ébresztés mérés | 0 | közepes | 📱 | `[ ]` |
+| B5.2 | **Energia-mérés** mindkét órán, teljes futam-szimulációval (replay-jel otthon) | 0 | közepes | 📱 | `[ ]` |
+| B5.3 | A telefon szabad módú akkumulátor-száma (ADR 0054 D8, a mért `batterystats`-ból) | 1 | alacsony | 💻 | `[ ]` |
+| B5.4 | Energia-ADR a mérés alapján 🟠 mérés | 1 | közepes | 💻 | `[ ]` |
+| B5.5 | Optimalizációk a mérés szerint (ambient render, payload-ritkítás, GPS-idő szabad módban) | 2–5 | közepes | 📱 | `[ ]` |
 
-**Miért nem halasztható a szezon elejére.** A Kékszalag 20+ órás és éjszakai, és az
-óra a **primary kijelző** (ADR 0016/0019). Ma **egyetlen mérésünk sincs** a
-fogyasztásról. Ha a Watch4 nyolc óra után lehal, a verseny felétől nincs kijelződ —
-és ezt májusban megtudni késő.
+**Az óra UI-ja szándékosan nem migrál** a telefon design-rendszerére (saját
+rendszer, on-device igazolt).
 
-**Miért a Blokk 4 körül.** A mérésnek **azelőtt** kell megtörténnie, hogy az óra új
-nézetet kap (B4.4 rajt-nézet), különben nem tudjuk, mi változott tőle.
+---
 
-**Az óra UI-ja szándékosan nem migrál** a telefon design-rendszerére: saját
-rendszerrel megy (Saira / JetBrains Mono), v1-ben on-device igazolt, és a váltás külön
-döntés lenne nulla vízi haszonnal.
+## Blokk 3 — Post-race elemzés
+
+**Cél:** a rögzített adatból **tanulható** visszajelzés. **Töltelék-blokk, 100%
+💻.**
+
+| # | Tétel | Szelet | Nehézség | Igény | Állapot |
+|---|---|---|---|---|---|
+| B3.1 | **ADR 0045** — megkerülési idők a DB-be (ma „Javasolt — NEM implementált") 🔴 D7 | 7 | magas | 💻 | `[ ]` |
+| B3.2 | **Manőver-elemzés** (fordulók/halzolások + veszteség) — nem függ az ADR 0045-től | 5–7 | közepes-magas | 💻 | `[ ]` |
+| B3.3 | ~~In-app polár-statisztika~~ — a web kiváltotta (ADR 0049) | — | — | — | ⚪ |
+| B3.4 | Szár-bontás (leg-by-leg VMG / target-% / idő) — a B3.1 után | 3–4 | közepes | 💻 | `[ ]` |
+| B3.5 | Keresés a naplóban (a törlés kész, ADR 0056) | 1–2 | közepes | 💻 | `[ ]` |
+| B3.6 | Track-pont koppintás a fullscreen nézeten | 2 | közepes | 📱 | `[ ]` |
+| B3.7 | Menetidő a befejezett csíkon 🔴 D8 | 1 | alacsony | 💻 | `[ ]` |
+| B3.8 | Pálya-hossz a státusz-csíkon | 2 | közepes | 💻 | `[ ]` |
+| B3.9 | Track-stat formázók egységesítése | 1 | alacsony | 💻 | `[ ]` |
+
+A manőver-elemzés a Blokk T backtestjével közös adat-utat használhat.
 
 ---
 
 ## Blokk 6 — Vízre-készülés
 
-**Cél:** amikor a hajó vízre kerül, egy listád legyen, nem egy emlékezeted.
-**4–8 szelet, ⛵.**
+**Cél:** amikor a hajó vízre kerül, egy lista legyen, ne emlékezet. **4–8
+szelet, ⛵.**
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| B6.1 | Az ADR 0046 négy élő on-device pontja (örökölt, nulla) | 0 | alacsony | ⛵ | `[ ]` |
-| B6.2 | **STW-kalibráció reciprok futásokkal** | 0 | közepes | ⛵ | `[ ]` |
-| B6.3 | End-to-end mélység-teszt (régi explicit kérés) | 1–2 | közepes | ⛵ | `[ ]` |
-| B6.4 | A layline (B4.1) vízi hangolása | 1–2 | közepes | ⛵ | `[ ]` |
-| B6.5 | A rajt-időzítő (B4.3/B4.4) vízi hangolása | 1–3 | közepes | ⛵ | `[ ]` |
-| B6.6 | In-app STW kalibrációs mód (reciprok-varázsló) — B6.2 tapasztalatából | 3–4 | közepes | ⛵ | `[ ]` |
-
-**B6.2 sorrendje.** A kalibrációt **előbb kézzel** csináld meg (reciprok futások,
-GPS SOG vs. STW), és csak utána építsd be a varázslót (B6.6) — a kézi kör mondja meg,
-mit kell a varázslónak automatizálnia. Fordítva egy elméleti folyamatot
-implementálnánk.
-
-**Az ADR 0046 négy pontja** (a hatból kettő elavult):
-1. Mentés + visszalépés a lajstromba: „BÓJA NÉLKÜL" áll-e „0 BÓJA" helyett —
-   **ez bizonyítja, hogy a `_toRace` visszaolvasás nem assertel.**
-2. Élő nézet indítása: elindul-e a motor, megy-e a target speed / VMG.
-3. Az órán: a B-lap `— · —`-t mutat-e a bearing/ETA helyén.
-4. Kézi „Bója megvan": semmi ne történjen, az app ne fagyjon.
+| B6.1 | Az ADR 0046 élő on-device pontjai | 0 | alacsony | ⛵ | `[ ]` |
+| B6.2 | **STW-kalibráció reciprok futásokkal** (a P.5 döntésével összhangban) | 0 | közepes | ⛵ | `[ ]` |
+| B6.3 | End-to-end mélység-teszt | 1–2 | közepes | ⛵ | `[ ]` |
+| B6.4 | Az új polár és a target-% vízi ellenőrzése | 0 | alacsony | ⛵ | `[ ]` |
+| B6.5 | Az új predikciós modell (T.6) vízi ellenőrzése | 0–2 | közepes | ⛵ | `[ ]` |
+| B6.6 | A layline (B4.1) vízi hangolása | 1–2 | közepes | ⛵ | `[ ]` |
+| B6.7 | Az automatikus rajt (ADR 0055) első éles versenye | 0 | alacsony | ⛵ | `[ ]` |
+| B6.8 | In-app STW kalibrációs mód (reciprok-varázsló) — a B6.2 tapasztalatából | 3–4 | közepes | ⛵ | `[ ]` |
 
 ---
 
 ## Blokk 7 — Amit NEM csinálunk idén télen
 
-Ez a szakasz ugyanolyan fontos, mint a többi. **Ha bármelyikbe belekezdesz, a tél
-elmegy rá, és májusban ugyanott leszel, mint most.**
-
 | Tétel | VISION-kód | Miért nem most |
 |---|---|---|
-| Forrás-/hardver-absztrakció | J16 | Egy teljes tél. Egy gateway-ed van, ami működik. Nulla érték májusban. |
-| Több hajó profil | E2 | Egy hajód van. |
+| Forrás-/hardver-absztrakció | J16 | Egy teljes tél; egy gateway van, ami működik. |
+| Több hajó profil | E2 | Egy hajó van. |
 | Több gateway / kézi IP | E1 | A Vulcan hotspot fix és működik. |
-| Offline vektoros térkép | J12 | Az online csempe a vízen **betölt** (a mobilnet megy a hotspot mellett). Licenc- és adat-pipeline-döntés. |
-| Szárazföld-tudatos navigáció | E7 | A vízió legnagyobb egyszeri mérnöki tehere. Önálló mérföldkő. |
-| Tó-katalógus | E8 | A Balaton az egyetlen tavad. |
-| Módok / capability gating | §4 | Egy közönség vagy: te. |
+| Offline vektoros térkép | J12 | Az online csempe a vízen betölt. |
+| Szárazföld-tudatos navigáció | E7 | A vízió legnagyobb egyszeri mérnöki tehere. |
+| Tó-katalógus | E8 | A Balaton az egyetlen tó. |
+| Módok / capability gating | §4 | Egy közönség van. |
 | Kishajós mód | E13 | Felfüggesztve, korábbi döntés. |
-| iOS + Apple Watch | E16 | Android telefonod és Wear OS órád van. |
+| iOS + Apple Watch | E16 | Android telefon és Wear OS óra van. |
 | Legénység-megosztás | J15 | Új hálózati alrendszer, nulla sürgősség. |
-| Időjárás-előrejelzés | E15 | Van rá jobb app a telefonodon. |
-| Felhő / fiók | J23 | Egy eszközöd van, a lokális DB az igazság. |
-| AIS | J5 | A hardvered nem ad AIS-t. |
-| Monetizáció, licenc, analitika | J24/J25 | Publikálás előtti tételek, a publikálás pedig évekre van. |
-| ADR 0038 offline csempe | — | **Lezárva: a mobilnet a vízen működik. Ne hozd elő újra.** |
-| ADR 0030 no-go clamp | — | Másik chatben kapuzott. |
+| Időjárás-előrejelzés | E15 | Van rá jobb app. |
+| AIS | J5 | A hardver nem ad AIS-t. |
+| Monetizáció, licenc, analitika | J24/J25 | Publikálás előtti tételek. |
+| ADR 0038 offline csempe | — | Lezárva: a mobilnet a vízen működik. |
 | Font-subsetelés, landscape, napfény-téma | J17 | Nincs mért panasz. |
+| **Autonóm (cloud-sessionös) fejlesztés** | — | Felhasználói döntés (2026-10-13): marad a chates módszer (1.4). |
 
-**Egyetlen tétel, amit érdemes megfontolni a határon:** ha a tél végén marad idő és
-kedv, a **J16 forrás-absztrakció** az a vízió-tétel, ami a legolcsóbban épül be most
-(a pipeline még kicsi), és ami a legtöbb későbbi munkát olcsóbbá teszi. De csak
-akkor, ha a Blokk 0–5 kész. **Ne ezzel kezdd.**
+**Felhő / fiók (J23):** a saját VPS-en futó webes archívum (ADR 0047–0053) a
+saját hajó igényét lefedi; a vízió-szintű, több felhasználós felhő nem téli
+téma.
+
+---
+
+## Lezárt blokkok (0 és 1)
+
+**Blokk 0 — Tiszta kiindulás:** kész. A git-állapot tiszta, ez a terv és az
+ötlet-leltár a repóban van (`7b6be45`), a billentyűzet-hiba a
+`docs/deferred.md`-ben (2026-10-13), a javítása a U.1.
+
+**Blokk 1 — Az UI-redesign lezárása:** a 2026-09-20-i tervtől eltérő úton
+zárult. A `feature/ui-redesign` és a `feature/web-companion` 2026-10-09-én a
+`main`-be került; a telefonos UI v1 (ADR 0054–0056: navigációs héj, Műszerek,
+tervezett verseny, dialógus- és SnackBar-nyelv, AppBar-cím, napló) 2026-10-12-én
+élesbe ment (`528caaf`, legénységi APK `0.3.0+3`). A régi 1b makett-kör (9e,
+10a, 7c, 12a) helyét a `docs/design/phone-ui-v1.md` specifikációja vette át: ha
+onnan valami még hiányzik, új tételként jön, nem a régi makett szerint. A
+maradék a [Blokk U](#blokk-u--ui-maradék-és-telefonos-hibák).
+
+**Ami a 2026-09-20-i terv óta pluszban elkészült:** a webes versenyarchívum
+(ADR 0047–0053): napló, eredmények, Excel-import 2021-től, régi trackek,
+szezon-statisztika és polár-teljesítmény, teljes export, QR-belépés az appal,
+VPS-telepítés, legénységi APK-terjesztés; és a web oldali telemetria-verseny
+törlés (ADR 0057).
 
 ---
 
 ## 12. Nyitott döntések
 
-Ezek blokkolnak egy-egy tételt. Mindegyik egy rövid válasz.
-
-### Makett-döntések (K) — a Blokk 1-et blokkolják
+### Polár (P)
 
 | # | Döntés | Kit blokkol | Javasolt default |
 |---|---|---|---|
-| **K1** | **A 9e megfordítja az Addendum 5 D45-öt** (teljes szélességű hairline-törzs → betétes dobozok). Megerősíted? | B1.11, B1.12 | Igen — a 9e jobb, az addendum megírja az indokot |
-| **K2** | **A lebegő címke sorsa (D4/D5).** A 11d saját mező-nyelvet ad: placeholder alapban, **fókuszban caps mono címke a kereten**. Ez váltja a Material lebegő címkéjét? | B1.3, B1.12 | **Igen** — a 11d nyelve győz, a D4/D5 addendumban feloldva |
-| **K3** | **A 10a megfordítja a D51/D52-t** — a csoportosítást az Add 5 kifejezetten elvetette. Megerősíted? | B1.13, B1.14 | Igen — a 45 duplikátumos könyvtárnál a csoportosítás jobb |
-| **K4** | **Három új szín** (`#E0574F` destruktív, `#D9A441` figyelmeztetés, `#16202B` snackbar-felület). (a) új tokenek, (b) meglévő slotokra képezés, (c) a meglévő értékek átírása | B1.1, B1.2 | **(c) + (a)**: a `colorScheme.error` `#E0574F`-re, a snackbar-felület új token |
-| **K5** | **DDM koordináta.** A 9e `46° 48,738′ É` alakot rajzol, a kód tizedes fokot tölt elő (D25 halasztva). Most jöjjön a DDM-formázó, vagy marad a decimális? | B1.12 | Marad a decimális; a DDM külön `feat` a Blokk 2-ben |
-| **K6** | **7c évválasztó.** A szomszéd évek szövegként váltják az év-sávot és az év-lapot. Mi történik 4-nél több szezonnál? | B1.15, B1.16 | Három szomszéd év látszik, a régebbiek görgetéssel; az év-lap törlődik |
-| **K7** | **1j/1k makett.** (a) frissített makett a mai nyelven, vagy (b) felhatalmazás az átfordításra | B1.22–B1.25 | **(b)** — az elrendezés jó, csak r0 + hairline + mono caps kell |
-| **K8** | A megdőlt D12-állítás kapjon-e docs-first záró nyomot? | B1.8 | Igen, külön `docs(architecture)` commit a törlés előtt |
-| **K9** | AppBar-nyelv: (a) marad / (b) fix feliratok verzálra / (c) minden verzál | B1.9 | **(b)** — a verseny neve felhasználói tartalom, az verzálban kiabál |
+| **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **A repóban**, Dartban, tesztekkel; az adat soha |
+| **P-D2** | Adatforrás és súlyozás: csak az idei versenyek, vagy minden év az idei súlyozásával? | P.2, P.3 | Idei adat, ahol a vödörben elég minta van; a régi évek csak a hézagokat töltik, STW-korrekcióval |
+| **P-D3** | A „100%" jelentése: p90 marad, vagy más percentilis? | P.2 | A riport (P.1) után döntünk; a p90 ma is jól viselkedik |
+| **P-D4** | TWS-tengely és horgony | P.2, P.4 | 0, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (+25, ha van adat); 0 csomónál 0 |
+| **P-D5** | Vitorla-konfiguráció: kell-e külön hátszél-polár (pl. genakker vs. orrvitorla)? | P.2 | A felhasználó tudja; ha egy polár elég, marad egy |
+| **P-D6** | Élő STW-korrekció: szorzó az appban, vagy a műszer kalibrálása (Vulcan), vagy mindkettő átmenetileg? | P.5 | Szorzó az appban most (beállítható, verziózott), a Vulcan-kalibráció tavasszal (B6.2), utána a szorzó 1,0 |
 
-### Egyéb döntések (D)
+### Predikció (T)
 
 | # | Döntés | Kit blokkol | Javasolt default |
 |---|---|---|---|
-| **D1** | A billentyűzet-hiba bekerüljön a `docs/deferred.md`-be? Kapjon-e `ARCHITECTURE.md` bekezdést? | B0.2 | Igen a `deferred.md`-be; az `ARCHITECTURE.md`-bekezdés a javításkor, nem most |
-| **D2** | Hová kerüljön ez a terv és az ötlet-leltár? | B0.3 | `docs/PLAN.md` és `docs/ideas.md` |
+| **T-D1** | Melyik modell menjen élesbe | T.5, T.6 | Amelyik a backtestben minden horizont-sávon legalább a perzisztenciát hozza, és összesítve a legjobb |
+| **T-D2** | Az ADR 0030 (polár-alapú next-mark TWA korrekció) újranyitása | T.7 | Az új polár után, a backtestben mérve |
+
+### Egyéb
+
+| # | Döntés | Kit blokkol | Javasolt default |
+|---|---|---|---|
+| **K7** | 1j/1k: (a) frissített makett, vagy (b) felhatalmazás az átfordításra (r0 + hairline + mono caps) | U.4, U.5 | **(b)** |
+| **R1** | Rajt-időzítő (ADR 0043) és rajt-nézet: kell-e télen, a 2026-10-09-i „nem kell / v2" döntések után? | B4.3, B4.4 | Kimarad a télből; tavasszal, a vízi tapasztalat után újra |
 | **D6** | Az `ARCHITECTURE.md` nem létező `Polars` táblát ígér — törlés vagy jelölés? | B2.7 | Jelölés „v2, nem létezik"-ként |
-| **D7** | Az ADR 0045 újranyitása (megkerülési idők perzisztálása) | B3.1, B3.4 | **Igen** — a téli blokk pont erre való |
-| **D8** | Menetidő: mit jelent a kézi start/finish gombnyomás versenyidőként? | B3.7 | A két gombnyomás közti idő, „nem hivatalos" jelöléssel |
-| **D9** | Az ADR 0046 S7 (óra-gomb) — mikor jöjjön? | B4.2 | A Blokk 4 elején, a layline előtt (1–2 szelet, gyors győzelem) |
+| **D7** | Az ADR 0045 újranyitása (megkerülési idők perzisztálása) | B3.1, B3.4 | Igen, a Blokk 3-ban |
+| **D8** | Menetidő: mit jelent a start és a cél versenyidőként? | B3.7 | A kettő közti idő, „nem hivatalos" jelöléssel |
+| **D9** | Az ADR 0046 S7 (óra-gomb) — mikor? | B4.2 | A Blokk 4 elején |
+| **D10** | Retention: meddig marad a nyers 1 Hz-es adat a telefonon, és mi marad utána? | B2.2 | A T és a P után, amikor tudjuk, mi kell az elemzésekhez |
+| **D-D1** | A tesztkörnyezet terjedelme és eszköze | D.1 | Vezetett futtató először |
 
-**Lezárva 2026-09-20:** a korábbi **D3** → K8 · **D4** → K9 · **D5** megválaszolva
-(a makettek újrarajzolások, a kódjuk: 7c, 9e, 10a, 12a, 11a–11d) · **D10**
-megválaszolva a 11a lappal (teljes szélességű kétcellás akciósor, destruktív jobbra).
+**Lezárva 2026-10-13:** K1–K6, K8, K9 (a Blokk 1 a telefonos UI v1-gyel zárult);
+D1 (a billentyűzet-hiba a `deferred.md`-ben); D2 (a terv és a leltár a
+`docs/`-ban).
 
 ---
 
 ## 13. Haladás-követés
 
-### Blokk-szintű állapot
-
 ```
-Blokk 0  Tiszta kiindulas          [ ][ ][ ]                        0/3
-Blokk 1a Rendszer-reteg 11a-11d    [ ][ ][ ][ ][ ][ ][ ][ ][ ][ ]  0/10
-Blokk 1b Kepernyok 9e/10a/7c/12a   [ ][ ][ ][ ][ ][ ][ ][ ][ ]      0/9
-Blokk 1c flutter_map bump          [ ][ ]                           0/2
-Blokk 1d Terkep-kepernyok 1j/1k    [ ][ ][ ][ ]                     0/4
-Blokk 2  Adat-higienia             [ ][ ][ ][ ][ ][ ][ ][ ][ ]      0/9
-Blokk 3  Post-race elemzes         [ ][ ][ ][ ][ ][ ][ ][ ][ ]      0/9
+Blokk P  Profi polar               [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
+Blokk T  Next-mark TWA predikcio   [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
+Blokk U  UI-maradek, hibak         [ ][ ][ ][ ][ ][ ]               0/6
+Blokk 2  Adat-higienia             [ ][ ][ ][ ][ ][ ][ ]            0/7
+Blokk D  Tesztkornyezet            [ ][ ]                           0/2
 Blokk 4  Taktikai reteg            [ ][ ][ ][ ][ ]                  0/5
-Blokk 5  Ora es energia            [ ][ ][ ][ ]                     0/4
-Blokk 6  Vizre-keszules            [ ][ ][ ][ ][ ][ ]               0/6
+Blokk 5  Ora es energia            [ ][ ][ ][ ][ ]                  0/5
+Blokk 3  Post-race elemzes         [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
+Blokk 6  Vizre-keszules            [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
 ```
 
 ### Amit minden session elején érdemes ellenőrizni
@@ -598,18 +543,16 @@ git status -sb
 git log --oneline -10
 ```
 
-**Három párhuzamos munkaszál futhat** (no-go clamp, layline, UI), ezért
-`git fetch && git rebase origin/main` **minden szelet előtt**.
+### A session-ritmus, ami bevált
 
-### A session-ritmus, ami eddig bevált
-
-1. Dump a valós fájlokról (soha ne tippelj API-t vagy útvonalat)
-2. Design-mikrokör, ha a döntés még nem zárt
-3. Docs-first, ha architektúra-döntés vagy lezárt döntés megfordítása
-4. Kód: tarball vagy `.py` edit-script, mockon validálva a kiküldés előtt
-5. `dart format` → `gen-l10n` (ha ARB változott) → teljes pre-flight
-6. Szelektív `git add` egyetlen parancsban + commit heredoc
-7. On-device verifikáció, ha 📱
+1. A valós fájlokból dolgozunk (soha nem tippelünk API-t vagy útvonalat).
+2. Kérdéskör, ha a döntés még nem zárt.
+3. Docs-first, ha architektúra-döntés vagy lezárt döntés megfordítása.
+4. Kód: patch-tarball + parancsblokk, tiszta worktree-n ellenőrizve.
+5. A felhasználónál: `git apply` → `dart format` → `gen-l10n` (ha ARB változott)
+   → teljes pre-flight → commit → push az ágra.
+6. On-device verifikáció, ha 📱.
+7. PR, merge („Create a merge commit"); szerver- vagy APK-kiadás, ha kell.
 
 ---
 
@@ -618,4 +561,5 @@ git log --oneline -10
 | Dátum | Változás |
 |---|---|
 | 2026-09-20 | Kezdeti terv: hét blokk, kb. 80–120 szelet. A szezonvégi víz-ablak mint fő szervezőelv; a vízió-tételek tudatosan kihagyva (Blokk 7). |
-| 2026-09-20 | A makettek megérkeztek (7c, 9e, 10a, 11a–11d, 12a). A Blokk 1 újraírva négy körre (1a–1d), 18–26 → **32–42 szelet**. A 11d mint rendszer-nyelv előre került. Négy lezárt döntés megfordul → K1–K4. A betöltés-kérdés (3.301) a 11c-vel lezárva. |
+| 2026-09-20 | A makettek megérkeztek (7c, 9e, 10a, 11a–11d, 12a). A Blokk 1 újraírva négy körre (1a–1d), 18–26 → **32–42 szelet**. |
+| 2026-10-13 | Állapot-frissítés a webes archívum (ADR 0047–0053) és a telefonos UI v1 (ADR 0054–0057) után: a Blokk 0 és 1 lezárva, a maradék a Blokk U-ba. Új, első blokk: **P — profi polár** (az idei teljesítmény az elvárt cél; a számok mindenhol változhatnak). Új második blokk: **T — next-mark TWA predikció** (kiértékelés, audit, backtesttel választott szélmodell). Új blokk: **D — on-device tesztkörnyezet**. B2.1 és B3.3 kiváltva; a Blokk 4 rajt-tételei 🔴 R1. Az autonóm fejlesztés elengedve, marad a chates módszer. |
