@@ -1,19 +1,13 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:data/data.dart';
-import 'package:drift/native.dart';
 import 'package:web_server/src/cli/missing_files.dart';
-import 'package:web_server/src/polar/legacy_polar_sample_reader.dart';
-import 'package:web_server/src/polar/polar_race_catalog.dart';
 import 'package:web_server/src/polar/polar_reference.dart';
 import 'package:web_server/src/polar/polar_setup.dart';
+import 'package:web_server/src/polar_lab/archive_copies.dart';
+import 'package:web_server/src/polar_lab/archive_sample_collector.dart';
 import 'package:web_server/src/polar_lab/lab_sample_collector.dart';
 import 'package:web_server/src/polar_lab/polar_lab_report.dart';
-import 'package:web_server/src/web_db/legacy_track_repository.dart';
-import 'package:web_server/src/web_db/manual_race_repository.dart';
-import 'package:web_server/src/web_db/race_result_repository.dart';
-import 'package:web_server/src/web_db/web_database.dart';
 
 // A polár-elemzés riportja (docs/PLAN.md P.1): a mai polár és a rögzített
 // adat összevetése a webes archívum egy mentéséből. A fejlesztői gépen fut,
@@ -86,90 +80,54 @@ Future<void> main(List<String> arguments) async {
 }
 
 Future<void> _runOnCopies(_Options options, PolarReference reference) async {
-  final workDir = await Directory(
-    options.workDirPath,
-  ).createTemp('polar-report-');
-  try {
-    stderr.writeln('Másolás: ${workDir.path}');
-    final archiveCopy = await File(
-      options.archivePath,
-    ).copy('${workDir.path}/archive.sqlite');
-    final webCopy = await File(
-      options.webDbPath,
-    ).copy('${workDir.path}/web.sqlite');
-    final report = await _report(
-      archiveCopy: archiveCopy,
-      webCopy: webCopy,
+  final report = await withArchiveCopies<String>(
+    archivePath: options.archivePath,
+    webDbPath: options.webDbPath,
+    workDirPath: options.workDirPath,
+    tempPrefix: 'polar-report-',
+    log: stderr.writeln,
+    body: (copies) => _report(
+      copies: copies,
       reference: reference,
       focusSeason: options.season,
       polarLabel:
           '${options.polarPath.split('/').last} (${reference.fingerprint})',
-    );
-    final outPath = options.outPath;
-    if (outPath == null) {
-      stdout.write(report);
-    } else {
-      await File(outPath).writeAsString(report);
-      stderr.writeln('Riport: $outPath');
-    }
-  } finally {
-    try {
-      await workDir.delete(recursive: true);
-    } on FileSystemException catch (error) {
-      // A törlés hibája ne takarja el az eredeti hibát.
-      stderr.writeln(
-        'A másolat nem törölhető: ${workDir.path}, ${error.message}',
-      );
-    }
+    ),
+  );
+  final outPath = options.outPath;
+  if (outPath == null) {
+    stdout.write(report);
+  } else {
+    await File(outPath).writeAsString(report);
+    stderr.writeln('Riport: $outPath');
   }
 }
 
 Future<String> _report({
-  required File archiveCopy,
-  required File webCopy,
+  required ArchiveCopies copies,
   required PolarReference reference,
   required int focusSeason,
   required String polarLabel,
 }) async {
-  final archive = AppDatabase(NativeDatabase.createInBackground(archiveCopy));
-  final webDatabase = WebDatabase(NativeDatabase.createInBackground(webCopy));
-  try {
-    final tracks = LegacyTrackRepository(webDatabase);
-    final catalog = PolarRaceCatalog(
-      races: RaceRepositoryImpl(archive),
-      results: RaceResultRepository(webDatabase),
-      manualRaces: ManualRaceRepository(webDatabase),
-      tracks: tracks,
-      log: stderr.writeln,
-    );
-    LabSampleCollector collector({required int windMedianHalfWindowSeconds}) =>
-        LabSampleCollector(
-          listRaces: catalog.all,
-          readTelemetrySamples: PolarSampleReaderImpl(archive).call,
-          readLegacySamples: LegacyPolarSampleReader(tracks).call,
-          corrections: reference.corrections,
-          windMedianHalfWindowSeconds: windMedianHalfWindowSeconds,
-        );
-    final samples = await collector(windMedianHalfWindowSeconds: 0)();
-    stderr.writeln('Minták: ${samples.length}');
-    // A ±5 mp-es medián a régi napló 10 mp-es mediánjához illeszkedik (P.1b).
-    final smoothedSamples = await collector(windMedianHalfWindowSeconds: 5)();
-    stderr.writeln('Simított minták: ${smoothedSamples.length}');
-    return polarLabReport(
-      samples: samples,
-      polar: reference.polar,
-      focusSeason: focusSeason,
-      polarLabel: polarLabel,
-      smoothedSamples: smoothedSamples,
-    );
-  } finally {
-    // Az egyik hibája se hagyja nyitva a másikat (és a háttér-isolate-jét).
-    try {
-      await archive.close();
-    } finally {
-      await webDatabase.close();
-    }
-  }
+  LabSampleCollector collector({required int windMedianHalfWindowSeconds}) =>
+      archiveSampleCollector(
+        copies,
+        corrections: reference.corrections,
+        log: stderr.writeln,
+        windMedianHalfWindowSeconds: windMedianHalfWindowSeconds,
+      );
+  final samples = await collector(windMedianHalfWindowSeconds: 0)();
+  stderr.writeln('Minták: ${samples.length}');
+  // A ±5 mp-es medián a régi napló 10 mp-es mediánjához illeszkedik (P.1b).
+  final smoothedSamples = await collector(windMedianHalfWindowSeconds: 5)();
+  stderr.writeln('Simított minták: ${smoothedSamples.length}');
+  return polarLabReport(
+    samples: samples,
+    polar: reference.polar,
+    focusSeason: focusSeason,
+    polarLabel: polarLabel,
+    smoothedSamples: smoothedSamples,
+  );
 }
 
 final class _Options {
