@@ -105,10 +105,11 @@ csak a polár építésekor:
   elmarad. A minták csak versenyablakból jönnek, ahol nem motoroznak, a
   szabály viszont épp a gyenge szelet vágná, amit most javítunk.
 
-A builder után a D6 bővült: az állandósult szél küszöbe 20°, és három új
-szűrő jött (számolt AWA, beragadt szélirány-mérő, mély hátszeles VMG);
-lásd „A diagnosztika után”, „A beragadt szélirány-mérő” és „A mély
-hátszél VMG-korlátja” pontosítást.
+A builder után a D6 bővült: az állandósult szél küszöbe 20°, három új
+szűrő jött (számolt AWA, beragadt szélirány-mérő, mély hátszeles VMG),
+és a 180°-os sor kiesik; lásd „A diagnosztika után”, „A beragadt
+szélirány-mérő”, „A mély hátszél VMG-korlátja” és „A lezárás előtt”
+pontosítást.
 
 ### D7 — Simítás (javaslat)
 
@@ -199,8 +200,8 @@ az eredmény egy újabb pontosításba kerül.
   másodfokú illesztés a szélső pontokra pontosan illeszkedik, ott
   gyakorlatilag nincs simítás.
 - **Izotonikus lépés:** a TWA menti simítás által töltött cellák is részt
-  vesznek benne, a mért cella legkisebb (120 mp-es) súlyával; különben egy
-  töltött cella a soron belül csökkenést hagyhatna.
+  vesznek benne, a mért cella legkisebb súlyával (120, a lezárás óta 300
+  mp); különben egy töltött cella a soron belül csökkenést hagyhatna.
 - **Hézagtöltés a legalsó kész oszlop alatt:** a cél a D5 szerint arányos
   (`érték × tws / tws_legalsó`), a tengelyen belül is; így a `.pol` és a
   lookup ugyanazt a szabályt követi.
@@ -312,6 +313,32 @@ szélnél nagyobb hátszeles VMG-t adott.
 - Az összesítő 8. szakasza a mély hátszél 8 kn-ig tartó idejét mutatja a
   VMG/TWS arány sávjaiban (< 1; 1–1,3; 1,3–1,6; ≥ 1,6), a VMG-szűrő
   előtt; ebből ellenőrizhető a küszöb.
+
+### A lezárás előtt (P.3, 2026-10-13)
+
+- **Mért cella: legalább 5 perc** (a D7 kiinduló 120 mp-e helyett). A
+  120 mp-es küszöbbel a néhány perces cellák (a 25 kn-os oszlop kreuz-
+  cellái, a 170–180°-os sorok erősebb szélben) mértnek számítottak, és a
+  kész rácsot ezek vitték: a 180°-os sor 8 kn-os 3 perces cellája 25
+  kn-ig öröklődött, és 7–10 kn-ban 180°-ot adott hátszeles optimumnak.
+  Az 5 perces futás a 4–16 kn-os magot nem mozdította.
+- **A 180°-os sor kiesik (felhasználói döntés,
+  `PolarBuildRejection.deadDownwind`):** aszimmetrikus spinnakerrel nem
+  mennek egyenesen hátszélben, és a 177,5° feletti minták fokonként
+  kb. tízszer sűrűbbek a szomszéd soroknál (a beragadt mérő maradéka,
+  ami 180° körül 2°-nál többet ugrál). A `.pol` 180°-os sora üres.
+- **A TWA menti simítás nem vetít ki egy oldalról:** a mért pont nélküli
+  hely csak akkor kap illesztett értéket, ha a ±15°-os környezetében
+  mindkét oldalon van mért pont; különben a két legközelebbi kész sor
+  közti egyenesből jön. Egy oldalról a polinom kivetített: a 2 kn-os
+  oszlopban a 145–165°-os sorok nem mértek, a 145°-os sor környezetében
+  csak a 135° és a 140° mért, és a kettő lejtését vitte tovább (1,91 kn,
+  a szomszédos 140°-os 2,90 mellett).
+- **Nyitott, a P.4-re:** az üres 180°-os sor miatt a lookup 175° és 180°
+  között a 175°-os sor értékét adja (a hiányzó sarkokat kihagyja), így
+  a VMG-keresés 175° fölött is talál célt, és gyenge szélben 179° körül
+  adhat optimumot. A P.4 dönti el, hogy a lookup egy teljesen üres szélső
+  sor felé ne terjessze ki a célt.
 
 ## Mit ír felül
 
