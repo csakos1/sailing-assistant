@@ -3,6 +3,7 @@ import 'package:race_archive_api/race_archive_api.dart';
 import 'package:web_server/src/polar/polar_race.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/lab_samples_of.dart';
+import 'package:web_server/src/polar_lab/with_wind_medians.dart';
 
 /// A polár-statisztikás versenyek listája; a `PolarRaceCatalog.all`
 /// tear-offja, a tesztekben egy lista.
@@ -14,6 +15,10 @@ typedef ListPolarRaces = Future<List<PolarRace>> Function();
 /// Ugyanazt a versenylistát, ablakot, olvasót és korrekciót használja, mint
 /// a webes polár-teljesítmény (`PolarStatsCalculator`), így a riport számai
 /// a web számaival összevethetők. Csak olvas.
+///
+/// Ha a `windMedianHalfWindowSeconds` pozitív, a telefonos telemetria szele
+/// a ±ennyi másodperces ablak mediánja (P.1b); a régi napló szele eleve
+/// 10 mp-es medián, az változatlan.
 class LabSampleCollector {
   /// Gyűjtő a versenylistával, a két forrás olvasójával és a telemetria
   /// [corrections] szorzóival.
@@ -22,15 +27,18 @@ class LabSampleCollector {
     required PolarSampleReader readTelemetrySamples,
     required PolarSampleReader readLegacySamples,
     required List<StwCorrection> corrections,
+    int windMedianHalfWindowSeconds = 0,
   }) : _listRaces = listRaces,
        _readTelemetrySamples = readTelemetrySamples,
        _readLegacySamples = readLegacySamples,
-       _corrections = corrections;
+       _corrections = corrections,
+       _windMedianHalfWindowSeconds = windMedianHalfWindowSeconds;
 
   final ListPolarRaces _listRaces;
   final PolarSampleReader _readTelemetrySamples;
   final PolarSampleReader _readLegacySamples;
   final List<StwCorrection> _corrections;
+  final int _windMedianHalfWindowSeconds;
 
   /// Minden verseny mintái a várt ablakukból; a beírt értékű (ablak
   /// nélküli) verseny kimarad.
@@ -41,7 +49,7 @@ class LabSampleCollector {
       if (window == null) continue;
       final (samples, corrections) = switch (race.source) {
         PolarSampleSource.telemetry => (
-          await _readTelemetrySamples(race.id, window),
+          _smoothed(await _readTelemetrySamples(race.id, window)),
           _corrections,
         ),
         // A régi napló korrekció nélkül számol (ADR 0050 D6).
@@ -62,6 +70,14 @@ class LabSampleCollector {
     }
     return collected;
   }
+
+  List<PolarSample> _smoothed(List<PolarSample> samples) =>
+      _windMedianHalfWindowSeconds > 0
+      ? withWindMedians(
+          samples,
+          halfWindowSeconds: _windMedianHalfWindowSeconds,
+        )
+      : samples;
 }
 
 TimeWindow? _windowOf(StatsWindow statsWindow) => switch (statsWindow) {

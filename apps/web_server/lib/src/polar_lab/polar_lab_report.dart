@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:domain/domain.dart';
 import 'package:web_server/src/polar/polar_race.dart';
+import 'package:web_server/src/polar_lab/lab_performance.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/polar_grid.dart';
+import 'package:web_server/src/polar_lab/sailing_band_section.dart';
 
 /// A polár-elemzés markdown-riportja (`docs/PLAN.md` P.1).
 ///
@@ -13,12 +15,17 @@ import 'package:web_server/src/polar_lab/polar_grid.dart';
 /// megosztható. A teljesítmény ugyanaz a `100 × STW / cél-STW`, mint a
 /// weben, ugyanazzal a lookuppal (ADR 0049 D5).
 ///
+/// A [smoothedSamples] ugyanezek a minták, a telefonos telemetria szele
+/// 10 másodperc körüli mediánnal (P.1b); ha nem üres, a menetszög szerinti
+/// tábla ezekből is elkészül, hogy a két forrás simítása összevethető legyen.
+///
 /// Pure függvény: ugyanarra a bemenetre ugyanazt a szöveget adja.
 String polarLabReport({
   required List<LabSample> samples,
   required Polar polar,
   required int focusSeason,
   required String polarLabel,
+  List<LabSample> smoothedSamples = const [],
 }) {
   final focus = [
     for (final sample in samples)
@@ -32,12 +39,66 @@ String polarLabReport({
     ..writeln('Polár: `$polarLabel`. Fókusz-szezon: $focusSeason.')
     ..writeln()
     ..write(_inventorySection(samples))
+    ..write(_calmDownwindSection(samples))
     ..write(_performanceSection(samples, polar))
+    ..write(
+      sailingBandSection(
+        title: '2b. Menetszög és szélsáv szerint (4–16 kn)',
+        note: _bandNote,
+        samples: samples,
+        polar: polar,
+      ),
+    )
     ..write(_gridSection('3. A $focusSeason-es szezon rácsa', focusGrid, polar))
     ..write(_gridSection('4. Minden szezon rácsa', allGrid, polar))
     ..write(_vmgSection(focusSeason, focusGrid, polar))
     ..write(_smoothnessSection(polar));
+  if (smoothedSamples.isNotEmpty) {
+    report.write(
+      sailingBandSection(
+        title: '7. Ugyanez a telefon szelének 10 mp-es mediánjával',
+        note:
+            '$_bandNote A telefonos telemetria TWA-ja és TWS-e itt a '
+            '±5 mp-es ablak mediánja, ahogy a régi napló 10 mp-es '
+            'mediánja; a régi versenyek sorai változatlanok.',
+        samples: smoothedSamples,
+        polar: polar,
+      ),
+    );
+  }
   return report.toString();
+}
+
+const String _bandNote =
+    'Cella: medián % (mért óra). Kreuz: |TWA| < 60°, félszél: 60–120°, '
+    'hátszél: ≥ 120°; a no-go zóna kimarad.';
+
+// A szélcsendes 180°-os minták szezononként: a műszer szél nélkül 180°-ot
+// adhat, ezek nem valódi hátszél-minták.
+String _calmDownwindSection(List<LabSample> samples) {
+  final buffer = StringBuffer()
+    ..writeln('## 1b. Szélcsendes 180°-os minták')
+    ..writeln()
+    ..writeln('`|TWA|` ≥ 177,5° és TWS < 2 kn.')
+    ..writeln()
+    ..writeln('| Szezon | Perc | A szezon idejéből |')
+    ..writeln('|---|---|---|');
+  for (final season in _seasonsOf(samples)) {
+    final ofSeason = [
+      for (final sample in samples)
+        if (sample.season == season) sample,
+    ];
+    final calm = _secondsOf(
+      ofSeason.where(
+        (sample) => sample.absTwaDeg >= 177.5 && sample.twsKnots < 2,
+      ),
+    );
+    final total = _secondsOf(ofSeason);
+    buffer.writeln(
+      '| $season | ${(calm / 60).round()} | ${_share(calm, total)} |',
+    );
+  }
+  return (buffer..writeln()).toString();
 }
 
 const _lookupTargetSpeed = LookupTargetSpeed();
@@ -82,10 +143,10 @@ String _performanceSection(List<LabSample> samples, Polar polar) {
     ..writeln('| Szezon | Óra | Átlag % | Medián % | p90 % | ≥ 100% |')
     ..writeln('|---|---|---|---|---|---|');
   for (final season in _seasonsOf(samples)) {
-    final weighted = <({double pct, int seconds})>[
+    final weighted = <WeightedPct>[
       for (final sample in samples)
         if (sample.season == season)
-          if (_pctOf(sample, polar) case final double pct)
+          if (performancePctOf(sample, polar) case final double pct)
             (pct: pct, seconds: sample.seconds),
     ];
     if (weighted.isEmpty) continue;
@@ -100,8 +161,8 @@ String _performanceSection(List<LabSample> samples, Polar polar) {
         .fold(0, (sum, entry) => sum + entry.seconds);
     buffer.writeln(
       '| $season | ${_hours(total)} | ${(pctSeconds / total).toStringAsFixed(1)} '
-      '| ${_weightedQuantile(weighted, total, 0.5).toStringAsFixed(1)} '
-      '| ${_weightedQuantile(weighted, total, 0.9).toStringAsFixed(1)} '
+      '| ${weightedQuantile(weighted, 0.5).toStringAsFixed(1)} '
+      '| ${weightedQuantile(weighted, 0.9).toStringAsFixed(1)} '
       '| ${_share(atLeastFull, total)} |',
     );
   }
@@ -300,31 +361,6 @@ double? _ratioAt(PolarGrid grid, PolarGridKey key, Polar polar) {
   );
   if (target == null || target <= 0) return null;
   return 100 * stw / target;
-}
-
-double? _pctOf(LabSample sample, Polar polar) {
-  final target = _lookupTargetSpeed(
-    polar: polar,
-    twaDegrees: sample.absTwaDeg,
-    twsKnots: sample.twsKnots,
-  );
-  if (target == null || target <= 0) return null;
-  return 100 * sample.stwKnots / target;
-}
-
-// Az időre súlyozott kvantilis a [sorted] (pct szerint növekvő) listából.
-double _weightedQuantile(
-  List<({double pct, int seconds})> sorted,
-  int total,
-  double fraction,
-) {
-  final threshold = fraction * total;
-  var cumulative = 0;
-  for (final entry in sorted) {
-    cumulative += entry.seconds;
-    if (cumulative >= threshold) return entry.pct;
-  }
-  return sorted.last.pct;
 }
 
 List<int> _seasonsOf(List<LabSample> samples) {

@@ -60,8 +60,36 @@ void main() {
       expect(report(), contains('(> 0.1 kn): 0 '));
     });
 
+    test('counts the calm samples at 180 degrees per season', () {
+      expect(report(), contains('| 2026 | 0 | 0% |'));
+    });
+
+    test('splits the performance by sailing angle and wind band', () {
+      // A TWA 60 felszel, a 10,5 kn a 8-12-es sav (az 5. oszlop).
+      expect(
+        report(),
+        contains('| 2026 | ${_empties(4)} | 80.4 (0.0) | ${_empties(4)} |'),
+      );
+    });
+
+    test('adds the smoothed table only when smoothed samples are given', () {
+      final smoothed = polarLabReport(
+        samples: samples,
+        polar: flatPolar(),
+        focusSeason: 2026,
+        polarLabel: 'test.pol',
+        smoothedSamples: samples,
+      );
+
+      expect(report(), isNot(contains('## 7.')));
+      expect(smoothed, contains('## 7.'));
+    });
+
     test('is the same for the same input', () {
       expect(report(), report());
     });
   });
 }
+
+// [count] ures cella (U+00B7) a tabla elvalasztojaval.
+String _empties(int count) => List.filled(count, '\u00b7').join(' | ');

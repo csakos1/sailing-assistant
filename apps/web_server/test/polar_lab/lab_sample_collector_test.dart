@@ -77,6 +77,50 @@ void main() {
       expect(samples, hasLength(3));
     });
 
+    test('smooths the wind of telemetry only', () async {
+      // ARRANGE: egy 100 fokos kiugras a 60 fokos szelben, mindket forrasban
+      List<PolarSample> wavering() => [
+        for (final (second, twa) in [60.0, 60.0, 100.0, 60.0, 60.0].indexed)
+          PolarSample(
+            timestamp: start.add(Duration(seconds: second)),
+            twaDeg: twa,
+            twsMps: mps(10),
+            stwMps: mps(5),
+          ),
+      ];
+      final collector = LabSampleCollector(
+        listRaces: () async => [
+          race(
+            't1',
+            PolarSampleSource.telemetry,
+            RecordingWindow(window),
+            '2026-07-26',
+          ),
+          race(
+            'l1',
+            PolarSampleSource.legacyTrack,
+            OfficialWindow(window),
+            '2024-08-01',
+          ),
+        ],
+        readTelemetrySamples: (_, _) async => wavering(),
+        readLegacySamples: (_, _) async => wavering(),
+        corrections: const [],
+        windMedianHalfWindowSeconds: 1,
+      );
+
+      // ACT
+      final samples = await collector();
+
+      // ASSERT: a regi naplo szele eleve median, az valtozatlan
+      double maxAngleOf(String raceId) => samples
+          .where((sample) => sample.raceId == raceId)
+          .map((sample) => sample.absTwaDeg)
+          .reduce((a, b) => a > b ? a : b);
+      expect(maxAngleOf('t1'), 60);
+      expect(maxAngleOf('l1'), 100);
+    });
+
     test(
       'corrects telemetry only and takes the season from the race day',
       () async {

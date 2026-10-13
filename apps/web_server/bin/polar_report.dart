@@ -142,18 +142,25 @@ Future<String> _report({
       tracks: tracks,
       log: stderr.writeln,
     );
-    final samples = await LabSampleCollector(
-      listRaces: catalog.all,
-      readTelemetrySamples: PolarSampleReaderImpl(archive).call,
-      readLegacySamples: LegacyPolarSampleReader(tracks).call,
-      corrections: reference.corrections,
-    )();
+    LabSampleCollector collector({required int windMedianHalfWindowSeconds}) =>
+        LabSampleCollector(
+          listRaces: catalog.all,
+          readTelemetrySamples: PolarSampleReaderImpl(archive).call,
+          readLegacySamples: LegacyPolarSampleReader(tracks).call,
+          corrections: reference.corrections,
+          windMedianHalfWindowSeconds: windMedianHalfWindowSeconds,
+        );
+    final samples = await collector(windMedianHalfWindowSeconds: 0)();
     stderr.writeln('Minták: ${samples.length}');
+    // A ±5 mp-es medián a régi napló 10 mp-es mediánjához illeszkedik (P.1b).
+    final smoothedSamples = await collector(windMedianHalfWindowSeconds: 5)();
+    stderr.writeln('Simított minták: ${smoothedSamples.length}');
     return polarLabReport(
       samples: samples,
       polar: reference.polar,
       focusSeason: focusSeason,
       polarLabel: polarLabel,
+      smoothedSamples: smoothedSamples,
     );
   } finally {
     // Az egyik hibája se hagyja nyitva a másikat (és a háttér-isolate-jét).
