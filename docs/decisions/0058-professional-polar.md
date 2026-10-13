@@ -2,8 +2,8 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-13. Implementálatlan; a szeletek a `docs/PLAN.md`
-Blokk P-jében (P.3–P.8).
+Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
+után"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.4–P.8).
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
@@ -164,6 +164,55 @@ assetet.
   újraszámolódik (ADR 0049 Addendum 4 U6).
 - A web, a napló és az élő számok mind megváltoznak; ez a felhasználó
   döntése (2026-10-13).
+
+## Pontosítás a kód után (P.3, 2026-10-13)
+
+A builder (`apps/web_server/bin/build_polar.dart`, a számítás a
+`lib/src/polar_lab/`-ban) a D1–D9-et így valósítja meg. A paraméterek
+(±15°, 120 mp, ±3%, 30 perc) az első futás összesítője után hangolódnak;
+az eredmény egy újabb pontosításba kerül.
+
+- **1 kn alatti szél (felhasználói döntés):** a minta kiesik; 1–2,5 kn
+  között a 2 csomós oszlopba kerül. Ott a cél a D5 horgonyából jön.
+- **TWA-sor:** a `|TWA|` a legközelebbi 5°-os sorba kerül, ahogy a riport
+  rácsában; a 25°-os sor tehát a 22,5–27,5°-os mintákat kapja, a 22,5° alatti
+  minta kiesik (no-go).
+- **TWS-oszlop:** a felezőpont már a felső oszlopé; a legfelső oszlop
+  fölötti szél a legfelsőbe kerül. A 25 csomós oszlop ideje a legalább
+  22,5 kn-os, vitorlázható sorokba eső minták ideje.
+- **Az állandósult szél szűrője maszk:** a `labSamplesOf` a TWS-tüskét a
+  teljes soron dönti el, a maszk utána szűr. Így pontosan ugyanazok a
+  tüskék esnek ki, mint a weben (D1). A vízsebesség-határ a korrigált
+  STW-re vonatkozik.
+- **A p90 pontos:** a legkisebb vízsebesség, amelynél a nála nem gyorsabb
+  minták ideje eléri a cella idejének 90%-át (a riport 0,05 kn-os rései
+  nélkül).
+- **LOESS:** a pont súlya a mért idő × a trikubikus távolság-súly; három
+  pontnál kevesebb környezetben a fok is kisebb (egyenes, átlag). Ha egy
+  sor ±15°-os környezetében nincs mért cella, az értéke a két legközelebbi
+  kész sor közti lineáris interpoláció. A mért tartomány két szélén a
+  másodfokú illesztés a szélső pontokra pontosan illeszkedik, ott
+  gyakorlatilag nincs simítás.
+- **Izotonikus lépés:** a TWA menti simítás által töltött cellák is részt
+  vesznek benne, a mért cella legkisebb (120 mp-es) súlyával; különben egy
+  töltött cella a soron belül csökkenést hagyhatna.
+- **Hézagtöltés a legalsó kész oszlop alatt:** a cél a D5 szerint arányos
+  (`érték × tws / tws_legalsó`), a tengelyen belül is; így a `.pol` és a
+  lookup ugyanazt a szabályt követi.
+- **A `.pol` fejléce** `TWA/TWS`, ahogy a beépített polárban; a parser a
+  kis- és nagybetűt nem különbözteti meg.
+- **Kimenet:** a `.pol` és a markdown-összesítő a felhasználó
+  munkakönyvtárába kerül; a builder nem írhatja felül a `--polar` fájlt.
+  Az assetbe a P.6 viszi, az összesítő átnézése után (felhasználói
+  döntés).
+- **Az összesítő** szezononként elszámolja az időt (érvényes, nem
+  állandósult szél, a D6 többi szűrője, polárba került), kiírja a kész
+  rácsot az értékek eredetével (mért, TWA menti simítás, TWS menti
+  töltés), a cellák mért idejét, a ±3% fölötti eltéréseket, és a régi és
+  az új polár VMG-optimumát.
+- **A közös keret:** a mentés másolása, megnyitása és törlése
+  (`withArchiveCopies`) és a gyűjtő összeállítása
+  (`archiveSampleCollector`) a riporté és a builderé is.
 
 ## Mit ír felül
 

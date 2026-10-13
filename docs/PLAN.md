@@ -222,7 +222,7 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 | P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) — `apps/web_server/bin/polar_report.dart` | 1–2 | közepes | 🗄 💻 | `[x]` `5d67489`, `9425512` |
 | P.1b | Riport-bővítés: teljesítmény menetszög és szélsáv szerint, a telefon szele 10 mp-es mediánnal, a szélcsendes 180°-os minták | 1 | közepes | 🗄 💻 | `[x]` |
 | P.2 | **Polár-ADR**: módszer, tengelyek, simítás, adatforrás, súlyozás, percentilis | 1–2 | közepes | 💻 | `[x]` ADR 0058 |
-| P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` |
+| P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` kód kész; a hangolás az első futás összesítője után |
 | P.4 | Domain: a 0 csomós horgony a `LookupTargetSpeed`-ben (ADR 0058 D5); a `.pol` formátum nem változik (D8) | 1 | közepes | 💻 | `[ ]` |
 | P.5 | **Élő STW-korrekció a telefonon**: a szerverrel azonos szorzó-konstans, csak a számolt értékekre (ADR 0058 D10) | 1–2 | közepes | 💻 📱 | `[ ]` |
 | P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[ ]` |
@@ -230,7 +230,7 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 | P.8 | Kiadás: szerver (`deploy/deploy.sh`) + legénységi APK (ADR 0053) | 0 | alacsony | 📱 | `[ ]` |
 
 **Adat és titokvédelem:** a nyers adat (YDVR, telemetria, versenyablakok) **soha
-nem kerül a repóba**. A builder kódja igen (ha a P-D1 így dönt), az adatot a
+nem kerül a repóba**. A builder kódja igen (P-D1), az adatot a
 felhasználó gépén futtatja, és csak az összesített riport jön vissza a chatbe.
 
 ### A P.1 riport tanulságai (2026-10-13)
@@ -513,7 +513,7 @@ törlés (ADR 0057).
 
 | # | Döntés | Kit blokkol | Javasolt default |
 |---|---|---|---|
-| **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **A repóban**, Dartban, tesztekkel; az adat soha |
+| **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **Eldöntve (2026-10-13):** a repóban, Dartban, tesztekkel (ADR 0058 D9); az adat soha |
 | **P-D2** | Adatforrás és súlyozás | P.2, P.3 | **Eldöntve (2026-10-13):** minden év adata, a telefonos telemetriával együtt, korrigált STW-vel; az idei adat nem kap külön súlyt |
 | **P-D3** | A „100%" jelentése | P.2 | **Eldöntve (2026-10-13):** a cellánkénti p90 marad |
 | **P-D4** | TWS-tengely és horgony | P.2, P.4 | **Eldöntve (2026-10-13):** 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (+25, ha van adat); a 0 csomós horgony a lookupban (ADR 0058 D4, D5) |
@@ -590,3 +590,4 @@ git log --oneline -10
 | 2026-09-20 | A makettek megérkeztek (7c, 9e, 10a, 11a–11d, 12a). A Blokk 1 újraírva négy körre (1a–1d), 18–26 → **32–42 szelet**. |
 | 2026-10-13 | Állapot-frissítés a webes archívum (ADR 0047–0053) és a telefonos UI v1 (ADR 0054–0057) után: a Blokk 0 és 1 lezárva, a maradék a Blokk U-ba. Új, első blokk: **P — profi polár** (az idei teljesítmény az elvárt cél; a számok mindenhol változhatnak). Új második blokk: **T — next-mark TWA predikció** (kiértékelés, audit, backtesttel választott szélmodell). Új blokk: **D — on-device tesztkörnyezet**. B2.1 és B3.3 kiváltva; a Blokk 4 rajt-tételei 🔴 R1. Az autonóm fejlesztés elengedve, marad a chates módszer. |
 | 2026-10-13 | P.1 és P.1b kész; a riport szerint 2026 a többi év sávjában van, ezért a polár minden év adatából épül (P-D2), nem csak az ideiből. P.2: ADR 0058 (sűrűbb TWS-tengely, horgony a lookupban, szűrők, simítás, repóbeli builder, élő STW-szorzó). P-D2…P-D6 eldöntve. |
+| 2026-10-13 | P.3 kódja kész: `build_polar.dart` és a pure lánc a `polar_lab`-ban (ADR 0058 „Pontosítás a kód után”); 1 kn alatt a minta kiesik; a kimenet a munkakönyvtárba megy, az assetbe a P.6 viszi. P-D1 eldöntve. A hangolás az első futás összesítője után. |
