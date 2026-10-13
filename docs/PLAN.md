@@ -222,7 +222,7 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 | P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) — `apps/web_server/bin/polar_report.dart` | 1–2 | közepes | 🗄 💻 | `[x]` `5d67489`, `9425512` |
 | P.1b | Riport-bővítés: teljesítmény menetszög és szélsáv szerint, a telefon szele 10 mp-es mediánnal, a szélcsendes 180°-os minták | 1 | közepes | 🗄 💻 | `[x]` |
 | P.2 | **Polár-ADR**: módszer, tengelyek, simítás, adatforrás, súlyozás, percentilis | 1–2 | közepes | 💻 | `[x]` ADR 0058 |
-| P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` kód kész; szűrők hangolva (AWA, beragadt szélirány, 20°); a simítás és az erős szél a következő futás után |
+| P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` kód kész; szűrők hangolva (AWA, beragadt szélirány, mély hátszeles VMG, 20°); a simítás és az erős szél a következő futás után |
 | P.4 | Domain: a 0 csomós horgony a `LookupTargetSpeed`-ben (ADR 0058 D5); a `.pol` formátum nem változik (D8) | 1 | közepes | 💻 | `[ ]` |
 | P.5 | **Élő STW-korrekció a telefonon**: a szerverrel azonos szorzó-konstans, csak a számolt értékekre (ADR 0058 D10) | 1–2 | közepes | 💻 📱 | `[ ]` |
 | P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[ ]` |
@@ -594,3 +594,4 @@ git log --oneline -10
 | 2026-10-13 | A builder első futása: a 4–16 kn-os mért cellák ±3%-on belül; a gyenge szeles hátszélben lehetetlen minták (motor vagy szélmérés) — előbb diagnosztika (számolt AWA az összesítőben). A no-go marad 25°. Hangolási kapcsolók a builderben. |
 | 2026-10-13 | A diagnosztika szerint a gyanús minták szélmérési hibák, nem motorozás; új szűrő: számolt AWA (hátszélben 20°, kreuzban 10° alatt). Az állandósult szél küszöbe 20°. |
 | 2026-10-13 | Új szűrő: beragadt szélirány-mérő (pókháló; a `|TWA|` 0° vagy 180° körül mozdulatlan ±30 mp-en), saját oszloppal az összesítőben. |
+| 2026-10-13 | Új szűrő: mély hátszélben (`|TWA|` ≥ 135°) a TWS 1,3-szeresénél nagyobb VMG kiesik; diagnosztika az összesítő 8. szakaszában. |

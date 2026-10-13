@@ -105,9 +105,10 @@ csak a polár építésekor:
   elmarad. A minták csak versenyablakból jönnek, ahol nem motoroznak, a
   szabály viszont épp a gyenge szelet vágná, amit most javítunk.
 
-A builder után a D6 bővült: az állandósult szél küszöbe 20°, és két új
-szűrő jött (számolt AWA, beragadt szélirány-mérő); lásd „A diagnosztika
-után” és „A beragadt szélirány-mérő” pontosítást.
+A builder után a D6 bővült: az állandósult szél küszöbe 20°, és három új
+szűrő jött (számolt AWA, beragadt szélirány-mérő, mély hátszeles VMG);
+lásd „A diagnosztika után”, „A beragadt szélirány-mérő” és „A mély
+hátszél VMG-korlátja” pontosítást.
 
 ### D7 — Simítás (javaslat)
 
@@ -292,6 +293,25 @@ eléri a TWS-t.
   oszlopban mutatja (a builder ehhez háromszor olvassa a mentést).
 - A két maszk közös ablak-számítása (`twaWindowExtremes`) egy helyen
   van.
+
+### A mély hátszél VMG-korlátja (P.3, 2026-10-13)
+
+A beragadt szélirány szűrője után (idén 453 perc, a 180°-os sor gyenge
+szeles ideje negyedére esett) a 140–160°-os sorokban 3–4 kn-on a nyers
+p90 még 6,8–6,9 kn volt, 5 kn-on csak 5,1–5,2; a 8 kn-os oszlop ugyanott
+6,85–6,96. Ezek nagy valószínűséggel 8 kn körüli vitorlázás mintái, ahol
+a műszer a szelet 3–4 kn-nak mérte. Az új polár emiatt 4–5 kn-ban a
+szélnél nagyobb hátszeles VMG-t adott.
+
+- **A D6 új szűrője (felhasználói döntés): mély hátszeles VMG.** Ha
+  `|TWA|` ≥ 135°, és a VMG (STW × |cos TWA|) a TWS 1,3-szeresénél
+  nagyobb, a minta kiesik (`PolarBuildRejection.downwindVmg`). Egy nem
+  sikló hajó hátszélben nem megy le gyorsabban a szélnél; a ráhagyás a
+  gyenge szeles szélmérés pontatlansága miatt kell. A küszöb a
+  `--max-downwind-vmg-ratio` kapcsolóval állítható.
+- Az összesítő 8. szakasza a mély hátszél 8 kn-ig tartó idejét mutatja a
+  VMG/TWS arány sávjaiban (< 1; 1–1,3; 1,3–1,6; ≥ 1,6), a VMG-szűrő
+  előtt; ebből ellenőrizhető a küszöb.
 
 ## Mit ír felül
 
