@@ -3,7 +3,8 @@
 ## Státusz
 
 Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
-után"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.4–P.8).
+után"), a lookup horgonya és szélső sora is (P.4, lásd „Pontosítás a
+P.4-ben"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.5–P.8).
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
@@ -338,7 +339,30 @@ szélnél nagyobb hátszeles VMG-t adott.
   között a 175°-os sor értékét adja (a hiányzó sarkokat kihagyja), így
   a VMG-keresés 175° fölött is talál célt, és gyenge szélben 179° körül
   adhat optimumot. A P.4 dönti el, hogy a lookup egy teljesen üres szélső
-  sor felé ne terjessze ki a célt.
+  sor felé ne terjessze ki a célt. Eldöntve: lásd „Pontosítás a P.4-ben".
+
+### Pontosítás a P.4-ben (2026-10-13)
+
+Felhasználói döntések; a `.pol` formátum nem változik (D8).
+
+- **A D5 horgony a `LookupTargetSpeed`-ben:** a TWS-tengely legalsó
+  oszlopa alatt `cél(első) × tws / első`, a tengely fölött a clamp
+  marad. Nincs alsó TWS-határ: 0 és az első oszlop között végig a
+  horgony adja a célt.
+- **`tws ≤ 0` → `null`:** szélcsendben (vagy hibás negatív TWS-re)
+  nincs target, a kijelző „—"; a 0-s cél a hívó élő %-ában 0-val
+  osztana.
+- **Teljesen üres szélső TWA-sor → `null` fölötte:** ha a rács végén
+  (vagy elején) csupa `null` sorok állnak, a lookup az utolsó (első)
+  kitöltött sor után `null`-t ad, így a cél nem terjed ki az üres sor
+  felé, és a VMG-keresés az utolsó kitöltött sornál (az új polárban
+  175°) megáll. A belső üres sorok nem vágják el a célt (ott marad a
+  hiányzó sarkok kihagyása), és ha a kitöltött sor maga a tengely széle,
+  a szokásos clamp érvényes. A kitöltött sorok tartományát a `Polar`
+  egyszer számolja ki (`populatedTwaRange`, nem része az egyenlőségnek).
+- A szabályok minden hívóra hatnak: web statisztikák, polár-labor
+  riportjai (a 6. szakaszban a régi polár 4 kn alatti célja is a
+  horgonyból jön), a telefon élő %-a és target-VMG-je.
 
 ## Mit ír felül
 
