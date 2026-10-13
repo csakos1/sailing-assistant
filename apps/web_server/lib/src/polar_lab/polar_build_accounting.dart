@@ -57,11 +57,13 @@ final class PolarBuildSeasonAccounting extends Equatable {
   /// maszkkal (egymás részhalmazai, mert a maszk a tüske-döntést nem
   /// változtatja). A beragadt és a nem állandósult idő a szomszédos
   /// halmazok különbsége; a többi ok a [steadySamples]-ből számol
-  /// ([PolarBuildRejection.of]).
+  /// ([PolarBuildRejection.of], a [maximumDownwindVmgRatio] küszöbbel).
   static List<PolarBuildSeasonAccounting> of({
     required Iterable<LabSample> allSamples,
     required Iterable<LabSample> unfrozenSamples,
     required Iterable<LabSample> steadySamples,
+    double maximumDownwindVmgRatio =
+        PolarBuildRejection.defaultMaximumDownwindVmgRatio,
   }) {
     final valid = _secondsBySeason(allSamples);
     final unfrozen = _secondsBySeason(unfrozenSamples);
@@ -72,7 +74,10 @@ final class PolarBuildSeasonAccounting extends Equatable {
     }
     final rejected = <int, Map<PolarBuildRejection, int>>{};
     for (final sample in steadySamples) {
-      final reason = PolarBuildRejection.of(sample);
+      final reason = PolarBuildRejection.of(
+        sample,
+        maximumDownwindVmgRatio: maximumDownwindVmgRatio,
+      );
       if (reason == null) continue;
       rejected
           .putIfAbsent(sample.season, () => <PolarBuildRejection, int>{})

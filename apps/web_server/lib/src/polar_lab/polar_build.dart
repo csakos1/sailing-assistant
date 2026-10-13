@@ -21,17 +21,19 @@ final class PolarBuild {
   /// [steadySamples] ezen felül az állandósult szél maszkjával
   /// (`steadyWindMask`); az első kettő az elszámoláshoz kell. A polár a
   /// [steadySamples] közül a [PolarBuildRejection] szűrőin átjutókból
-  /// épül.
+  /// épül; a mély hátszeles VMG küszöbe a [maximumDownwindVmgRatio].
   factory PolarBuild.of({
     required List<LabSample> allSamples,
     required List<LabSample> unfrozenSamples,
     required List<LabSample> steadySamples,
     PolarSmoothingParameters parameters = const PolarSmoothingParameters(),
+    double maximumDownwindVmgRatio =
+        PolarBuildRejection.defaultMaximumDownwindVmgRatio,
   }) {
-    final accepted = [
-      for (final sample in steadySamples)
-        if (PolarBuildRejection.of(sample) == null) sample,
-    ];
+    final accepted = _passing(steadySamples, maximumDownwindVmgRatio);
+    // A VMG-szűrő nélkül átjutó minták: a 8. szakasz ezekből mutatja,
+    // hol a küszöb.
+    final vmgCandidates = _passing(steadySamples, double.infinity);
     final axes = PolarBuildAxes.forSamples(accepted);
     final raw = RawPolarGrid.of(accepted, axes: axes);
     final smoothed = SmoothedPolarGrid.of(raw, parameters: parameters);
@@ -40,8 +42,11 @@ final class PolarBuild {
         allSamples: allSamples,
         unfrozenSamples: unfrozenSamples,
         steadySamples: steadySamples,
+        maximumDownwindVmgRatio: maximumDownwindVmgRatio,
       ),
       acceptedSamples: List.unmodifiable(accepted),
+      vmgCandidateSamples: List.unmodifiable(vmgCandidates),
+      maximumDownwindVmgRatio: maximumDownwindVmgRatio,
       strongWindSeconds: PolarBuildAxes.strongWindSecondsOf(accepted),
       parameters: parameters,
       raw: raw,
@@ -53,6 +58,8 @@ final class PolarBuild {
   const PolarBuild._({
     required this.accounting,
     required this.acceptedSamples,
+    required this.vmgCandidateSamples,
+    required this.maximumDownwindVmgRatio,
     required this.strongWindSeconds,
     required this.parameters,
     required this.raw,
@@ -65,6 +72,13 @@ final class PolarBuild {
 
   /// A polárba került minták (a szűrők után); a diagnosztikához.
   final List<LabSample> acceptedSamples;
+
+  /// A minták, amelyek a mély hátszeles VMG-szűrő nélkül a polárba
+  /// kerülnének; a diagnosztikához.
+  final List<LabSample> vmgCandidateSamples;
+
+  /// A mély hátszeles VMG és a TWS legnagyobb aránya, amellyel épült.
+  final double maximumDownwindVmgRatio;
 
   /// Az erős szeles oszlop tartományának mért ideje (másodperc); ebből dől
   /// el, hogy a 25 csomós oszlop a tengelyre kerül-e.
@@ -82,3 +96,10 @@ final class PolarBuild {
   /// A kész rács `.pol` szövege.
   final String polarText;
 }
+
+// A [PolarBuildRejection] szűrőin átjutó minták a [ratio] VMG-küszöbbel.
+List<LabSample> _passing(List<LabSample> samples, double ratio) => [
+  for (final sample in samples)
+    if (PolarBuildRejection.of(sample, maximumDownwindVmgRatio: ratio) == null)
+      sample,
+];

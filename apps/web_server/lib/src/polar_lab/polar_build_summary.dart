@@ -1,8 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:web_server/src/polar_lab/apparent_wind_section.dart';
+import 'package:web_server/src/polar_lab/deep_downwind_section.dart';
 import 'package:web_server/src/polar_lab/frozen_vane_mask.dart';
 import 'package:web_server/src/polar_lab/polar_build.dart';
-import 'package:web_server/src/polar_lab/polar_build_accounting.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
 import 'package:web_server/src/polar_lab/polar_build_rejection.dart';
 import 'package:web_server/src/polar_lab/smoothed_polar_grid.dart';
@@ -37,7 +37,7 @@ String polarBuildSummary({
       '±${_number(tolerance * 100)}%.',
     )
     ..writeln()
-    ..write(_accountingSection(build.accounting, steadyWindRangeDegrees))
+    ..write(_accountingSection(build, steadyWindRangeDegrees))
     ..write(_axisSection(build))
     ..write(_valuesSection(build))
     ..write(_minutesSection(build))
@@ -45,16 +45,20 @@ String polarBuildSummary({
     ..write(_vmgSection(build, oldPolar: oldPolar, newPolar: newPolar))
     ..write(
       apparentWindSection(build.acceptedSamples, axes: build.smoothed.axes),
+    )
+    ..write(
+      deepDownwindSection(
+        build.vmgCandidateSamples,
+        axes: build.smoothed.axes,
+        maximumRatio: build.maximumDownwindVmgRatio,
+      ),
     );
   return summary.toString();
 }
 
 const String _empty = '·';
 
-String _accountingSection(
-  List<PolarBuildSeasonAccounting> accounting,
-  double steadyWindRangeDegrees,
-) {
+String _accountingSection(PolarBuild build, double steadyWindRangeDegrees) {
   final buffer = StringBuffer()
     ..writeln('## 1. Adat szezononként (perc)')
     ..writeln()
@@ -71,16 +75,19 @@ String _accountingSection(
       'számolt AWA (kreuzban '
       '${_number(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
       'hátszélben '
-      '${_number(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt).',
+      '${_number(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt), '
+      'és mély hátszélben (`|TWA|` ≥ '
+      '${_number(PolarBuildRejection.deepDownwindTwaDegrees)}°) a TWS '
+      '${_number(build.maximumDownwindVmgRatio)}-szeresénél nagyobb VMG.',
     )
     ..writeln()
     ..writeln(
       '| Szezon | Verseny | Érvényes | Beragadt szélirány '
       '| Nem állandó szél | Vízsebesség '
-      '| Szélcsend | 1 kn alatt | No-go | AWA | Polárba |',
+      '| Szélcsend | 1 kn alatt | No-go | AWA | VMG > szél | Polárba |',
     )
-    ..writeln('|---|---|---|---|---|---|---|---|---|---|---|');
-  for (final season in accounting) {
+    ..writeln('|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (final season in build.accounting) {
     final rejected = season.rejectedSeconds;
     final cells = [
       season.season,

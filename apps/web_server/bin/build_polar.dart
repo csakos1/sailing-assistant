@@ -35,10 +35,12 @@ import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
 //     --stw-corrections <mentés>/stw-corrections.json \
 //     --work-dir <könyvtár elég hellyel> \
 //     --out-pol <új.pol> --out-summary <összesítő.md> \
-//     [--steady-range 20] [--twa-bandwidth 15] [--min-cell-seconds 120]
+//     [--steady-range 20] [--twa-bandwidth 15] [--min-cell-seconds 120] \
+//     [--max-downwind-vmg-ratio 1.3]
 //
-// A három utolsó kapcsoló a hangolásé (ADR 0058 D6, D7); az alapértékük az
-// ADR-é (a 20° az első futások után), és az összesítő kiírja, mivel futott.
+// Az utolsó négy kapcsoló a hangolásé (ADR 0058 D6, D7); az alapértékük az
+// ADR-é (az első futások után pontosítva), és az összesítő kiírja, mivel
+// futott.
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
@@ -65,6 +67,11 @@ Future<void> main(List<String> arguments) async {
       'min-cell-seconds',
       defaultsTo: '120',
       help: 'Ennyi mért idő alatt a cella nem mért (másodperc).',
+    )
+    ..addOption(
+      'max-downwind-vmg-ratio',
+      defaultsTo: '1.3',
+      help: 'Mély hátszélben a VMG és a TWS legnagyobb aránya.',
     );
 
   final _Options options;
@@ -130,6 +137,7 @@ Future<void> _build(_Options options, PolarReference reference) async {
       minimumMeasuredSeconds: options.minimumCellSeconds,
       twaBandwidthDegrees: options.twaBandwidthDegrees,
     ),
+    maximumDownwindVmgRatio: options.maximumDownwindVmgRatio,
   );
   switch (parseForetackPolar(build.polarText)) {
     case Ok(value: final newPolar):
@@ -216,6 +224,7 @@ final class _Options {
     required this.steadyRangeDegrees,
     required this.twaBandwidthDegrees,
     required this.minimumCellSeconds,
+    required this.maximumDownwindVmgRatio,
     this.correctionsPath,
   });
 
@@ -229,6 +238,7 @@ final class _Options {
     steadyRangeDegrees: _positiveNumber(results, 'steady-range'),
     twaBandwidthDegrees: _positiveNumber(results, 'twa-bandwidth'),
     minimumCellSeconds: _positiveInteger(results, 'min-cell-seconds'),
+    maximumDownwindVmgRatio: _positiveNumber(results, 'max-downwind-vmg-ratio'),
     correctionsPath: results.option('stw-corrections'),
   );
 
@@ -241,6 +251,7 @@ final class _Options {
   final double steadyRangeDegrees;
   final double twaBandwidthDegrees;
   final int minimumCellSeconds;
+  final double maximumDownwindVmgRatio;
   final String? correctionsPath;
 
   static String _required(ArgResults results, String name) {

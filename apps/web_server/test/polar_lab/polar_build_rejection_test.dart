@@ -58,8 +58,8 @@ void main() {
         rejectionOf(twaDeg: 150, twsKnots: 3, stwKnots: 6.8),
         PolarBuildRejection.apparentWind,
       );
-      // 4 kn szelben ugyanez 30.9 fok
-      expect(rejectionOf(twaDeg: 150, twsKnots: 4, stwKnots: 6.8), isNull);
+      // 5 kn szelben 5.2 kn: 70.8 fok
+      expect(rejectionOf(twaDeg: 150, twsKnots: 5, stwKnots: 5.2), isNull);
       // 180 fokon a szelnel gyorsabban: az AWA 0 fok
       expect(
         rejectionOf(twaDeg: 180, twsKnots: 3, stwKnots: 3.5),
@@ -75,6 +75,58 @@ void main() {
         rejectionOf(twaDeg: 30, twsKnots: 2, stwKnots: 6),
         PolarBuildRejection.apparentWind,
       );
+    });
+
+    test('drops a deep downwind VMG above 1.3 times the wind', () {
+      // 150 fok, 4 kn szel, 6.8 kn: AWA 30.9 fok, de VMG/TWS = 1.47
+      expect(
+        rejectionOf(twaDeg: 150, twsKnots: 4, stwKnots: 6.8),
+        PolarBuildRejection.downwindVmg,
+      );
+      // 134 fokon meg nem mely hatszel (VMG/TWS = 1.39)
+      expect(rejectionOf(twaDeg: 134, twsKnots: 3, stwKnots: 6), isNull);
+    });
+
+    test('takes the VMG ratio as a parameter', () {
+      const sample = LabSample(
+        raceId: 'r1',
+        season: 2026,
+        source: PolarSampleSource.telemetry,
+        absTwaDeg: 150,
+        twsKnots: 4,
+        stwKnots: 6.8,
+        seconds: 1,
+      );
+
+      expect(
+        PolarBuildRejection.downwindVmgRatioOf(sample),
+        closeTo(1.47, 1e-2),
+      );
+      expect(
+        PolarBuildRejection.of(sample, maximumDownwindVmgRatio: 1.5),
+        isNull,
+      );
+      expect(
+        PolarBuildRejection.of(
+          sample,
+          maximumDownwindVmgRatio: double.infinity,
+        ),
+        isNull,
+      );
+    });
+
+    test('gives no VMG ratio outside deep downwind', () {
+      const sample = LabSample(
+        raceId: 'r1',
+        season: 2026,
+        source: PolarSampleSource.telemetry,
+        absTwaDeg: 60,
+        twsKnots: 4,
+        stwKnots: 6.8,
+        seconds: 1,
+      );
+
+      expect(PolarBuildRejection.downwindVmgRatioOf(sample), 0);
     });
 
     test('names the first reason in order', () {

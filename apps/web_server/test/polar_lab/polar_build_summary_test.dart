@@ -51,9 +51,10 @@ void main() {
       expect(summary, contains('`foretack.pol (fp-1)`'));
       expect(
         summary,
-        contains('| 2026 | 1 | 33 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 33 |'),
+        contains('| 2026 | 1 | 33 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 33 |'),
       );
       expect(summary, contains('## 7. Gyanús minták: számolt AWA'));
+      expect(summary, contains('## 8. Mély hátszél: VMG a szélhez mérve'));
     });
 
     test('tells why the strong wind column is missing', () {
