@@ -1,7 +1,7 @@
 # Foretack — VISION.md
 
 > **A publikált termék hosszú távú célja (észak-csillag).**
-> Ez a dokumentum azt írja le, *milyen* alkalmazás akar lenni a Foretack, mire ér a fejlesztés végül a Google Play / App Store kiadásig és azon túl. Szándékosan **nem feladatlista** és **nem a v2**. A v2 a taktikai réteg közvetlenül v1 után (lásd `README.md` roadmap). Ez a teljes, **több-közönséges, több-platformos, sok-hardveres** termék víziója — több verzión át, fokozatosan megvalósítva.
+> Ez a dokumentum azt írja le, *milyen* alkalmazás akar lenni a Foretack, mire ér a fejlesztés végül a Google Play / App Store kiadásig és azon túl. Szándékosan **nem feladatlista** és **nem a v2**. A következő szezon operatív terve a `docs/PLAN.md`. Ez a teljes, **több-közönséges, több-platformos, sok-hardveres** termék víziója — több verzión át, fokozatosan megvalósítva.
 
 ---
 
@@ -40,7 +40,8 @@ Ez a fájl a projekt dokumentum-hierarchiájában a **legtávolabbra mutató** r
 | Dokumentum | Mire való |
 |---|---|
 | `ARCHITECTURE.md` | Hogyan épül fel az **aktuális** rendszer és a v1. Ez az implementáció észak-csillaga. |
-| `README.md` | Külső nézet: v1 funkciók + roadmap + v2 áttekintés. |
+| `README.md` | Külső nézet: mit tud ma az app, hogyan épül, futtatható és tesztelhető. |
+| `docs/PLAN.md` | Operatív terv: mit fejlesztünk legközelebb, milyen sorrendben. |
 | `docs/decisions/*.md` (ADR) | Konkrét, dátumozott építészeti döntések és indoklásuk. |
 | `docs/deferred.md` | Rövid távú, tudatosan halasztott apró munka (a most nem aktív commit témái). |
 | **`docs/VISION.md` (ez)** | A **publikált termék végállapotának** képe. Nem feladatlista, nem v2. |
@@ -154,7 +155,7 @@ Minden blokk formátuma: **Mi ez** · **Miért / kinek** · **Hatókör** · **F
 **Miért / kinek.** Ez teszi reálissá az E3-at: **új hardver = új adapter**, nem a pipeline átírása (OCP).
 **Hatókör.** `DataSource` absztrakció a `domain`-ben (pure interfész), implementációk a `data`-ban (0183/N2K/Signal K/BLE adapterek), amelyek egységes `DomainEvent` folyamot adnak. A dispatcher már most talker-agnosztikus (`GP/GN/II/SD/WI`).
 **Függőség.** —
-**Architektúra / megjegyzés.** A Signal K-ra a `README` acknowledgements is bólint — természetes irány az „open marine data" felé. Az N2K natív (nem 0183-ra konvertált) támogatás fast-packet reassembly-t és PGN-dekódolást igényel (canboat PGN-adatbázis alapján).
+**Architektúra / megjegyzés.** A Signal K természetes irány az „open marine data" felé. Az N2K natív (nem 0183-ra konvertált) támogatás fast-packet reassembly-t és PGN-dekódolást igényel (canboat PGN-adatbázis alapján).
 
 #### J21 — Kalibrációs segédek
 **Mi ez.** A bejövő műszer-adat korrekciója: szél-offset (apparent/true), dőlés (heel), leeway.
@@ -467,7 +468,7 @@ Ezek **nem funkciók**, de a kiadáshoz dönteni kell róluk, és hatnak a fejle
 **Architektúra-hatás.** Egy elnyelő (sink) absztrakció, ami kikapcsolt állapotban no-op. Sosem blokkolhatja a fő működést.
 
 #### Licenc és store-megfelelés
-- **Licenc.** Jelenleg nincs kiválasztva (a `README` szerint „all rights reserved", issue #1). Publikáláshoz dönteni kell: nyílt (pl. permissive) vs. zárt forrás — ez **kölcsönhat a monetizációval** (J24) és a felhasznált térkép-/adatforrások licencével (J12).
+- **Licenc.** A repó 2026 óta MIT licencű (`LICENSE`). Publikáláskor újra kell gondolni, hogy az app nyílt forrású maradjon-e — ez **kölcsönhat a monetizációval** (J24) és a felhasznált térkép-/adatforrások licencével (J12).
 - **Store-szabályok.** Háttér-lokáció (J7 horgony-alarm, J15), egészség/biztonság-jellegű funkciók (J9 MOB), előfizetés-kezelés (J24) mind store-policy-érzékeny — időben utánajárni.
 - **Adatforrás-licencek.** Térkép (J12/OpenSeaMap/OSM), időjárás (E15), polár-formátum — mindnek tiszta licence kell.
 
@@ -521,7 +522,7 @@ Ezeket a funkciók előtt/közben kell eldönteni; mindegyik egy-egy jövőbeli 
 - **Időjárás-szolgáltató (E15).** Melyik API? Díj/licenc? Offline cache-stratégia és -frissítés?
 - **Felhő/backend (J23).** Saját backend vs. BaaS (pl. felügyelt szolgáltatás)? Auth-megoldás? Konfliktuskezelési stratégia? Adattárolás helye (EU, GDPR)?
 - **Monetizációs modell (J24).** Egyszeri vásárlás / előfizetés / freemium? Pontosan mi ingyen, mi pro? (Biztonsági funkciók **nem** lehetnek pro mögött.)
-- **Licenc (repo).** Nyílt vs. zárt forrás (issue #1) — kölcsönhat J24-gyel és a függőségek licencével.
+- **Licenc (repo).** A repó MIT; publikáláskor: marad-e nyílt — kölcsönhat J24-gyel és a függőségek licencével.
 - **AIS mélysége (J5).** Csak megjelenítés, vagy CPA/TCPA ütközés-figyelmeztetés is?
 - **Kishajós szél (E13).** Csak GPS (nincs szél), vagy olcsó BLE szélszenzor támogatása is bekerül?
 - **N2K natívan (J16).** Megéri-e a natív NMEA 2000 (fast-packet + PGN) dekódolás, vagy elég a gateway-ek 0183-kimenete? (canboat alapú PGN-adatbázis.)
@@ -564,7 +565,7 @@ Ezeket a funkciók előtt/közben kell eldönteni; mindegyik egy-egy jövőbeli 
 ## 12. A dokumentum karbantartása
 
 - Ez egy **élő dokumentum**. Ahogy egy vízió-elem konkréttá válik, **ADR** (`docs/decisions/`) és/vagy `ARCHITECTURE.md`-frissítés rögzíti — és innen érdemes oda hivatkozni (pl. „E2 → ADR 00XX, ARCHITECTURE.md §X").
-- A `README` roadmap a *közeli* (v1/v2) képet mutatja; ez a fájl a *távolit*. A kettőnek **nem szabad ellentmondania** — ha egy v2-elem itt is szerepel, jelölve van.
+- A `docs/PLAN.md` a *közeli* (a következő szezon) képet mutatja; ez a fájl a *távolit*. A kettőnek **nem szabad ellentmondania**.
 - A kódok (`E…`, `J…`) **stabilak**: ne számozd át őket, mert az ADR-ek és beszélgetések rájuk hivatkoznak. Új ötlet új kódot kap.
 - Változásnaplót lent érdemes vezetni.
 
@@ -574,3 +575,4 @@ Ezeket a funkciók előtt/közben kell eldönteni; mindegyik egy-egy jövőbeli 
 |---|---|
 | 2026-06-01 | Kezdeti vízió: E1–E16 (eredeti ötletek) + J1–J25 (javaslatok) katalogizálva, keresztmetsző témák, nyitott kérdések, szójegyzék. |
 | 2026-06-01 | E17 hozzáadva: ütemezett, automatikus rajt-szekvencia (hands-free rajt-indítás a T−küszöbnél + óra auto-váltás dedikált rajt-nézetre és vissza). |
+| 2026-10-13 | A README-hivatkozások a mai README-hez és a `docs/PLAN.md`-hez igazítva; a licenc MIT. Az E17 tervezett rajtidő- és auto-start-része az ADR 0055-tel elkészült. |
