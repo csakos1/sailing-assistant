@@ -3585,11 +3585,12 @@ a `pubspec.yaml` nem változik; a verzálosítás a widgeté. A
 „Versenynapló", és a `FinishedRacesSheet` törlődik — a törlés a 4d utolsó
 kód-szelete, hogy a branch addig zöld maradjon.
 
-### 8.12 Telefonos UI v1: navigációs héj, Műszerek, tervezett verseny (ADR 0054–0056) — tervezett
+### 8.12 Telefonos UI v1: navigációs héj, Műszerek, tervezett verseny (ADR 0054–0056) — kész, élesítve (2026-10-12)
 
 **Állapot:** elfogadva (2026-10-10), implementálva a
 `feature/phone-ui-refresh` ágon (E1–E4, T1–T6, U1–U8, UF), az on-device
-próba rendben (R1, 2026-10-12); élesbe a merge után kerül. A
+próba rendben (R1, 2026-10-12); élesben 2026-10-12 óta (a `main`-ről,
+`528caaf`; a legénységi APK `0.3.0+3`). A
 részletek a három ADR-ben, a képernyők a `docs/design/phone-ui-v1.html`
 makettjében és a `docs/design/phone-ui-v1.md` specifikációban; ez a
 szakasz csak a szerkezetet rögzíti, és az implementáció során bővül.
@@ -5853,7 +5854,7 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     a `versionCode` kiadásonként nő; a
     `https://lola.foretack.hu/app/foretack.apk` linkről tölthető le, a
     szerver-kiadástól független könyvtárból (élesítve 2026-10-09,
-    `0.2.0+2`);
+    `0.2.0+2`; a telefonos UI-frissítés `0.3.0+3`-ként 2026-10-12);
   - nincs Docker.
 
 ### 20.6 Nem része v1-nek

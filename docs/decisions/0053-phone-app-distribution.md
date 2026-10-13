@@ -232,3 +232,13 @@ kulcs, így egy release is felmehetne rá adatvesztés nélkül, de nem kell.
 - Az appon belüli frissítés-értesítést (a telefon jelezné, ha a
   `VERSION` újabb); ha a legénység nő, külön döntés.
 - A Wear OS app terjesztését (a legénységnek nem kell).
+
+## Kiadás 0.3.0+3 (2026-10-12)
+
+- A telefonos UI-frissítés (ADR 0054–0057) kiadása a legénységnek, a
+  merge után a `main`-ről (`528caaf`), a v6-os szerver kiadása után.
+- A menet a D3–D5 szerint: verzió-emelés saját commitban (`5bf9771`,
+  `0.2.0+2` → `0.3.0+3`), utána `deploy/publish_apk.sh`; a legénység a
+  `deploy/README.md` 15.4 szerint frissít, a régi app fölé.
+- A telefonok DB-je az első indításkor v5 → v6 migrál (ADR 0055 D3); a
+  szerver a még nem frissített (v5-ös) telefonok feltöltését is fogadja.

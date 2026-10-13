@@ -3,8 +3,8 @@
 ## Státusz
 
 Elfogadva — 2026-10-12. Implementálva: a `feature/phone-ui-refresh`
-ágon; élesbe az R1-gyel kerül (a merge után, a `main`-ről, a v6-os
-szerverrel együtt).
+ágon. Élesítve: 2026-10-12, az R1-gyel, a `main`-ről (`528caaf`), a
+v6-os szerverrel együtt; a tesztverseny a weben és a telefonon törölve.
 
 A döntések egy része felhasználói döntés, más része Claude javaslata. A
 javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.

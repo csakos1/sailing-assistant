@@ -4,7 +4,8 @@
 
 Elfogadva — 2026-10-10. Implementálva: az E1–E4 kész (2026-10-10). Az
 E4 on-device próbája az R1 előtt lefutott, minden pont rendben
-(2026-10-12; lásd „On-device eredmény (R1)").
+(2026-10-12; lásd „On-device eredmény (R1)"). Élesítve: 2026-10-12, a
+`main`-ről (`528caaf`), a legénységi APK `0.3.0+3`-mal.
 
 A döntések egy része felhasználói döntés (a 2026-10-09-i kérdéskörök), más
 része Claude javaslata. A javaslatok „(javaslat)" jelzést kapnak, és a

@@ -4,8 +4,9 @@
 
 Elfogadva — 2026-10-10. Implementálva: a T1–T6 kész (2026-10-10/11); a
 T5 on-device próbája (J) rendben (2026-10-12, lásd „On-device eredmény
-(R1)"); a v6-os szerver kiadása a feature ág mergelése után, a `main`-ről,
-a telefonos kiadás előtt.
+(R1)"). Élesítve: 2026-10-12, a `main`-ről (`528caaf`): előbb a szerver
+(az archívum v5 → v6 migrált, előtte friss mentéssel), utána a legénységi
+APK `0.3.0+3`.
 
 A döntések egy része felhasználói döntés (2026-10-09 este), más része
 Claude javaslata; a javaslatok „(javaslat)" jelzést kapnak, és a hozzájuk

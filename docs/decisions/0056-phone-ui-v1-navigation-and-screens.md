@@ -4,8 +4,8 @@
 
 Elfogadva — 2026-10-10. Implementálva: az U1–U8 és az UF-javítások kész
 (2026-10-11/12); az R1 on-device próbája rendben (2026-10-12, lásd
-„Pontosítás és on-device eredmény (R1)"); a merge, a szerver és a
-legénységi APK kiadása követi.
+„Pontosítás és on-device eredmény (R1)"). Élesítve: 2026-10-12, a
+`main`-ről (`528caaf`, PR #5), a legénységi APK `0.3.0+3`-mal.
 
 A képernyők pontos képe a `docs/design/phone-ui-v1.html`, a részletes
 specifikáció (tokenek, méretek, állapotok, szövegek, a régi–új összevetés
