@@ -53,8 +53,24 @@ void main() {
       // ACT
       final smoothed = smooth(values);
 
-      // ASSERT: a 45 fokos sor kornyezeteben (+-15) nincs mert pont
-      expect(smoothed, closeToAll([4, 4, 4, 4, 5, 6, 6, 6, 6]));
+      // ASSERT: a lyuk soraiban legfeljebb egy oldalon van mert pont, ezert
+      // a 30 es a 60 fok kozti egyenes
+      expect(
+        smoothed,
+        closeToAll([4, 4, 4 + 1 / 3, 4 + 2 / 3, 5, 5 + 1 / 3, 5 + 2 / 3, 6, 6]),
+      );
+    });
+
+    test('does not extrapolate from one side into a hole', () {
+      // ARRANGE: 25-30 fok mert, 35 fokon csak bal oldali szomszed van
+      final values = [4.0, 4.5, null, null, null, 6.0];
+
+      // ACT
+      final smoothed = smooth(values);
+
+      // ASSERT: a 40 fok ket oldalrol (30, 50) illesztett; a 35 es a 45
+      // fok egy oldalu, azok a szomszedok egyenesen
+      expect(smoothed, closeToAll([4, 4.5, 4.875, 5.25, 5.625, 6]));
     });
 
     test('damps a single outlier', () {

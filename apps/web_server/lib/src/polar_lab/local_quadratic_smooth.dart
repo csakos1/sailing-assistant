@@ -13,9 +13,10 @@ import 'dart:math';
 /// `(1 − (d / bandwidth)³)³`, ahol `d` a pont távolsága; a [bandwidth]-nél
 /// nem közelebbi pont nem számít. Ha a környezetben három pontnál kevesebb
 /// van, az illesztés foka is kisebb (két pontnál egyenes, egynél az
-/// értéke). Ha egy hely környezetében nincs mért pont (a [bandwidth]-nél
-/// szélesebb lyuk), az értéke a két legközelebbi kész érték közti
-/// lineáris interpoláció.
+/// értéke). Ha egy mért pont nélküli hely környezetében nincs mért pont
+/// mindkét oldalon (a [bandwidth]-nél szélesebb lyuk, vagy a lyuk egyik
+/// széle), az értéke a két legközelebbi kész érték közti lineáris
+/// interpoláció: a polinom egy oldalról kivetítene.
 ///
 /// Pure függvény; a három lista egyforma hosszú, a [bandwidth] pozitív.
 List<double?> localQuadraticSmooth({
@@ -64,6 +65,13 @@ double? _fitAt(double position, List<_Point> measured, double bandwidth) {
       weight: point.weight * tricube,
     ));
   }
+  // Mért pont nélküli helyen csak két oldalról körülvett környezetből
+  // illesztünk: egy oldalról a polinom kivetítene, nem interpolálna.
+  final hasOwnPoint = local.any((point) => point.position == 0);
+  final hasBothSides =
+      local.any((point) => point.position < 0) &&
+      local.any((point) => point.position > 0);
+  if (!hasOwnPoint && !hasBothSides) return null;
   for (var degree = min(2, local.length - 1); degree >= 0; degree--) {
     final intercept = _polynomialIntercept(local, degree);
     if (intercept != null) return intercept;
