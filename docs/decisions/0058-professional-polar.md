@@ -105,6 +105,10 @@ csak a polár építésekor:
   elmarad. A minták csak versenyablakból jönnek, ahol nem motoroznak, a
   szabály viszont épp a gyenge szelet vágná, amit most javítunk.
 
+A builder után a D6 bővült: az állandósult szél küszöbe 20°, és két új
+szűrő jött (számolt AWA, beragadt szélirány-mérő); lásd „A diagnosztika
+után” és „A beragadt szélirány-mérő” pontosítást.
+
 ### D7 — Simítás (javaslat)
 
 1. **Nyers rács:** cellánként a p90 és a mért idő. Egy cella 120 mp
@@ -241,6 +245,53 @@ peremen és a néhány perces erős szeles cellákban van.
 - Az állandósult szél szűrője az érvényes idő kb. 45–50%-át dobja ki,
   a régi naplóból is; a régi builder ugyanezzel a szabállyal épült. A
   hatását a kapcsolóval futtatott változatok mutatják meg.
+
+### A diagnosztika után (P.3, 2026-10-13)
+
+A 12°-os és a 20°-os állandósult szél küszöbbel futtatott összesítők (a
+7. szakasszal) alapján:
+
+- **Nem motorozás, hanem szélmérés.** A számolt AWA szerinti gyanús idő
+  a hivatalos ablakos régi naplóban is megvan, minden szezonban; a
+  felhasználó szerint a rajt és a befutás között nem motoroznak. A
+  hátszeles 10° alatti AWA szinte mind 2–6 kn-os TWS-ben és a 180°-os sor
+  körül van (az STW eléri a TWS-t: a műszer hátszélben alulméri a szelet,
+  vagy szél nélkül 180°-ot ad). A 140–165°-os sorok kb. 6,8 kn-os p90-ét
+  a 15–20°-os hátszeles minták adják.
+- **A D6 új szűrője (felhasználói döntés): a számolt AWA.** Hátszélben
+  (`|TWA|` ≥ 90°) a 20° alatti, kreuzban a 10° alatti minta kiesik
+  (`PolarBuildRejection.apparentWind`), mert azzal vitorlával nem lehet
+  haladni. Kreuzban a 10–20° normális (a kreuzidő 10–15%-a, minden
+  szélerőben): a műszer TWA-ja élesebbet mér, és a számolás nem ismeri
+  a sodródást. A motor-szabály (A4) továbbra sem kell.
+- **Az állandósult szél küszöbe 20° (felhasználói döntés)** a 12° helyett.
+  A 20°-kal kb. 40%-kal több idő kerül a polárba, a 4–16 kn-os mag
+  gyakorlatilag nem változik (60°/10 kn: 8,37 → 8,40), a gyenge szeles
+  sorok simábbak. A fordulók és a halzolások (60–90°-os TWA-ugrás) így is
+  kiesnek.
+
+### A beragadt szélirány-mérő (P.3, 2026-10-13)
+
+A felhasználó szerint a szélirány-mérőt idén többször lekötötte a
+pókháló: ilyenkor a műszer nem mér, a `|TWA|` többnyire 180°-on áll,
+ritkán 0°-ra ugrik. Ez magyarázza a 180°-os sor gyenge szeles, nagy
+mért idejét (2–5 kn-on 60–190 perc, a 175°-os sorban 5–12) és az idei
+„szélcsendet". Az állandósult szél szűrője ezt állandónak látja, a
+szélcsend-szűrő csak 2 kn alatt, az AWA-szűrő csak akkor dob, ha az STW
+eléri a TWS-t.
+
+- **A D6 új szűrője (felhasználói döntés): beragadt szélirány.** A minta
+  kiesik, ha a ±30 mp-es környezetében minden érvényes `|TWA|` a 0° vagy
+  a 180° 2°-nál kisebb közelében áll (`frozenVaneMask`). A mérték a
+  közelebbi végtől mért távolság, ezért a 180° és a 0° közti ugrás nem
+  szakítja meg a beragadt szakaszt (különben ugrásonként kb. 40 mp
+  szivárogna át). Valódi hátszélben a szélirány egy perc alatt ennél
+  többet mozog.
+- A maszk az állandósult szél maszkjához hasonlóan a teljes mintasoron
+  fut, a tüske-döntés után szűr; az összesítő szezononként külön
+  oszlopban mutatja (a builder ehhez háromszor olvassa a mentést).
+- A két maszk közös ablak-számítása (`twaWindowExtremes`) egy helyen
+  van.
 
 ## Mit ír felül
 
