@@ -1,0 +1,195 @@
+import 'dart:io';
+
+import 'package:args/args.dart';
+import 'package:data/data.dart';
+import 'package:shared/shared.dart';
+import 'package:web_server/src/cli/missing_files.dart';
+import 'package:web_server/src/polar/polar_reference.dart';
+import 'package:web_server/src/polar/polar_setup.dart';
+import 'package:web_server/src/polar_lab/archive_copies.dart';
+import 'package:web_server/src/polar_lab/archive_sample_collector.dart';
+import 'package:web_server/src/polar_lab/lab_sample.dart';
+import 'package:web_server/src/polar_lab/polar_build.dart';
+import 'package:web_server/src/polar_lab/polar_build_summary.dart';
+import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
+
+// A polár-builder (docs/PLAN.md P.3, ADR 0058): a webes archívum egy
+// mentéséből minden év adatából `.pol`-t épít, és egy markdown-összesítőt
+// ír mellé. A fejlesztői gépen fut, nem a VPS-en.
+//
+// A bemenet a VPS éjszakai mentése (VACUUM INTO / .backup, egyetlen fájl,
+// -wal nélkül); élő, WAL-os adatbázist ne adj meg, mert a -wal tartalma
+// nem másolódik. A --polar a mostani polár: az STW-korrekciókkal együtt
+// töltődik (ahogy a szerveren), és az összesítő ehhez veti össze az újat.
+//
+// Csak olvas: a két SQLite-fájlt a --work-dir alá másolja, a másolatot
+// nyitja meg, és a végén törli. A kimenet a `.pol` és az összesítő; nyers
+// minta, időbélyeg, pozíció és versenynév egyikben sincs. Az új polár
+// csak az összesítő átnézése után kerül az assetbe (P.6).
+//
+//   cd apps/web_server && dart run bin/build_polar.dart \
+//     --archive <mentés>/archive.sqlite --web-db <mentés>/web.sqlite \
+//     --polar ../phone/assets/polars/foretack.pol \
+//     --stw-corrections <mentés>/stw-corrections.json \
+//     --work-dir <könyvtár elég hellyel> \
+//     --out-pol <új.pol> --out-summary <összesítő.md>
+Future<void> main(List<String> arguments) async {
+  final parser = ArgParser()
+    ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
+    ..addOption('web-db', help: 'A webes adatok SQLite-fájlja (kötelező).')
+    ..addOption('polar', help: 'A mostani `.pol` fájl (kötelező).')
+    ..addOption('stw-corrections', help: 'Az STW-korrekciók JSON-ja.')
+    ..addOption(
+      'work-dir',
+      help: 'A másolatok helye (kötelező, létező könyvtár).',
+    )
+    ..addOption('out-pol', help: 'Az új `.pol` fájl (kötelező).')
+    ..addOption('out-summary', help: 'Az összesítő fájlja (kötelező).');
+
+  final _Options options;
+  try {
+    options = _Options.parse(parser.parse(arguments));
+  } on FormatException catch (error) {
+    stderr
+      ..writeln(error.message)
+      ..writeln(parser.usage);
+    exitCode = 64;
+    return;
+  }
+
+  final missing = missingFileLines({
+    'archive': options.archivePath,
+    'web-db': options.webDbPath,
+    'polar': options.polarPath,
+    if (options.correctionsPath case final String path) 'stw-corrections': path,
+  });
+  if (!Directory(options.workDirPath).existsSync()) {
+    missing.add('--work-dir: a könyvtár nem létezik: ${options.workDirPath}');
+  }
+  if (missing.isNotEmpty) {
+    missing.forEach(stderr.writeln);
+    exitCode = 66;
+    return;
+  }
+  // A mostani polár (jellemzően az asset) nem íródhat felül: az új polár
+  // csak az összesítő átnézése után, külön commitban kerül a helyére (P.6).
+  if (_isSameFile(options.outPolPath, options.polarPath)) {
+    stderr.writeln('--out-pol: nem lehet ugyanaz, mint a --polar');
+    exitCode = 64;
+    return;
+  }
+
+  final setup = await loadPolarSetup(
+    polarPath: options.polarPath,
+    correctionsPath: options.correctionsPath,
+  );
+  switch (setup) {
+    case PolarReady(:final reference):
+      await _build(options, reference);
+    case PolarMissing(:final reason):
+      stderr.writeln(reason);
+      exitCode = 66;
+  }
+}
+
+Future<void> _build(_Options options, PolarReference reference) async {
+  final (:allSamples, :steadySamples) = await withArchiveCopies<_Samples>(
+    archivePath: options.archivePath,
+    webDbPath: options.webDbPath,
+    workDirPath: options.workDirPath,
+    tempPrefix: 'polar-build-',
+    log: stderr.writeln,
+    body: (copies) => _collect(copies, reference),
+  );
+  final build = PolarBuild.of(
+    allSamples: allSamples,
+    steadySamples: steadySamples,
+  );
+  switch (parseForetackPolar(build.polarText)) {
+    case Ok(value: final newPolar):
+      await File(options.outPolPath).writeAsString(build.polarText);
+      stderr.writeln('Polár: ${options.outPolPath}');
+      final summary = polarBuildSummary(
+        build: build,
+        oldPolar: reference.polar,
+        newPolar: newPolar,
+        oldPolarLabel:
+            '${options.polarPath.split('/').last} (${reference.fingerprint})',
+      );
+      await File(options.outSummaryPath).writeAsString(summary);
+      stderr.writeln('Összesítő: ${options.outSummaryPath}');
+    case Err(:final error):
+      // A saját kimenetünk nem olvasható vissza: programozói hiba, a fájl
+      // nem íródik ki.
+      stderr.writeln('Az új polár nem olvasható vissza: $error');
+      exitCode = 70;
+  }
+}
+
+bool _isSameFile(String path, String otherPath) =>
+    File(path).absolute.path == File(otherPath).absolute.path ||
+    (File(path).existsSync() &&
+        FileSystemEntity.identicalSync(path, otherPath));
+
+typedef _Samples = ({
+  List<LabSample> allSamples,
+  List<LabSample> steadySamples,
+});
+
+Future<_Samples> _collect(
+  ArchiveCopies copies,
+  PolarReference reference,
+) async {
+  final allSamples = await archiveSampleCollector(
+    copies,
+    corrections: reference.corrections,
+    log: stderr.writeln,
+  )();
+  stderr.writeln('Minták: ${allSamples.length}');
+  final steadySamples = await archiveSampleCollector(
+    copies,
+    corrections: reference.corrections,
+    log: stderr.writeln,
+    sampleMask: steadyWindMask,
+  )();
+  stderr.writeln('Állandósult szelű minták: ${steadySamples.length}');
+  return (allSamples: allSamples, steadySamples: steadySamples);
+}
+
+final class _Options {
+  const _Options({
+    required this.archivePath,
+    required this.webDbPath,
+    required this.polarPath,
+    required this.workDirPath,
+    required this.outPolPath,
+    required this.outSummaryPath,
+    this.correctionsPath,
+  });
+
+  factory _Options.parse(ArgResults results) => _Options(
+    archivePath: _required(results, 'archive'),
+    webDbPath: _required(results, 'web-db'),
+    polarPath: _required(results, 'polar'),
+    workDirPath: _required(results, 'work-dir'),
+    outPolPath: _required(results, 'out-pol'),
+    outSummaryPath: _required(results, 'out-summary'),
+    correctionsPath: results.option('stw-corrections'),
+  );
+
+  final String archivePath;
+  final String webDbPath;
+  final String polarPath;
+  final String workDirPath;
+  final String outPolPath;
+  final String outSummaryPath;
+  final String? correctionsPath;
+
+  static String _required(ArgResults results, String name) {
+    final value = results.option(name);
+    if (value == null || value.isEmpty) {
+      throw FormatException('--$name: kötelező');
+    }
+    return value;
+  }
+}
