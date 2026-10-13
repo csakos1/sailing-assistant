@@ -11,6 +11,7 @@ import 'package:web_server/src/polar_lab/archive_sample_collector.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/polar_build.dart';
 import 'package:web_server/src/polar_lab/polar_build_summary.dart';
+import 'package:web_server/src/polar_lab/smoothed_polar_grid.dart';
 import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
 
 // A polár-builder (docs/PLAN.md P.3, ADR 0058): a webes archívum egy
@@ -32,7 +33,11 @@ import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
 //     --polar ../phone/assets/polars/foretack.pol \
 //     --stw-corrections <mentés>/stw-corrections.json \
 //     --work-dir <könyvtár elég hellyel> \
-//     --out-pol <új.pol> --out-summary <összesítő.md>
+//     --out-pol <új.pol> --out-summary <összesítő.md> \
+//     [--steady-range 12] [--twa-bandwidth 15] [--min-cell-seconds 120]
+//
+// A három utolsó kapcsoló a hangolásé (ADR 0058 D6, D7); az alapértékük az
+// ADR kiinduló értéke, és az összesítő kiírja, mivel futott.
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
@@ -44,7 +49,22 @@ Future<void> main(List<String> arguments) async {
       help: 'A másolatok helye (kötelező, létező könyvtár).',
     )
     ..addOption('out-pol', help: 'Az új `.pol` fájl (kötelező).')
-    ..addOption('out-summary', help: 'Az összesítő fájlja (kötelező).');
+    ..addOption('out-summary', help: 'Az összesítő fájlja (kötelező).')
+    ..addOption(
+      'steady-range',
+      defaultsTo: '12',
+      help: 'Az állandósult szél küszöbe: a |TWA| terjedelme ±10 mp-en (fok).',
+    )
+    ..addOption(
+      'twa-bandwidth',
+      defaultsTo: '15',
+      help: 'A TWA menti simítás sávszélessége (±fok).',
+    )
+    ..addOption(
+      'min-cell-seconds',
+      defaultsTo: '120',
+      help: 'Ennyi mért idő alatt a cella nem mért (másodperc).',
+    );
 
   final _Options options;
   try {
@@ -99,11 +119,15 @@ Future<void> _build(_Options options, PolarReference reference) async {
     workDirPath: options.workDirPath,
     tempPrefix: 'polar-build-',
     log: stderr.writeln,
-    body: (copies) => _collect(copies, reference),
+    body: (copies) => _collect(copies, reference, options.steadyRangeDegrees),
   );
   final build = PolarBuild.of(
     allSamples: allSamples,
     steadySamples: steadySamples,
+    parameters: PolarSmoothingParameters(
+      minimumMeasuredSeconds: options.minimumCellSeconds,
+      twaBandwidthDegrees: options.twaBandwidthDegrees,
+    ),
   );
   switch (parseForetackPolar(build.polarText)) {
     case Ok(value: final newPolar):
@@ -115,6 +139,7 @@ Future<void> _build(_Options options, PolarReference reference) async {
         newPolar: newPolar,
         oldPolarLabel:
             '${options.polarPath.split('/').last} (${reference.fingerprint})',
+        steadyWindRangeDegrees: options.steadyRangeDegrees,
       );
       await File(options.outSummaryPath).writeAsString(summary);
       stderr.writeln('Összesítő: ${options.outSummaryPath}');
@@ -139,6 +164,7 @@ typedef _Samples = ({
 Future<_Samples> _collect(
   ArchiveCopies copies,
   PolarReference reference,
+  double steadyRangeDegrees,
 ) async {
   final allSamples = await archiveSampleCollector(
     copies,
@@ -150,7 +176,8 @@ Future<_Samples> _collect(
     copies,
     corrections: reference.corrections,
     log: stderr.writeln,
-    sampleMask: steadyWindMask,
+    sampleMask: (samples) =>
+        steadyWindMask(samples, maximumRangeDegrees: steadyRangeDegrees),
   )();
   stderr.writeln('Állandósult szelű minták: ${steadySamples.length}');
   return (allSamples: allSamples, steadySamples: steadySamples);
@@ -164,6 +191,9 @@ final class _Options {
     required this.workDirPath,
     required this.outPolPath,
     required this.outSummaryPath,
+    required this.steadyRangeDegrees,
+    required this.twaBandwidthDegrees,
+    required this.minimumCellSeconds,
     this.correctionsPath,
   });
 
@@ -174,6 +204,9 @@ final class _Options {
     workDirPath: _required(results, 'work-dir'),
     outPolPath: _required(results, 'out-pol'),
     outSummaryPath: _required(results, 'out-summary'),
+    steadyRangeDegrees: _positiveNumber(results, 'steady-range'),
+    twaBandwidthDegrees: _positiveNumber(results, 'twa-bandwidth'),
+    minimumCellSeconds: _positiveInteger(results, 'min-cell-seconds'),
     correctionsPath: results.option('stw-corrections'),
   );
 
@@ -183,12 +216,33 @@ final class _Options {
   final String workDirPath;
   final String outPolPath;
   final String outSummaryPath;
+  final double steadyRangeDegrees;
+  final double twaBandwidthDegrees;
+  final int minimumCellSeconds;
   final String? correctionsPath;
 
   static String _required(ArgResults results, String name) {
     final value = results.option(name);
     if (value == null || value.isEmpty) {
       throw FormatException('--$name: kötelező');
+    }
+    return value;
+  }
+
+  static double _positiveNumber(ArgResults results, String name) {
+    final text = results.option(name) ?? '';
+    final value = double.tryParse(text);
+    if (value == null || !value.isFinite || value <= 0) {
+      throw FormatException('--$name: pozitív szám kell: $text');
+    }
+    return value;
+  }
+
+  static int _positiveInteger(ArgResults results, String name) {
+    final text = results.option(name) ?? '';
+    final value = int.tryParse(text);
+    if (value == null || value <= 0) {
+      throw FormatException('--$name: pozitív egész kell: $text');
     }
     return value;
   }
