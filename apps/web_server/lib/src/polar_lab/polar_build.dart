@@ -14,14 +14,17 @@ import 'package:web_server/src/polar_lab/smoothed_polar_grid.dart';
 /// csak az IO-t végzi körülötte.
 @immutable
 final class PolarBuild {
-  /// Az építés a minták két változatából.
+  /// Az építés a minták három változatából.
   ///
-  /// Az [allSamples] a webes szűrők utáni minták (az elszámoláshoz), a
-  /// [steadySamples] ugyanez az állandósult szél szűrőjével
-  /// (`steadyWindMask`); a polár az utóbbiak közül a
-  /// [PolarBuildRejection] szűrőin átjutókból épül.
+  /// Az [allSamples] a webes szűrők utáni minták, az [unfrozenSamples]
+  /// ugyanez a beragadt szélirány maszkjával (`frozenVaneMask`), a
+  /// [steadySamples] ezen felül az állandósult szél maszkjával
+  /// (`steadyWindMask`); az első kettő az elszámoláshoz kell. A polár a
+  /// [steadySamples] közül a [PolarBuildRejection] szűrőin átjutókból
+  /// épül.
   factory PolarBuild.of({
     required List<LabSample> allSamples,
+    required List<LabSample> unfrozenSamples,
     required List<LabSample> steadySamples,
     PolarSmoothingParameters parameters = const PolarSmoothingParameters(),
   }) {
@@ -35,6 +38,7 @@ final class PolarBuild {
     return PolarBuild._(
       accounting: PolarBuildSeasonAccounting.of(
         allSamples: allSamples,
+        unfrozenSamples: unfrozenSamples,
         steadySamples: steadySamples,
       ),
       acceptedSamples: List.unmodifiable(accepted),

@@ -37,18 +37,44 @@ void main() {
         rejectionOf(twaDeg: 177.5, twsKnots: 1.99),
         PolarBuildRejection.calm,
       );
-      expect(rejectionOf(twaDeg: 177.4, twsKnots: 1.5), isNull);
-      expect(rejectionOf(twaDeg: 180, twsKnots: 2), isNull);
+      // Lassan, hogy a szamolt AWA hatszel maradjon.
+      expect(rejectionOf(twaDeg: 177.4, twsKnots: 1.5, stwKnots: 1), isNull);
+      expect(rejectionOf(twaDeg: 180, twsKnots: 2, stwKnots: 1.5), isNull);
     });
 
     test('drops the wind below one knot', () {
       expect(rejectionOf(twsKnots: 0.99), PolarBuildRejection.lightAir);
-      expect(rejectionOf(twsKnots: 1), isNull);
+      expect(rejectionOf(twsKnots: 1, stwKnots: 1), isNull);
     });
 
     test('drops the no-go rows', () {
       expect(rejectionOf(twaDeg: 22.4), PolarBuildRejection.noGo);
       expect(rejectionOf(twaDeg: 22.5), isNull);
+    });
+
+    test('drops a downwind sample with apparent wind under 20 degrees', () {
+      // 150 fok, 3 kn szel, 6.8 kn: a szamolt AWA 19.6 fok
+      expect(
+        rejectionOf(twaDeg: 150, twsKnots: 3, stwKnots: 6.8),
+        PolarBuildRejection.apparentWind,
+      );
+      // 4 kn szelben ugyanez 30.9 fok
+      expect(rejectionOf(twaDeg: 150, twsKnots: 4, stwKnots: 6.8), isNull);
+      // 180 fokon a szelnel gyorsabban: az AWA 0 fok
+      expect(
+        rejectionOf(twaDeg: 180, twsKnots: 3, stwKnots: 3.5),
+        PolarBuildRejection.apparentWind,
+      );
+    });
+
+    test('drops an upwind sample only under 10 degrees', () {
+      // 40 fok, 2 kn szel, 3.4 kn: 14.6 fok, kreuzban megengedett
+      expect(rejectionOf(twaDeg: 40, twsKnots: 2, stwKnots: 3.4), isNull);
+      // 30 fok, 2 kn szel, 6 kn: 7.4 fok
+      expect(
+        rejectionOf(twaDeg: 30, twsKnots: 2, stwKnots: 6),
+        PolarBuildRejection.apparentWind,
+      );
     });
 
     test('names the first reason in order', () {

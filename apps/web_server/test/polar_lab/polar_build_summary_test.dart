@@ -27,7 +27,11 @@ void main() {
     labSample(twsKnots: 8, stwKnots: 7),
     labSample(twsKnots: 10, stwKnots: 6),
   ];
-  final build = PolarBuild.of(allSamples: samples, steadySamples: samples);
+  final build = PolarBuild.of(
+    allSamples: samples,
+    unfrozenSamples: samples,
+    steadySamples: samples,
+  );
 
   Polar parsed(String text) => switch (parseForetackPolar(text)) {
     Ok(:final value) => value,
@@ -45,7 +49,10 @@ void main() {
     test('names the old polar and the season account', () {
       expect(summary, startsWith('# Polár-építés (ADR 0058)\n'));
       expect(summary, contains('`foretack.pol (fp-1)`'));
-      expect(summary, contains('| 2026 | 1 | 33 | 0 | 0 | 0 | 0 | 0 | 33 |'));
+      expect(
+        summary,
+        contains('| 2026 | 1 | 33 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 33 |'),
+      );
       expect(summary, contains('## 7. Gyanús minták: számolt AWA'));
     });
 
@@ -77,6 +84,7 @@ void main() {
       ];
       final strongBuild = PolarBuild.of(
         allSamples: strongSamples,
+        unfrozenSamples: strongSamples,
         steadySamples: strongSamples,
       );
 

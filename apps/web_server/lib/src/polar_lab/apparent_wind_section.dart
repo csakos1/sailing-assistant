@@ -2,16 +2,18 @@ import 'package:web_server/src/polar/polar_race.dart';
 import 'package:web_server/src/polar_lab/apparent_wind_angle.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
+import 'package:web_server/src/polar_lab/polar_build_rejection.dart';
 
 /// A polár-összesítő diagnosztikai szakasza: a polárba került minták
 /// számolt látszólagos szélszöge ([apparentWindAngleDegrees]) szerint
 /// (`docs/PLAN.md` P.3).
 ///
-/// Ennyire szemből jövő látszólagos szélben ([suspiciousBandsDegrees]
-/// legfelső határa alatt) vitorlával nem, vagy alig lehet haladni: az ilyen
-/// minta motoros szakasz vagy szélmérési hiba. A szakasz szezononként és
-/// forrásonként, valamint TWS-oszloponként mutatja az időt kreuzra
-/// (`|TWA|` < 90°) és hátszélre bontva, sávonként, és a gyanús minták
+/// A polár szűrője a lehetetlen mintákat már kidobta
+/// (`PolarBuildRejection.apparentWind`); a szakasz azt mutatja, mi maradt
+/// a [suspiciousBandsDegrees] sávjaiban: kreuzban ez normális (a műszer
+/// TWA-ja élesebbet mér, a számolás nem ismeri a sodródást). Szezononként
+/// és forrásonként, valamint TWS-oszloponként mutatja az időt kreuzra
+/// (`|TWA|` < 90°) és hátszélre bontva, sávonként, és a sávokba eső minták
 /// vízsebességének mediánját. Csak összesített számokat ír.
 ///
 /// Pure függvény.
@@ -25,11 +27,15 @@ String apparentWindSection(
     ..writeln()
     ..writeln(
       'A látszólagos szélszög a TWA-ból, a TWS-ből és a (korrigált) '
-      'STW-ből, sodródás és áramlás nélkül. $limit° alatt vitorlával nem, '
-      'vagy alig lehet haladni: ezek motoros szakaszok vagy szélmérési '
-      'hibák. Csak a polárba került minták, perc. Kreuz: `|TWA|` < 90°, '
-      'hátszél: 90° és fölötte; az utolsó oszlop a $limit° alatti minták '
-      'STW-mediánja.',
+      'STW-ből, sodródás és áramlás nélkül. A polár szűrője kreuzban '
+      '${_number(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
+      'hátszélben '
+      '${_number(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt '
+      'dob (ADR 0058 D6); a kreuz ennél nagyobb, $limit° alatti sávja '
+      'normális, mert a műszer TWA-ja élesebbet mér, és a számolás nem '
+      'ismeri a sodródást. Csak a polárba került minták, perc. Kreuz: '
+      '`|TWA|` < 90°, hátszél: 90° és fölötte; az utolsó oszlop a $limit° '
+      'alatti minták STW-mediánja.',
     )
     ..writeln()
     ..writeln('### Szezon és forrás szerint')

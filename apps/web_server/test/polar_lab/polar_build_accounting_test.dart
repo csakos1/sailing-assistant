@@ -24,11 +24,17 @@ void main() {
 
   group('PolarBuildSeasonAccounting.of', () {
     test('accounts for every second by season and reason', () {
-      // ARRANGE: 2025-ben 45 mp nem allando szel, 2026-ban nincs ilyen
+      // ARRANGE: 2025-ben 10 mp beragadt szelirany es 35 mp nem allando
+      // szel, 2026-ban egyik sincs
       final accounting = PolarBuildSeasonAccounting.of(
         allSamples: [
           labSample(season: 2026, raceId: 'c', seconds: 53),
           labSample(season: 2025, raceId: 'a', seconds: 100),
+          labSample(season: 2025, raceId: 'b', seconds: 20),
+        ],
+        unfrozenSamples: [
+          labSample(season: 2026, raceId: 'c', seconds: 53),
+          labSample(season: 2025, raceId: 'a', seconds: 90),
           labSample(season: 2025, raceId: 'b', seconds: 20),
         ],
         steadySamples: [
@@ -52,7 +58,8 @@ void main() {
           season: 2025,
           raceCount: 2,
           validSeconds: 120,
-          unsteadySeconds: 45,
+          frozenSeconds: 10,
+          unsteadySeconds: 35,
           rejectedSeconds: {
             PolarBuildRejection.calm: 10,
             PolarBuildRejection.waterSpeed: 5,
@@ -63,6 +70,7 @@ void main() {
           season: 2026,
           raceCount: 1,
           validSeconds: 53,
+          frozenSeconds: 0,
           unsteadySeconds: 0,
           rejectedSeconds: {PolarBuildRejection.noGo: 3},
           usedSeconds: 50,
@@ -72,7 +80,11 @@ void main() {
 
     test('gives nothing without samples', () {
       expect(
-        PolarBuildSeasonAccounting.of(allSamples: [], steadySamples: []),
+        PolarBuildSeasonAccounting.of(
+          allSamples: [],
+          unfrozenSamples: [],
+          steadySamples: [],
+        ),
         isEmpty,
       );
     });

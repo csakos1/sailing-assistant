@@ -22,21 +22,21 @@ void main() {
   group('steadyWindMask', () {
     test('keeps a steady wind', () {
       final mask = steadyWindMask(
-        everySecond([60, 62, 71.9, 65, 60]),
+        everySecond([60, 62, 79.9, 65, 60]),
         halfWindowSeconds: 1,
       );
 
       expect(mask, [true, true, true, true, true]);
     });
 
-    test('drops every sample whose window spans twelve degrees', () {
-      // ARRANGE: egy 72 fokos minta a 60 fokos szelben
-      final samples = everySecond([60, 60, 72, 60, 60]);
+    test('drops every sample whose window spans twenty degrees', () {
+      // ARRANGE: egy 80 fokos minta a 60 fokos szelben
+      final samples = everySecond([60, 60, 80, 60, 60]);
 
       // ACT
       final mask = steadyWindMask(samples, halfWindowSeconds: 1);
 
-      // ASSERT: az 1-3. masodperc ablakaban benne van a 72 fok
+      // ASSERT: az 1-3. masodperc ablakaban benne van a 80 fok
       expect(mask, [true, false, false, false, true]);
     });
 

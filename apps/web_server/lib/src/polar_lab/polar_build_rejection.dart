@@ -1,11 +1,13 @@
+import 'package:web_server/src/polar_lab/apparent_wind_angle.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
 
 /// Miért nem kerül egy minta az épülő polárba (ADR 0058 D6).
 ///
 /// Ezek csak a polár építésekor szűrnek, a webes szűrők (érvényes érték,
-/// TWS-tüske) után. Az állandósult szél szűrője a mintasoron fut
-/// (`steadyWindMask`), mert a szomszédos mintákat nézi.
+/// TWS-tüske) után. A beragadt szélirány és az állandósult szél szűrője a
+/// mintasoron fut (`frozenVaneMask`, `steadyWindMask`), mert a szomszédos
+/// mintákat nézi.
 enum PolarBuildRejection {
   /// A vízsebesség a ([minimumStwKnots], [maximumStwKnots]) tartományon
   /// kívül van (ADR 0028 Addendum 1 A4).
@@ -18,7 +20,14 @@ enum PolarBuildRejection {
   lightAir,
 
   /// A `|TWA|` a no-go zóna soraiba esik.
-  noGo
+  noGo,
+
+  /// A számolt látszólagos szélszög ([apparentWindAngleDegrees]) olyan
+  /// kicsi, hogy vitorlával nem lehet haladni: kreuzban a
+  /// [minimumUpwindAwaDegrees], hátszélben a [minimumDownwindAwaDegrees]
+  /// alatt. Gyenge szeles hátszélben ez a szélmérés hibája (a TWS
+  /// alulmért, vagy a műszer szél nélkül 180°-ot ad).
+  apparentWind
   ;
 
   /// A legkisebb elfogadott vízsebesség (kizárólagos), csomóban.
@@ -32,6 +41,14 @@ enum PolarBuildRejection {
 
   /// A szélcsend TWS-küszöbe csomóban (ez alatt).
   static const double calmTwsKnots = 2;
+
+  /// A kreuz (`|TWA|` < 90°) legkisebb számolt AWA-ja fokban. Kreuzban a
+  /// 10–20° normális: a műszer TWA-ja élesebbet mér, és a számolás nem
+  /// ismeri a sodródást.
+  static const double minimumUpwindAwaDegrees = 10;
+
+  /// A hátszél (`|TWA|` ≥ 90°) legkisebb számolt AWA-ja fokban.
+  static const double minimumDownwindAwaDegrees = 20;
 
   /// A [sample] kiesésének oka, vagy `null`, ha a minta a polárba kerül.
   /// Több ok esetén a felsorolás sorrendjében az első.
@@ -48,6 +65,18 @@ enum PolarBuildRejection {
         PolarBuildAxes.firstSailingTwaRow) {
       return noGo;
     }
+    if (_isApparentWindTooFine(sample)) return apparentWind;
     return null;
+  }
+
+  static bool _isApparentWindTooFine(LabSample sample) {
+    final awa = apparentWindAngleDegrees(
+      absTwaDeg: sample.absTwaDeg,
+      twsKnots: sample.twsKnots,
+      stwKnots: sample.stwKnots,
+    );
+    return sample.absTwaDeg < 90
+        ? awa < minimumUpwindAwaDegrees
+        : awa < minimumDownwindAwaDegrees;
   }
 }

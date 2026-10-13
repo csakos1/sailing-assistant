@@ -8,6 +8,7 @@ import 'package:web_server/src/polar/polar_reference.dart';
 import 'package:web_server/src/polar/polar_setup.dart';
 import 'package:web_server/src/polar_lab/archive_copies.dart';
 import 'package:web_server/src/polar_lab/archive_sample_collector.dart';
+import 'package:web_server/src/polar_lab/frozen_vane_mask.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
 import 'package:web_server/src/polar_lab/polar_build.dart';
 import 'package:web_server/src/polar_lab/polar_build_summary.dart';
@@ -34,10 +35,10 @@ import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
 //     --stw-corrections <mentés>/stw-corrections.json \
 //     --work-dir <könyvtár elég hellyel> \
 //     --out-pol <új.pol> --out-summary <összesítő.md> \
-//     [--steady-range 12] [--twa-bandwidth 15] [--min-cell-seconds 120]
+//     [--steady-range 20] [--twa-bandwidth 15] [--min-cell-seconds 120]
 //
 // A három utolsó kapcsoló a hangolásé (ADR 0058 D6, D7); az alapértékük az
-// ADR kiinduló értéke, és az összesítő kiírja, mivel futott.
+// ADR-é (a 20° az első futások után), és az összesítő kiírja, mivel futott.
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption('archive', help: 'Az archívum SQLite-fájlja (kötelező).')
@@ -52,7 +53,7 @@ Future<void> main(List<String> arguments) async {
     ..addOption('out-summary', help: 'Az összesítő fájlja (kötelező).')
     ..addOption(
       'steady-range',
-      defaultsTo: '12',
+      defaultsTo: '20',
       help: 'Az állandósult szél küszöbe: a |TWA| terjedelme ±10 mp-en (fok).',
     )
     ..addOption(
@@ -113,7 +114,7 @@ Future<void> main(List<String> arguments) async {
 }
 
 Future<void> _build(_Options options, PolarReference reference) async {
-  final (:allSamples, :steadySamples) = await withArchiveCopies<_Samples>(
+  final samples = await withArchiveCopies<_Samples>(
     archivePath: options.archivePath,
     webDbPath: options.webDbPath,
     workDirPath: options.workDirPath,
@@ -122,8 +123,9 @@ Future<void> _build(_Options options, PolarReference reference) async {
     body: (copies) => _collect(copies, reference, options.steadyRangeDegrees),
   );
   final build = PolarBuild.of(
-    allSamples: allSamples,
-    steadySamples: steadySamples,
+    allSamples: samples.allSamples,
+    unfrozenSamples: samples.unfrozenSamples,
+    steadySamples: samples.steadySamples,
     parameters: PolarSmoothingParameters(
       minimumMeasuredSeconds: options.minimumCellSeconds,
       twaBandwidthDegrees: options.twaBandwidthDegrees,
@@ -158,6 +160,7 @@ bool _isSameFile(String path, String otherPath) =>
 
 typedef _Samples = ({
   List<LabSample> allSamples,
+  List<LabSample> unfrozenSamples,
   List<LabSample> steadySamples,
 });
 
@@ -172,16 +175,35 @@ Future<_Samples> _collect(
     log: stderr.writeln,
   )();
   stderr.writeln('Minták: ${allSamples.length}');
+  final unfrozenSamples = await archiveSampleCollector(
+    copies,
+    corrections: reference.corrections,
+    log: stderr.writeln,
+    sampleMask: frozenVaneMask,
+  )();
+  stderr.writeln('Működő szélirány-mérő: ${unfrozenSamples.length}');
   final steadySamples = await archiveSampleCollector(
     copies,
     corrections: reference.corrections,
     log: stderr.writeln,
-    sampleMask: (samples) =>
-        steadyWindMask(samples, maximumRangeDegrees: steadyRangeDegrees),
+    sampleMask: (samples) => _bothMasks(
+      frozenVaneMask(samples),
+      steadyWindMask(samples, maximumRangeDegrees: steadyRangeDegrees),
+    ),
   )();
   stderr.writeln('Állandósult szelű minták: ${steadySamples.length}');
-  return (allSamples: allSamples, steadySamples: steadySamples);
+  return (
+    allSamples: allSamples,
+    unfrozenSamples: unfrozenSamples,
+    steadySamples: steadySamples,
+  );
 }
+
+// Két egyforma hosszú maszk metszete: csak az marad, amit mindkettő tart.
+List<bool> _bothMasks(List<bool> first, List<bool> second) => [
+  for (var index = 0; index < first.length; index++)
+    first[index] && second[index],
+];
 
 final class _Options {
   const _Options({

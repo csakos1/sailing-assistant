@@ -1,5 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:web_server/src/polar_lab/apparent_wind_section.dart';
+import 'package:web_server/src/polar_lab/frozen_vane_mask.dart';
 import 'package:web_server/src/polar_lab/polar_build.dart';
 import 'package:web_server/src/polar_lab/polar_build_accounting.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
@@ -23,7 +24,7 @@ String polarBuildSummary({
   required Polar newPolar,
   required String oldPolarLabel,
   double tolerance = 0.03,
-  double steadyWindRangeDegrees = 12,
+  double steadyWindRangeDegrees = 20,
 }) {
   final parameters = build.parameters;
   final summary = StringBuffer()
@@ -59,23 +60,33 @@ String _accountingSection(
     ..writeln()
     ..writeln(
       'Érvényes: a webes szűrők után. Utána a polár szűrői (ADR 0058 D6): '
+      'beragadt szélirány-mérő (±$frozenVaneHalfWindowSeconds mp-en minden '
+      '`|TWA|` a 0° vagy a 180° '
+      '${_number(frozenVaneMaximumOffsetDegrees)}°-nál kisebb közelében '
+      'áll), '
       'nem állandósult szél (±10 mp-en a `|TWA|` terjedelme ≥ '
       '${_number(steadyWindRangeDegrees)}°), '
       'vízsebesség (0,3 kn vagy kevesebb, 12 kn vagy több), szélcsend '
-      '(`|TWA|` ≥ 177,5° és TWS < 2 kn), 1 kn alatti szél, no-go.',
+      '(`|TWA|` ≥ 177,5° és TWS < 2 kn), 1 kn alatti szél, no-go, és a '
+      'számolt AWA (kreuzban '
+      '${_number(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
+      'hátszélben '
+      '${_number(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt).',
     )
     ..writeln()
     ..writeln(
-      '| Szezon | Verseny | Érvényes | Nem állandó szél | Vízsebesség '
-      '| Szélcsend | 1 kn alatt | No-go | Polárba |',
+      '| Szezon | Verseny | Érvényes | Beragadt szélirány '
+      '| Nem állandó szél | Vízsebesség '
+      '| Szélcsend | 1 kn alatt | No-go | AWA | Polárba |',
     )
-    ..writeln('|---|---|---|---|---|---|---|---|---|');
+    ..writeln('|---|---|---|---|---|---|---|---|---|---|---|');
   for (final season in accounting) {
     final rejected = season.rejectedSeconds;
     final cells = [
       season.season,
       season.raceCount,
       _minutes(season.validSeconds),
+      _minutes(season.frozenSeconds),
       _minutes(season.unsteadySeconds),
       for (final reason in PolarBuildRejection.values)
         _minutes(rejected[reason] ?? 0),

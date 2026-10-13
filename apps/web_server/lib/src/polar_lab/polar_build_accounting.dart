@@ -12,6 +12,7 @@ final class PolarBuildSeasonAccounting extends Equatable {
     required this.season,
     required this.raceCount,
     required this.validSeconds,
+    required this.frozenSeconds,
     required this.unsteadySeconds,
     required this.rejectedSeconds,
     required this.usedSeconds,
@@ -25,6 +26,9 @@ final class PolarBuildSeasonAccounting extends Equatable {
 
   /// Az érvényes minták ideje (a webes szűrők után).
   final int validSeconds;
+
+  /// A beragadt szélirány-mérő miatt kiesett idő.
+  final int frozenSeconds;
 
   /// A nem állandósult szél miatt kiesett idő.
   final int unsteadySeconds;
@@ -40,6 +44,7 @@ final class PolarBuildSeasonAccounting extends Equatable {
     season,
     raceCount,
     validSeconds,
+    frozenSeconds,
     unsteadySeconds,
     rejectedSeconds,
     usedSeconds,
@@ -47,33 +52,26 @@ final class PolarBuildSeasonAccounting extends Equatable {
 
   /// Szezononkénti elszámolás növekvő évsorrendben.
   ///
-  /// Az [allSamples] a webes szűrők utáni minták, a [steadySamples] ugyanez
-  /// az állandósult szél maszkjával (annak részhalmaza, mert a maszk a
-  /// tüske-döntést nem változtatja). A nem állandósult idő a kettő
-  /// különbsége; a többi ok a [steadySamples]-ből számol
+  /// Az [allSamples] a webes szűrők utáni minták, az [unfrozenSamples]
+  /// ugyanez a beragadt szélirány maszkjával, a [steadySamples] mindkét
+  /// maszkkal (egymás részhalmazai, mert a maszk a tüske-döntést nem
+  /// változtatja). A beragadt és a nem állandósult idő a szomszédos
+  /// halmazok különbsége; a többi ok a [steadySamples]-ből számol
   /// ([PolarBuildRejection.of]).
   static List<PolarBuildSeasonAccounting> of({
     required Iterable<LabSample> allSamples,
+    required Iterable<LabSample> unfrozenSamples,
     required Iterable<LabSample> steadySamples,
   }) {
-    final valid = <int, int>{};
+    final valid = _secondsBySeason(allSamples);
+    final unfrozen = _secondsBySeason(unfrozenSamples);
+    final steady = _secondsBySeason(steadySamples);
     final races = <int, Set<String>>{};
     for (final sample in allSamples) {
-      valid.update(
-        sample.season,
-        (seconds) => seconds + sample.seconds,
-        ifAbsent: () => sample.seconds,
-      );
       races.putIfAbsent(sample.season, () => <String>{}).add(sample.raceId);
     }
-    final steady = <int, int>{};
     final rejected = <int, Map<PolarBuildRejection, int>>{};
     for (final sample in steadySamples) {
-      steady.update(
-        sample.season,
-        (seconds) => seconds + sample.seconds,
-        ifAbsent: () => sample.seconds,
-      );
       final reason = PolarBuildRejection.of(sample);
       if (reason == null) continue;
       rejected
@@ -91,6 +89,7 @@ final class PolarBuildSeasonAccounting extends Equatable {
           season: season,
           raceCount: races[season]?.length ?? 0,
           validSeconds: valid[season] ?? 0,
+          unfrozenSeconds: unfrozen[season] ?? 0,
           steadySeconds: steady[season] ?? 0,
           rejectedSeconds: rejected[season] ?? const {},
         ),
@@ -98,10 +97,23 @@ final class PolarBuildSeasonAccounting extends Equatable {
   }
 }
 
+Map<int, int> _secondsBySeason(Iterable<LabSample> samples) {
+  final seconds = <int, int>{};
+  for (final sample in samples) {
+    seconds.update(
+      sample.season,
+      (sum) => sum + sample.seconds,
+      ifAbsent: () => sample.seconds,
+    );
+  }
+  return seconds;
+}
+
 PolarBuildSeasonAccounting _seasonOf({
   required int season,
   required int raceCount,
   required int validSeconds,
+  required int unfrozenSeconds,
   required int steadySeconds,
   required Map<PolarBuildRejection, int> rejectedSeconds,
 }) {
@@ -113,7 +125,8 @@ PolarBuildSeasonAccounting _seasonOf({
     season: season,
     raceCount: raceCount,
     validSeconds: validSeconds,
-    unsteadySeconds: validSeconds - steadySeconds,
+    frozenSeconds: validSeconds - unfrozenSeconds,
+    unsteadySeconds: unfrozenSeconds - steadySeconds,
     rejectedSeconds: Map.unmodifiable(rejectedSeconds),
     usedSeconds: steadySeconds - rejectedTotal,
   );

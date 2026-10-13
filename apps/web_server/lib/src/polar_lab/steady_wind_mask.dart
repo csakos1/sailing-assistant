@@ -21,7 +21,7 @@ import 'package:web_server/src/polar_lab/twa_window_extremes.dart';
 List<bool> steadyWindMask(
   List<PolarSample> samples, {
   int halfWindowSeconds = 10,
-  double maximumRangeDegrees = 12,
+  double maximumRangeDegrees = 20,
 }) {
   final extremes = twaWindowExtremes(
     samples,
