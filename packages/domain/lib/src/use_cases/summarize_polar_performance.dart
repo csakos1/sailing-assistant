@@ -1,5 +1,5 @@
-import 'package:domain/src/_internal/centered_rolling_median.dart';
 import 'package:domain/src/entities/polar.dart';
+import 'package:domain/src/use_cases/flag_tws_spikes.dart';
 import 'package:domain/src/use_cases/lookup_target_speed.dart';
 import 'package:domain/src/value_objects/polar_bucket.dart';
 import 'package:domain/src/value_objects/polar_performance.dart';
@@ -31,6 +31,8 @@ class SummarizePolarPerformance {
 
   final LookupTargetSpeed _lookupTargetSpeed;
 
+  static const _flagTwsSpikes = FlagTwsSpikes();
+
   /// A [samples] teljesítménye a [polar]-hoz mérve, a [stwCorrections]
   /// szorzóival korrigált STW-vel.
   PolarPerformance call({
@@ -38,7 +40,7 @@ class SummarizePolarPerformance {
     required Polar polar,
     required List<StwCorrection> stwCorrections,
   }) {
-    final spikes = _spikeFlags(samples);
+    final spikes = _flagTwsSpikes(samples);
     final accumulator = _Accumulator();
     for (final (index, sample) in samples.indexed) {
       final pct = spikes[index]
@@ -74,30 +76,6 @@ class SummarizePolarPerformance {
     if (target == null || target <= 0) return null;
     final correctedStw = correctStw(stw, sample.timestamp, corrections);
     return 100 * _knotsOf(correctedStw) / target;
-  }
-
-  // Mintánként: tüske-e a TWS-e (T3). A TWS nélküli minta nem tüske; azt
-  // a D7 hiányzó-adat feltétele zárja ki.
-  List<bool> _spikeFlags(List<PolarSample> samples) {
-    final indices = <int>[];
-    final speeds = <double>[];
-    for (final (index, sample) in samples.indexed) {
-      final tws = sample.twsMps;
-      if (tws != null && _isValidSpeed(tws)) {
-        indices.add(index);
-        speeds.add(_knotsOf(tws));
-      }
-    }
-    final medians = centeredRollingMedians(
-      speeds,
-      windowSize: PolarPerformanceRules.spikeWindowSize,
-    );
-    final flags = List.filled(samples.length, false);
-    for (final (position, index) in indices.indexed) {
-      final deviation = (speeds[position] - medians[position]).abs();
-      flags[index] = deviation > PolarPerformanceRules.spikeThresholdKnots;
-    }
-    return flags;
   }
 
   static bool _isValidSpeed(double metersPerSecond) =>

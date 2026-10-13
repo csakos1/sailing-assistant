@@ -55,6 +55,7 @@ export 'src/use_cases/derive_true_wind_direction.dart';
 export 'src/use_cases/estimate_prediction_confidence.dart';
 export 'src/use_cases/evaluate_depth_alert.dart';
 export 'src/use_cases/evaluate_warnings.dart';
+export 'src/use_cases/flag_tws_spikes.dart';
 export 'src/use_cases/is_race_resumable.dart';
 export 'src/use_cases/lookup_target_speed.dart';
 export 'src/use_cases/lookup_target_vmg.dart';
