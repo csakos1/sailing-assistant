@@ -23,12 +23,13 @@ enum PolarCellOrigin {
   empty,
 }
 
-/// A simítás paraméterei (ADR 0058 D7); a kiinduló értékek az ADR-éi.
+/// A simítás paraméterei (ADR 0058 D7); az alapértékek az ADR szerintiek
+/// (a mért cella ideje „A lezárás előtt” pontosítás szerint).
 @immutable
 final class PolarSmoothingParameters extends Equatable {
-  /// Paraméterek az ADR kiinduló értékeivel, vagy a megadottakkal.
+  /// Paraméterek az ADR szerinti alapértékekkel, vagy a megadottakkal.
   const PolarSmoothingParameters({
-    this.minimumMeasuredSeconds = 120,
+    this.minimumMeasuredSeconds = 300,
     this.twaBandwidthDegrees = 15,
   });
 

@@ -35,7 +35,7 @@ import 'package:web_server/src/polar_lab/steady_wind_mask.dart';
 //     --stw-corrections <mentés>/stw-corrections.json \
 //     --work-dir <könyvtár elég hellyel> \
 //     --out-pol <új.pol> --out-summary <összesítő.md> \
-//     [--steady-range 20] [--twa-bandwidth 15] [--min-cell-seconds 120] \
+//     [--steady-range 20] [--twa-bandwidth 15] [--min-cell-seconds 300] \
 //     [--max-downwind-vmg-ratio 1.3]
 //
 // Az utolsó négy kapcsoló a hangolásé (ADR 0058 D6, D7); az alapértékük az
@@ -65,7 +65,7 @@ Future<void> main(List<String> arguments) async {
     )
     ..addOption(
       'min-cell-seconds',
-      defaultsTo: '120',
+      defaultsTo: '300',
       help: 'Ennyi mért idő alatt a cella nem mért (másodperc).',
     )
     ..addOption(

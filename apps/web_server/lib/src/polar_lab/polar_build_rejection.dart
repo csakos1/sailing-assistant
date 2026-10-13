@@ -24,6 +24,11 @@ enum PolarBuildRejection {
   /// A `|TWA|` a no-go zóna soraiba esik.
   noGo,
 
+  /// A `|TWA|` a 180°-os sorba esik ([deadDownwindTwaDegrees]-tól felfelé).
+  /// Aszimmetrikus spinnakerrel nem mennek egyenesen hátszélben; ott a
+  /// minták többnyire a beragadt szélirány-mérő maradékai.
+  deadDownwind,
+
   /// A számolt látszólagos szélszög ([apparentWindAngleDegrees]) olyan
   /// kicsi, hogy vitorlával nem lehet haladni: kreuzban a
   /// [minimumUpwindAwaDegrees], hátszélben a [minimumDownwindAwaDegrees]
@@ -51,6 +56,10 @@ enum PolarBuildRejection {
 
   /// A szélcsend TWS-küszöbe csomóban (ez alatt).
   static const double calmTwsKnots = 2;
+
+  /// Az egyenes hátszél `|TWA|`-küszöbe fokban (ettől felfelé): a 180°-os
+  /// sor alsó határa.
+  static const double deadDownwindTwaDegrees = 177.5;
 
   /// A kreuz (`|TWA|` < 90°) legkisebb számolt AWA-ja fokban. Kreuzban a
   /// 10–20° normális: a műszer TWA-ja élesebbet mér, és a számolás nem
@@ -87,6 +96,7 @@ enum PolarBuildRejection {
         PolarBuildAxes.firstSailingTwaRow) {
       return noGo;
     }
+    if (sample.absTwaDeg >= deadDownwindTwaDegrees) return deadDownwind;
     if (_isApparentWindTooFine(sample)) return apparentWind;
     if (downwindVmgRatioOf(sample) > maximumDownwindVmgRatio) {
       return downwindVmg;

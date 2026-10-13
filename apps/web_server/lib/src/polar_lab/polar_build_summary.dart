@@ -71,7 +71,9 @@ String _accountingSection(PolarBuild build, double steadyWindRangeDegrees) {
       'nem állandósult szél (±10 mp-en a `|TWA|` terjedelme ≥ '
       '${_number(steadyWindRangeDegrees)}°), '
       'vízsebesség (0,3 kn vagy kevesebb, 12 kn vagy több), szélcsend '
-      '(`|TWA|` ≥ 177,5° és TWS < 2 kn), 1 kn alatti szél, no-go, és a '
+      '(`|TWA|` ≥ 177,5° és TWS < 2 kn), 1 kn alatti szél, no-go, a '
+      '180°-os sor (`|TWA|` ≥ 177,5°; aszimmetrikus spinnakerrel nem '
+      'mennek egyenesen hátszélben), a '
       'számolt AWA (kreuzban '
       '${_number(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
       'hátszélben '
@@ -84,9 +86,10 @@ String _accountingSection(PolarBuild build, double steadyWindRangeDegrees) {
     ..writeln(
       '| Szezon | Verseny | Érvényes | Beragadt szélirány '
       '| Nem állandó szél | Vízsebesség '
-      '| Szélcsend | 1 kn alatt | No-go | AWA | VMG > szél | Polárba |',
+      '| Szélcsend | 1 kn alatt | No-go | 180° | AWA | VMG > szél '
+      '| Polárba |',
     )
-    ..writeln('|---|---|---|---|---|---|---|---|---|---|---|---|');
+    ..writeln('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (final season in build.accounting) {
     final rejected = season.rejectedSeconds;
     final cells = [

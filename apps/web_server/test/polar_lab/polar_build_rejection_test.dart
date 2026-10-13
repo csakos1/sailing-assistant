@@ -39,7 +39,10 @@ void main() {
       );
       // Lassan, hogy a szamolt AWA hatszel maradjon.
       expect(rejectionOf(twaDeg: 177.4, twsKnots: 1.5, stwKnots: 1), isNull);
-      expect(rejectionOf(twaDeg: 180, twsKnots: 2, stwKnots: 1.5), isNull);
+      expect(
+        rejectionOf(twaDeg: 177.5, twsKnots: 2, stwKnots: 1.5),
+        PolarBuildRejection.deadDownwind,
+      );
     });
 
     test('drops the wind below one knot', () {
@@ -60,9 +63,9 @@ void main() {
       );
       // 5 kn szelben 5.2 kn: 70.8 fok
       expect(rejectionOf(twaDeg: 150, twsKnots: 5, stwKnots: 5.2), isNull);
-      // 180 fokon a szelnel gyorsabban: az AWA 0 fok
+      // 175 fokon a szelnel gyorsabban: az AWA 9.8 fok
       expect(
-        rejectionOf(twaDeg: 180, twsKnots: 3, stwKnots: 3.5),
+        rejectionOf(twaDeg: 175, twsKnots: 3, stwKnots: 4.5),
         PolarBuildRejection.apparentWind,
       );
     });
@@ -75,6 +78,14 @@ void main() {
         rejectionOf(twaDeg: 30, twsKnots: 2, stwKnots: 6),
         PolarBuildRejection.apparentWind,
       );
+    });
+
+    test('drops the 180 degree row', () {
+      expect(
+        rejectionOf(twaDeg: 180, stwKnots: 7),
+        PolarBuildRejection.deadDownwind,
+      );
+      expect(rejectionOf(twaDeg: 177.4, stwKnots: 7), isNull);
     });
 
     test('drops a deep downwind VMG above 1.3 times the wind', () {

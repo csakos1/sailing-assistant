@@ -42,7 +42,7 @@ void main() {
       // ARRANGE: a 10 kn-os oszlop 40-60 fokig mert, 6 kn
       final grid = smoothedOf([
         for (final twaDeg in <double>[40, 45, 50, 55, 60])
-          labSample(twaDeg: twaDeg, seconds: 200),
+          labSample(twaDeg: twaDeg, seconds: 400),
       ]);
 
       // ASSERT: mert cella, horgony alul, tartas felul, ures mashol
@@ -59,21 +59,21 @@ void main() {
 
     test('smooths over a cell with too little time', () {
       final samples = [
-        labSample(twaDeg: 40, seconds: 200),
-        labSample(twaDeg: 45, seconds: 100, stwKnots: 9),
-        labSample(twaDeg: 50, seconds: 200),
+        labSample(twaDeg: 40, seconds: 400),
+        labSample(twaDeg: 45, seconds: 200, stwKnots: 9),
+        labSample(twaDeg: 50, seconds: 400),
       ];
 
       final strict = smoothedOf(samples);
       final loose = smoothedOf(
         samples,
-        parameters: const PolarSmoothingParameters(minimumMeasuredSeconds: 100),
+        parameters: const PolarSmoothingParameters(minimumMeasuredSeconds: 200),
       );
 
-      // 120 mp alatt a 45 fokos cella nem mert: a ket szomszed egyenese.
+      // 300 mp alatt a 45 fokos cella nem mert: a ket szomszed egyenese.
       expect(strict.valueAt(9, tenKnots), closeTo(6, 1e-9));
       expect(strict.originAt(9, tenKnots), PolarCellOrigin.smoothedAlongTwa);
-      // 100 mp-tol mert, es harom pontra a parabola pontosan illeszkedik.
+      // 200 mp-tol mert, es harom pontra a parabola pontosan illeszkedik.
       expect(loose.valueAt(9, tenKnots), closeTo(9, 1e-9));
       expect(loose.originAt(9, tenKnots), PolarCellOrigin.measured);
     });
