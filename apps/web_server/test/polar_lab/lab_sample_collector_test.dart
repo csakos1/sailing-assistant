@@ -158,5 +158,41 @@ void main() {
         expect(legacy.season, 2024);
       },
     );
+
+    test('masks the samples of both sources', () async {
+      // ARRANGE: a maszk a regi naplo es a telemetria soran is fut
+      final masked = <int>[];
+      final collector = LabSampleCollector(
+        listRaces: () async => [
+          race(
+            't1',
+            PolarSampleSource.telemetry,
+            RecordingWindow(window),
+            '2026-07-26',
+          ),
+          race(
+            'l1',
+            PolarSampleSource.legacyTrack,
+            OfficialWindow(window),
+            '2024-08-01',
+          ),
+        ],
+        readTelemetrySamples: (_, _) async => steadySamples(start, 3),
+        readLegacySamples: (_, _) async => steadySamples(start, 2),
+        corrections: const [],
+        sampleMask: (samples) {
+          masked.add(samples.length);
+          return [for (final (index, _) in samples.indexed) index > 0];
+        },
+      );
+
+      // ACT
+      final samples = await collector();
+
+      // ASSERT: mindket versenybol az elso minta kimaradt
+      expect(masked, [3, 2]);
+      expect(samples.where((sample) => sample.raceId == 't1'), hasLength(2));
+      expect(samples.where((sample) => sample.raceId == 'l1'), hasLength(1));
+    });
   });
 }

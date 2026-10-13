@@ -94,6 +94,46 @@ void main() {
       expect(labSamples.every((labSample) => labSample.twsKnots < 11), isTrue);
     });
 
+    test('masks samples after the spike decision', () {
+      // ARRANGE: harom 16 kn-os minta a 10 kn-os szelben; a maszk a
+      // szelso kettot dobja
+      final speeds = <double>[10, 10, 10, 16, 16, 16, 10, 10, 10];
+      final samples = [
+        for (final (second, knots) in speeds.indexed)
+          sample(second, twsKnots: knots),
+      ];
+
+      // ACT
+      final labSamples = labSamplesOf(
+        samples,
+        raceId: 'r1',
+        season: 2026,
+        source: PolarSampleSource.telemetry,
+        corrections: const [],
+        keep: [true, true, true, false, true, false, true, true, true],
+      );
+
+      // ASSERT: a teljes soron a kozepso 16 kn nem tuske; ha a maszk elobb
+      // szurne, a 10 kn-os szomszedok kozott tuske lenne
+      expect(labSamples, hasLength(7));
+      final strong = labSamples.where((labSample) => labSample.twsKnots > 15);
+      expect(strong, hasLength(1));
+    });
+
+    test('rejects a mask of a different length', () {
+      expect(
+        () => labSamplesOf(
+          [sample(0)],
+          raceId: 'r1',
+          season: 2026,
+          source: PolarSampleSource.telemetry,
+          corrections: const [],
+          keep: [true, true],
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('applies the water speed correction from its start', () {
       // ARRANGE: a korrekcio a 2. masodperctol el
       final corrections = [

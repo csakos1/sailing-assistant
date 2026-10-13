@@ -12,13 +12,15 @@ import 'package:web_server/src/web_db/race_result_repository.dart';
 /// A mentés-másolat ([copies]) mintagyűjtője, ugyanazzal a versenylistával
 /// és olvasókkal, mint a webes polár-statisztika (`PolarStatsCalculator`).
 ///
-/// A [log] a versenylista figyelmeztetéseit kapja; a [corrections] és a
-/// [windMedianHalfWindowSeconds] a [LabSampleCollector]-é.
+/// A [log] a versenylista figyelmeztetéseit kapja; a [corrections], a
+/// [windMedianHalfWindowSeconds] és a [sampleMask] a
+/// [LabSampleCollector]-é.
 LabSampleCollector archiveSampleCollector(
   ArchiveCopies copies, {
   required List<StwCorrection> corrections,
   required ServerLog log,
   int windMedianHalfWindowSeconds = 0,
+  SampleMask sampleMask = keepAllSamples,
 }) {
   final tracks = LegacyTrackRepository(copies.webDatabase);
   final catalog = PolarRaceCatalog(
@@ -34,5 +36,6 @@ LabSampleCollector archiveSampleCollector(
     readLegacySamples: LegacyPolarSampleReader(tracks).call,
     corrections: corrections,
     windMedianHalfWindowSeconds: windMedianHalfWindowSeconds,
+    sampleMask: sampleMask,
   );
 }

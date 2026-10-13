@@ -10,6 +10,11 @@ import 'package:web_server/src/polar_lab/lab_sample.dart';
 /// elemzés épp azt is nézi, hol van adat. A [corrections] a vízsebességre
 /// hat; a régi naplóé üres (ADR 0050 D6).
 ///
+/// A [keep] (ha van) a [samples]-szel egyforma hosszú maszk: a `false`
+/// minta is kimarad (pl. a polár-építés állandósult szél szűrője, ADR 0058
+/// D6). A tüske-döntés a teljes soron születik, így a maszk nem változtat
+/// rajta: ugyanazok a tüskék esnek ki, mint a weben (ADR 0058 D1).
+///
 /// Pure függvény; a [samples] időrendben jön (a tüske-szűrő miatt).
 List<LabSample> labSamplesOf(
   List<PolarSample> samples, {
@@ -17,11 +22,16 @@ List<LabSample> labSamplesOf(
   required int season,
   required PolarSampleSource source,
   required List<StwCorrection> corrections,
+  List<bool>? keep,
 }) {
+  if (keep != null && keep.length != samples.length) {
+    throw ArgumentError('keep and samples differ in length');
+  }
   final spikes = _flagTwsSpikes(samples);
   final labSamples = <LabSample>[];
   for (final (index, sample) in samples.indexed) {
     if (spikes[index]) continue;
+    if (keep != null && !keep[index]) continue;
     final twa = sample.twaDeg;
     final tws = sample.twsMps;
     final stw = sample.stwMps;
