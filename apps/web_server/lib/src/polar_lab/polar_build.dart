@@ -37,6 +37,7 @@ final class PolarBuild {
         allSamples: allSamples,
         steadySamples: steadySamples,
       ),
+      acceptedSamples: List.unmodifiable(accepted),
       strongWindSeconds: PolarBuildAxes.strongWindSecondsOf(accepted),
       parameters: parameters,
       raw: raw,
@@ -47,6 +48,7 @@ final class PolarBuild {
 
   const PolarBuild._({
     required this.accounting,
+    required this.acceptedSamples,
     required this.strongWindSeconds,
     required this.parameters,
     required this.raw,
@@ -56,6 +58,9 @@ final class PolarBuild {
 
   /// Az elszámolás szezononként.
   final List<PolarBuildSeasonAccounting> accounting;
+
+  /// A polárba került minták (a szűrők után); a diagnosztikához.
+  final List<LabSample> acceptedSamples;
 
   /// Az erős szeles oszlop tartományának mért ideje (másodperc); ebből dől
   /// el, hogy a 25 csomós oszlop a tengelyre kerül-e.

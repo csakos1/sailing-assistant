@@ -46,6 +46,7 @@ void main() {
       expect(summary, startsWith('# Polár-építés (ADR 0058)\n'));
       expect(summary, contains('`foretack.pol (fp-1)`'));
       expect(summary, contains('| 2026 | 1 | 33 | 0 | 0 | 0 | 0 | 0 | 33 |'));
+      expect(summary, contains('## 7. Gyanús minták: számolt AWA'));
     });
 
     test('tells why the strong wind column is missing', () {

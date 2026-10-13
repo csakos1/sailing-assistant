@@ -1,4 +1,5 @@
 import 'package:domain/domain.dart';
+import 'package:web_server/src/polar_lab/apparent_wind_section.dart';
 import 'package:web_server/src/polar_lab/polar_build.dart';
 import 'package:web_server/src/polar_lab/polar_build_accounting.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
@@ -11,7 +12,9 @@ import 'package:web_server/src/polar_lab/smoothed_polar_grid.dart';
 /// nyers p90 és kész érték, VMG-optimum): nyers minta, időbélyeg, pozíció
 /// és versenynév nincs benne, így megosztható. A [newPolar] a kész `.pol`
 /// visszaolvasva, az [oldPolar] a mostani polár az összevetéshez. A
-/// [tolerance] a kész érték megengedett eltérése a nyers p90-től (arány).
+/// [tolerance] a kész érték megengedett eltérése a nyers p90-től (arány), a
+/// [steadyWindRangeDegrees] az állandósult szél szűrőjének küszöbe (csak a
+/// leíráshoz; a szűrés a gyűjtéskor történt).
 ///
 /// Pure függvény: ugyanarra a bemenetre ugyanazt a szöveget adja.
 String polarBuildSummary({
@@ -20,6 +23,7 @@ String polarBuildSummary({
   required Polar newPolar,
   required String oldPolarLabel,
   double tolerance = 0.03,
+  double steadyWindRangeDegrees = 12,
 }) {
   final parameters = build.parameters;
   final summary = StringBuffer()
@@ -32,24 +36,31 @@ String polarBuildSummary({
       '±${_number(tolerance * 100)}%.',
     )
     ..writeln()
-    ..write(_accountingSection(build.accounting))
+    ..write(_accountingSection(build.accounting, steadyWindRangeDegrees))
     ..write(_axisSection(build))
     ..write(_valuesSection(build))
     ..write(_minutesSection(build))
     ..write(_deviationSection(build, tolerance))
-    ..write(_vmgSection(build, oldPolar: oldPolar, newPolar: newPolar));
+    ..write(_vmgSection(build, oldPolar: oldPolar, newPolar: newPolar))
+    ..write(
+      apparentWindSection(build.acceptedSamples, axes: build.smoothed.axes),
+    );
   return summary.toString();
 }
 
 const String _empty = '·';
 
-String _accountingSection(List<PolarBuildSeasonAccounting> accounting) {
+String _accountingSection(
+  List<PolarBuildSeasonAccounting> accounting,
+  double steadyWindRangeDegrees,
+) {
   final buffer = StringBuffer()
     ..writeln('## 1. Adat szezononként (perc)')
     ..writeln()
     ..writeln(
       'Érvényes: a webes szűrők után. Utána a polár szűrői (ADR 0058 D6): '
-      'nem állandósult szél (±10 mp-en a `|TWA|` terjedelme ≥ 12°), '
+      'nem állandósult szél (±10 mp-en a `|TWA|` terjedelme ≥ '
+      '${_number(steadyWindRangeDegrees)}°), '
       'vízsebesség (0,3 kn vagy kevesebb, 12 kn vagy több), szélcsend '
       '(`|TWA|` ≥ 177,5° és TWS < 2 kn), 1 kn alatti szél, no-go.',
     )
