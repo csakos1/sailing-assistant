@@ -5,7 +5,7 @@
 <h1 align="center">Foretack</h1>
 
 <p align="center">
-  <strong>A real-time sailing race assistant for B&amp;G NMEA 2000 instruments.</strong><br/>
+  <strong>A sailing race assistant for B&amp;G instruments: phone, Wear OS watch and a private race archive.</strong><br/>
   Predicts the True Wind Angle at the next mark, so you can trim and steer before you round.
 </p>
 
@@ -13,28 +13,18 @@
   <a href="https://github.com/csakos1/sailing-assistant/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/csakos1/sailing-assistant/ci.yml?branch=main&label=CI&logo=github&style=flat-square" alt="CI status"/>
   </a>
-  <img src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white&style=flat-square" alt="Flutter stable"/>
+  <img src="https://img.shields.io/badge/Flutter-3.41-02569B?logo=flutter&logoColor=white&style=flat-square" alt="Flutter 3.41"/>
   <img src="https://img.shields.io/badge/Dart-3.11%2B-0175C2?logo=dart&logoColor=white&style=flat-square" alt="Dart 3.11+"/>
-  <img src="https://img.shields.io/badge/state-Riverpod%202.x-2C9CDB?style=flat-square" alt="Riverpod"/>
-  <img src="https://img.shields.io/badge/db-Drift-3DDC84?style=flat-square" alt="Drift"/>
-  <img src="https://img.shields.io/badge/monorepo-Melos-FFC107?style=flat-square" alt="Melos"/>
-  <img src="https://img.shields.io/badge/lints-very__good__analysis-ff7a59?style=flat-square" alt="very_good_analysis"/>
-  <img src="https://img.shields.io/badge/arch-Clean%20Architecture-263238?style=flat-square" alt="Clean Architecture"/>
-  <img src="https://img.shields.io/badge/license-not%20chosen-lightgrey?style=flat-square" alt="License not chosen"/>
-  <br/>
+  <img src="https://img.shields.io/badge/platform-Android%20%C2%B7%20Wear%20OS%20%C2%B7%20Web-3DDC84?style=flat-square" alt="Android, Wear OS, Web"/>
   <img src="https://img.shields.io/badge/protocol-NMEA%200183-0a2540?style=flat-square" alt="NMEA 0183"/>
-  <img src="https://img.shields.io/badge/source-B%26G%20Vulcan%20WiFi-0a2540?style=flat-square" alt="B&G Vulcan WiFi"/>
-  <img src="https://img.shields.io/badge/platform-Android%20%2B%20Wear%20OS-3DDC84?logo=android&logoColor=white&style=flat-square" alt="Android + Wear OS"/>
-  <img src="https://img.shields.io/badge/made%20for-Lake%20Balaton%20%E2%9B%B5-0a7ea4?style=flat-square" alt="Made for Lake Balaton"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT license"/></a>
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> ·
+  <a href="#what-it-does">What it does</a> ·
   <a href="#architecture">Architecture</a> ·
-  <a href="#hardware">Hardware</a> ·
   <a href="#getting-started">Getting started</a> ·
   <a href="#development">Development</a> ·
-  <a href="#roadmap">Roadmap</a> ·
   <a href="ARCHITECTURE.md">Full architecture →</a>
 </p>
 
@@ -42,339 +32,279 @@
 
 ## Overview
 
-**Foretack** is a Flutter-based race assistant that reads live data from B&amp;G
-NMEA 2000 instruments via the **B&amp;G Vulcan 7R** chartplotter's built-in
-NMEA 0183-over-WiFi output — the Vulcan sits on the N2K backbone and re-broadcasts
-it as 0183 on its own hotspot, so no separate gateway hardware is needed. It then
-computes — in real time — the racing metrics that mainstream chartplotters don't
-surface well:
+Foretack reads live data from the boat's B&amp;G NMEA 2000 network through the
+**B&amp;G Vulcan 7R** chartplotter, which re-broadcasts it as NMEA 0183 over its
+own WiFi hotspot (TCP, port 10110). No extra gateway hardware is needed. From
+that stream the phone computes, about once a second, what the chartplotter does
+not show well: the **predicted TWA at the next mark**, the bearing, distance,
+ETA and course correction to the active mark, and the target speed from the
+boat's polar.
 
-- The **predicted True Wind Angle at the *next* mark**, based on a rolling wind-shift trend.
-- The bearing-to-mark, course-to-steer correction, distance, and ETA, all updated at ≥1 Hz.
-- Auto mark-rounding detection, so the next leg is queued without touching the device.
+The **phone is the brain**, the **Wear OS watch is the glanceable display** on
+deck, and a **private web archive** keeps every race since 2021. Position,
+heading, wind and speed come from the instruments, not the phone GPS.
 
-The phone is the brain; the **Wear OS watch is the glanceable display** on deck.
-The boat is the source of truth — position, heading, wind and speed come from
-the marine instruments, not the phone GPS (battery first, but also: accuracy).
+Everything assumes that **debugging on the water is impossible**: every
+calculation can be replayed from recorded NMEA 0183 logs on the couch.
 
-Everything is built around the assumption that **debugging on the water is impossible**.
-Every meaningful calculation is replayable from recorded NMEA 0183 logs on the couch — no boat required.
-
-<sub>Currently a personal project, racing tour-style regattas on **Lake Balaton, Hungary**.
-The architecture is built for extension; v1 is intentionally narrow.</sub>
+<sub>A personal project, used in tour-style regattas on <b>Lake Balaton, Hungary</b>.</sub>
 
 ---
 
-## Features
+## What it does
 
-### v1 — the racing screen
+### Phone (Android)
 
-A fixed, glanceable layout. Six live values, updated continuously:
+Three tabs — **Races · Instruments · Race log**.
 
-| # | Metric | Source | Rate |
-|---|--------|--------|------|
-| 1 | **True Wind Angle** | NMEA 0183 MWV (true) — B&amp;G Vulcan computed true wind | ~1 Hz |
-| 2 | **Bearing to mark** | GPS position + mark coordinate (Haversine) | 1 Hz |
-| 3 | **Course-to-steer correction** | bearing − COG / HDG | 1 Hz |
-| 4 | **Distance to mark** | great-circle distance | 1 Hz |
-| 5 | **ETA to mark** | distance / SOG | 1 Hz |
-| 6 | **Predicted TWA at next mark** | TWD + rolling wind-shift trend + your future course | 1 Hz |
+- **Instruments without a race.** The app looks for the boat when it opens and
+  shows live boat speed, target speed (% of polar), VMG, TWA and TWS even when
+  no race is running. Data is recorded only during a race.
+- **Scheduled races.** A race can have a start time and a start point. On race
+  day the instruments guide you to the start point like to a mark; at the start
+  time the race **starts by itself** (also retroactively, if the app opened
+  late).
+- **Racing view.** Predicted TWA at the next mark (with confidence), course
+  correction, current TWA, distance, ETA, target speed and VMG.
+- **Automatic mark rounding and finish**, with a manual "mark rounded" button.
+- **Background engine** in a foreground service: keeps running with the screen
+  off, survives a swiped-away app, stops itself after 10 minutes without the
+  boat (outside a race).
+- **Warnings** for a lost connection, lost GPS, unsynced time, suspect heading,
+  missing polar, short wind history and shallow water.
+- **Safety map** of restricted areas and fixed navigation marks.
+- **Race log** by year with totals, **post-race analysis** of the mark
+  predictions, and a shareable track image.
+- **Web sign-in**: scan the archive's QR code and confirm with a fingerprint.
 
-### Background features
+### Watch (Wear OS)
 
-- **Auto mark-rounding detection** — 50 m proximity threshold plus distance-receding heuristic, so you can't miss the rounding while focused on trim.
-- **Wind shift trend tracking** — sliding-window linear regression on TWD with proper angle unwrapping (`359° → 1°` doesn't wreck the slope). Window length is a runtime setting (default 10 min).
-- **Magnetic declination via the World Magnetic Model (WMM)** — dynamic, position-aware. No hardcoded constants drifting out of date.
-- **Telemetry logger** — every NMEA frame and every computed value persisted, for post-race analysis and as training data for the v2 polar learner.
-- **Warning system** — stale data, lost-fix, gateway disconnect, suspect-magnetic-heading, and similar conditions surface as banners. You don't act on bad data without knowing it's bad.
-- **Race definition** — manual lat/lon entry, mark ordering, save and re-run.
-- **Wear OS watch app** — downsampled state pushed over Wearable Data Layer. The watch is read-only, by design.
+A downsampled view of the phone's state over the Wearable Data Layer: next
+mark, speed, mark rounding (with a "mark rounded" button), haptic confidence
+and shallow-water alerts. It never sees the raw NMEA stream.
 
-### Deliberately deferred (v2)
+### Web archive (private)
 
-Polar support (CSV import + data-driven polar learning from your own telemetry archive), laylines, VMG / target speed, start-sequence countdown, configurable widget grid, multi-leg lookahead, multi-boat cloud sync. The architecture is shaped to receive these without rewrites.
+A Flutter web app over a small Dart server, behind sign-in:
+
+- every race since 2021 — telemetry races uploaded from the phone and manual
+  races imported from the old spreadsheet, with tracks from the voyage recorder;
+- results (class, overall, monohull), official start and finish times;
+- season statistics and **polar performance** (time spent at % of polar);
+- a full export (databases + JSON) as a single archive;
+- **QR + fingerprint sign-in** through the phone app; an owner who edits and
+  read-only crew members who only view.
 
 ---
 
 ## Architecture
 
-Clean Architecture, four layers, dependencies always point inward.
-The full document lives in **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — that file is the project's north star.
+Clean Architecture, four layers, dependencies always point inward. The full
+document is **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — the project's north star;
+decisions are recorded as ADRs in [`docs/decisions/`](docs/decisions/).
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  PRESENTATION  Flutter UI · Riverpod consumers · phone+watch│
+│  PRESENTATION  Flutter UI (phone · watch · web)             │
 └─────────────────────────────┬───────────────────────────────┘
-                              │
 ┌─────────────────────────────▼───────────────────────────────┐
-│  APPLICATION  Riverpod providers · stream merging · bridges │
+│  APPLICATION  Riverpod providers · engine host · bridges    │
 └─────────────────────────────┬───────────────────────────────┘
-                              │
 ┌─────────────────────────────▼───────────────────────────────┐
 │  DOMAIN       Pure Dart · entities · use cases · interfaces │
 └─────────────────────────────▲───────────────────────────────┘
                               │ implements
 ┌─────────────────────────────┴───────────────────────────────┐
-│  DATA         NMEA TCP · PGN decoders · Drift · WMM · prefs │
+│  DATA         NMEA 0183 TCP · parsers · race engine · Drift │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Principles enforced, not aspirational:**
+- `domain` has **no** Flutter, `dart:io` or platform dependency.
+- Repositories are interfaces in `domain`, implemented in `data`, swapped with
+  Riverpod overrides in tests.
+- The race engine runs in a separate isolate (foreground service) and sends
+  snapshots to the UI; the same engine is driven by the replay tests.
+- Parsing, business logic, persistence and UI never share a file.
 
-- The `domain` package has **zero** Flutter, `dart:io`, or platform dependencies — it builds and tests on plain Dart, anywhere.
-- Repositories are abstract interfaces in `domain`, implemented in `data`, swapped via Riverpod overrides in tests.
-- Every calculation is a pure function or a deterministic stateful calculator, so the same recorded log always produces the same outputs.
-- The NMEA parser, business logic, persistence, and UI never mix in one file.
+### Tech stack
 
----
-
-## Tech stack
-
-| Concern | Choice | Why |
-|---|---|---|
-| UI framework | Flutter (stable) | One codebase, phone + Wear OS |
-| Language | Dart 3.11+ | Sealed classes, pattern matching, pub workspaces |
-| State management | Riverpod 2.x | Compile-safe DI, override-for-test, streaming providers |
-| Local DB | Drift (typed SQL) | Type-safe schema, isolate-based writes, painless migrations |
-| Monorepo | Melos 7.x + Pub Workspaces | One repo, one CI, shared `domain` between phone and watch |
-| Lints | `very_good_analysis` | Senior-level ruleset, strict-casts/inference/raw-types on top |
-| Watch bridge | Wearable Data Layer (Kotlin) + method channel | Native APIs through a thin Flutter bridge |
-| Geomagnetic | WMM model | Dynamic declination, position-aware |
-| Testing | `test`, `flutter_test`, `mocktail` + replay logs | Domain unit tests + recorded-log integration tests |
-| CI | GitHub Actions | Lint, format check, test on every push and PR |
+| Concern | Choice |
+|---|---|
+| UI | Flutter 3.41 (stable) — phone, Wear OS, web |
+| Language | Dart 3.11+ (sealed classes, pattern matching, pub workspaces) |
+| State | Riverpod 2.x |
+| Local DB | Drift (SQLite) |
+| Server | `shelf` + `shelf_router`, AOT-compiled Dart, SQLite |
+| Monorepo | Melos + pub workspaces |
+| Lints | `very_good_analysis` |
+| CI | GitHub Actions — analyze, format check, tests on every PR and on `main` |
 
 ---
 
-## Hardware
+## Repository layout
 
-### On the boat
-
-| Component | Model | Role |
-|---|---|---|
-| Wind sensor | B&amp;G WS310 | AWA, AWS (10 Hz) |
-| True wind / display | B&amp;G Triton2 | TWA / TWS calculation |
-| **Chartplotter + v1 data source** | **B&amp;G Vulcan 7R** | SailSteer, polar storage (v2); **NMEA 0183-over-WiFi gateway for v1** (N2K→0183 on its hotspot) |
-| GPS + heading | B&amp;G ZG100 | Position, COG, SOG, magnetic heading |
-| Speed / depth / temp | Simrad/Lowrance DST P617V | Boat speed through water |
-| Backbone | Navico Micro-C | NMEA 2000 network |
-| Gateway (v1.5+, optional) | Yacht Devices YDWG-02 | NMEA 2000 → WiFi TCP/UDP — **not needed for v1**, future YD RAW adapter |
-| **Voyage recorder** | **Yacht Devices YDVR** | `.DAT` log → replay source |
-
-For v1, live racing and couch replay share the **same NMEA 0183 path**: the app parses
-the Vulcan's `$..` sentences over TCP, and the `nmea_replay` tool feeds recorded 0183
-logs through that exact pipeline. The YDVR `.DAT` archives (lossless N2K) are kept for
-the deferred YD RAW adapter (v1.5+) and as training data for the v2 polar learner —
-they are not used in the v1 parser path.
-
-### Clients
-
-- **Phone:** Google Pixel (Android).
-- **Watch:** Samsung Galaxy Watch (Wear OS 3+).
-
-> The watch is intentionally a **read-only secondary display**: it receives a
-> downsampled, summarized state, never the raw NMEA stream. Battery and
-> reliability over capability.
+```
+sailing-assistant/
+├── apps/
+│   ├── phone/             # Android app: race UI, race engine host, web sign-in
+│   ├── watch/             # Wear OS app
+│   ├── web/               # Flutter web: the race archive
+│   └── web_server/        # Dart server + CLIs (import, sign-in admin, GeoIP)
+├── packages/
+│   ├── domain/            # Pure Dart: entities, value objects, use cases
+│   ├── data/              # NMEA 0183 client and parsers, race engine, Drift DB
+│   ├── shared/            # Result<T, E>, small utilities
+│   ├── foretack_ui/       # Shared design system and widgets (phone + web)
+│   ├── race_archive_api/  # HTTP contract of the archive: DTOs, codecs
+│   └── wearable_bridge/   # Phone → watch transport (Wearable Data Layer)
+├── tools/
+│   ├── nmea_replay/       # Replays a recorded NMEA 0183 log as a TCP server
+│   ├── sample_logs/       # Logs for replay tests and demos
+│   ├── race_analyzer/     # Post-race analysis of the mark predictions
+│   ├── prediction_probe/  # Replay harness for the prediction model
+│   ├── legacy_race_log/   # Converts the old spreadsheet race log to JSON
+│   └── dev/               # Local web development (Caddy, phone stand-in)
+├── deploy/                # VPS deploy, backups, crew APK release
+├── docs/                  # ADRs, design spec, on-device test guide, plans
+└── ARCHITECTURE.md        # The north star — read this first
+```
 
 ---
 
 ## Getting started
 
-> Verified on Arch Linux. Other Linux distros work; macOS likely works; Windows
-> not tested.
+Verified on Arch Linux with physical devices (a Pixel phone and a Galaxy Watch).
 
 ### Prerequisites
 
-```bash
-# Flutter SDK (stable channel)
-git clone https://github.com/flutter/flutter.git -b stable ~/flutter
-echo 'export PATH="$PATH:$HOME/flutter/bin"' >> ~/.bashrc
+- Flutter SDK 3.41 (stable) — `flutter doctor` should be green for Android.
+- JDK 17 and the Android SDK (platform tools, an SDK platform, build tools).
+- Melos: `dart pub global activate melos`.
 
-# JDK 17 for Android builds
-sudo pacman -S jdk17-openjdk
-sudo archlinux-java set java-17-openjdk
-
-# Android SDK
-yay -S android-sdk-cmdline-tools-latest android-platform android-sdk-build-tools
-export ANDROID_HOME=$HOME/Android/Sdk
-sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-sdkmanager --licenses
-
-# Melos
-dart pub global activate melos
-
-flutter doctor -v   # everything green
-```
-
-### Clone and bootstrap
+### Bootstrap
 
 ```bash
 git clone https://github.com/csakos1/sailing-assistant
 cd sailing-assistant
-melos bootstrap          # resolves all packages in the workspace
+melos bootstrap
 ```
 
-### Run on a physical phone
+### Run on the phone and the watch
 
 ```bash
-# Pixel attached over USB, with USB debugging enabled
-cd apps/phone
-flutter run --release
+cd apps/phone && flutter run --release     # Pixel over USB or wireless ADB
+
+adb connect <watch-ip>:<port>              # watch over wireless ADB
+cd apps/watch && flutter run --release
 ```
 
-### Run on a Wear OS watch
+The phone and the watch share the same application ID, which the Wearable
+Data Layer needs to deliver messages (ADR 0018, [`ARCHITECTURE.md`](ARCHITECTURE.md) §10).
+
+### Replay a race on the couch
 
 ```bash
-# Wireless ADB pair / connect first
-adb pair <watch_ip>:<port>
-adb connect <watch_ip>:<port>
-
-cd apps/watch
-flutter run --release
-```
-
-### Replay a recorded race (no boat required)
-
-```bash
-# Replay server emulating the Vulcan WiFi output (port 10110; --loop restarts at EOF):
+# 1. Replay server emulating the Vulcan's WiFi output (port 10110)
 dart run tools/nmea_replay/bin/nmea_replay.dart \
   tools/sample_logs/home_test_sample.nmea --loop
-```
 
-Point the phone at the dev machine and the full pipeline runs end-to-end on the
-couch. The host is set at build time (see [`ARCHITECTURE.md`](ARCHITECTURE.md) §15.6):
-
-```bash
+# 2. Point the phone at it through adb (no IP address, no firewall rule)
+adb reverse tcp:10110 tcp:10110
 cd apps/phone
-flutter run --debug --dart-define=FORETACK_GATEWAY_HOST=<dev-machine-LAN-IP>
+flutter run --release --dart-define=FORETACK_GATEWAY_HOST=127.0.0.1
 ```
 
----
+Build without `--dart-define` before going on the water, otherwise the app looks
+for `127.0.0.1` instead of the Vulcan. The full on-device checklist is in
+[`docs/testing/engine-session-on-device.md`](docs/testing/engine-session-on-device.md).
 
-## Project structure
+### The web archive locally
 
-```
-sailing-assistant/
-├── apps/
-│   ├── phone/                 # Flutter app — phone
-│   └── watch/                 # Flutter app — Wear OS, with Kotlin bridge
-├── packages/
-│   ├── domain/                # Pure Dart: entities, value objects, use cases, repository interfaces
-│   ├── data/                  # NMEA parsers, Drift DB, WMM, settings — implementations
-│   └── shared/                # Result<T,E>, extensions, constants
-├── tools/
-│   ├── nmea_replay/           # CLI: recorded 0183 log → fake Vulcan TCP server
-│   ├── nmea_inspector/        # CLI: decode raw 0183 sentence dumps for debugging
-│   └── sample_logs/           # Example NMEA logs for tests and demos
-├── docs/
-│   ├── nmea-0183-reference.md # The 0183 sentences we consume (PGN ref deferred to v1.5+)
-│   └── decisions/             # ADRs (Architecture Decision Records)
-├── ARCHITECTURE.md            # The north star — read this first
-└── README.md                  # You are here
-```
+A server, the web app and a local Caddy in three terminals; a script in
+[`tools/dev/`](tools/dev/) stands in for the phone during sign-in. See
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §20 and
+[`deploy/README.md`](deploy/README.md) §14.
 
 ---
 
 ## Development
 
-### Daily commands
-
 ```bash
-melos run analyze         # static analysis across the workspace
-melos run format-check    # dart format --set-exit-if-changed
-melos run test            # all tests in all packages
-melos run gen             # build_runner for Drift, etc.
+melos run analyze        # dart analyze --fatal-infos --fatal-warnings
+melos run format-check   # dart format --set-exit-if-changed
+melos run test           # test:dart (pure Dart packages) + test:flutter
 ```
 
-### Pre-commit hook
+Drift code is generated per package:
+`(cd packages/data && dart run build_runner build)`.
 
-A pre-commit hook runs `analyze` and `format-check` locally before every commit:
+**Git hooks.** Two pre-commit hooks exist; git uses one `core.hooksPath` at a
+time:
 
-```bash
-git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit
-```
+- `deploy/git-hooks` — secret scan (gitleaks) and forbidden file types. **Use
+  this one**, because the repository is public
+  ([`deploy/README.md`](deploy/README.md) §1.2).
+- `.githooks` — runs `analyze` and `format-check` before every commit.
 
-### Commit convention
-
-Conventional Commits, English subject line, body explains **what** and **why**:
-
-```
-feat(domain): add wind shift trend calculation with linear regression
-
-- Add CalculateWindShiftTrend use case with sliding window approach
-- Implement angle unwrapping to handle 359° → 1° transitions correctly
-- Return WindShiftConfidence enum based on r² of regression
-
-Foundation for predicted-TWA-at-next-mark. The 10 min default
-window is configurable in settings for tuning during real races.
-```
+**Commits** follow Conventional Commits in English, with a body that explains
+what changed and why. `main` is always green: work happens on branches and
+lands through pull requests.
 
 ---
 
 ## Testing
 
-| Layer | Approach | Coverage target |
-|---|---|---|
-| Domain | Pure unit tests; no mocking unless unavoidable | **≥ 95 %** |
-| Data | Unit tests for PGN decoders against canboat sample frames; repository tests with in-memory Drift | ≥ 80 % |
-| Application | Riverpod provider tests with overrides | ≥ 70 % |
-| Presentation | Widget tests on critical screens; the rest is visual review | best effort |
-| End-to-end | **Replay-based** integration: feed a recorded `.nmea` (NMEA 0183) log through the pipeline and assert computed outputs | every release-candidate phase |
+| Layer | Approach |
+|---|---|
+| Domain | Pure unit tests, no mocks; target ≥ 95 % coverage |
+| Data | Parser and repository tests with in-memory Drift |
+| Engine | **Replay tests**: a recorded NMEA 0183 log runs through the real pipeline and engine (rounding, finish, scheduled start) |
+| Application / UI | Riverpod provider tests with overrides, widget tests on the screens |
+| Server / web | Endpoint, access-rule and import tests; widget tests |
+| On device | A manual checklist for what unit tests cannot see: screen off, swiped app, process death |
 
-The replay tests are the single most important quality gate: the boat is
-rarely available, so every regression has to be catchable from a couch.
-
----
-
-## Roadmap
-
-| Phase | Scope | Outcome |
-|---|---|---|
-| 0 | Project skeleton, Melos, CI placeholder | Empty repo, green CI |
-| 1 | Pure domain layer — every calculation + 95 %+ tests | The math is right before the hardware ever connects |
-| 2 | NMEA 0183 sentence parser + decoders, replay tool | A real Vulcan 0183 log plays through and produces clean domain entities |
-| 3 | Phone app skeleton, raw NMEA viewer | Phone connects to YDWG-02 and shows the stream |
-| 4 | Race definition + Drift persistence | Define a race, save it, re-open it |
-| 5 | Home screen with all six widgets — v1 minimum | App is usable on the boat |
-| 6 | Warning system | Bad data is visible, never silent |
-| 7 | Wear OS app + Wearable Data Layer bridge | Phone in pocket, watch on the wrist |
-| 8 | Post-race analysis: track, wind shifts, boat speed graphs | Learn from each race |
-| 9 | On-water iteration | The list of v2 features writes itself |
-| **v2** | Polar import + data-driven polar learning, laylines, VMG, start sequence | Tactical layer |
-
-Estimate: **3–4 months to v1** at 10–15 hours / week. Two months if more.
+The replay tests are the main quality gate: the boat is rarely available, so
+every regression has to be catchable from the couch.
 
 ---
 
-## Contributing
+## Deployment
 
-This is a personal project for now — the primary user is the developer himself.
-That said, if you race on Lake Balaton or run a similar B&amp;G + YDWG-02 setup
-and want to try the app or compare notes, **open a discussion**. Bug reports
-and PRs are welcome once v1 ships; see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
-workflow (Conventional Commits, all checks green, one logical change per commit).
+- **Web archive:** the server and the web app are built on the development
+  machine and deployed to a small VPS behind Caddy (HTTPS), with nightly
+  backups pulled to the developer's machine.
+- **Crew app:** the same phone app for everyone; a release APK is published
+  through the archive, and the server decides who is owner and who is crew.
+
+Everything is in [`deploy/README.md`](deploy/README.md). Configuration and
+secrets stay out of the repository.
+
+---
+
+## Status
+
+The phone app, the watch app and the web archive are in use. Open ideas and
+postponed work are listed in [`docs/deferred.md`](docs/deferred.md); every
+design decision is an ADR in [`docs/decisions/`](docs/decisions/).
+
+This is a personal project. Issues and questions are welcome.
 
 ---
 
 ## License
 
-License is not yet selected - see [issue #1](https://github.com/csakos1/sailing-assistant/issues/1).
-Until a license file is added, **all rights reserved by default**. If you want
-to use any of this code, please open an issue.
-
----
+[MIT](LICENSE) © 2026 Csaba Ákos
 
 ## Acknowledgements
 
-- **[canboat](https://github.com/canboat/canboat)** — the open NMEA 2000 PGN database. Every decoder in this project owes a debt to canboat's PGN definitions and sample data.
-- **[Yacht Devices](https://www.yachtd.com/)** — for the YDWG-02 and YDVR, and for documenting the YD RAW format properly so developers can build on it.
-- **[Signal K](https://signalk.org/)** — for setting the bar on what an open marine data ecosystem can look like.
-- **[NOAA WMM](https://www.ncei.noaa.gov/products/world-magnetic-model)** — for the World Magnetic Model coefficients.
-- The Lake Balaton sailing community — for showing why this app needs to exist.
+- **[DB-IP](https://db-ip.com)** — IP geolocation data (CC BY 4.0) used in the
+  archive's sign-in history.
+- **[OpenStreetMap](https://www.openstreetmap.org/copyright)** contributors —
+  map tiles.
+- The Lake Balaton sailing community.
 
 ---
 
 <p align="center">
-  <sub>Built for tour-race regattas on Lake Balaton ⛵</sub><br/>
-  <sub>Flutter · Dart · NMEA 2000 · Clean Architecture · TDD</sub>
+  <sub>Built for tour-race regattas on Lake Balaton ⛵</sub>
 </p>
