@@ -1,6 +1,6 @@
-import 'package:web_server/src/polar/polar_race.dart';
 import 'package:web_server/src/polar_lab/apparent_wind_angle.dart';
 import 'package:web_server/src/polar_lab/lab_sample.dart';
+import 'package:web_server/src/polar_lab/lab_sample_tables.dart';
 import 'package:web_server/src/polar_lab/polar_build_axes.dart';
 import 'package:web_server/src/polar_lab/polar_build_rejection.dart';
 
@@ -21,16 +21,16 @@ String apparentWindSection(
   List<LabSample> samples, {
   required PolarBuildAxes axes,
 }) {
-  final limit = _number(suspiciousBandsDegrees.last);
+  final limit = tableNumber(suspiciousBandsDegrees.last);
   final buffer = StringBuffer()
     ..writeln('## 7. Gyanús minták: számolt AWA')
     ..writeln()
     ..writeln(
       'A látszólagos szélszög a TWA-ból, a TWS-ből és a (korrigált) '
       'STW-ből, sodródás és áramlás nélkül. A polár szűrője kreuzban '
-      '${_number(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
+      '${tableNumber(PolarBuildRejection.minimumUpwindAwaDegrees)}°, '
       'hátszélben '
-      '${_number(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt '
+      '${tableNumber(PolarBuildRejection.minimumDownwindAwaDegrees)}° alatt '
       'dob (ADR 0058 D6); a kreuz ennél nagyobb, $limit° alatti sávja '
       'normális, mert a műszer TWA-ja élesebbet mér, és a számolás nem '
       'ismeri a sodródást. Csak a polárba került minták, perc. Kreuz: '
@@ -42,12 +42,12 @@ String apparentWindSection(
     ..writeln()
     ..writeln('| Szezon | Forrás ${_header()}')
     ..writeln('|---|---${_separator()}');
-  for (final (:season, :source) in _seasonSourcesOf(samples)) {
+  for (final (:season, :source) in seasonSourcesOf(samples)) {
     final group = [
       for (final sample in samples)
         if (sample.season == season && sample.source == source) sample,
     ];
-    buffer.writeln('| $season | ${_sourceLabel(source)} ${_cells(group)}');
+    buffer.writeln('| $season | ${sourceLabelOf(source)} ${_cells(group)}');
   }
   buffer
     ..writeln()
@@ -60,7 +60,7 @@ String apparentWindSection(
       for (final sample in samples)
         if (axes.twsColumnOf(sample.twsKnots) == column) sample,
     ];
-    buffer.writeln('| ${_number(knots)} ${_cells(group)}');
+    buffer.writeln('| ${tableNumber(knots)} ${_cells(group)}');
   }
   return (buffer..writeln()).toString();
 }
@@ -72,10 +72,14 @@ double _suspiciousLimit() => suspiciousBandsDegrees.last;
 
 List<String> _bandLabels() => [
   for (final (index, limit) in suspiciousBandsDegrees.indexed)
-    index == 0
-        ? '< ${_number(limit)}°'
-        : '${_number(suspiciousBandsDegrees[index - 1])}–${_number(limit)}°',
+    index == 0 ? '< ${tableNumber(limit)}°' : _rangeLabel(index),
 ];
+
+String _rangeLabel(int index) {
+  final lower = tableNumber(suspiciousBandsDegrees[index - 1]);
+  final upper = tableNumber(suspiciousBandsDegrees[index]);
+  return '$lower–$upper°';
+}
 
 String _header() {
   final bands = _bandLabels().join(' | ');
@@ -95,7 +99,7 @@ String _cells(List<LabSample> group) {
     for (final sample in group)
       if (_awaOf(sample) < _suspiciousLimit()) sample,
   ];
-  final median = _medianStwOf(suspicious);
+  final median = weightedMedianStwOf(suspicious);
   final cells = [
     for (final isUpwind in const [true, false])
       ..._sideCells(group, isUpwind: isUpwind),
@@ -110,9 +114,9 @@ List<int> _sideCells(List<LabSample> group, {required bool isUpwind}) {
       if ((sample.absTwaDeg < 90) == isUpwind) sample,
   ];
   return [
-    _minutes(side),
+    minutesOf(side),
     for (final (index, limit) in suspiciousBandsDegrees.indexed)
-      _minutes(
+      minutesOf(
         side.where((sample) {
           final awa = _awaOf(sample);
           final lower = index == 0 ? 0.0 : suspiciousBandsDegrees[index - 1];
@@ -127,44 +131,3 @@ double _awaOf(LabSample sample) => apparentWindAngleDegrees(
   twsKnots: sample.twsKnots,
   stwKnots: sample.stwKnots,
 );
-
-typedef _SeasonSource = ({int season, PolarSampleSource source});
-
-List<_SeasonSource> _seasonSourcesOf(List<LabSample> samples) {
-  final seasons = {for (final sample in samples) sample.season}.toList()
-    ..sort();
-  return [
-    for (final season in seasons)
-      for (final source in PolarSampleSource.values)
-        if (samples.any(
-          (sample) => sample.season == season && sample.source == source,
-        ))
-          (season: season, source: source),
-  ];
-}
-
-String _sourceLabel(PolarSampleSource source) => switch (source) {
-  PolarSampleSource.telemetry => 'telemetria',
-  PolarSampleSource.legacyTrack => 'régi napló',
-};
-
-int _minutes(Iterable<LabSample> samples) =>
-    (samples.fold(0, (sum, sample) => sum + sample.seconds) / 60).round();
-
-// Az időre súlyozott alsó medián, vagy `null`, ha nincs minta.
-double? _medianStwOf(List<LabSample> samples) {
-  if (samples.isEmpty) return null;
-  final sorted = [...samples]..sort((a, b) => a.stwKnots.compareTo(b.stwKnots));
-  final total = sorted.fold(0, (sum, sample) => sum + sample.seconds);
-  var cumulative = 0;
-  for (final sample in sorted) {
-    cumulative += sample.seconds;
-    if (cumulative * 2 >= total) return sample.stwKnots;
-  }
-  return sorted.last.stwKnots;
-}
-
-// Az egész szám tizedes nélkül (`15`), a tört egy tizedessel (`2.5`).
-String _number(double value) => value == value.roundToDouble()
-    ? value.round().toString()
-    : value.toStringAsFixed(1);
