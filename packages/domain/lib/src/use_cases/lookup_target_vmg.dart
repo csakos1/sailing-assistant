@@ -33,7 +33,10 @@ typedef TargetVmg = ({double vmgKnots, double optimumTwaDegrees});
 /// között, lemenőn 90° fölött 180°-ig pásztázunk, 1°-os lépéssel: a polár
 /// bilineáris lookupja sima, így a durva 5°-os rács helyett a finom
 /// mintavétel jitter-mentes optimumot ad (1 Hz-en triviális). A 90°-os
-/// beam-szöget kihagyjuk (ott a VMG kb. 0, sosem optimum).
+/// beam-szöget kihagyjuk (ott a VMG kb. 0, sosem optimum). Ha a rács
+/// szélső TWA-sora teljesen üres (az új polárban a 180°-os), a
+/// `LookupTargetSpeed` az utolsó kitöltött sor fölött `null`-t ad, így a
+/// keresés ott megáll (ADR 0058, P.4).
 ///
 /// `null` jön vissza, ha nincs értelmes target: nem-véges bemenetre, vagy
 /// ha a sávban sehol nincs polár-adat (üres rács-környezet).

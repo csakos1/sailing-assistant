@@ -6,8 +6,8 @@ import 'package:web_server/src/polar_lab/lab_sample.dart';
 /// (`docs/PLAN.md` P.1b), markdown-szakaszként.
 ///
 /// Csak a 4–16 csomós szél számít, ahol a mai polár cellái bőven mintázottak:
-/// így a gyenge szél (ahol a polár a tengely szélén clampel) nem keveredik a
-/// szezonok összevetésébe. A cella a medián % és a mért óra; a
+/// így a gyenge szél (ahol a cél a polár tengelyének széléről jön) nem
+/// keveredik a szezonok összevetésébe. A cella a medián % és a mért óra; a
 /// [PolarPerformanceRules.minimumBucketSeconds] alatti cella üres.
 ///
 /// Pure függvény.

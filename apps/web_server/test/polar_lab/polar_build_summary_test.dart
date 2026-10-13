@@ -109,8 +109,10 @@ void main() {
 
     test('compares the VMG optimum with the old polar', () {
       // A regi polar minden cellaja 5 kn: kreuzban a 25 fok, hatszelben a
-      // 180 fok a legjobb (5 x cos 25 = 4.53).
-      expect(summary, contains('| 2 | 25° / 4.53 | '));
+      // 180 fok a legjobb. A 2 kn a regi polar 4 kn-os elso oszlopa alatt
+      // van, ott a 0 csomos horgony a celt felezi (ADR 0058 D5):
+      // 5 x 2 / 4 x cos 25 = 2.27.
+      expect(summary, contains('| 2 | 25° / 2.27 | '));
       expect(summary, contains('| 180° / 5.00 |'));
     });
   });

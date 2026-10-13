@@ -65,7 +65,8 @@ class Polar extends Equatable {
        twsAxis = List.unmodifiable(twsAxis),
        grid = List<List<double?>>.unmodifiable(
          grid.map(List<double?>.unmodifiable),
-       );
+       ),
+       populatedTwaRange = _populatedRowRange(grid);
 
   /// A no-go küszöb fokban: e szög alatti `|TWA|`-n nincs vitorlázási
   /// target. Jelentésben közös a `polar_builder` `NOGO_CUT`-jával (ADR
@@ -83,6 +84,16 @@ class Polar extends Equatable {
   /// a szomszédokból interpolál.
   final List<List<double?>> grid;
 
+  /// Az első és az utolsó *kitöltött* TWA-sor indexe (kitöltött az a sor,
+  /// amelynek legalább egy cellája nem `null`), vagy `null`, ha a rács
+  /// teljesen üres.
+  ///
+  /// A [grid]-ből származtatott érték (nem része a value-egyenlőségnek),
+  /// amelyet a konstruktor egyszer számol ki, mert a `LookupTargetVmg`
+  /// fokonként, másodpercenként sokszor kérdezi. A lookup a teljesen üres
+  /// szélső sorok felé nem terjeszti ki a célt (ADR 0058, P.4).
+  final ({int first, int last})? populatedTwaRange;
+
   /// Igaz, ha a tengely szigorúan növekvő (nincs ismétlődés, nincs esés).
   static bool _isStrictlyAscending(List<double> axis) {
     for (var i = 1; i < axis.length; i++) {
@@ -98,6 +109,20 @@ class Polar extends Equatable {
     }
     return true;
   }
+
+  /// Az első és az utolsó olyan sor indexe, amelyben van nem-`null` cella;
+  /// `null`, ha egy ilyen sor sincs.
+  static ({int first, int last})? _populatedRowRange(
+    List<List<double?>> grid,
+  ) {
+    final first = grid.indexWhere(_isPopulated);
+    if (first == -1) return null;
+    return (first: first, last: grid.lastIndexWhere(_isPopulated));
+  }
+
+  /// Igaz, ha a sorban legalább egy cella nem `null`.
+  static bool _isPopulated(List<double?> row) =>
+      row.any((cell) => cell != null);
 
   /// Igaz, ha a rács minden sora pontosan [columnCount] hosszú.
   static bool _allRowsMatch(List<List<double?>> grid, int columnCount) {

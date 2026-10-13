@@ -219,7 +219,8 @@ String _vmgSection(
     ..writeln()
     ..writeln(
       'A legjobb VMG-t adó `|TWA|` és a VMG (kn) az új tengely oszlopain. A '
-      'régi polár a saját tengelye alatt és fölött a szélső oszlopát adja.',
+      'régi polár a saját tengelye alatt a 0 csomós horgonnyal arányosan '
+      'kisebb célt ad, fölötte a szélső oszlopát.',
     )
     ..writeln()
     ..writeln(
