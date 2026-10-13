@@ -1,8 +1,9 @@
 import 'package:domain/domain.dart';
+import 'package:web_server/src/polar_lab/twa_window_extremes.dart';
 
 /// Az állandósult szelű minták maszkja (ADR 0058 D6): `true`, ha a minta
 /// ±[halfWindowSeconds] másodperces környezetében a `|TWA|` terjedelme
-/// (max − min) a [maximumRangeDegrees] alatt van.
+/// (max − min, [twaWindowExtremes]) a [maximumRangeDegrees] alatt van.
 ///
 /// Forduláskor, halzoláskor és széllökés-fordulóban a vízsebesség nem a
 /// pillanatnyi szélhez tartozik, ezért ezek a minták nem polár-minták. Az
@@ -22,54 +23,15 @@ List<bool> steadyWindMask(
   int halfWindowSeconds = 10,
   double maximumRangeDegrees = 12,
 }) {
-  if (halfWindowSeconds < 0) {
-    throw ArgumentError.value(
-      halfWindowSeconds,
-      'halfWindowSeconds',
-      'must not be negative',
-    );
-  }
-  final halfWindow = Duration(seconds: halfWindowSeconds);
-  final mask = <bool>[];
-  var low = 0;
-  var high = 0;
-  for (final (index, sample) in samples.indexed) {
-    final earliest = sample.timestamp.subtract(halfWindow);
-    final latest = sample.timestamp.add(halfWindow);
-    while (samples[low].timestamp.isBefore(earliest)) {
-      low++;
-    }
-    if (high < index) high = index;
-    while (high + 1 < samples.length &&
-        !samples[high + 1].timestamp.isAfter(latest)) {
-      high++;
-    }
-    mask.add(
-      _foldedAngle(sample.twaDeg) == null ||
-          _angleRange(samples.sublist(low, high + 1)) < maximumRangeDegrees,
-    );
-  }
-  return mask;
+  final extremes = twaWindowExtremes(
+    samples,
+    halfWindowSeconds: halfWindowSeconds,
+    measure: _unchanged,
+  );
+  return [
+    for (final window in extremes)
+      window == null || window.maximum - window.minimum < maximumRangeDegrees,
+  ];
 }
 
-// A `|TWA|` terjedelme az ablak érvényes szögein. Az ablak sosem üres
-// érvényes szögben: a minta saját szöge benne van.
-double _angleRange(List<PolarSample> window) {
-  var minimum = double.infinity;
-  var maximum = double.negativeInfinity;
-  for (final neighbour in window) {
-    final angle = _foldedAngle(neighbour.twaDeg);
-    if (angle == null) continue;
-    if (angle < minimum) minimum = angle;
-    if (angle > maximum) maximum = angle;
-  }
-  return maximum - minimum;
-}
-
-// Az előjeles szög a fél-rács 0–180°-ára, ahogy a `labSamplesOf`-ban; az
-// érvénytelen szög `null`.
-double? _foldedAngle(double? twaDeg) {
-  if (twaDeg == null || !twaDeg.isFinite) return null;
-  final normalized = twaDeg % 360;
-  return normalized > 180 ? 360 - normalized : normalized;
-}
+double _unchanged(double foldedDegrees) => foldedDegrees;
