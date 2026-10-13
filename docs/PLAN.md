@@ -217,7 +217,8 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) | 1–2 | közepes | 🗄 💻 | `[ ]` |
+| P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) — `apps/web_server/bin/polar_report.dart` | 1–2 | közepes | 🗄 💻 | `[x]` `5d67489`, `9425512` |
+| P.1b | Riport-bővítés: teljesítmény menetszög és szélsáv szerint, a telefon szele 10 mp-es mediánnal, a szélcsendes 180°-os minták | 1 | közepes | 🗄 💻 | `[ ]` |
 | P.2 | **Polár-ADR** (új ADR vagy ADR 0028 Addendum): módszer, tengelyek, simítás, optimum-sorok, adatforrás, súlyozás, percentilis 🔴 P-D1…P-D5 | 1–2 | közepes | 💻 | `[ ]` |
 | P.3 | **Polár-builder** az új módszerrel (forrás: idei telemetria + YDVR), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` |
 | P.4 | Domain: a `.pol`-dialektus bővítése (optimum-sorok, verzió), a 0 csomós horgony a lookupban | 1–2 | közepes | 💻 | `[ ]` |
@@ -229,6 +230,24 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 **Adat és titokvédelem:** a nyers adat (YDVR, telemetria, versenyablakok) **soha
 nem kerül a repóba**. A builder kódja igen (ha a P-D1 így dönt), az adatot a
 felhasználó gépén futtatja, és csak az összesített riport jön vissza a chatbe.
+
+### A P.1 riport tanulságai (2026-10-13)
+
+- Az eszköz visszaadja a mai polárt: minden szezon 4–16 csomós cellái
+  97–103% körül állnak.
+- A szezonok idejének 13–45%-a 4 csomó alatti szélben telik; ott a mai
+  polár a 4 csomós oszlopot adja célnak (40–80% arány). Ez a legnagyobb
+  gyakorlati hiba, és ez húzza le a szezon-átlagot (2026: 67%).
+- 2026 nem gyorsabb a régi polárnál: kreuzban azonos (kb. 95–105%),
+  hátszélben (150–165°, 5–9 kn) 75–90%. Ezért a cél minden év adata (P-D2),
+  és a P.1b dönti el, hogy a hátszél-hiány mérési hatás-e (1 Hz-es
+  pillanatnyi szél a 10 mp-es medián helyett, vagy a Vulcan alulmérő STW-je a
+  szélszámításban).
+- A 180°-os sorban gyenge szélben sok a szélcsendes minta (a műszer szél
+  nélkül 180°-ot adhat); a builder ezeket kiszűri.
+- A 17 kn feletti cellák kevés adatból 100–122%-ot mutatnak: a mai 20 kn-os
+  oszlop alábecsül; a mai polárban 27 helyen csökken a cél erősödő szélben.
+
 
 ---
 
@@ -488,8 +507,8 @@ törlés (ADR 0057).
 | # | Döntés | Kit blokkol | Javasolt default |
 |---|---|---|---|
 | **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **A repóban**, Dartban, tesztekkel; az adat soha |
-| **P-D2** | Adatforrás és súlyozás: csak az idei versenyek, vagy minden év az idei súlyozásával? | P.2, P.3 | Idei adat, ahol a vödörben elég minta van; a régi évek csak a hézagokat töltik, STW-korrekcióval |
-| **P-D3** | A „100%" jelentése: p90 marad, vagy más percentilis? | P.2 | A riport (P.1) után döntünk; a p90 ma is jól viselkedik |
+| **P-D2** | Adatforrás és súlyozás | P.2, P.3 | **Eldöntve (2026-10-13):** minden év adata, a telefonos telemetriával együtt, korrigált STW-vel; az idei adat nem kap külön súlyt |
+| **P-D3** | A „100%" jelentése | P.2 | **Eldöntve (2026-10-13):** a cellánkénti p90 marad |
 | **P-D4** | TWS-tengely és horgony | P.2, P.4 | 0, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (+25, ha van adat); 0 csomónál 0 |
 | **P-D5** | Vitorla-konfiguráció: kell-e külön hátszél-polár (pl. genakker vs. orrvitorla)? | P.2 | A felhasználó tudja; ha egy polár elég, marad egy |
 | **P-D6** | Élő STW-korrekció: szorzó az appban, vagy a műszer kalibrálása (Vulcan), vagy mindkettő átmenetileg? | P.5 | Szorzó az appban most (beállítható, verziózott), a Vulcan-kalibráció tavasszal (B6.2), utána a szorzó 1,0 |
@@ -523,7 +542,7 @@ D1 (a billentyűzet-hiba a `deferred.md`-ben); D2 (a terv és a leltár a
 ## 13. Haladás-követés
 
 ```
-Blokk P  Profi polar               [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
+Blokk P  Profi polar               [x][ ][ ][ ][ ][ ][ ][ ][ ]      1/9
 Blokk T  Next-mark TWA predikcio   [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
 Blokk U  UI-maradek, hibak         [ ][ ][ ][ ][ ][ ]               0/6
 Blokk 2  Adat-higienia             [ ][ ][ ][ ][ ][ ][ ]            0/7
