@@ -4,8 +4,9 @@
 
 Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
 után"), a lookup horgonya és szélső sora is (P.4, lásd „Pontosítás a
-P.4-ben"), és az élő STW-szorzó a telefonon (P.5, lásd „Pontosítás a
-P.5-ben"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.6–P.8).
+P.4-ben"), az élő STW-szorzó a telefonon (P.5, lásd „Pontosítás a
+P.5-ben"), és az új polár az assetben (P.6, lásd „Pontosítás a
+P.6-ban"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.7–P.8).
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
@@ -395,6 +396,20 @@ Felhasználói döntések; a `.pol` formátum nem változik (D8).
   és a web nem olvassa (csak a `boatState` STW-jét), kettős korrekció nincs.
 - A szorzó módosítása mostantól a VPS fájlja **és** egy telefonos kiadás
   (`deploy/README.md` 12., „Az STW-szorzó módosítása").
+
+### Pontosítás a P.6-ban (2026-10-15)
+
+- Az új polár a `de528fb` utáni builder végleges alapértékeivel épült,
+  és a P.4 után újrafuttatva bájtra azonos maradt; ez került az
+  `apps/phone/assets/polars/foretack.pol`-ba. A szerver a kiadáskor ugyanezt
+  kapja (D11), a polár-cache az ujjlenyomat változása miatt induláskor
+  újraszámol (ADR 0049 Addendum 4 U6). Kódváltozás nem kellett: a parser,
+  a lookup és a web nem feltételez rögzített tengelyt.
+- **Őrteszt** (javaslat): az `apps/phone/test/app/bundled_polar_asset_test.dart`
+  a beépített asset alakját ellenőrzi, nem cellaértékeit: a TWS-tengely
+  2 csomóval indul, 25° alatt nincs cél, a kitöltött sorok 25–175°-ig
+  tartanak, és egy soron belül a cél a széllel nem csökken. Egy
+  ugyanilyen újabb építés átmegy rajta, a régi, nyers tábla nem.
 
 ## Mit ír felül
 
