@@ -58,14 +58,107 @@ void main() {
         expect(target, closeTo(9.17, 1e-9));
       });
 
-      test('TWS az alsó szél alatt → az első oszlopra clamp', () {
-        final target = lookup(polar: polar, twaDegrees: 85, twsKnots: 2);
-        expect(target, closeTo(6.53, 1e-9));
-      });
-
       test('TWA a felső szél fölött → az utolsó sorra clamp', () {
         final target = lookup(polar: polar, twaDegrees: 170, twsKnots: 10);
         expect(target, closeTo(7.83, 1e-9));
+      });
+    });
+
+    group('horgony 0 csomónál (ADR 0058 D5)', () {
+      test('az első oszlop alatt arányosan a 0 felé tart', () {
+        // TWS 2 a 4 csomós első oszlop fele: 6.53 × 2 / 4.
+        final target = lookup(polar: polar, twaDegrees: 85, twsKnots: 2);
+        expect(target, closeTo(3.265, 1e-9));
+      });
+
+      test('az első oszlopon folytonos (nincs ugrás)', () {
+        final target = lookup(polar: polar, twaDegrees: 85, twsKnots: 4);
+        expect(target, closeTo(6.53, 1e-9));
+      });
+
+      test('TWA-ban interpolált célt is arányosan skáláz', () {
+        // TWA 55: 25 (5.20) és 85 (6.53) között 5.865, TWS 2 → a fele.
+        final target = lookup(polar: polar, twaDegrees: 55, twsKnots: 2);
+        expect(target, closeTo(2.9325, 1e-9));
+      });
+
+      test('0 csomós TWS → null (nincs target, nincs 0-val osztás)', () {
+        final target = lookup(polar: polar, twaDegrees: 85, twsKnots: 0);
+        expect(target, isNull);
+      });
+
+      test('negatív TWS → null', () {
+        final target = lookup(polar: polar, twaDegrees: 85, twsKnots: -1);
+        expect(target, isNull);
+      });
+    });
+
+    group('üres szélső TWA-sor (ADR 0058, P.4)', () {
+      // A rács végén egy teljesen üres 180°-os, elején egy üres 30°-os sor.
+      final trimmed = Polar(
+        twaAxis: const <double>[30, 40, 90, 175, 180],
+        twsAxis: const <double>[6, 10],
+        grid: const <List<double?>>[
+          [null, null],
+          [5, 6],
+          [7, 8],
+          [6, 7],
+          [null, null],
+        ],
+      );
+
+      test('az utolsó kitöltött soron még van target', () {
+        final target = lookup(polar: trimmed, twaDegrees: 175, twsKnots: 6);
+        expect(target, closeTo(6, 1e-9));
+      });
+
+      test('az utolsó kitöltött sor fölött → null (nem viszi tovább)', () {
+        final target = lookup(polar: trimmed, twaDegrees: 177, twsKnots: 6);
+        expect(target, isNull);
+      });
+
+      test('az üres szélső sor pontján → null', () {
+        final target = lookup(polar: trimmed, twaDegrees: 180, twsKnots: 6);
+        expect(target, isNull);
+      });
+
+      test('az első kitöltött sor alatt → null', () {
+        final target = lookup(polar: trimmed, twaDegrees: 35, twsKnots: 6);
+        expect(target, isNull);
+      });
+
+      test('az első kitöltött soron még van target', () {
+        final target = lookup(polar: trimmed, twaDegrees: 40, twsKnots: 6);
+        expect(target, closeTo(5, 1e-9));
+      });
+
+      test('belső üres sor nem vágja el a célt', () {
+        // A 60°-os sor üres, de két kitöltött sor fogja közre: a lookup
+        // a meglévő sarkokból interpolál (a 90°-os sor felé súlyozva).
+        final withGap = Polar(
+          twaAxis: const <double>[30, 60, 90],
+          twsAxis: const <double>[6, 10],
+          grid: const <List<double?>>[
+            [5, 6],
+            [null, null],
+            [7, 8],
+          ],
+        );
+        final target = lookup(polar: withGap, twaDegrees: 75, twsKnots: 6);
+        expect(target, closeTo(7, 1e-9));
+      });
+
+      test('teljesen üres rács → null', () {
+        final empty = Polar(
+          twaAxis: const <double>[30, 90],
+          twsAxis: const <double>[6, 10],
+          grid: const <List<double?>>[
+            [null, null],
+            [null, null],
+          ],
+        );
+        final target = lookup(polar: empty, twaDegrees: 60, twsKnots: 8);
+        expect(target, isNull);
       });
     });
 

@@ -48,7 +48,7 @@ RaceSnapshot _snapshot({
   Speed? sog = _sog,
   DateTime? lastUpdate,
   int eventCount = 120,
-  double? targetSpeedKnots = 6.8,
+  double? targetSpeedPercent = 101.97,
   double? targetVmgKnots = 6.2,
 }) => RaceSnapshot(
   eventCount: eventCount,
@@ -66,7 +66,8 @@ RaceSnapshot _snapshot({
     trueAngleWater: const Angle(degrees: 42),
     trueSpeedWater: const Speed(metersPerSecond: 7.3),
   ),
-  targetSpeedKnots: targetSpeedKnots,
+  targetSpeedKnots: 6.8,
+  targetSpeedPercent: targetSpeedPercent,
   vmgKnots: 5.8,
   targetVmgKnots: targetVmgKnots,
 );
@@ -130,8 +131,8 @@ void main() {
       expect(find.text('11:10:53'), findsOneWidget);
       expect(find.text('STW'), findsOneWidget);
       expect(find.text('6,4'), findsOneWidget);
-      // 6,41 / 6,8 = 94%.
-      expect(find.text('94%'), findsOneWidget);
+      // The engine percent, rounded (6.93 corrected kn / 6.8 = 101.97%).
+      expect(find.text('102%'), findsOneWidget);
       expect(find.text('5,8'), findsOneWidget);
       expect(find.text('cél 6,2'), findsOneWidget);
       expect(find.text('42°'), findsOneWidget);
@@ -166,7 +167,7 @@ void main() {
       await _pump(
         tester,
         session: _running,
-        snapshot: _snapshot(targetSpeedKnots: null, targetVmgKnots: null),
+        snapshot: _snapshot(targetSpeedPercent: null, targetVmgKnots: null),
       );
 
       final scheme = foretackTheme.colorScheme;

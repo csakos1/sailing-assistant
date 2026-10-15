@@ -46,6 +46,39 @@ void main() {
       });
     });
 
+    group('kitöltött TWA-sorok', () {
+      test('teljesen kitöltött rácsnál a teljes tengely', () {
+        expect(buildPolar().populatedTwaRange, (first: 0, last: 2));
+      });
+
+      test('a szélső üres sorokat kihagyja, a belsőt nem', () {
+        final polar = Polar(
+          twaAxis: const <double>[30, 60, 90, 120, 180],
+          twsAxis: const <double>[6, 10],
+          grid: const <List<double?>>[
+            [null, null],
+            [5, null],
+            [null, null],
+            [null, 7],
+            [null, null],
+          ],
+        );
+        expect(polar.populatedTwaRange, (first: 1, last: 3));
+      });
+
+      test('teljesen üres rácsnál null', () {
+        final polar = Polar(
+          twaAxis: const <double>[30, 90],
+          twsAxis: const <double>[6],
+          grid: const <List<double?>>[
+            [null],
+            [null],
+          ],
+        );
+        expect(polar.populatedTwaRange, isNull);
+      });
+    });
+
     group('immutability', () {
       test('a tengely-lista nem módosítható', () {
         final polar = buildPolar();

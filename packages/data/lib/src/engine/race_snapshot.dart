@@ -31,6 +31,7 @@ class RaceSnapshot {
     this.windShiftTrend,
     this.twdQuality = TwdQuality.unavailable,
     this.targetSpeedKnots,
+    this.targetSpeedPercent,
     this.vmgKnots,
     this.targetVmgKnots,
     this.vmgSteerCorrection,
@@ -68,6 +69,7 @@ class RaceSnapshot {
       ),
       twdQuality: _twdQualityFromName(json['twdQuality'] as String?),
       targetSpeedKnots: (json['targetSpeedKnots'] as num?)?.toDouble(),
+      targetSpeedPercent: (json['targetSpeedPercent'] as num?)?.toDouble(),
       vmgKnots: (json['vmgKnots'] as num?)?.toDouble(),
       targetVmgKnots: (json['targetVmgKnots'] as num?)?.toDouble(),
       vmgSteerCorrection: _mapOrNull(
@@ -126,12 +128,22 @@ class RaceSnapshot {
 
   /// A polár-alapú cél-sebesség (kn) a tick pillanatában, vagy `null`, ha
   /// nincs betöltött polár, hiányzik a water-referenciájú szél, vagy a TWA a
-  /// no-go alatt van (ADR 0028 Addendum 3). Domain-nyers; a watch-% ebből
-  /// számol, és post-race elemezhető (ADR 0025).
+  /// no-go alatt van (ADR 0028 Addendum 3). Domain-nyers; a
+  /// [targetSpeedPercent] ebből számol, és post-race elemezhető (ADR 0025).
   final double? targetSpeedKnots;
 
+  /// A teljesítmény-sebesség és a [targetSpeedKnots] aránya százalékban a
+  /// tick pillanatában, vagy `null`, ha nincs cél vagy sebesség (ADR 0058
+  /// D10). A sebesség a szerverével azonos szorzóval korrigált STW, annak
+  /// hiányában a nyers SOG; a [boatState] STW-je viszont nyers marad. A
+  /// telefon kijelzői és az óra ezt mutatják; régi JSON-ban hiányzik,
+  /// ilyenkor `null`.
+  final double? targetSpeedPercent;
+
   /// Az élő VMG (kn) a tick pillanatában, vagy `null`, ha hiányzik a
-  /// water-referenciájú TWA vagy nincs hajósebesség (STW/SOG). Előjeles:
+  /// water-referenciájú TWA vagy nincs hajósebesség (STW/SOG). Az STW a
+  /// szerverével azonos szorzóval korrigált, a SOG nyers (ADR 0058 D10;
+  /// a [targetSpeedPercent] ugyanezt a sebességet használja). Előjeles:
   /// pozitív = szél felé, negatív = széltől el (4. szelet). A watch és a
   /// telefon-grid jeleníti meg; post-race elemezhető (ADR 0025).
   final double? vmgKnots;
@@ -183,6 +195,7 @@ class RaceSnapshot {
       'windShiftTrend': _mapOrNull(windShiftTrend, _windShiftTrendToJson),
       'twdQuality': twdQuality.name,
       'targetSpeedKnots': targetSpeedKnots,
+      'targetSpeedPercent': targetSpeedPercent,
       'vmgKnots': vmgKnots,
       'targetVmgKnots': targetVmgKnots,
       'vmgSteerCorrection': _mapOrNull(vmgSteerCorrection, _angleToJson),

@@ -233,7 +233,7 @@ kulcs, így egy release is felmehetne rá adatvesztés nélkül, de nem kell.
   `VERSION` újabb); ha a legénység nő, külön döntés.
 - A Wear OS app terjesztését (a legénységnek nem kell).
 
-## Kiadás 0.3.0+3 (2026-10-12)
+## Kiadás 0.3.0+3 (2026-10-12, kint 2026-10-13)
 
 - A telefonos UI-frissítés (ADR 0054–0057) kiadása a legénységnek, a
   merge után a `main`-ről (`528caaf`), a v6-os szerver kiadása után.
@@ -242,3 +242,32 @@ kulcs, így egy release is felmehetne rá adatvesztés nélkül, de nem kell.
   `deploy/README.md` 15.4 szerint frissít, a régi app fölé.
 - A telefonok DB-je az első indításkor v5 → v6 migrál (ADR 0055 D3); a
   szerver a még nem frissített (v5-ös) telefonok feltöltését is fogadja.
+- **Az APK ténylegesen 2026-10-13-án ment ki.** Az első két build idegen
+  kulccsal írt alá: a shellben nem volt beállítva, hogy az Android-eszközök
+  a `~/.config/.android/`-ot használják, ezért a Gradle a `~/.android/`-ban
+  keresett, és ott csendben új debug-kulcsot generált. A
+  `build_phone_apk.sh` mindkettőt elutasította, kint semmi nem változott.
+  A kiadás `ANDROID_USER_HOME="$HOME/.config/.android"`-dal ment, egy
+  `flutter clean` után.
+
+## A kulcs helye a buildben (2026-10-15)
+
+- A D5 kiegészítése (javaslat): a `build_phone_apk.sh` a build **előtt**
+  ellenőrzi a kulcsfájl ujjlenyomatát (`deploy.env` `PHONE_KEYSTORE`,
+  alapból `~/.config/.android/debug.keystore`; a `keytool` a PATH-ról vagy
+  az Android Studio JBR-jéből), és csak a `flutter build`-nek adja
+  `ANDROID_USER_HOME`-ként a könyvtárát. Egy hiányzó vagy idegen kulcs így
+  másfél perc build helyett azonnal megállít.
+- Globálisan nem állítjuk át: ugyanitt vannak az adb-kulcsok, egy
+  átállítás után a telefont és az órát újra kellene párosítani.
+- Az APK utólagos aláíró-ellenőrzése marad: az a végső kapu.
+
+## Kiadás 0.4.0+4 (2026-10-15)
+
+- A profi polár (ADR 0058) kiadása: az új `foretack.pol` (a szerver is ezt
+  kapja), az élő STW-szorzó, és a target-% az engine-ből. Verzió-emelés
+  saját commitban (`0.3.0+3` → `0.4.0+4`), a merge után a `main`-ről a
+  szerver (`deploy/deploy.sh`), utána `deploy/publish_apk.sh`.
+- DB-migráció nincs. A legénység a `deploy/README.md` 15.4 szerint frissít;
+  az üzenetben: az élő % a 2026-07-20 utáni szenzorral kb. 8%-kal
+  magasabb, gyenge szélben is van cél, és hátszélben kisebb a target-VMG.

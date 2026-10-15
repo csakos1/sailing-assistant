@@ -121,6 +121,63 @@ void main() {
       expect(result, isNull);
     });
 
+    test('lemenőn az utolsó kitöltött TWA-sornál megáll', () {
+      // Given: a 180°-os sor teljesen üres (ADR 0058, P.4). A 175°-os sor
+      // értéke nem terjedhet ki 179°-ig, ezért az optimum 175°:
+      // 6.4 × cos 175° = -6.3756 (és nem 180° / -6.4).
+      final trimmed = Polar(
+        twaAxis: const <double>[25, 50, 90, 130, 175, 180],
+        twsAxis: const <double>[6, 12],
+        grid: const <List<double?>>[
+          [3.0, 3.5],
+          [5.0, 5.8],
+          [6.0, 7.0],
+          [5.5, 6.5],
+          [5.0, 6.4],
+          [null, null],
+        ],
+      );
+
+      // When.
+      final result = lookupTargetVmg(
+        polar: trimmed,
+        twaDegrees: 150,
+        twsKnots: 12,
+      );
+
+      // Then.
+      expect(result?.optimumTwaDegrees, 175);
+      expect(result?.vmgKnots, closeTo(-6.37565, 1e-4));
+    });
+
+    test('a legalsó TWS-oszlop alatt a horgony arányosan skáláz', () {
+      // Given: a TWS 3 csomó a 6 csomós első oszlop fele (ADR 0058 D5);
+      // a skálázás minden szögön azonos, így az optimum-szög nem változik.
+      final atFirstColumn = lookupTargetVmg(
+        polar: polar,
+        twaDegrees: 45,
+        twsKnots: 6,
+      );
+
+      // When.
+      final belowFirstColumn = lookupTargetVmg(
+        polar: polar,
+        twaDegrees: 45,
+        twsKnots: 3,
+      );
+
+      // Then: az első expect már őrzi a nem-null-t, a `!` ezért biztos.
+      expect(atFirstColumn, isNotNull);
+      expect(
+        belowFirstColumn?.vmgKnots,
+        closeTo(atFirstColumn!.vmgKnots / 2, 1e-9),
+      );
+      expect(
+        belowFirstColumn?.optimumTwaDegrees,
+        atFirstColumn.optimumTwaDegrees,
+      );
+    });
+
     test('nem-véges bemenetre null', () {
       expect(
         lookupTargetVmg(polar: polar, twaDegrees: double.nan, twsKnots: 12),

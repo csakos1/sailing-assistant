@@ -126,7 +126,7 @@ közvetlenül nem pusholunk rá.
 = ismert minta ismétlése · *közepes* = új tervezési döntés vagy új API · *magas*
 = új domain-alrendszer, vagy sok ismeretlen. A becslések nem mérések.
 
-**ADR-számok:** a következő szabad szám a **0058**; a **0043** a rajt-időzítőnek
+**ADR-számok:** a következő szabad szám a **0059**; a **0043** a rajt-időzítőnek
 van fenntartva. A blokkok új ADR-jei sorban kapják a számot, amikor elkészülnek.
 
 ---
@@ -153,8 +153,8 @@ mérésre vagy döntésre vár.
 ### A sorrend indoklása
 
 A **P** az első, mert a polár minden sebesség-alapú számot meghatároz (target-%,
-VMG, a webes polár-teljesítmény), az idei szezon jól sikerült, és a felhasználó
-döntése, hogy **az idei teljesítmény legyen az elvárt célsebesség**. A **T** a
+VMG, a webes polár-teljesítmény), és a mai polár gyenge szélben és a rács
+szélein pontatlan (P.1). A **T** a
 második, mert a fő funkció minőségét eddig senki nem mérte egy teljes szezonon,
 és a jobb szélmodell (lásd a T-ben) egyben a layline és a szélfordulás-taktika
 alapja is. A **D** a Blokk 4 előtt jön, mert onnantól sok lesz a készülékes kör.
@@ -165,7 +165,8 @@ az óra új nézetet kapjon.
 
 ## Blokk P — Profi polár
 
-**Cél:** a polár a hajó valódi, **idei** teljesítményét írja le, a teljes
+**Cél:** a polár a hajó valódi, minden év adatából mért teljesítményét írja
+le (ADR 0058), a teljes
 szél-tartományban, simán és hézag nélkül, olyan formában, ahogy egy profi
 polár-táblázat kinéz. **9–14 szelet + adat-körök a felhasználónál.**
 
@@ -204,12 +205,13 @@ polár-táblázat kinéz. **9–14 szelet + adat-körök a felhasználónál.**
    fizikailag értelmes (egy határig nem csökkenő) menet; a lyukakat az
    illesztett felület tölti, nem a szomszéd-interpoláció. A cellák mintaszáma
    metaadatként megmarad (megbízhatóság).
-4. **Kreuz- és hátszél-optimum** szélerőnként (cél-TWA + célsebesség): ez kell a
-   layline-hoz (ADR 0040) és a VMG-kormányzáshoz.
-5. **Az idei adat súlya:** a cél az idei teljesítmény. Az idei versenyeket az
-   app 1 Hz-en rögzítette (`snapshot_logs`: TWA, TWS, STW) — ez sűrűbb és
-   pontosabb forrás a YDVR 10 s-os CSV-jénél.
-6. **Verzió:** a polár kap egy verzió-azonosítót, és a builder reprodukálható.
+4. **Kreuz- és hátszél-optimum** szélerőnként: a `LookupTargetVmg` már
+   futásidőben számolja a rácsból, a simított rácson ez stabil lesz (ADR 0058
+   D8).
+5. **Minden év adata:** a telefon 1 Hz-es telemetriája (korrigált STW) és a
+   régi YDVR-napló együtt (ADR 0058 D1).
+6. **Reprodukálható:** a builder a repóban van, a mentésből bármikor újraépít
+   (ADR 0058 D9).
 
 **A felhasználói döntés (2026-10-13):** a számok mindenhol változhatnak (web,
 napló, élő), a régi versenyek is az új polárhoz mérődnek. Ezért **versenyenkénti
@@ -217,18 +219,42 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 
 | # | Tétel | Szelet | Nehézség | Igény | Állapot |
 |---|---|---|---|---|---|
-| P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) | 1–2 | közepes | 🗄 💻 | `[ ]` |
-| P.2 | **Polár-ADR** (új ADR vagy ADR 0028 Addendum): módszer, tengelyek, simítás, optimum-sorok, adatforrás, súlyozás, percentilis 🔴 P-D1…P-D5 | 1–2 | közepes | 💻 | `[ ]` |
-| P.3 | **Polár-builder** az új módszerrel (forrás: idei telemetria + YDVR), tesztekkel | 2–3 | magas | 💻 🗄 | `[ ]` |
-| P.4 | Domain: a `.pol`-dialektus bővítése (optimum-sorok, verzió), a 0 csomós horgony a lookupban | 1–2 | közepes | 💻 | `[ ]` |
-| P.5 | **Élő STW-korrekció a telefonon** 🔴 P-D6 | 1–2 | közepes | 💻 📱 | `[ ]` |
-| P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[ ]` |
-| P.7 | Ellenőrzés replay-ből: az idei versenyek target-% eloszlása jó körülmények között 100% körül | 1 | alacsony | 💻 | `[ ]` |
-| P.8 | Kiadás: szerver (`deploy/deploy.sh`) + legénységi APK (ADR 0053) | 0 | alacsony | 📱 | `[ ]` |
+| P.1 | **Elemző riport**: a mai polár vs. az idei adat (target-% eloszlás TWA × TWS szerint, mintaszámok, lyukak, zaj) — `apps/web_server/bin/polar_report.dart` | 1–2 | közepes | 🗄 💻 | `[x]` `5d67489`, `9425512` |
+| P.1b | Riport-bővítés: teljesítmény menetszög és szélsáv szerint, a telefon szele 10 mp-es mediánnal, a szélcsendes 180°-os minták | 1 | közepes | 🗄 💻 | `[x]` |
+| P.2 | **Polár-ADR**: módszer, tengelyek, simítás, adatforrás, súlyozás, percentilis | 1–2 | közepes | 💻 | `[x]` ADR 0058 |
+| P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[x]` szűrők és simítás hangolva (AWA, beragadt szélirány, mély hátszeles VMG, 180°-os sor, 20°, 5 perces cella) |
+| P.4 | Domain: a 0 csomós horgony a `LookupTargetSpeed`-ben (ADR 0058 D5), és a cél ne terjedjen ki az üres 180°-os sor felé (ADR 0058 „A lezárás előtt”); a `.pol` formátum nem változik (D8) | 1 | közepes | 💻 | `[x]` ADR 0058 „Pontosítás a P.4-ben” |
+| P.5 | **Élő STW-korrekció a telefonon**: a szerverrel azonos szorzó-konstans, csak a számolt értékekre (ADR 0058 D10) | 1–2 | közepes | 💻 📱 | `[x]` ADR 0058 „Pontosítás a P.5-ben” |
+| P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[x]` ADR 0058 „Pontosítás a P.6-ban” |
+| P.7 | Ellenőrzés: a riport az új polárral (a mért cellák 100% körül, a gyenge szél 4 kn alatt is) | 1 | alacsony | 💻 | `[x]` ADR 0058 „Ellenőrzés a P.7-ben” |
+| P.8 | Kiadás: szerver (`deploy/deploy.sh`) + legénységi APK (ADR 0053) | 0 | alacsony | 📱 | `[x]` ADR 0053 „Kiadás 0.4.0+4” |
 
 **Adat és titokvédelem:** a nyers adat (YDVR, telemetria, versenyablakok) **soha
-nem kerül a repóba**. A builder kódja igen (ha a P-D1 így dönt), az adatot a
+nem kerül a repóba**. A builder kódja igen (P-D1), az adatot a
 felhasználó gépén futtatja, és csak az összesített riport jön vissza a chatbe.
+
+### A P.1 riport tanulságai (2026-10-13)
+
+- Az eszköz visszaadja a mai polárt: minden szezon 4–16 csomós cellái
+  97–103% körül állnak.
+- A szezonok idejének 13–45%-a 4 csomó alatti szélben telik; ott a mai
+  polár a 4 csomós oszlopot adja célnak (40–80% arány). Ez a legnagyobb
+  gyakorlati hiba, és ez húzza le a szezon-átlagot (2026: 67%).
+- 2026 nem gyorsabb a régi polárnál: kreuzban azonos (kb. 95–105%),
+  hátszélben (150–165°, 5–9 kn) 75–90%. Ezért a cél minden év adata (P-D2),
+  és a P.1b dönti el, hogy a hátszél-hiány mérési hatás-e (1 Hz-es
+  pillanatnyi szél a 10 mp-es medián helyett, vagy a Vulcan alulmérő STW-je a
+  szélszámításban).
+- A 180°-os sorban gyenge szélben sok a szélcsendes minta (a műszer szél
+  nélkül 180°-ot adhat); a builder ezeket kiszűri.
+- A 17 kn feletti cellák kevés adatból 100–122%-ot mutatnak: a mai 20 kn-os
+  oszlop alábecsül; a mai polárban 27 helyen csökken a cél erősödő szélben.
+- A P.1b szerint 2026 a többi év sávjában van (4–16 kn, medián %
+  menetszögenként és szélsávonként), és a telefon szelének simítása
+  legfeljebb 0,8 pontot mozdít: a hátszél-hiány a rács felső tizedében
+  volt, nem mérési hatás. A szélcsendes 180°-os minták idén a szezon
+  idejének 8%-át adják. A módszer: ADR 0058.
+
 
 ---
 
@@ -487,12 +513,12 @@ törlés (ADR 0057).
 
 | # | Döntés | Kit blokkol | Javasolt default |
 |---|---|---|---|
-| **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **A repóban**, Dartban, tesztekkel; az adat soha |
-| **P-D2** | Adatforrás és súlyozás: csak az idei versenyek, vagy minden év az idei súlyozásával? | P.2, P.3 | Idei adat, ahol a vödörben elég minta van; a régi évek csak a hézagokat töltik, STW-korrekcióval |
-| **P-D3** | A „100%" jelentése: p90 marad, vagy más percentilis? | P.2 | A riport (P.1) után döntünk; a p90 ma is jól viselkedik |
-| **P-D4** | TWS-tengely és horgony | P.2, P.4 | 0, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (+25, ha van adat); 0 csomónál 0 |
-| **P-D5** | Vitorla-konfiguráció: kell-e külön hátszél-polár (pl. genakker vs. orrvitorla)? | P.2 | A felhasználó tudja; ha egy polár elég, marad egy |
-| **P-D6** | Élő STW-korrekció: szorzó az appban, vagy a műszer kalibrálása (Vulcan), vagy mindkettő átmenetileg? | P.5 | Szorzó az appban most (beállítható, verziózott), a Vulcan-kalibráció tavasszal (B6.2), utána a szorzó 1,0 |
+| **P-D1** | Hol éljen a polár-builder: a repóban (`tools/`, Dart vagy Python), vagy marad a repón kívül? | P.3 | **Eldöntve (2026-10-13):** a repóban, Dartban, tesztekkel (ADR 0058 D9); az adat soha |
+| **P-D2** | Adatforrás és súlyozás | P.2, P.3 | **Eldöntve (2026-10-13):** minden év adata, a telefonos telemetriával együtt, korrigált STW-vel; az idei adat nem kap külön súlyt |
+| **P-D3** | A „100%" jelentése | P.2 | **Eldöntve (2026-10-13):** a cellánkénti p90 marad |
+| **P-D4** | TWS-tengely és horgony | P.2, P.4 | **Eldöntve (2026-10-13):** 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20 (+25, ha van adat); a 0 csomós horgony a lookupban (ADR 0058 D4, D5) |
+| **P-D5** | Vitorla-konfiguráció | P.2 | **Eldöntve (2026-10-13):** egy polár elég |
+| **P-D6** | Élő STW-korrekció | P.5 | **Eldöntve (2026-10-13):** szorzó az appban most, a Vulcan-kalibráció tavasszal (B6.2), utána 1,0 (ADR 0058 D10) |
 
 ### Predikció (T)
 
@@ -523,7 +549,7 @@ D1 (a billentyűzet-hiba a `deferred.md`-ben); D2 (a terv és a leltár a
 ## 13. Haladás-követés
 
 ```
-Blokk P  Profi polar               [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
+Blokk P  Profi polar               [x][x][x][x][x][x][x][x][x]      9/9
 Blokk T  Next-mark TWA predikcio   [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
 Blokk U  UI-maradek, hibak         [ ][ ][ ][ ][ ][ ]               0/6
 Blokk 2  Adat-higienia             [ ][ ][ ][ ][ ][ ][ ]            0/7
@@ -563,3 +589,15 @@ git log --oneline -10
 | 2026-09-20 | Kezdeti terv: hét blokk, kb. 80–120 szelet. A szezonvégi víz-ablak mint fő szervezőelv; a vízió-tételek tudatosan kihagyva (Blokk 7). |
 | 2026-09-20 | A makettek megérkeztek (7c, 9e, 10a, 11a–11d, 12a). A Blokk 1 újraírva négy körre (1a–1d), 18–26 → **32–42 szelet**. |
 | 2026-10-13 | Állapot-frissítés a webes archívum (ADR 0047–0053) és a telefonos UI v1 (ADR 0054–0057) után: a Blokk 0 és 1 lezárva, a maradék a Blokk U-ba. Új, első blokk: **P — profi polár** (az idei teljesítmény az elvárt cél; a számok mindenhol változhatnak). Új második blokk: **T — next-mark TWA predikció** (kiértékelés, audit, backtesttel választott szélmodell). Új blokk: **D — on-device tesztkörnyezet**. B2.1 és B3.3 kiváltva; a Blokk 4 rajt-tételei 🔴 R1. Az autonóm fejlesztés elengedve, marad a chates módszer. |
+| 2026-10-13 | P.1 és P.1b kész; a riport szerint 2026 a többi év sávjában van, ezért a polár minden év adatából épül (P-D2), nem csak az ideiből. P.2: ADR 0058 (sűrűbb TWS-tengely, horgony a lookupban, szűrők, simítás, repóbeli builder, élő STW-szorzó). P-D2…P-D6 eldöntve. |
+| 2026-10-13 | P.3 kódja kész: `build_polar.dart` és a pure lánc a `polar_lab`-ban (ADR 0058 „Pontosítás a kód után”); 1 kn alatt a minta kiesik; a kimenet a munkakönyvtárba megy, az assetbe a P.6 viszi. P-D1 eldöntve. A hangolás az első futás összesítője után. |
+| 2026-10-13 | A builder első futása: a 4–16 kn-os mért cellák ±3%-on belül; a gyenge szeles hátszélben lehetetlen minták (motor vagy szélmérés) — előbb diagnosztika (számolt AWA az összesítőben). A no-go marad 25°. Hangolási kapcsolók a builderben. |
+| 2026-10-13 | A diagnosztika szerint a gyanús minták szélmérési hibák, nem motorozás; új szűrő: számolt AWA (hátszélben 20°, kreuzban 10° alatt). Az állandósult szél küszöbe 20°. |
+| 2026-10-13 | Új szűrő: beragadt szélirány-mérő (pókháló; a `|TWA|` 0° vagy 180° körül mozdulatlan ±30 mp-en), saját oszloppal az összesítőben. |
+| 2026-10-13 | Új szűrő: mély hátszélben (`|TWA|` ≥ 135°) a TWS 1,3-szeresénél nagyobb VMG kiesik; diagnosztika az összesítő 8. szakaszában. |
+| 2026-10-13 | A P.3 lezárása előtt: mért cella 5 perctől; a 180°-os sor kiesik (aszimmetrikus spinnaker, beragadt mérő); a TWA menti simítás nem vetít ki egy oldalról. A P.4-re: a lookup ne terjessze ki a célt az üres 180°-os sor felé. |
+| 2026-10-13 | P.3 lezárva. P.4 kész: a 0 csomós horgony a `LookupTargetSpeed`-ben (az első TWS-oszlop alatt arányos, `tws ≤ 0` → nincs cél), és a cél nem terjed ki a teljesen üres szélső TWA-sor felé (a VMG-keresés 175°-nál megáll). |
+| 2026-10-13 | P.5 kész: az élő STW-szorzó a telefonon (`foretackStwCorrections`, 1,081 2026-07-20-tól); a target-%-ot az engine számolja (`RaceSnapshot.targetSpeedPercent`), az élő VMG STW-ága is korrigált, a kijelzett STW és a tárolt adat nyers. Az ADR 0058 D10 szövege javítva (a szerver a számításkor korrigál). A 0.3.0+3 legénységi APK ténylegesen ma ment ki (a gép debug-kulcsának helye miatt elakadt). |
+| 2026-10-15 | P.6 kész: az új, simított polár az assetben (a szerver a kiadáskor ugyanezt kapja), egy őrteszttel a beépített fájl alakjára. |
+| 2026-10-15 | P.7 kész: az ellenőrző riport szerint a mért cellák 4–20 kn-ban a cél 95–105%-án vannak, 4 kn alatt is van cél, és a polár sima. Ismert eltérések: a kiszűrt gyenge szeles hátszél-minták a weben is 100% fölé mehetnek, a 170–175°-os sor erős szélben kevés adatból áll (ADR 0058 „Ellenőrzés a P.7-ben”). |
+| 2026-10-15 | P.8: a Blokk P lezárva, kiadás `0.4.0+4`-gyel (szerver és legénységi APK a merge után a `main`-ről). A `build_phone_apk.sh` a build előtt ellenőrzi a debug-kulcs ujjlenyomatát és helyét (ADR 0053 „A kulcs helye a buildben”). |

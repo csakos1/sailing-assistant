@@ -102,7 +102,7 @@ class FreeModeView extends ConsumerWidget {
                   hasValues: hasValues,
                   speedThroughWater: boat?.speedThroughWater,
                   speedOverGround: boat?.speedOverGround,
-                  targetSpeedKnots: snapshot?.targetSpeedKnots,
+                  targetSpeedPercent: snapshot?.targetSpeedPercent,
                   vmgKnots: snapshot?.vmgKnots,
                   targetVmgKnots: snapshot?.targetVmgKnots,
                   vmgSteerCorrection: snapshot?.vmgSteerCorrection,

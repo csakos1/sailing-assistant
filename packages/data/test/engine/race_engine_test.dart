@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show pi;
+import 'dart:math' show cos, pi;
 
 import 'package:data/data.dart';
 import 'package:domain/domain.dart';
@@ -208,6 +208,166 @@ void main() {
 
       // ASSERT
       expect(snapshots.single.targetSpeedKnots, isNull);
+    });
+  });
+
+  group('live STW correction (ADR 0058 D10)', () {
+    // Polar: the TWA=30 row is 5.0 kn in every TWS column.
+    final polar = Polar(
+      twaAxis: const [0, 30, 60],
+      twsAxis: const [4, 6],
+      grid: const [
+        [null, null],
+        [5.0, 5.0],
+        [4.5, 5.6],
+      ],
+    );
+    final wind30 = WindData(
+      apparentAngle: const Angle(degrees: 30),
+      apparentSpeed: const Speed(metersPerSecond: 6),
+      timestamp: eventTime,
+      trueAngleWater: const Angle(degrees: 30),
+      trueSpeedWater: const Speed(metersPerSecond: 3),
+    );
+    const speed3 = Speed(metersPerSecond: 3);
+    // 3 m/s = 5.831532 kn; x1.081 = 6.303886 kn.
+    const rawKnots = 3 * 1.943844;
+    const correctedKnots = rawKnots * 1.081;
+    final cos30 = cos(pi / 6);
+
+    // A fresh engine with an explicit correction list; the outer one is
+    // never started, so it releases the tick stream.
+    Future<void> startWith(List<StwCorrection>? corrections) async {
+      await engine.dispose();
+      engine = RaceEngine(
+        nmeaStream: source,
+        telemetryLogger: logger,
+        snapshotLogger: snapshotLogger,
+        tickSource: tick.stream,
+        now: () => fixedNow,
+        stwCorrections: corrections,
+      )..snapshots.listen(snapshots.add);
+      await engine.start(
+        race: race.start(at: eventTime),
+        polar: polar,
+      );
+    }
+
+    Future<void> feed(List<DomainEvent> events, DateTime at) async {
+      events.forEach(source.emitEvent);
+      await pumpEventQueue();
+      tick.add(at);
+      await pumpEventQueue();
+    }
+
+    test('corrects the STW in the target percent and the live VMG', () async {
+      // ARRANGE
+      await startWith([StwCorrection(from: eventTime, factor: 1.081)]);
+
+      // ACT
+      await feed([SpeedEvent(speed3, eventTime), WindEvent(wind30)], tickTime);
+
+      // ASSERT: 6.303886 / 5 = 126.08%; VMG 6.303886 * cos 30.
+      final snapshot = snapshots.single;
+      expect(snapshot.targetSpeedKnots, closeTo(5, 1e-9));
+      expect(
+        snapshot.targetSpeedPercent,
+        closeTo(correctedKnots / 5 * 100, 1e-9),
+      );
+      expect(snapshot.targetSpeedPercent, closeTo(126.0777, 1e-3));
+      expect(snapshot.vmgKnots, closeTo(correctedKnots * cos30, 1e-9));
+      expect(snapshot.vmgKnots, closeTo(5.4593, 1e-3));
+    });
+
+    test('keeps the raw STW in the snapshot and the snapshot log', () async {
+      // ARRANGE
+      await startWith([StwCorrection(from: eventTime, factor: 1.081)]);
+
+      // ACT
+      await feed([SpeedEvent(speed3, eventTime), WindEvent(wind30)], tickTime);
+
+      // ASSERT: the server corrects from this raw value itself.
+      expect(snapshots.single.boatState.speedThroughWater, speed3);
+      expect(
+        snapshotLogger.entries.single.snapshot.boatState.speedThroughWater,
+        speed3,
+      );
+    });
+
+    test('does not correct before the first entry', () async {
+      // ARRANGE: the entry starts one second after the tick.
+      await startWith([
+        StwCorrection(
+          from: tickTime.add(const Duration(seconds: 1)),
+          factor: 1.081,
+        ),
+      ]);
+
+      // ACT
+      await feed([SpeedEvent(speed3, eventTime), WindEvent(wind30)], tickTime);
+
+      // ASSERT: 5.831532 / 5 = 116.63%.
+      expect(snapshots.single.targetSpeedPercent, closeTo(116.6306, 1e-3));
+      expect(snapshots.single.vmgKnots, closeTo(rawKnots * cos30, 1e-9));
+    });
+
+    test('does not correct the SOG fallback', () async {
+      // ARRANGE
+      await startWith([StwCorrection(from: eventTime, factor: 1.081)]);
+
+      // ACT: SOG only, no STW.
+      await feed([
+        CogSogEvent(const Bearing.true_(95), speed3, eventTime),
+        WindEvent(wind30),
+      ], tickTime);
+
+      // ASSERT
+      expect(snapshots.single.targetSpeedPercent, closeTo(116.6306, 1e-3));
+      expect(snapshots.single.vmgKnots, closeTo(rawKnots * cos30, 1e-9));
+    });
+
+    test('an empty list leaves the speed raw', () async {
+      // ARRANGE
+      await startWith(const []);
+
+      // ACT
+      await feed([SpeedEvent(speed3, eventTime), WindEvent(wind30)], tickTime);
+
+      // ASSERT
+      expect(snapshots.single.targetSpeedPercent, closeTo(116.6306, 1e-3));
+    });
+
+    test('without a speed the percent and the VMG are null', () async {
+      // ARRANGE
+      await startWith([StwCorrection(from: eventTime, factor: 1.081)]);
+
+      // ACT
+      await feed([WindEvent(wind30)], tickTime);
+
+      // ASSERT: the target itself is still there.
+      expect(snapshots.single.targetSpeedKnots, closeTo(5, 1e-9));
+      expect(snapshots.single.targetSpeedPercent, isNull);
+      expect(snapshots.single.vmgKnots, isNull);
+    });
+
+    test('defaults to the Foretack list by the tick time', () async {
+      // ARRANGE: no explicit list; the tick is on the 2026-07-20 boundary.
+      await startWith(null);
+      final boundary = DateTime.utc(2026, 7, 19, 22);
+
+      // ACT: one tick just before the boundary, one on it.
+      source
+        ..emitEvent(SpeedEvent(speed3, eventTime))
+        ..emitEvent(WindEvent(wind30));
+      await pumpEventQueue();
+      tick.add(boundary.subtract(const Duration(seconds: 1)));
+      await pumpEventQueue();
+      tick.add(boundary);
+      await pumpEventQueue();
+
+      // ASSERT
+      expect(snapshots[0].targetSpeedPercent, closeTo(116.6306, 1e-3));
+      expect(snapshots[1].targetSpeedPercent, closeTo(126.0777, 1e-3));
     });
   });
 
