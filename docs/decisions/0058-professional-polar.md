@@ -5,8 +5,9 @@
 Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
 után"), a lookup horgonya és szélső sora is (P.4, lásd „Pontosítás a
 P.4-ben"), az élő STW-szorzó a telefonon (P.5, lásd „Pontosítás a
-P.5-ben"), és az új polár az assetben (P.6, lásd „Pontosítás a
-P.6-ban"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.7–P.8).
+P.5-ben"), az új polár az assetben (P.6, lásd „Pontosítás a P.6-ban"),
+és az ellenőrző riport is lefutott (P.7, lásd „Ellenőrzés a P.7-ben"); a
+kiadás a `docs/PLAN.md` Blokk P-jének P.8-a.
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
@@ -411,6 +412,43 @@ Felhasználói döntések; a `.pol` formátum nem változik (D8).
   tartanak, és egy soron belül a cél a széllel nem csökken. Egy
   ugyanilyen újabb építés átmegy rajta, a régi, nyers tábla nem.
 
+### Ellenőrzés a P.7-ben (2026-10-15)
+
+A `polar_report.dart` ugyanazon a VPS-mentésen, az új assettel
+(ujjlenyomat `3f63d1b27a40692d`). A riport a D6 szűrői nélkül számol
+(csak a TWS-tüske esik ki, ahogy a weben), ezért a builder által kiszűrt
+minták itt benne vannak.
+
+- **4–20 kn, 25–165°: rendben.** Minden szezon rácsában a mért cellák p90-e
+  a cél 95–105%-a; a szezononkénti p90 97,5–102,8%, 2026-ban 99,2%. A
+  2026-os mediánok a többi év sávjában maradnak (P-D2).
+- **4 kn alatt van cél**, és a félszélben, kreuzban 96–125% között jár; a
+  régi polár 4 kn-os oszlopának kiterjesztése megszűnt.
+- **Simaság:** erősödő szélben csökkenő cél nincs; üres cella csak a
+  180°-os sor (szándékos, P.4).
+- **VMG-optimum:** hátszélben 5–6 kn-nál 175°, 7–8 kn-nál 170°, erősebb
+  szélben 155–165°; 176–180° sehol. Kreuzban a polár 25°-ot ad, az adat
+  3–11 kn-nál 25–30°-ot (a műszer skáláján, lásd „Amit ez az ADR NEM dönt
+  el").
+
+Ismert eltérések, amelyek a kiadást nem akasztják (felhasználói döntés,
+2026-10-15):
+
+- **Gyenge szeles mély hátszél (2–3 kn, 140–175°):** a riportban 150–220%.
+  Ezek a builder által kiszűrt, lehetetlen minták (számolt AWA, mély
+  hátszeles VMG-korlát, D6): 2 kn szélben 5–7 kn vízsebesség. A web
+  statisztikái ugyanezekkel a mintákkal számolnak, ott is 100% fölé
+  emelhetik a gyenge szeles hátszél %-át. A polárt nem érinti.
+- **A 0–1 kn-os oszlop:** a cél a horgonyból jön (D5), a % itt nem
+  értelmezhető; a polár 1 kn alatti mintát nem tartalmaz.
+- **A szélső hátszél-sorok erős szélben:** a 175°-os sor 6 kn fölött 6,50-en,
+  a 170°-os 12 kn fölött 7,62-n áll, mert ott 5 percnél kevesebb a mért
+  idő, és a TWS menti töltés a legfelső mért oszlopot tartja. A kevés
+  mért percben az adat 110–127%-on jár. A VMG-optimum (155–165°) nem esik
+  ide; a pontosítás egy újabb építésre vár, több adattal.
+- **20 kn fölött kreuzban** a kevés (1–3 perces) mért cellában 83–93%; a
+  25 kn-os oszlop a 20-asét tartja.
+
 ## Mit ír felül
 
 - ADR 0028 Addendum 1 A3 (2 csomós TWS-vödrök 2–24 kn) → D4.
@@ -440,3 +478,6 @@ Felhasználói döntések; a `.pol` formátum nem változik (D8).
   optimum ezért 25–30° mért TWA).
 - Az ADR 0030 (polár-alapú next-mark TWA korrekció) — a `docs/PLAN.md`
   T.7-e, az új polár után.
+- A szélső hátszél-sorok erős szeles célja (a P.7 ismert eltérése): egy
+  újabb építés dönti el, ha a 170–175°-os sorban 8 kn fölött elég mért
+  idő gyűlik.
