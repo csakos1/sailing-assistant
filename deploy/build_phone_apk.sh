@@ -4,7 +4,8 @@
 # Csak tiszta munkafából épít, és csak akkor ad ki APK-t, ha az aláíró
 # tanúsítvány a deploy.env PHONE_SIGNING_SHA256 értéke. Egy más kulccsal
 # aláírt APK a legénység telefonján csak eltávolítás után települne, ami a
-# versenyeit is törölné (D2). A kimenet:
+# versenyeit is törölné (D2). A kulcsfájl ujjlenyomatát a build előtt is
+# ellenőrzi, és a helyét maga adja át a Gradle-nek. A kimenet:
 #
 #   build/phone-apk/<versionName>+<versionCode>-<hash>/
 #     foretack.apk, foretack.apk.sha256, VERSION
@@ -25,6 +26,46 @@ if [[ ! "$expected_signer" =~ ^[0-9a-f]{64}$ ||
   "$expected_signer" =~ ^0+$ ]]; then
   echo "A deploy.env PHONE_SIGNING_SHA256 hiányzik vagy a minta értéke." >&2
   exit 78
+fi
+
+# A Gradle a debug-kulcsot az ANDROID_USER_HOME-ban (alapból ~/.android)
+# keresi, és ha ott nem találja, csendben újat generál: 2026-10-13-án így
+# lett két idegen kulccsal aláírt APK. Ezért a kulcs helyét a deploy.env
+# adja, és a build előtt ellenőrizzük, hogy az a várt kulcs.
+keystore="${PHONE_KEYSTORE:-$HOME/.config/.android/debug.keystore}"
+if [[ "$(basename "$keystore")" != debug.keystore ]]; then
+  echo "A PHONE_KEYSTORE fájlneve debug.keystore kell legyen: $keystore" >&2
+  exit 78
+fi
+if [[ ! -f "$keystore" ]]; then
+  echo "Nincs meg az aláíró kulcs: $keystore (deploy/README.md 15.1)." >&2
+  exit 66
+fi
+keytool="$(command -v keytool || true)"
+if [[ -z "$keytool" && -x /opt/android-studio/jbr/bin/keytool ]]; then
+  keytool=/opt/android-studio/jbr/bin/keytool
+fi
+if [[ -z "$keytool" ]]; then
+  echo "Nincs keytool a PATH-on (és az Android Studio JBR-jében sem)." >&2
+  exit 69
+fi
+if ! keystore_listing="$(
+  "$keytool" -list -v -keystore "$keystore" -storepass android \
+    -alias androiddebugkey 2>&1
+)"; then
+  echo "A kulcsfájl nem olvasható: $keystore" >&2
+  echo "$keystore_listing" >&2
+  exit 1
+fi
+keystore_signer="$(
+  sed -nE 's/^[[:space:]]*SHA256:[[:space:]]*([0-9A-Fa-f:]+)[[:space:]]*$/\1/p' \
+    <<<"$keystore_listing" | tr -d ':' | tr 'A-F' 'a-f'
+)"
+if [[ "$keystore_signer" != "$expected_signer" ]]; then
+  echo "A kulcsfájl nem a várt kulcs (ADR 0053 D2): $keystore" >&2
+  echo "  várt:    $expected_signer" >&2
+  echo "  kapott:  ${keystore_signer:-semmi}" >&2
+  exit 1
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -62,7 +103,9 @@ echo "==> A telefonos app release buildje ($version, $hash)" >&2
   cd apps/phone
   # Egy korábbi build maradéka ne kerüljön a kiadásba.
   rm -f build/app/outputs/flutter-apk/app-release.apk
-  flutter build apk --release >&2
+  # Csak erre a buildre: ugyanitt vannak az adb-kulcsok is, egy globális
+  # átállítás után újra kellene párosítani a telefont és az órát.
+  ANDROID_USER_HOME="$(dirname "$keystore")" flutter build apk --release >&2
 )
 apk="apps/phone/build/app/outputs/flutter-apk/app-release.apk"
 

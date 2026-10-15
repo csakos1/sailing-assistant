@@ -948,6 +948,15 @@ ls -l ~/.config/.android/debug.keystore
 PHONE_SIGNING_SHA256=93:87:AC:…   # a keytool SHA256 sora
 ```
 
+- **A kulcs helye a buildnek:** a Gradle a debug-kulcsot az
+  `ANDROID_USER_HOME`-ban keresi (alapból `~/.android/`), és ha ott
+  nincs, csendben újat generál. A `build_phone_apk.sh` ezért a
+  `PHONE_KEYSTORE`-ból (alapból `~/.config/.android/debug.keystore`)
+  dolgozik: a build előtt ellenőrzi az ujjlenyomatát, és csak erre a
+  buildre állítja be az `ANDROID_USER_HOME`-ot. Ha egy build mégis
+  generált kulcsot a `~/.android/` alá, azt nevezd át, ne töröld
+  (2026-10-13: `debug.keystore.stray-*`).
+
 ### 15.2 A VPS előkészítése (egyszer) [gép + VPS]
 
 A Caddy `/app/` útvonala és a `/srv/foretack-app` könyvtár a
@@ -962,8 +971,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://lola.foretack.hu/app/foretack.a
 ### 15.3 Egy kiadás [gép]
 
 1. **Verzió-emelés** egy saját commitban: az `apps/phone/pubspec.yaml`
-   `version:` sora, a `+` utáni szám mindig eggyel nő (`0.2.0+2` →
-   `0.2.1+3`). A telefon csak egy nem kisebb `versionCode`-ot fogad el
+   `version:` sora, a `+` utáni szám mindig eggyel nő (`0.3.0+3` →
+   `0.4.0+4`). A telefon csak egy nem kisebb `versionCode`-ot fogad el
    frissítésként.
 2. **Build és közzététel** (tiszta munkafából):
 
@@ -979,7 +988,7 @@ végül letölti a kint lévő APK-t, és a SHA-256-ját a helyivel veti össze.
 Várt vége:
 
 ```
-==> Kész: 0.2.0+2 a https://lola.foretack.hu/app/foretack.apk címen
+==> Kész: 0.4.0+4 a https://lola.foretack.hu/app/foretack.apk címen
 ```
 
 Egy már megépített APK újra kiadása: `deploy/publish_apk.sh
