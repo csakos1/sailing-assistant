@@ -175,8 +175,11 @@ mintájára egy halk sor jelzi, nem cellánkénti jel.
   szerver zónájától.
 - A korrekció **csak a polár-statisztikát** érinti. A phone nyers
   adatai, a `race_stats` és a track-statok (SOG-alapúak) változatlanok.
+  (Felülírva, ADR 0058 D10: 2026-10-13 óta a telefon élő target-%-a és
+  VMG-je is ugyanezzel a listával korrigál; a tárolt adat nyers marad.)
 - A pontos szorzót a felhasználó adja meg a konfigban; az 1,081 a
-  ~8,1%-os alulmérésből jön, nem kódolt konstans.
+  ~8,1%-os alulmérésből jön, nem kódolt konstans (a telefonon igen, a
+  szerver fájljának tükreként, ADR 0058 D10).
 - A korrekció pure domain-függvény (`StwCorrection` value object +
   `correctStw`), ahogy a VISION J21 a kalibrációt elvárja.
 

@@ -793,6 +793,11 @@ sudoedit /etc/foretack/stw-corrections.json
 sudo systemctl restart foretack-archive    # a polár-cache induláskor újraszámol
 ```
 
+A telefon élő target-%-a és VMG-je ugyanezt a listát használja, Dart-
+konstansként (`packages/data/lib/src/polar/foretack_stw_corrections.dart`,
+ADR 0058 D10). Egy új vagy módosított elem ezért ott is kell, egy
+telefonos kiadással (15. fejezet); különben a telefon és a web eltér.
+
 ### Webes munkamenetek és eszközök [VPS]
 
 ```bash

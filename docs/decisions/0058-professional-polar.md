@@ -4,7 +4,8 @@
 
 Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
 után"), a lookup horgonya és szélső sora is (P.4, lásd „Pontosítás a
-P.4-ben"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.5–P.8).
+P.4-ben"), és az élő STW-szorzó a telefonon (P.5, lásd „Pontosítás a
+P.5-ben"); a többi szelet a `docs/PLAN.md` Blokk P-jében (P.6–P.8).
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
@@ -158,7 +159,8 @@ assetet.
   `1,0`-s elem követi, a szerver fájljában is).
 - A korrekció csak a számolt értékekre hat: target-%, target-VMG
   összevetés, és amit az óra ezekből kap. A telemetria és a pillanatkép
-  a nyers STW-t tárolja, mert a szerver a feltöltéskor korrigál; két
+  a nyers STW-t tárolja, mert a szerver nyersen tárol, és a statisztika
+  számításakor, mintánként (a minta tick-ideje szerint) korrigál; két
   helyen korrigálni kettős korrekció lenne.
 - A `domain` `correctStw` függvénye és `StwCorrection` típusa már
   megvan (ADR 0049), új domain-logika nem kell.
@@ -364,6 +366,36 @@ Felhasználói döntések; a `.pol` formátum nem változik (D8).
   riportjai (a 6. szakaszban a régi polár 4 kn alatti célja is a
   horgonyból jön), a telefon élő %-a és target-VMG-je.
 
+### Pontosítás a P.5-ben (2026-10-13)
+
+- **A D10 szövege javítva:** korábban azt írta, hogy a szerver „a
+  feltöltéskor" korrigál. A szerver nyersen tárol, és a statisztika
+  számításakor korrigál mintánként; a következtetés (a telefon nyers
+  STW-t tárol) változatlan.
+- **A konstans** (javaslat): `foretackStwCorrections` a
+  `packages/data/lib/src/polar/foretack_stw_corrections.dart`-ban, `final`
+  lista (a `StwCorrection` nem lehet `const`), egy elemmel:
+  `2026-07-20T00:00:00+02:00`-tól 1,081, a VPS fájljának tükre. Egy
+  tükörteszt őrzi. A VPS fájljának tényleges tartalmát a P.8 előtt
+  ellenőrizni kell.
+- **Hol számolódik** (felhasználói döntés, „A" változat): az engine
+  számolja a target-%-ot, és a `RaceSnapshot` új `targetSpeedPercent`
+  mezője viszi. A telefon két kijelzője (szabad mód, versenynézet) és
+  az óra-payload ezt olvassa, saját számolás nélkül; a `targetSpeedPercent`
+  függvény a phone-ból a `data`-ba költözött (nem exportált).
+- **Az érvényesség ideje** (javaslat): a tick ideje (élőben a telefon
+  rendszerórája), ahogy a szerveren a minta tick-ideje.
+- **Az élő VMG** (felhasználói döntés): az STW-ága korrigált, mint a
+  target-%. A SOG-fallback nyers marad (javaslat): a szorzó a log
+  alulmérését javítja, nem a GPS-ét.
+- **A kijelzett STW-szám** (felhasználói döntés): nyers marad, hogy
+  egyezzen a fedélzeti plotterrel; a korrekció csak a %-ban és a VMG-ben
+  látszik.
+- A `RaceSnapshot.vmgKnots` mostantól korrigált sebességből jön; a szerver
+  és a web nem olvassa (csak a `boatState` STW-jét), kettős korrekció nincs.
+- A szorzó módosítása mostantól a VPS fájlja **és** egy telefonos kiadás
+  (`deploy/README.md` 12., „Az STW-szorzó módosítása").
+
 ## Mit ír felül
 
 - ADR 0028 Addendum 1 A3 (2 csomós TWS-vödrök 2–24 kn) → D4.
@@ -372,6 +404,11 @@ Felhasználói döntések; a `.pol` formátum nem változik (D8).
   alján.
 - ADR 0028 Addendum 1 A8 (a builder repón kívüli szkript) → D9.
 - A 2026-07-17-i, versenyablakos építés (`24b7dc2`) → D1.
+- ADR 0028 Addendum 3 C4 (a %-ot a `buildWatchPayload` és a rács egy
+  közös segédből számolja) → D10: az engine számolja
+  (`RaceSnapshot.targetSpeedPercent`), a hívók csak olvassák.
+- ADR 0049 D6 „a korrekció csak a polár-statisztikát érinti" → D10: a
+  telefon élő target-%-át és VMG-jét is, ugyanazzal a listával.
 
 ## Következmények
 

@@ -126,7 +126,7 @@ közvetlenül nem pusholunk rá.
 = ismert minta ismétlése · *közepes* = új tervezési döntés vagy új API · *magas*
 = új domain-alrendszer, vagy sok ismeretlen. A becslések nem mérések.
 
-**ADR-számok:** a következő szabad szám a **0058**; a **0043** a rajt-időzítőnek
+**ADR-számok:** a következő szabad szám a **0059**; a **0043** a rajt-időzítőnek
 van fenntartva. A blokkok új ADR-jei sorban kapják a számot, amikor elkészülnek.
 
 ---
@@ -224,7 +224,7 @@ polár-verzió nem kell** (a régi B2.1 polár-fele ⚪).
 | P.2 | **Polár-ADR**: módszer, tengelyek, simítás, adatforrás, súlyozás, percentilis | 1–2 | közepes | 💻 | `[x]` ADR 0058 |
 | P.3 | **Polár-builder** az ADR 0058 szerint (`apps/web_server/bin/build_polar.dart`), tesztekkel | 2–3 | magas | 💻 🗄 | `[x]` szűrők és simítás hangolva (AWA, beragadt szélirány, mély hátszeles VMG, 180°-os sor, 20°, 5 perces cella) |
 | P.4 | Domain: a 0 csomós horgony a `LookupTargetSpeed`-ben (ADR 0058 D5), és a cél ne terjedjen ki az üres 180°-os sor felé (ADR 0058 „A lezárás előtt”); a `.pol` formátum nem változik (D8) | 1 | közepes | 💻 | `[x]` ADR 0058 „Pontosítás a P.4-ben” |
-| P.5 | **Élő STW-korrekció a telefonon**: a szerverrel azonos szorzó-konstans, csak a számolt értékekre (ADR 0058 D10) | 1–2 | közepes | 💻 📱 | `[ ]` |
+| P.5 | **Élő STW-korrekció a telefonon**: a szerverrel azonos szorzó-konstans, csak a számolt értékekre (ADR 0058 D10) | 1–2 | közepes | 💻 📱 | `[x]` ADR 0058 „Pontosítás a P.5-ben” |
 | P.6 | Az új polár a telefon assetjébe és a szerver polár-fájljába; a webes polár-cache újraszámolása | 1–2 | közepes | 💻 📱 | `[ ]` |
 | P.7 | Ellenőrzés: a riport az új polárral (a mért cellák 100% körül, a gyenge szél 4 kn alatt is) | 1 | alacsony | 💻 | `[ ]` |
 | P.8 | Kiadás: szerver (`deploy/deploy.sh`) + legénységi APK (ADR 0053) | 0 | alacsony | 📱 | `[ ]` |
@@ -549,7 +549,7 @@ D1 (a billentyűzet-hiba a `deferred.md`-ben); D2 (a terv és a leltár a
 ## 13. Haladás-követés
 
 ```
-Blokk P  Profi polar               [x][x][x][x][x][ ][ ][ ][ ]      5/9
+Blokk P  Profi polar               [x][x][x][x][x][x][ ][ ][ ]      6/9
 Blokk T  Next-mark TWA predikcio   [ ][ ][ ][ ][ ][ ][ ][ ]         0/8
 Blokk U  UI-maradek, hibak         [ ][ ][ ][ ][ ][ ]               0/6
 Blokk 2  Adat-higienia             [ ][ ][ ][ ][ ][ ][ ]            0/7
@@ -597,3 +597,4 @@ git log --oneline -10
 | 2026-10-13 | Új szűrő: mély hátszélben (`|TWA|` ≥ 135°) a TWS 1,3-szeresénél nagyobb VMG kiesik; diagnosztika az összesítő 8. szakaszában. |
 | 2026-10-13 | A P.3 lezárása előtt: mért cella 5 perctől; a 180°-os sor kiesik (aszimmetrikus spinnaker, beragadt mérő); a TWA menti simítás nem vetít ki egy oldalról. A P.4-re: a lookup ne terjessze ki a célt az üres 180°-os sor felé. |
 | 2026-10-13 | P.3 lezárva. P.4 kész: a 0 csomós horgony a `LookupTargetSpeed`-ben (az első TWS-oszlop alatt arányos, `tws ≤ 0` → nincs cél), és a cél nem terjed ki a teljesen üres szélső TWA-sor felé (a VMG-keresés 175°-nál megáll). |
+| 2026-10-13 | P.5 kész: az élő STW-szorzó a telefonon (`foretackStwCorrections`, 1,081 2026-07-20-tól); a target-%-ot az engine számolja (`RaceSnapshot.targetSpeedPercent`), az élő VMG STW-ága is korrigált, a kijelzett STW és a tárolt adat nyers. Az ADR 0058 D10 szövege javítva (a szerver a számításkor korrigál). A 0.3.0+3 legénységi APK ténylegesen ma ment ki (a gép debug-kulcsának helye miatt elakadt). |

@@ -2763,7 +2763,7 @@ látszik, és a critical-tompító `Opacity`-n kívül marad.
 | Sín 1 | Bearing | `markPrediction` → `bearingToMark` (`Bearing`) | 3 jegy, `095°` | `—` |
 | Sín 2 | Táv | `markPrediction` → `distanceToMark` (`Distance`) | `450 m`; `≥1000 m → 1,85 km` | `—` |
 | Sín 3 | ETA | `markPrediction` → `eta` (`Duration?`) | `<60 p → mm:ss`; `≥60 p → N perc` | `—` |
-| Sín 4 | Cél-seb. | `raceSnapshotProvider` → élő sebesség + `targetSpeedKnots` | egész `%` | `—` |
+| Sín 4 | Cél-seb. | `raceSnapshotProvider` → `targetSpeedPercent` (engine: korrigált STW / nyers SOG, ADR 0058 D10) | egész `%` | `—` |
 | Sín 5 | VMG | `raceSnapshot` → `vmgKnots` / `targetVmgKnots` / `vmgSteerCorrection` | `5,8`, alatta `cél 6,2` + steer-nyíl | `—` |
 | Státuszsor | GPS-idő | true-time forrás (ADR 0012) → `toLocal()` | `HH:mm:ss` | `--:--:--` |
 
@@ -4004,7 +4004,7 @@ class WatchPayload {
   final int? etaSeconds;                // az óra m:ss-re formáz
   final double? distanceMeters;         // az óra m/km-re formáz
   final String? markName;               // az aktív bója neve
-  final double? targetSpeedPercent;     // %; live STW vagy SOG / target * 100 (ADR 0028 Add. 3)
+  final double? targetSpeedPercent;     // %; az engine-é: korrigált STW / nyers SOG / target * 100 (ADR 0058 D10)
   final List<String> criticalWarnings; // csak critical, telefon által lokalizált
   final double? depthAlertMeters;       // sekély-víz mélység, vagy null
   final int depthBuzzCounter;           // monoton; óra a felfutó élén rezeg
@@ -5707,7 +5707,10 @@ A 14. kör hexáinak token-leképezése az ADR 0048 Addendum 1 G7-ben van.
     széleloszlásával súlyozva.
   - Összesítés: a futamok átlaga és az időre súlyozott sor.
   - Az STW-korrekció dátumhoz kötött szorzó a szerver konfigjából
-    (`--stw-corrections`); csak a polár-statisztikát érinti.
+    (`--stw-corrections`). A telefon élő target-%-a és VMG-je ugyanezt
+    a listát használja Dart-konstansként (`foretackStwCorrections`, ADR
+    0058 D10); a tárolt STW mindenhol nyers, a szerver a számításkor
+    korrigál.
   - Domain (Addendum 3): `PolarSample` (`durationSeconds`: 1 vagy 10),
     `StwCorrection`, `SummarizePolarPerformance` →
     `PolarPerformance` (hisztogram, szélvödrök, legjobb 5 mp),
