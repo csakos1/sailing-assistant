@@ -85,6 +85,7 @@ void main() {
       ),
       twdQuality: TwdQuality.held,
       targetSpeedKnots: 6.42,
+      targetSpeedPercent: 97.5,
       vmgKnots: 4.5,
       targetVmgKnots: 5.1,
       vmgSteerCorrection: const Angle(degrees: -2),
@@ -113,6 +114,7 @@ void main() {
       expect(restored.twdQuality, original.twdQuality);
       expect(restored.tickTime, original.tickTime);
       expect(restored.targetSpeedKnots, original.targetSpeedKnots);
+      expect(restored.targetSpeedPercent, original.targetSpeedPercent);
       expect(restored.vmgKnots, original.vmgKnots);
       expect(restored.targetVmgKnots, original.targetVmgKnots);
       expect(restored.vmgSteerCorrection, original.vmgSteerCorrection);
@@ -137,6 +139,17 @@ void main() {
       // ASSERT — a default és a defenzív dekóder is unavailable.
       expect(minimal.twdQuality, TwdQuality.unavailable);
       expect(restored.twdQuality, TwdQuality.unavailable);
+    });
+
+    test('an old payload without targetSpeedPercent decodes to null', () {
+      // ARRANGE
+      final json = fullSnapshot().toJson()..remove('targetSpeedPercent');
+
+      // ACT
+      final restored = RaceSnapshot.fromJson(json);
+
+      // ASSERT
+      expect(restored.targetSpeedPercent, isNull);
     });
 
     test('a mélység-kulcsok nélküli régi payload nem hasal el', () {

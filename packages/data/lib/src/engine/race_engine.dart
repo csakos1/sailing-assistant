@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:data/src/engine/race_snapshot.dart';
 import 'package:data/src/engine/snapshot_logger.dart';
+import 'package:data/src/engine/target_speed_percent.dart';
 import 'package:data/src/nmea/client/raw_nmea_line_source.dart';
+import 'package:data/src/polar/foretack_stw_corrections.dart';
 import 'package:domain/domain.dart';
 
 /// A háttér-adatfolyam egy-tulajdonos orchestrátora (ADR 0017 D1).
@@ -24,7 +26,8 @@ import 'package:domain/domain.dart';
 /// nélkül replay-tesztelhető.
 class RaceEngine {
   /// Engine az injektált forrással és telemetria-loggerrel. A `tickSource`
-  /// teszt-seam: ha `null`, belső 1 Hz-es `Stream.periodic` jár.
+  /// teszt-seam: ha `null`, belső 1 Hz-es `Stream.periodic` jár. A
+  /// `stwCorrections` is az: ha `null`, a [foretackStwCorrections] él.
   RaceEngine({
     required NmeaStream nmeaStream,
     required TelemetryLogger telemetryLogger,
@@ -32,11 +35,13 @@ class RaceEngine {
     Stream<DateTime>? tickSource,
     Duration windWindow = const Duration(minutes: 10),
     DateTime Function() now = DateTime.now,
+    List<StwCorrection>? stwCorrections,
   }) : _nmeaStream = nmeaStream,
        _telemetryLogger = telemetryLogger,
        _snapshotLogger = snapshotLogger,
        _windWindow = windWindow,
        _now = now,
+       _stwCorrections = stwCorrections ?? foretackStwCorrections,
        _tickSource =
            tickSource ??
            Stream<DateTime>.periodic(const Duration(seconds: 1), (_) => now());
@@ -47,6 +52,7 @@ class RaceEngine {
   final Stream<DateTime> _tickSource;
   final Duration _windWindow;
   final DateTime Function() _now;
+  final List<StwCorrection> _stwCorrections;
 
   // Állapotmentes, megosztható domain-egységek (const példányok).
   static const _boatReducer = BoatStateReducer();
@@ -303,7 +309,8 @@ class RaceEngine {
       isConnected: connectionStatus is Connected,
     );
     final targetSpeedKnots = _targetSpeedKnots();
-    final vmgKnots = _vmgKnots();
+    final performanceSpeed = _performanceSpeedMetersPerSecond(tick);
+    final vmgKnots = _vmgKnots(performanceSpeed);
     final targetVmg = _targetVmg();
     final targetVmgKnots = targetVmg?.vmgKnots;
     final vmgSteerCorrection = _vmgSteerCorrection(targetVmg);
@@ -323,6 +330,10 @@ class RaceEngine {
       windShiftTrend: trend,
       twdQuality: _lastTwdQuality,
       targetSpeedKnots: targetSpeedKnots,
+      targetSpeedPercent: targetSpeedPercent(
+        liveSpeedMetersPerSecond: performanceSpeed,
+        targetSpeedKnots: targetSpeedKnots,
+      ),
       vmgKnots: vmgKnots,
       targetVmgKnots: targetVmgKnots,
       vmgSteerCorrection: vmgSteerCorrection,
@@ -362,25 +373,31 @@ class RaceEngine {
     );
   }
 
-  /// Az élő VMG (kn) a vízhez mért szélből és a hajósebességből, vagy `null`,
-  /// ha hiányzik a water-referenciájú TWA vagy nincs sebesség. A sebesség STW,
-  /// SOG-fallbackkel (ADR 0028 Addendum 3); a `Speed` m/s, a `ComputeVmg`
-  /// kn-ben dolgozik, ezért konvertálunk.
-  double? _vmgKnots() {
-    final wind = _wind;
-    if (wind == null) {
-      return null;
+  /// A target-% és az élő VMG sebessége m/s-ban a [tick] idejében, vagy
+  /// `null`, ha nincs sebesség. STW, SOG-fallbackkel (ADR 0028 Addendum 3).
+  /// Az STW a szerverével azonos szorzóval korrigált (ADR 0058 D10); a
+  /// SOG nem, mert a szorzó a log alulmérését javítja, nem a GPS-ét. A
+  /// snapshot `boatState`-je nyers marad: a szerver abból, mintánként
+  /// korrigál, két helyen korrigálni kettős korrekció lenne.
+  double? _performanceSpeedMetersPerSecond(DateTime tick) {
+    final stw = _boatState.speedThroughWater;
+    if (stw != null) {
+      return correctStw(stw.metersPerSecond, tick, _stwCorrections);
     }
-    final twa = wind.trueAngleWater;
-    if (twa == null) {
-      return null;
-    }
-    final speed = _boatState.speedThroughWater ?? _boatState.speedOverGround;
-    if (speed == null) {
+    return _boatState.speedOverGround?.metersPerSecond;
+  }
+
+  /// Az élő VMG (kn) a vízhez mért szélből és a [speedMetersPerSecond]
+  /// teljesítmény-sebességből, vagy `null`, ha hiányzik a water-referenciájú
+  /// TWA vagy nincs sebesség. A `ComputeVmg` kn-ben dolgozik, ezért
+  /// konvertálunk.
+  double? _vmgKnots(double? speedMetersPerSecond) {
+    final twa = _wind?.trueAngleWater;
+    if (twa == null || speedMetersPerSecond == null) {
       return null;
     }
     return _computeVmg(
-      boatSpeedKnots: speed.metersPerSecond * _knotsPerMps,
+      boatSpeedKnots: speedMetersPerSecond * _knotsPerMps,
       twaDegrees: twa.degrees,
     );
   }
