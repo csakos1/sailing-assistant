@@ -27,7 +27,7 @@ class FreeModeGrid extends StatelessWidget {
     required this.hasValues,
     required this.speedThroughWater,
     required this.speedOverGround,
-    required this.targetSpeedKnots,
+    required this.targetSpeedPercent,
     required this.vmgKnots,
     required this.targetVmgKnots,
     required this.vmgSteerCorrection,
@@ -45,8 +45,9 @@ class FreeModeGrid extends StatelessWidget {
   /// A föld szerinti sebesség (SOG), az STW hiányában ez látszik.
   final Speed? speedOverGround;
 
-  /// A polár cél-sebessége csomóban, vagy `null` (nincs polár, no-go).
-  final double? targetSpeedKnots;
+  /// Az engine target-%-a, vagy `null` (nincs polár, no-go, nincs
+  /// sebesség).
+  final double? targetSpeedPercent;
 
   /// Az élő VMG csomóban, vagy `null`.
   final double? vmgKnots;
@@ -74,10 +75,6 @@ class FreeModeGrid extends StatelessWidget {
     final isSpeedOverGround =
         hasValues && speedThroughWater == null && speedOverGround != null;
     final speed = isSpeedOverGround ? speedOverGround : speedThroughWater;
-    final targetPercent = targetSpeedPercent(
-      liveSpeedMetersPerSecond: speed?.metersPerSecond,
-      targetSpeedKnots: targetSpeedKnots,
-    );
     final vmgTarget = hasValues ? formatVmgTarget(targetVmgKnots) : null;
     final steerSide = arrowSideFromSign(vmgSteerCorrection?.degrees);
 
@@ -116,7 +113,7 @@ class FreeModeGrid extends StatelessWidget {
                 child: MainColumnCell(
                   label: l10n.liveTargetSpeed,
                   child: value(
-                    shown(formatTargetSpeedPercent(targetPercent)),
+                    shown(formatTargetSpeedPercent(targetSpeedPercent)),
                     numeralLargeStyle,
                   ),
                 ),

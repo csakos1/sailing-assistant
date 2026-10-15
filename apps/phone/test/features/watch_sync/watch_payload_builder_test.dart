@@ -47,7 +47,7 @@ void main() {
       WindData? windData,
       MarkPrediction? prediction,
       TwdQuality twdQuality = TwdQuality.unavailable,
-      double? targetSpeedKnots,
+      double? targetSpeedPercent,
       double? vmgSteerCorrection,
       double? depthAlertMeters,
       int depthBuzzCounter = 0,
@@ -63,7 +63,7 @@ void main() {
         windData: windData,
         prediction: prediction,
         twdQuality: twdQuality,
-        targetSpeedKnots: targetSpeedKnots,
+        targetSpeedPercent: targetSpeedPercent,
         vmgSteerCorrection: vmgSteerCorrection,
         depthAlertMeters: depthAlertMeters,
         depthBuzzCounter: depthBuzzCounter,
@@ -191,32 +191,28 @@ void main() {
       expect(live, isNot(equals(held)));
     });
 
-    test('a cél-sebesség %-a az STW-ből és a célból számol', () {
-      // ARRANGE — STW 3 m/s (= 5.831532 kn), cél 7 kn.
+    test('passes the engine target percent through unchanged', () {
+      // ARRANGE: the engine already corrected the STW (ADR 0058 D10); the
+      // builder must not recompute it from the raw boat state.
       const stw = Speed(metersPerSecond: 3);
       final boat = BoatState(lastUpdate: now, speedThroughWater: stw);
 
       // ACT
-      final payload = build(boatState: boat, targetSpeedKnots: 7);
+      final payload = build(boatState: boat, targetSpeedPercent: 126.08);
 
-      // ASSERT — 5.831532 / 7 * 100.
-      expect(payload.targetSpeedPercent, closeTo(83.3076, 1e-3));
+      // ASSERT
+      expect(payload.targetSpeedPercent, 126.08);
     });
 
-    test('cél nélkül vagy sebesség nélkül a % null', () {
-      // ARRANGE / ACT — van STW, de nincs cél.
+    test('without an engine percent the payload percent is null', () {
+      // ARRANGE / ACT: there is an STW, but no percent.
       const stw = Speed(metersPerSecond: 3);
-      final boat = BoatState(lastUpdate: now, speedThroughWater: stw);
-      final noTarget = build(boatState: boat);
-      // Van cél, de nincs sebesség.
-      final noSpeed = build(
-        boatState: BoatState(lastUpdate: now),
-        targetSpeedKnots: 7,
+      final payload = build(
+        boatState: BoatState(lastUpdate: now, speedThroughWater: stw),
       );
 
       // ASSERT
-      expect(noTarget.targetSpeedPercent, isNull);
-      expect(noSpeed.targetSpeedPercent, isNull);
+      expect(payload.targetSpeedPercent, isNull);
     });
 
     for (final (source, trusted) in const <(TrueTimeSource, bool)>[

@@ -142,6 +142,7 @@ RaceSnapshot _snapshot({
   ConnectionStatus status = const Connected(),
   DateTime? lastUpdate,
   Speed? stw = const Speed(metersPerSecond: 3.3),
+  double? targetSpeedPercent = 94.3,
 }) => RaceSnapshot(
   eventCount: 120,
   boatState: BoatState(
@@ -153,6 +154,7 @@ RaceSnapshot _snapshot({
   raceId: raceId,
   raceStatus: raceStatus,
   targetSpeedKnots: 6.8,
+  targetSpeedPercent: targetSpeedPercent,
   vmgKnots: 5.8,
   targetVmgKnots: 6.2,
 );
@@ -276,6 +278,8 @@ void main() {
       expect(find.text('450 m'), findsOneWidget);
       expect(find.text('07:32'), findsOneWidget);
       expect(find.text('cél 6,2'), findsOneWidget);
+      // The engine percent, rounded.
+      expect(find.text('94%'), findsOneWidget);
       // A BEARING cella megszunt, helyen a sebesseg.
       expect(find.text('BEARING'), findsNothing);
       expect(find.text('095°'), findsNothing);
@@ -353,6 +357,8 @@ void main() {
           raceId: 'r1',
           raceStatus: RaceStatus.active,
           stw: null,
+          // Without a speed the engine sends no percent.
+          targetSpeedPercent: null,
         ),
         wind: _wind(),
       );

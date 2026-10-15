@@ -210,10 +210,7 @@ class _RaceInstrumentsViewState extends ConsumerState<RaceInstrumentsView> {
     final speed = isSpeedOverGround
         ? boat?.speedOverGround
         : boat?.speedThroughWater;
-    final targetPercent = targetSpeedPercent(
-      liveSpeedMetersPerSecond: speed?.metersPerSecond,
-      targetSpeedKnots: snapshot?.targetSpeedKnots,
-    );
+    final targetPercent = snapshot?.targetSpeedPercent;
     final steerSide = arrowSideFromSign(snapshot?.vmgSteerCorrection?.degrees);
     final vmgTarget = formatVmgTarget(snapshot?.targetVmgKnots);
     return Row(
