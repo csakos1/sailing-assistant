@@ -2,12 +2,13 @@
 
 ## Státusz
 
-Elfogadva — 2026-10-13. A builder kész (P.3, lásd „Pontosítás a kód
+Elfogadva — 2026-10-13, kiadva a `0.4.0+4`-gyel 2026-10-15-én (P.8). A
+builder kész (P.3, lásd „Pontosítás a kód
 után"), a lookup horgonya és szélső sora is (P.4, lásd „Pontosítás a
 P.4-ben"), az élő STW-szorzó a telefonon (P.5, lásd „Pontosítás a
 P.5-ben"), az új polár az assetben (P.6, lásd „Pontosítás a P.6-ban"),
 és az ellenőrző riport is lefutott (P.7, lásd „Ellenőrzés a P.7-ben"); a
-kiadás a `docs/PLAN.md` Blokk P-jének P.8-a.
+kiadás a `docs/PLAN.md` Blokk P-jének P.8-a (ADR 0053 „Kiadás 0.4.0+4").
 
 A döntések egy része felhasználói döntés (2026-10-13), más része Claude
 javaslata. A javaslatokat a pontok „(javaslat)" jelzéssel hordozzák.
