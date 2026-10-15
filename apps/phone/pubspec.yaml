@@ -1,7 +1,7 @@
 name: phone
 description: Sailing Assistant phone app (race-time UI for the Pixel).
 publish_to: none
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.11.0
