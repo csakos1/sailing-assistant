@@ -12,8 +12,9 @@ import 'package:meta/meta.dart';
 /// Addendum 3 T2–T5).
 ///
 /// Egy minta akkor számít, ha a TWA, a TWS és az STW megvan, véges és a
-/// sebességek nem negatívak; a TWS nem tüske (T3); és a polárnak van
-/// pozitív cél-STW-je ehhez a szélhez (a no-go zónát a
+/// sebességek nem negatívak; a TWS legalább
+/// [PolarPerformanceRules.minimumTwsKnots]; a TWS nem tüske (T3); és a
+/// polárnak van pozitív cél-STW-je ehhez a szélhez (a no-go zónát a
 /// [LookupTargetSpeed] `null`-ja zárja ki). A teljesítmény
 /// `100 × korrigált STW / cél-STW`.
 ///
@@ -68,6 +69,7 @@ class SummarizePolarPerformance {
     if (!twa.isFinite || !_isValidSpeed(tws) || !_isValidSpeed(stw)) {
       return null;
     }
+    if (_knotsOf(tws) < PolarPerformanceRules.minimumTwsKnots) return null;
     final target = _lookupTargetSpeed(
       polar: polar,
       twaDegrees: twa,

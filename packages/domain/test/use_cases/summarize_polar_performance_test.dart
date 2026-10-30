@@ -97,6 +97,23 @@ void main() {
       expect(performance.measuredSeconds, 3);
     });
 
+    test('samples below the minimum wind', () {
+      // Given: elhalo szel; a cel 2 kn alatt csak extrapolacio. A
+      // szomszedos TWS-ek 5 kn-on belul vannak, igy a tuske-szuro nem jelez.
+      final samples = [
+        sample(0, twsKnots: 1.9),
+        sample(1, twsKnots: 0.5, stwKnots: 2),
+        sample(2, twsKnots: 2),
+        sample(3, twsKnots: 2.5),
+      ];
+
+      // When
+      final performance = run(samples);
+
+      // Then: a 2 es a 2,5 kn-os minta szamit
+      expect(performance.measuredSeconds, 2);
+    });
+
     test('a TWS spike against its rolling median', () {
       // Given: egy 68 kn-os tuske 10 kn-os szelben (a Kekszalag-eset)
       final samples = [
@@ -170,6 +187,18 @@ void main() {
       // Given: a 3. masodperc hianyzik
       final samples = [
         for (final second in [0, 1, 2, 4, 5, 6]) sample(second, stwKnots: 5),
+      ];
+
+      // Then
+      expect(run(samples).bestFiveSecondsPct, isNull);
+    });
+
+    test('is broken by a lull below the minimum wind', () {
+      // Given: 3 kn-os szel, a 3. masodpercben 1,5 kn-ra all le, a hajo
+      // siklik (a tuske-szuro 5 kn-os kuszobe alatt)
+      final samples = [
+        for (var second = 0; second < 7; second++)
+          sample(second, stwKnots: 3, twsKnots: second == 3 ? 1.5 : 3),
       ];
 
       // Then

@@ -32,4 +32,10 @@ abstract final class PolarPerformanceRules {
 
   /// A „Legjobb 5 mp" futamának hossza másodpercben (D8).
   static const int bestRunSeconds = 5;
+
+  /// Ez alatti TWS-nél (csomó) a minta nem polár-minta (ADR 0058,
+  /// „Pontosítás a kiadás után"). A polár első mért oszlopa 2 kn;
+  /// alatta a cél csak a horgony extrapolációja, és egy elhaló szélben a
+  /// még sikló hajó 200–460%-ot adna.
+  static const double minimumTwsKnots = 2;
 }
