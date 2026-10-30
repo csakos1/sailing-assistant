@@ -601,3 +601,4 @@ git log --oneline -10
 | 2026-10-15 | P.6 kész: az új, simított polár az assetben (a szerver a kiadáskor ugyanezt kapja), egy őrteszttel a beépített fájl alakjára. |
 | 2026-10-15 | P.7 kész: az ellenőrző riport szerint a mért cellák 4–20 kn-ban a cél 95–105%-án vannak, 4 kn alatt is van cél, és a polár sima. Ismert eltérések: a kiszűrt gyenge szeles hátszél-minták a weben is 100% fölé mehetnek, a 170–175°-os sor erős szélben kevés adatból áll (ADR 0058 „Ellenőrzés a P.7-ben”). |
 | 2026-10-15 | P.8: a Blokk P lezárva, kiadás `0.4.0+4`-gyel (szerver és legénységi APK a merge után a `main`-ről). A `build_phone_apk.sh` a build előtt ellenőrzi a debug-kulcs ujjlenyomatát és helyét (ADR 0053 „A kulcs helye a buildben”). |
+| 2026-10-30 | A kiadás után: a web polár-statisztikája a 2 kn alatti mintát kihagyja (a legjobb 5 mp 270–460% volt egy elhaló szélben; ADR 0058 „Pontosítás a kiadás után”). Csak szerver-kiadás. |

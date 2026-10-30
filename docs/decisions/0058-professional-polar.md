@@ -450,6 +450,24 @@ Ismert eltérések, amelyek a kiadást nem akasztják (felhasználói döntés,
 - **20 kn fölött kreuzban** a kevés (1–3 perces) mért cellában 83–93%; a
   25 kn-os oszlop a 20-asét tartja.
 
+### Pontosítás a kiadás után (2026-10-30)
+
+- **Tünet:** a 0.4.0+4 után a web „Legjobb 5 mp”-je az idei Kékszalagon
+  270%, egy új versenyen 462,9%. Ok: a 2 kn alatti, horgonyos cél (D5)
+  egy elhaló szélben nullához tart, a még sikló hajó %-a ezért öt
+  másodpercig többszáz. A régi polár ezt a 4 kn-os oszlop kiterjesztésével
+  elfedte.
+- **Döntés (felhasználói, „A” változat):** a web polár-statisztikája a
+  2 kn alatti TWS-ű mintát nem számolja (`PolarPerformanceRules.minimumTwsKnots`,
+  a no-go-hoz hasonlóan kiesik, és megszakítja a legjobb 5 mp futamát). A 2
+  kn a polár első mért oszlopa. A szabály a cache-ujjlenyomat része, a
+  szerver induláskor újraszámol.
+- **Az élő kijelző nem változik:** ott a P.4 szerint 2 kn alatt is van
+  durva cél, egy elhaló szélben a % pár másodpercig ugrálhat. APK nem kell.
+- **Ami marad:** a 2–3 kn-os mély hátszél kiszűrendő mintái (P.7) a
+  weben továbbra is 100% fölé vihetik a gyenge szeles %-ot; a D6 szűrői a
+  webes statisztikában nincsenek.
+
 ## Mit ír felül
 
 - ADR 0028 Addendum 1 A3 (2 csomós TWS-vödrök 2–24 kn) → D4.
