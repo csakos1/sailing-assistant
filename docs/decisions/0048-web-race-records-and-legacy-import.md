@@ -1887,3 +1887,59 @@ változatot választotta.
 - **ADR 0049 Addendum 1 P1 és ADR 0050 Addendum 3 G1:** a Statisztika és
   az Export ikon-gombjai most feliratos ghost gombok.
 - **ADR 0051 Addendum 1 H4:** a név előtti elválasztó vonal elmarad.
+
+## Addendum 9 — A max. szél képtelen értékei (2026-10-30)
+
+A 0.4.0+4 utáni versenyeken a web max. szele 55,1 kn (Kékszalag Port
+Évadzáró) és 35,7 kn (Tramontana Kupa) volt, mindkettő szélcsendben. A
+diagnosztika (`max_wind_probe.py`, a mentésből) két mintát mutatott:
+
+- **Egy mérés több tickig:** 0,5 kn-os szélben a műszer egyetlen 55 kn-os
+  mérést küldött, és 3 mp-ig nem jött újabb; a pillanatkép 1 Hz-en ezt
+  háromszor rögzítette (a szél kora 0,6 → 1,6 → 2,6 mp), így az 5 mintás
+  medián (L3) tartós szintnek látta.
+- **Friss, de képtelen sorozat:** 1,5 kn-os szélben 6 mp-ig 18–57 kn-os,
+  másodpercenként új mérések, a hajó 1,3 kn-val. Ezt az 5-ös medián sem
+  szűri.
+
+### R1 — Egy mérés egyszer számít (javaslat)
+
+- A `WindSample` megkapja a mérés saját idejét (`messageTime`, a snapshot
+  `wind.timestamp`-je). Az egymás utáni, azonos idejű minták a maximumhoz
+  egy mérést adnak. A `null` idő önálló mérés; a régi napló minden sora
+  önálló (`LegacyTrackSample`).
+
+### R2 — Kiugrás a környezetéhez képest (javaslat)
+
+- A maximum előtt kiesik az a mérés, amely a köré igazított, 61 mérés
+  széles (1 Hz mellett kb. egyperces) alsó medián fölé
+  `max(10 kn, 1,5 × medián)`-nál többel ugrik.
+- **Ami megmarad:** egy 3 mp-es, a szél 2,4-szeresét elérő lökés (10 kn
+  mellett 24 kn), és egy fél percnél tovább tartó front (8 kn után 35 kn),
+  mert az a mediánt is felhúzza.
+- **Ami kiesik:** egy fél percnél rövidebb ugrás a szél 2,5-szöröse és
+  +10 kn fölé. Balatoni frontnál ez ritka; ha valaha valódi lökést vágna,
+  a küszöb a `SummarizeWind`-ben egy helyen állítható.
+
+### R3 — Amit nem érint
+
+- Az átlagos szél és az irány nyers marad (L3); a 4–6 mp-es zaj egy
+  több ezer mintás versenyen nem mozdítja el őket.
+- A polár-statisztika tüske-szűrője (ADR 0049 Addendum 3 T3) változatlan:
+  a zaj ott a nagy cél miatt alacsony %-ot ad, nem magasat.
+
+### R4 — A meglévő sorok újraszámolása (javaslat)
+
+- A `race_stats` sorai képlet-verziót nem hordoznak, és egy hiányzó sort a
+  `GET` minden kérésnél memóriában számolna. Ezért egy új CLI számol újra
+  minden befejezett versenyt: `refresh_race_stats` (`RaceStatsRefresher.
+  refreshAll`), a szerver leállítása mellett, a kiadás után egyszer
+  (`deploy/README.md` 12.). Képlet-verzió a cache-be akkor kerül, ha ez
+  gyakrabban kell.
+- A régi trackek sorai (ADR 0050) a saját frissítésükkel számolódnak újra;
+  a 10 mp-es mediánokban ilyen zaj nem volt.
+
+### Mit ír felül
+
+- **Addendum 5 L3:** a maximum mérésekből (nem tickekből) és a kiugrások
+  nélkül számol; az 5 mintás csúszó medián marad.
