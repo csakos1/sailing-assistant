@@ -152,6 +152,36 @@ void main() {
     });
   });
 
+  group('RaceStatsRefresher.refreshAll', () {
+    test('recomputes even a fresh row and counts the races', () async {
+      // ARRANGE: egy friss, de rossz sor (a regi keplet eredmenye)
+      await seedArchiveRace(databases.archive, finishedArchiveRace('r1'));
+      await stats.put(
+        'r1',
+        CachedRaceStats(
+          window: RecordingWindow(recording),
+          track: const TrackStats(maxSpeedMps: 99),
+          wind: const WindStats(maxWindMps: 28),
+          computedAt: DateTime.utc(2026, 9),
+        ),
+      );
+
+      // ACT
+      final refreshed = await refresher.refreshAll();
+
+      // ASSERT
+      expect(refreshed, 1);
+      final cached = await stats.get('r1');
+      expect(cached?.track.maxSpeedMps, 5);
+      expect(cached?.wind.maxWindMps, 5);
+      expect(cached?.computedAt, computedAt);
+    });
+
+    test('counts nothing without finished races', () async {
+      expect(await refresher.refreshAll(), 0);
+    });
+  });
+
   group('RaceStatsRefresher.refreshIfStale', () {
     test('does nothing for a race that is not archived', () async {
       await refresher.refreshIfStale('missing');

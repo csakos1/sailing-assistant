@@ -22,6 +22,7 @@ entry_points=(
   end_sessions
   build_geoip
   import_race_db
+  refresh_race_stats
   import_legacy_races
   import_legacy_tracks
 )

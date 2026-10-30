@@ -67,6 +67,23 @@ class RaceStatsRefresher {
     await _refresh(raceId, expected);
   }
 
+  /// Minden befejezett verseny újraszámolása, a sor frissességétől
+  /// függetlenül; a sikeresen újraszámolt versenyek számát adja.
+  ///
+  /// A `race_stats` sorai képlet-verziót nem hordoznak (ADR 0048 Addendum
+  /// 5 L3): egy képlet-változás után ez frissíti a meglévő sorokat
+  /// (`bin/refresh_race_stats.dart`, Addendum 9 R4).
+  Future<int> refreshAll() async {
+    final results = await _results.getAll();
+    var refreshed = 0;
+    for (final race in await _finishedRaces()) {
+      final expected = _expectedWindowOf(race, results[race.id]?.content);
+      if (expected == null) continue;
+      if (await _refresh(race.id, expected)) refreshed++;
+    }
+    return refreshed;
+  }
+
   Future<void> _refreshAfterImport(ImportReport report) async {
     final changed = {
       for (final race in report.added) race.id,
@@ -92,11 +109,14 @@ class RaceStatsRefresher {
     return expectedStatsWindow(recording: recording, result: result);
   }
 
-  Future<void> _refresh(String raceId, StatsWindow window) async {
+  // Igaz, ha a sor elkészült; a hibát naplózza, és nem engedi tovább.
+  Future<bool> _refresh(String raceId, StatsWindow window) async {
     try {
       await _stats.put(raceId, await _calculate(raceId, window));
+      return true;
     } on Object catch (error) {
       _log('statisztika-frissítés sikertelen ($raceId): $error');
+      return false;
     }
   }
 
