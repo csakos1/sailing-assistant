@@ -47,6 +47,10 @@ final class LegacyTrackSample extends Equatable
   @override
   final double? twdDeg;
 
+  /// A régi napló minden sora önálló mérés: a saját pillanata.
+  @override
+  DateTime get messageTime => timestamp;
+
   /// A valós szélsebesség mediánja (`TWS(med)`) m/s-ben, a polárhoz.
   final double? polarTwsMps;
 

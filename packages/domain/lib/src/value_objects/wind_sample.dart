@@ -14,4 +14,12 @@ abstract interface class WindSample {
   /// A valós szélirány (TWD, talaj-referenciás, földrajzi északtól)
   /// fokban, `[0, 360)` tartományban, vagy `null`.
   double? get twdDeg;
+
+  /// A szél-mérés saját időpontja, vagy `null`, ha nem ismert.
+  ///
+  /// A pillanatkép 1 Hz-en készül, a műszer viszont ritkábban is küldhet:
+  /// ilyenkor egymás utáni minták ugyanazt a mérést viszik tovább. A
+  /// `SummarizeWind` ez alapján egy mérésnek számolja őket (ADR 0048
+  /// Addendum 9 R1). A `null` minta mindig önálló mérés.
+  DateTime? get messageTime;
 }

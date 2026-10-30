@@ -130,6 +130,30 @@ void main() {
     expect([for (final s in samples) s.twsMps], [2.0, 4.0]);
   });
 
+  test('reads the time of the wind reading itself', () async {
+    // ARRANGE - a snapshotAt a tick idejet adja a szel-meresnek is.
+    final tick = DateTime.utc(2026, 5, 1, 10, 0, 3);
+    await logger.log('race-1', snapshotAt(tick, twsMps: 4));
+
+    // ACT
+    final sample = (await reader('race-1', null)).single;
+
+    // ASSERT
+    expect(sample.messageTime, tick);
+    expect(sample.messageTime?.isUtc, isTrue);
+  });
+
+  test('has no reading time without wind', () async {
+    // ARRANGE
+    await logger.log(
+      'race-1',
+      snapshotAt(DateTime.utc(2026, 5, 1, 10, 0, 1), hasWind: false),
+    );
+
+    // ACT / ASSERT
+    expect((await reader('race-1', null)).single.messageTime, isNull);
+  });
+
   test('returns an empty list for an unknown race', () async {
     expect(await reader('nincs-ilyen', null), isEmpty);
   });
