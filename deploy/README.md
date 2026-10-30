@@ -798,6 +798,23 @@ konstansként (`packages/data/lib/src/polar/foretack_stw_corrections.dart`,
 ADR 0058 D10). Egy új vagy módosított elem ezért ott is kell, egy
 telefonos kiadással (15. fejezet); különben a telefon és a web eltér.
 
+### A versenystatisztika újraszámolása [VPS]
+
+A `race_stats` cache sorai képlet-verziót nem hordoznak: egy olyan
+kiadás után, amely a statisztika képletét változtatja (pl. ADR 0048
+Addendum 9), egyszer újra kell számolni őket.
+
+```bash
+F=/opt/foretack/current/bin; D=/var/lib/foretack
+sudo systemctl stop foretack-archive
+sudo -u foretack $F/refresh_race_stats \
+  --archive $D/archive.sqlite --web-db $D/web.sqlite
+sudo systemctl start foretack-archive
+```
+
+Várt vége: `Újraszámolva: <n> verseny`, ahol `n` a befejezett
+telemetriás versenyek száma.
+
 ### Webes munkamenetek és eszközök [VPS]
 
 ```bash

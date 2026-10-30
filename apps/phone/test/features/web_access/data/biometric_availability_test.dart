@@ -14,11 +14,12 @@ class _FakePlugin extends BiometricSignature {
   int createdKeys = 0;
 
   @override
-  Future<BiometricAvailability> biometricAuthAvailable() async =>
-      BiometricAvailability(
-        canAuthenticate: hasFingerprint,
-        hasEnrolledBiometrics: hasFingerprint,
-      );
+  Future<BiometricAvailability> biometricAuthAvailable({
+    BiometricStrength biometricStrength = BiometricStrength.strong,
+  }) async => BiometricAvailability(
+    canAuthenticate: hasFingerprint,
+    hasEnrolledBiometrics: hasFingerprint,
+  );
 
   @override
   Future<KeyCreationResult> createKeys({

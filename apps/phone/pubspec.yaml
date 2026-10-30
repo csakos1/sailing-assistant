@@ -10,7 +10,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  biometric_signature: ^13.2.0
+  biometric_signature: ^13.3.0
   cupertino_icons: ^1.0.8
   data:
     path: ../../packages/data

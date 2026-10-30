@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:domain/src/_internal/centered_rolling_median.dart';
 import 'package:domain/src/_internal/rolling_median_maximum.dart';
 import 'package:domain/src/value_objects/wind_sample.dart';
 import 'package:domain/src/value_objects/wind_stats.dart';
@@ -9,10 +10,15 @@ import 'package:meta/meta.dart';
 /// [WindSample]-mintáiból (ADR 0048 D5).
 ///
 /// - **Átlag:** a nem-null TWS-ek számtani átlaga.
-/// - **Maximum:** a nem-null TWS-ek időrendi sorának 5 mintás csúszó
-///   mediánjaiból a legnagyobb (ADR 0048 Addendum 5 L3). A műszer 1–2
-///   mintás tüskéje (pl. egy AWS-ugrás 0-ról 68 kn-ra) így kiesik, a
-///   legalább 3 mp-es lökés megmarad.
+/// - **Maximum** (ADR 0048 Addendum 5 L3, Addendum 9 R1–R3): a nem-null
+///   TWS-ű mérések időrendi sorából
+///   1. az egymás utáni, ugyanazt a mérést továbbvivő minták egy mérést
+///      adnak (a műszer ritkábban küld, mint a pillanatkép);
+///   2. kiesik az a mérés, amely a köré igazított, kb. egyperces medián
+///      fölé `max(10 kn, 1,5 × medián)`-nál többel ugrik (szélcsendben
+///      egy több mp-es 40–57 kn-os műszer-zaj);
+///   3. a maradék 5 mérés széles csúszó mediánjaiból a legnagyobb. Az 1–2
+///      mérésnyi tüske így kiesik, a legalább 3 mérésnyi lökés megmarad.
 /// - **Irány:** a nem-null TWD-k **körkörös** átlaga: az egységvektorok
 ///   átlagának iránya. A számtani átlag a 359° → 1° átmenetnél 180°-ot
 ///   adna, ugyanaz a hiba, amit a wind-shift trend `unwrap`-ja kezel.
@@ -39,16 +45,38 @@ class SummarizeWind {
   /// szűri ki.
   static const int _spikeFilterWindow = 5;
 
+  /// A kiugrás-szűrő medián-ablaka mérésben: 1 Hz mellett kb. egy perc.
+  /// Egy ennél tovább tartó erős szél (front) a mediánt is felhúzza, így
+  /// megmarad; csak az ennél rövidebb, a környezetéhez képest képtelen
+  /// ugrás esik ki.
+  static const int _outlierWindow = 61;
+
+  /// A medián fölötti legkisebb tiltott ugrás: 10 kn, m/s-ben.
+  static const double _outlierMinimumJumpMps = 10 * 1852 / 3600;
+
+  /// A medián fölötti tiltott ugrás a medián arányában (1,5 × = a medián
+  /// 2,5-szöröse fölött).
+  static const double _outlierJumpFactor = 1.5;
+
   /// A [samples] szél-statisztikája; üres listára minden mező `null`.
   WindStats call(List<WindSample> samples) {
     final speeds = <double>[];
+    final messageSpeeds = <double>[];
+    DateTime? lastMessageTime;
     var sinSum = 0.0;
     var cosSum = 0.0;
     var directionCount = 0;
 
     for (final sample in samples) {
       final tws = sample.twsMps;
-      if (tws != null) speeds.add(tws);
+      if (tws != null) {
+        speeds.add(tws);
+        final messageTime = sample.messageTime;
+        if (messageTime == null || messageTime != lastMessageTime) {
+          messageSpeeds.add(tws);
+        }
+        lastMessageTime = messageTime;
+      }
       final twd = sample.twdDeg;
       if (twd != null) {
         final radians = twd * math.pi / 180;
@@ -63,12 +91,27 @@ class SummarizeWind {
           ? null
           : speeds.reduce((sum, speed) => sum + speed) / speeds.length,
       maxWindMps: rollingMedianMaximum(
-        speeds,
+        _withoutOutliers(messageSpeeds),
         windowSize: _spikeFilterWindow,
       ),
       directionDeg: _meanDirection(sinSum, cosSum, directionCount),
     );
   }
+
+  // A környezetéhez képest képtelen ugrások nélküli mérés-sor (R2).
+  List<double> _withoutOutliers(List<double> speeds) {
+    final medians = centeredRollingMedians(
+      speeds,
+      windowSize: _outlierWindow,
+    );
+    return [
+      for (final (index, speed) in speeds.indexed)
+        if (speed - medians[index] <= _allowedJumpMps(medians[index])) speed,
+    ];
+  }
+
+  double _allowedJumpMps(double medianMps) =>
+      math.max(_outlierMinimumJumpMps, _outlierJumpFactor * medianMps);
 
   double? _meanDirection(double sinSum, double cosSum, int count) {
     if (count == 0) return null;

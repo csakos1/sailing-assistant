@@ -26,6 +26,7 @@ class WindSampleReaderImpl {
     final twsMps = logs.snapshotJson.jsonExtract<double>(_twsPath);
     final twdDeg = logs.snapshotJson.jsonExtract<double>(_twdDegPath);
     final twdRef = logs.snapshotJson.jsonExtract<String>(_twdRefPath);
+    final messageMs = logs.snapshotJson.jsonExtract<int>(_messageTimePath);
 
     var condition = logs.raceId.equals(raceId);
     if (window != null) {
@@ -33,7 +34,7 @@ class WindSampleReaderImpl {
     }
 
     final query = _database.selectOnly(logs)
-      ..addColumns([twsMps, twdDeg, twdRef])
+      ..addColumns([twsMps, twdDeg, twdRef, messageMs])
       ..where(condition)
       ..orderBy([OrderingTerm.asc(logs.timestamp)]);
 
@@ -43,6 +44,7 @@ class WindSampleReaderImpl {
         _ProjectedWindSample(
           twsMps: row.read(twsMps),
           twdDeg: row.read(twdRef) == _trueNorth ? row.read(twdDeg) : null,
+          messageTime: _utcOrNull(row.read(messageMs)),
         ),
     ];
   }
@@ -54,16 +56,25 @@ class WindSampleReaderImpl {
 const _twsPath = r'$.wind.trueSpeedWater';
 const _twdDegPath = r'$.wind.trueDirectionGround.deg';
 const _twdRefPath = r'$.wind.trueDirectionGround.ref';
+// A szél-mérés saját időbélyege epoch-milliszekundumban (`WindData.timestamp`).
+const _messageTimePath = r'$.wind.timestamp';
+
+DateTime? _utcOrNull(int? epochMs) => epochMs == null
+    ? null
+    : DateTime.fromMillisecondsSinceEpoch(epochMs, isUtc: true);
 
 // A `BearingReference.trueNorth` neve, ahogy a `_bearingToJson` írja.
 const _trueNorth = 'trueNorth';
 
 class _ProjectedWindSample implements WindSample {
-  const _ProjectedWindSample({this.twsMps, this.twdDeg});
+  const _ProjectedWindSample({this.twsMps, this.twdDeg, this.messageTime});
 
   @override
   final double? twsMps;
 
   @override
   final double? twdDeg;
+
+  @override
+  final DateTime? messageTime;
 }

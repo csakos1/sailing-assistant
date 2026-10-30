@@ -52,7 +52,8 @@ String polarFingerprint({
       '${PolarPerformanceRules.overflowPercent},'
       '${PolarPerformanceRules.spikeWindowSize},'
       '${PolarPerformanceRules.spikeThresholdKnots},'
-      '${PolarPerformanceRules.bestRunSeconds}',
+      '${PolarPerformanceRules.bestRunSeconds},'
+      '${PolarPerformanceRules.minimumTwsKnots}',
     );
   for (final correction in sorted) {
     header.writeln(

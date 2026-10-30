@@ -1,16 +1,37 @@
 import 'package:domain/domain.dart';
 import 'package:test/test.dart';
 
-// Teszt-minta: csak a ket szel-mennyiseg.
+// Teszt-minta: a ket szel-mennyiseg es a meres ideje.
 class _Sample implements WindSample {
-  const _Sample({this.twsMps, this.twdDeg});
+  const _Sample({this.twsMps, this.twdDeg, this.messageTime});
 
   @override
   final double? twsMps;
 
   @override
   final double? twdDeg;
+
+  @override
+  final DateTime? messageTime;
 }
+
+// Csomo -> m/s.
+double mps(double knots) => knots * 1852 / 3600;
+
+final _start = DateTime.utc(2026, 10, 18, 11);
+
+// Egy 1 Hz-es, onallo meresekbol allo sor a megadott csomokbol, az
+// [offset]-tel a kezdet utan.
+List<_Sample> _series(
+  List<double> knots, {
+  Duration offset = Duration.zero,
+}) => [
+  for (final (second, value) in knots.indexed)
+    _Sample(
+      twsMps: mps(value),
+      messageTime: _start.add(offset + Duration(seconds: second)),
+    ),
+];
 
 void main() {
   const summarize = SummarizeWind();
@@ -63,6 +84,78 @@ void main() {
       // Then: a maximumbol kiesik, az atlagban benne marad.
       expect(stats.maxWindMps, 1.3);
       expect(stats.avgWindMps, closeTo(9.5125, 1e-9)); // 76.1 / 8
+    });
+
+    test('counts a reading held over several ticks as one', () {
+      // Given: 10 kn-os szel, egy 18 kn-os meres harom tickig all, mert a
+      // muszer kozben nem kuldott ujat (a Kekszalag Port evadzaro esete,
+      // kisebb ertekkel, hogy a kiugras-szuro ne lassa).
+      final held = _start.add(const Duration(seconds: 30));
+      final samples = [
+        ..._series(List<double>.filled(30, 10)),
+        for (var tick = 0; tick < 3; tick++)
+          _Sample(twsMps: mps(18), messageTime: held),
+        ..._series(
+          List<double>.filled(30, 10),
+          offset: const Duration(seconds: 33),
+        ),
+      ];
+
+      // When
+      final stats = summarize(samples);
+
+      // Then: egy meres, igy az 5-os median nem latja
+      expect(stats.maxWindMps, closeTo(mps(10), 1e-9));
+    });
+
+    test('drops a burst far above the minute median', () {
+      // Given: 1,5 kn-os szel, kozepen hat mp-es 18-57 kn-os muszer-zaj
+      // (a Tramontana Kupa esete), friss meresekkel.
+      final stats = summarize(
+        _series([
+          ...List<double>.filled(40, 1.5),
+          36,
+          57,
+          22,
+          18,
+          47,
+          6,
+          ...List<double>.filled(40, 1.5),
+        ]),
+      );
+
+      // Then: a 6 kn-os meres a median fole 10 kn-on belul marad, de egy
+      // meresnyi, igy az 5-os median sem latja
+      expect(stats.maxWindMps, closeTo(mps(1.5), 1e-9));
+    });
+
+    test('keeps a three-second gust of two and a half times the wind', () {
+      // Given: 10 kn-os szel, harom mp-es 24 kn-os lokes
+      final stats = summarize(
+        _series([
+          ...List<double>.filled(40, 10),
+          24,
+          24,
+          24,
+          ...List<double>.filled(40, 10),
+        ]),
+      );
+
+      // Then
+      expect(stats.maxWindMps, closeTo(mps(24), 1e-9));
+    });
+
+    test('keeps a front that lasts longer than half a minute', () {
+      // Given: 8 kn utan ket percig 35 kn
+      final stats = summarize(
+        _series([
+          ...List<double>.filled(60, 8),
+          ...List<double>.filled(120, 35),
+        ]),
+      );
+
+      // Then
+      expect(stats.maxWindMps, closeTo(mps(35), 1e-9));
     });
 
     test('uses the lower median when there are fewer than five', () {
