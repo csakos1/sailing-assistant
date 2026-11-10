@@ -4737,7 +4737,6 @@ dependencies:
     path: ../../packages/wearable_bridge
 dev_dependencies:
   drift: ^2.33.0
-  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 ```

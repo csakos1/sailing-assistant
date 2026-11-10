@@ -169,3 +169,44 @@ az `apps/web` `WebLayout` osztályában, nem tokenek.
 - A live-számok **tabular figures**-szel renderelnek
   (`FontFeature.tabularFigures()` vagy a SemiCondensed tabuláris variáns), hogy
   a számjegyek ne ugráljanak 1–2 Hz-es frissülésnél.
+
+## App-ikon
+
+Az indítóikon az S3c „Plakát · nagy nap” (Claude Design, 2026-11-10):
+éjkék égen borostyán napkorong, előtte a hajó és a bója sziluettje, alul
+türkiz víz horizontsávokkal. Három szín, átmenet és kontúr nélkül:
+
+| Szín | Hex | Honnan |
+|---|---|---|
+| éjkék | `#0A1A2F` | a korábbi ikon háttere |
+| borostyán | `#E0A82E` | a telefon `conf-med` tokenje |
+| türkiz | `#1E9FB5` | a telefon `accent` tokenje |
+
+- **Forrás:** `docs/design/app-icon.svg`, az adaptív ikon 108-as rácsán,
+  két csoporttal: `bg` (ég, nap, víz) és `fg` (hajó, bója). A launcher a
+  középső 72 egységet mutatja; a hajó és a bója a 66-os biztonsági körön
+  belül van.
+- **Android:** a két réteg a forrásból átírt `VectorDrawable`
+  (`res/drawable/ic_launcher_background.xml` és
+  `ic_launcher_foreground.xml`), a `mipmap-anydpi-v26/ic_launcher.xml`
+  fogja össze őket. A telefon és az óra `res` mappájában ugyanaz a három
+  fájl áll: a két app külön Android-projekt, közös `res` nincs.
+- **Miért vektor:** az Android 12+ indítóképernyő nagyban mutatja az
+  ikont, és ott a 432 px-es bitmap elmosódna. Ezért került ki a
+  `flutter_launcher_icons`; a rétegeket nem eszköz generálja.
+- **Monokróm réteg nincs** (felhasználói döntés, 2026-11-10). Témázott
+  ikont Android 16 QPR2-től a rendszer maga állít elő.
+- **Régi (API < 26) ikon:** a `mipmap-*/ic_launcher.png` a rács középső
+  72 egysége. Ha a forrás változik, a két vektort követni kell, a PNG-ket
+  pedig újra kell renderelni:
+
+  ```bash
+  sed 's/viewBox="0 0 108 108"/viewBox="18 18 72 72"/' \
+    docs/design/app-icon.svg > /tmp/app-icon-72.svg
+  for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+    for app in phone watch; do
+      rsvg-convert -w "${d#*:}" -h "${d#*:}" /tmp/app-icon-72.svg \
+        -o "apps/$app/android/app/src/main/res/mipmap-${d%:*}/ic_launcher.png"
+    done
+  done
+  ```
