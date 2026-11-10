@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Az app-ikon háttér-rétege (S3c „Plakát · nagy nap”): éjkék ég, borostyán
+     napkorong, türkiz víz horizontsávokkal és a nap tükröződésével.
+     Forrás: docs/design/app-icon.svg, `bg` csoport — a forrásból átírt vektor,
+     a forrással együtt kell változnia (docs/design-system.md „App-ikon”).
+     A 108-as rács a teljes réteg; a launcher a középső 72-t mutatja. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0A1A2F"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#E0A82E"
+        android:pathData="M27.5 49.5C27.5 34.86 39.36 23 54 23C68.64 23 80.5 34.86 80.5 49.5C80.5 64.14 68.64 76 54 76C39.36 76 27.5 64.14 27.5 49.5Z" />
+    <path
+        android:fillColor="#1E9FB5"
+        android:pathData="M0,62.6h108v45.4h-108z" />
+    <path
+        android:fillColor="#0A1A2F"
+        android:pathData="M0,72.4h108v1.1h-108z M0,78.6h108v1.8h-108z M0,85.6h108v2.8h-108z M0,94h108v4.2h-108z M0,103.5h108v5h-108z" />
+    <path
+        android:fillColor="#E0A82E"
+        android:pathData="M37,68.9h34v1.5h-34z M42,75.2h24v1.8h-24z M46.5,81.9h15v2.2h-15z M49.75,90h8.5v2.4h-8.5z" />
+</vector>
